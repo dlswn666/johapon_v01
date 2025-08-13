@@ -46,16 +46,8 @@ export interface QnA {
     answerDate?: string;
 }
 
-// 커뮤니티 게시글 타입
-export interface CommunityPost {
-    id: number;
-    title: string;
-    content: string;
-    author: string;
-    date: string;
-    category: '일반토론' | '정보공유' | '모임후기' | '공지';
-    views?: number;
-}
+// 커뮤니티 게시글 타입은 entities/community/model/types.ts에서 import
+export type { CommunityPost, AttachedFile } from '../entities/community/model/types';
 
 // 통계 정보 타입
 export interface Stats {
@@ -115,4 +107,9 @@ export interface OrgMember {
     level: number;
     department?: string;
     parentId?: string;
+}
+
+export interface CommunityCategory {
+    id: string;
+    name: string;
 }

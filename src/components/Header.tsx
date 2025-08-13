@@ -3,9 +3,9 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Button } from '@/shared/ui/button';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/shared/ui/sheet';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/shared/ui/collapsible';
 import { Users, MapPin, Building2, Settings, LogOut, Menu, ChevronDown, ChevronUp } from 'lucide-react';
 import { menuItems, adminMenuItems } from '@/lib/mockData';
 
@@ -79,6 +79,32 @@ export default function Header({ isAdmin = true }: HeaderProps) {
         { icon: Users, label: '추진 일정', href: '/timeline', color: 'text-orange-600' },
     ];
 
+    // Build tenant-prefixed hrefs when inside a tenant route (/[homepage]/...)
+    const prefixedHref = (href: string) => {
+        if (!href || href.startsWith('http')) return href;
+        const segments = (pathname || '').split('/').filter(Boolean);
+        const candidate = segments[0] || '';
+        const reserved = new Set([
+            '_next',
+            'api',
+            'admin',
+            'announcements',
+            'office',
+            'chairman-greeting',
+            'organization-chart',
+            'community',
+            'qna',
+            'redevelopment',
+            'redevelopment-process',
+        ]);
+        const isTenant = candidate && !reserved.has(candidate);
+        const isAdminHref = href.startsWith('/admin');
+        if (!isTenant || isAdminHref) return href;
+        // normalize root
+        if (href === '/') return `/${candidate}`;
+        return `/${candidate}${href.startsWith('/') ? href : `/${href}`}`;
+    };
+
     return (
         <>
             {/* Mobile Header */}
@@ -116,7 +142,7 @@ export default function Header({ isAdmin = true }: HeaderProps) {
                                             {mobileMenuItems.map((item) => (
                                                 <Link
                                                     key={item.href}
-                                                    href={item.href}
+                                                    href={prefixedHref(item.href)}
                                                     onClick={() => setMobileMenuOpen(false)}
                                                     className="w-full flex items-center px-4 py-3 text-left rounded-lg hover:bg-gray-100 transition-colors"
                                                 >
@@ -163,7 +189,7 @@ export default function Header({ isAdmin = true }: HeaderProps) {
                                                             {menuCategory.subItems?.map((subItem) => (
                                                                 <Link
                                                                     key={subItem.id}
-                                                                    href={subItem.href}
+                                                                    href={prefixedHref(subItem.href)}
                                                                     onClick={() => {
                                                                         setMobileMenuOpen(false);
                                                                         handleMenuItemClick();
@@ -254,7 +280,7 @@ export default function Header({ isAdmin = true }: HeaderProps) {
                                                 {item.subItems?.map((subItem) => (
                                                     <Link
                                                         key={subItem.id}
-                                                        href={subItem.href}
+                                                        href={prefixedHref(subItem.href)}
                                                         onClick={handleMenuItemClick}
                                                         className="block w-full text-left text-base text-gray-700 hover:text-green-600 transition-colors py-2 px-3 rounded-md hover:bg-green-50"
                                                     >

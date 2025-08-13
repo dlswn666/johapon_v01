@@ -1,9 +1,9 @@
 'use client';
 
 import { Filter, Search } from 'lucide-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
+import { Input } from '@/shared/ui/input';
+import { Button } from '@/shared/ui/button';
 
 export interface ListCategoryOption {
     id: string;

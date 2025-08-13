@@ -10,6 +10,7 @@ import {
     FooterInfo,
     OrgMember,
 } from './types';
+import type { CommunityCategory } from '../entities/community/model/types';
 
 // 메뉴 데이터
 export const menuItems: MenuItem[] = [
@@ -201,6 +202,9 @@ export const sampleCommunityPosts: CommunityPost[] = [
         author: '김조합원',
         date: '2025-01-21',
         category: '일반토론',
+        attachments: undefined,
+        likes: 5,
+        isLiked: false,
     },
     {
         id: 2,
@@ -209,6 +213,9 @@ export const sampleCommunityPosts: CommunityPost[] = [
         author: '이정보',
         date: '2025-01-20',
         category: '정보공유',
+        attachments: undefined,
+        likes: 3,
+        isLiked: false,
     },
     {
         id: 3,
@@ -217,6 +224,9 @@ export const sampleCommunityPosts: CommunityPost[] = [
         author: '박회원',
         date: '2025-01-19',
         category: '모임후기',
+        attachments: undefined,
+        likes: 8,
+        isLiked: false,
     },
     {
         id: 4,
@@ -225,6 +235,9 @@ export const sampleCommunityPosts: CommunityPost[] = [
         author: '관리자',
         date: '2025-01-18',
         category: '공지',
+        attachments: undefined,
+        likes: 12,
+        isLiked: false,
     },
 ];
 
@@ -389,4 +402,13 @@ export const organizationData: OrgMember[] = [
         parentId: '2',
         department: '사무실',
     },
+];
+
+export const communityCategories: CommunityCategory[] = [
+    '일반토론',
+    '정보공유',
+    '모임후기',
+    '공지',
+    '질문답변',
+    '건의사항',
 ];

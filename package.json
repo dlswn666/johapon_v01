@@ -9,12 +9,6 @@
         "lint": "next lint"
     },
     "dependencies": {
-        "@tiptap/extension-image": "^3.0.9",
-        "@tiptap/extension-link": "^3.0.9",
-        "@tiptap/extension-placeholder": "^3.0.9",
-        "@tiptap/extension-text-align": "^3.0.9",
-        "@tiptap/react": "^3.0.9",
-        "@tiptap/starter-kit": "^3.0.9",
         "@emotion/react": "^11.14.0",
         "@emotion/styled": "^11.14.1",
         "@mui/icons-material": "^7.3.0",
@@ -23,6 +17,7 @@
         "@radix-ui/react-dialog": "^1.1.14",
         "@radix-ui/react-progress": "^1.1.7",
         "@radix-ui/react-select": "^2.2.5",
+        "@radix-ui/react-switch": "^1.2.5",
         "@radix-ui/react-tabs": "^1.1.12",
         "@supabase/supabase-js": "^2.53.0",
         "@tanstack/react-query": "^5.84.1",
@@ -30,6 +25,7 @@
         "@tiptap/extension-image": "^3.0.9",
         "@tiptap/extension-link": "^3.0.9",
         "@tiptap/extension-placeholder": "^3.0.9",
+        "@tiptap/extension-text-align": "^3.0.9",
         "@tiptap/pm": "^3.0.9",
         "@tiptap/react": "^3.0.9",
         "@tiptap/starter-kit": "^3.0.9",
