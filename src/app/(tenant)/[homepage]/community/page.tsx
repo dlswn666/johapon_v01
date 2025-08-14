@@ -9,7 +9,7 @@ import BannerAd from '@/widgets/common/BannerAd';
 import PostCard from '@/components/community/PostCard';
 import ListFilter from '@/components/community/ListFilter';
 import { useInfoShare } from '@/shared/hooks/useInfoShare';
-import type { CommunityPost } from '@/entities/community/model/types';
+import type { CommunityPost, CommunityCategory } from '@/entities/community/model/types';
 
 export default function TenantCommunityPage() {
     const router = useRouter();
@@ -43,7 +43,7 @@ export default function TenantCommunityPage() {
                 author: post.author,
                 date: post.date,
                 createdAt: post.date,
-                category: post.category,
+                category: post.category as unknown as CommunityCategory, // 추후 카테고리 타입 변경 필요
                 views: post.views || 0,
                 likes: post.likes || 0,
                 isLiked: post.isLiked || false,
