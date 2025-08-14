@@ -16,13 +16,20 @@ export async function GET(_req: Request, context: { params: Promise<{ slug: stri
     if (!unionId) return withSMaxAge(fail('NOT_FOUND', 'union not found', 404), 30);
 
     const { data, error } = await supabase
-        .from('qna')
-        .select('id, title, content, author_id, status, created_at, answered_at, answer')
+        .from('posts')
+        .select('id, title, content, created_by, created_at, updated_at, updated_by, category_id, subcategory_id')
         .eq('union_id', unionId)
         .eq('id', id)
         .maybeSingle();
-    if (error) return withSMaxAge(fail('DB_ERROR', 'query failed', 500), 30);
-    if (!data) return withSMaxAge(fail('NOT_FOUND', 'not found', 404), 30);
+
+    if (error) {
+        return withSMaxAge(fail('DB_ERROR', `Q&A 조회 실패: ${error.message}`, 500), 30);
+    }
+
+    if (!data) {
+        return withSMaxAge(fail('NOT_FOUND', 'Q&A를 찾을 수 없습니다.', 404), 30);
+    }
+
     return withSMaxAge(ok(data), 30);
 }
 
@@ -38,20 +45,61 @@ export async function PATCH(req: Request, context: { params: Promise<{ slug: str
 
     const body = await req.json().catch(() => null);
     if (!body) return withNoStore(fail('BAD_REQUEST', 'invalid body', 400));
-    const { status, answer } = body as any;
+
+    const { title, content, subcategory_id: subcategoryId } = body as any;
 
     const supabase = getSupabaseClient();
     const unionId = await getTenantIdBySlug(slug);
     if (!unionId) return withNoStore(fail('NOT_FOUND', 'union not found', 404));
 
-    const payload: any = {};
-    if (typeof status === 'string') payload.status = status;
-    if (typeof answer === 'string') {
-        payload.answer = answer;
-        payload.answered_at = new Date().toISOString();
+    const { error } = await supabase
+        .from('posts')
+        .update({
+            title: typeof title === 'string' ? title : undefined,
+            content: typeof content === 'string' ? content : undefined,
+            subcategory_id: subcategoryId ?? undefined,
+            updated_by: auth.token,
+            updated_at: new Date().toISOString(),
+        })
+        .eq('id', id)
+        .eq('union_id', unionId);
+
+    if (error) {
+        return withNoStore(fail('DB_ERROR', `Q&A 수정 실패: ${error.message}`, 500));
     }
 
-    const { error } = await supabase.from('qna').update(payload).eq('id', id).eq('union_id', unionId);
-    if (error) return withNoStore(fail('DB_ERROR', 'update failed', 500));
-    return withNoStore(ok({ updated: true }));
+    return withNoStore(
+        ok({
+            updated: true,
+            message: 'Q&A가 성공적으로 수정되었습니다.',
+        })
+    );
+}
+
+export async function DELETE(req: Request, context: { params: Promise<{ slug: string; id: string }> }) {
+    const params = await context.params;
+    const slug = String(params?.slug ?? '').trim();
+    const id = String(params?.id ?? '').trim();
+    if (!slug || !isValidSlug(slug)) return withNoStore(fail('BAD_REQUEST', 'invalid slug', 400));
+    if (!id) return withNoStore(fail('BAD_REQUEST', 'invalid id', 400));
+
+    const auth = requireAuth(req);
+    if (!auth) return withNoStore(fail('UNAUTHORIZED', 'authorization required', 401));
+
+    const supabase = getSupabaseClient();
+    const unionId = await getTenantIdBySlug(slug);
+    if (!unionId) return withNoStore(fail('NOT_FOUND', 'union not found', 404));
+
+    const { error } = await supabase.from('posts').delete().eq('id', id).eq('union_id', unionId);
+
+    if (error) {
+        return withNoStore(fail('DB_ERROR', `Q&A 삭제 실패: ${error.message}`, 500));
+    }
+
+    return withNoStore(
+        ok({
+            deleted: true,
+            message: 'Q&A가 성공적으로 삭제되었습니다.',
+        })
+    );
 }

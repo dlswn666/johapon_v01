@@ -8,19 +8,40 @@ import { Button } from '@/shared/ui/button';
 import { useQnA } from '@/shared/hooks/useQnA';
 import { Plus } from 'lucide-react';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
 
 export default function TenantQnAPage() {
-    const { qnas, categories, loading, error, total, hasMore, setFilter, observerRef } = useQnA({ pageSize: 10 });
+    const searchParams = useSearchParams();
+    const { qnas, categories, loading, error, total, hasMore, setFilter, observerRef, refresh } = useQnA({
+        pageSize: 10,
+    });
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
     const [searchTerm, setSearchTerm] = useState<string>('');
 
-    // ListCategoryOption 형식으로 변환
-    const listCategories: ListCategoryOption[] = categories.map((cat) => ({
-        id: cat.id,
-        name: cat.name,
-        count: cat.count || 0,
-    }));
+    // 새로고침 파라미터 확인 (추가 안전장치)
+    useEffect(() => {
+        const refreshParam = searchParams?.get('refresh');
+        if (refreshParam) {
+            // 아주 짧은 지연 후 refresh 실행
+            const timer = setTimeout(() => {
+                refresh();
+            }, 50);
+
+            return () => clearTimeout(timer);
+        }
+    }, [searchParams, refresh]);
+
+    // ListCategoryOption 형식으로 변환 (메모이제이션)
+    const listCategories: ListCategoryOption[] = useMemo(
+        () =>
+            categories.map((cat) => ({
+                id: cat.id,
+                name: cat.name,
+                count: cat.count || 0,
+            })),
+        [categories]
+    );
 
     const handleCategoryChange = (category: string) => {
         setSelectedCategory(category);

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { useInfiniteScroll } from './useInfiniteScroll';
 import type { QnAApiResponse, QnADbItem, QnAItem } from '@/entities/qna/model/types';
 
@@ -63,6 +63,7 @@ function transformDbQnAToQnAItem(qna: QnADbItem): QnAItem {
 
 export function useQnA(initialOptions: UseQnAOptions = {}): UseQnAReturn {
     const params = useParams();
+    const searchParams = useSearchParams();
     const slug = params.homepage as string;
 
     const [categories] = useState([
@@ -102,10 +103,24 @@ export function useQnA(initialOptions: UseQnAOptions = {}): UseQnAReturn {
             const response = await fetch(`/api/tenant/${slug}/qna?${queryParams}`);
 
             if (!response.ok) {
-                throw new Error(`API 호출 실패: ${response.status}`);
+                let errorMessage = `API 호출 실패 (${response.status})`;
+                try {
+                    const errorData = await response.json();
+                    errorMessage = errorData.error?.message || errorData.message || errorMessage;
+                } catch {
+                    // JSON 파싱 실패 시 기본 메시지 사용
+                }
+                throw new Error(errorMessage);
             }
 
-            const data: QnAApiResponse = await response.json();
+            const responseData = await response.json();
+
+            // API 응답 구조 확인 및 데이터 추출
+            if (!responseData.success) {
+                throw new Error(responseData.error?.message || 'API 호출이 실패했습니다.');
+            }
+
+            const data: QnAApiResponse = responseData.data;
 
             // 데이터 변환
             const transformedQnAs = data.items.map(transformDbQnAToQnAItem);
@@ -135,6 +150,26 @@ export function useQnA(initialOptions: UseQnAOptions = {}): UseQnAReturn {
         enabled: !!slug,
     });
 
+    // URL 파라미터 변화 감지하여 새로고침 트리거
+    const refreshParam = searchParams?.get('refresh');
+    const [lastRefresh, setLastRefresh] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (refreshParam && refreshParam !== lastRefresh) {
+            setLastRefresh(refreshParam);
+            // 강제 새로고침 실행
+            setTimeout(() => {
+                refresh();
+                // URL에서 refresh 파라미터 제거 (선택사항)
+                if (typeof window !== 'undefined') {
+                    const url = new URL(window.location.href);
+                    url.searchParams.delete('refresh');
+                    window.history.replaceState({}, '', url.toString());
+                }
+            }, 100);
+        }
+    }, [refreshParam, lastRefresh, refresh]);
+
     // 필터 변경 시 데이터 새로고침
     const setFilter = useCallback(
         (newOptions: Partial<UseQnAOptions>) => {
@@ -160,4 +195,3 @@ export function useQnA(initialOptions: UseQnAOptions = {}): UseQnAReturn {
         observerRef,
     };
 }
-

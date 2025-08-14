@@ -79,9 +79,31 @@ export default function TenantQnANewPage() {
     };
 
     const validate = () => {
-        if (!form.title.trim()) return alert('질문 제목을 입력해주세요.'), false;
-        if (!form.category) return alert('카테고리를 선택해주세요.'), false;
-        if (!form.content || form.content === '<p></p>') return alert('질문 내용을 입력해주세요.'), false;
+        const trimmedTitle = form.title.trim();
+        if (!trimmedTitle) {
+            alert('질문 제목을 입력해주세요.');
+            return false;
+        }
+        if (trimmedTitle.length < 2) {
+            alert('제목은 최소 2글자 이상 입력해주세요.');
+            return false;
+        }
+        if (trimmedTitle.length > 100) {
+            alert('제목은 100글자를 초과할 수 없습니다.');
+            return false;
+        }
+        if (!form.category) {
+            alert('카테고리를 선택해주세요.');
+            return false;
+        }
+        if (!form.content || form.content === '<p></p>' || form.content.trim() === '') {
+            alert('질문 내용을 입력해주세요.');
+            return false;
+        }
+        if (form.content.length > 10000) {
+            alert('내용은 10,000글자를 초과할 수 없습니다.');
+            return false;
+        }
         return true;
     };
 
@@ -108,10 +130,17 @@ export default function TenantQnANewPage() {
             if (response.ok) {
                 const result = await response.json();
                 alert('질문이 성공적으로 등록되었습니다.');
-                router.push('../qna');
+
+                // 강제 새로고침을 위해 타임스탬프 파라미터 추가
+                const timestamp = Date.now();
+                router.push(`../qna?refresh=${timestamp}`);
+
+                // 추가 보장을 위해 router.refresh() 호출
+                router.refresh();
             } else {
                 const error = await response.json();
-                alert(`등록에 실패했습니다: ${error.message || '알 수 없는 오류'}`);
+                const errorMessage = error.error?.message || error.message || '알 수 없는 오류';
+                alert(`등록에 실패했습니다: ${errorMessage}`);
             }
         } catch (error) {
             console.error('질문 등록 실패:', error);
@@ -315,4 +344,3 @@ export default function TenantQnANewPage() {
         </div>
     );
 }
-
