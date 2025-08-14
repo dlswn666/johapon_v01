@@ -80,9 +80,31 @@ export default function TenantAnnouncementNewPage() {
     const handleChange = (field: string, value: any) => setForm((p) => ({ ...p, [field]: value }));
 
     const validate = () => {
-        if (!form.title.trim()) return alert('제목을 입력해주세요.'), false;
-        if (!form.subcategory_id) return alert('카테고리를 선택해주세요.'), false;
-        if (!form.content || form.content === '<p></p>') return alert('내용을 입력해주세요.'), false;
+        const trimmedTitle = form.title.trim();
+        if (!trimmedTitle) {
+            alert('제목을 입력해주세요.');
+            return false;
+        }
+        if (trimmedTitle.length < 2) {
+            alert('제목은 최소 2글자 이상 입력해주세요.');
+            return false;
+        }
+        if (trimmedTitle.length > 100) {
+            alert('제목은 100글자를 초과할 수 없습니다.');
+            return false;
+        }
+        if (!form.subcategory_id) {
+            alert('카테고리를 선택해주세요.');
+            return false;
+        }
+        if (!form.content || form.content === '<p></p>' || form.content.trim() === '') {
+            alert('내용을 입력해주세요.');
+            return false;
+        }
+        if (form.content.length > 10000) {
+            alert('내용은 10,000글자를 초과할 수 없습니다.');
+            return false;
+        }
         return true;
     };
 
@@ -109,11 +131,23 @@ export default function TenantAnnouncementNewPage() {
 
             if (response.ok) {
                 const result = await response.json();
-                alert('공지사항이 성공적으로 등록되었습니다.');
-                router.push('../announcements');
+
+                // 성공 메시지 개선
+                const message = result.notification_sent
+                    ? '공지사항이 성공적으로 등록되었고 알림톡이 발송되었습니다.'
+                    : '공지사항이 성공적으로 등록되었습니다.';
+                alert(message);
+
+                // 강제 새로고침을 위해 타임스탬프 파라미터 추가
+                const timestamp = Date.now();
+                router.push(`../announcements?refresh=${timestamp}`);
+
+                // 추가 보장을 위해 router.refresh() 호출
+                router.refresh();
             } else {
                 const error = await response.json();
-                alert(`등록에 실패했습니다: ${error.message || '알 수 없는 오류'}`);
+                const errorMessage = error.error?.message || error.message || '알 수 없는 오류';
+                alert(`등록에 실패했습니다: ${errorMessage}`);
             }
         } catch (error) {
             console.error('공지사항 등록 실패:', error);

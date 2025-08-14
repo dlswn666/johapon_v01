@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { useInfiniteScroll } from './useInfiniteScroll';
 import type {
     AnnouncementApiResponse,
+    AnnouncementApiWrapperResponse,
     DbPostWithCategory,
     AnnouncementItem,
     CategoryOption,
@@ -67,6 +68,7 @@ function transformDbPostToAnnouncementItem(post: DbPostWithCategory): Announceme
 
 export function useAnnouncements(initialOptions: UseAnnouncementsOptions = {}): UseAnnouncementsReturn {
     const params = useParams();
+    const searchParams = useSearchParams();
     const slug = params.homepage as string;
 
     const [categories, setCategories] = useState<CategoryOption[]>([]);
@@ -106,10 +108,28 @@ export function useAnnouncements(initialOptions: UseAnnouncementsOptions = {}): 
             const response = await fetch(`/api/tenant/${slug}/notices?${queryParams}`);
 
             if (!response.ok) {
-                throw new Error(`API 호출 실패: ${response.status}`);
+                let errorMessage = `API 호출 실패 (${response.status})`;
+                try {
+                    const errorData = await response.json();
+                    errorMessage = errorData.error?.message || errorData.message || errorMessage;
+                } catch {
+                    // JSON 파싱 실패 시 기본 메시지 사용
+                }
+                throw new Error(errorMessage);
             }
 
-            const data: AnnouncementApiResponse = await response.json();
+            const responseData: AnnouncementApiWrapperResponse = await response.json();
+
+            // API 응답 구조 확인 및 데이터 추출
+            if (!responseData.success) {
+                throw new Error(responseData.error?.message || 'API 호출이 실패했습니다.');
+            }
+
+            const data: AnnouncementApiResponse = responseData.data;
+            if (!data || !Array.isArray(data.items)) {
+                console.error('API 응답 데이터 형식 오류:', data);
+                throw new Error('API 응답 데이터 형식이 올바르지 않습니다.');
+            }
 
             // 데이터 변환
             const transformedAnnouncements = data.items.map(transformDbPostToAnnouncementItem);
@@ -146,12 +166,12 @@ export function useAnnouncements(initialOptions: UseAnnouncementsOptions = {}): 
         try {
             const response = await fetch(`/api/tenant/${slug}/meta`);
             if (response.ok) {
-                const data = await response.json();
-                if (data.success) {
+                const responseData = await response.json();
+                if (responseData.success && responseData.data) {
                     // 카테고리를 CategoryOption 형태로 변환
                     const categoryOptions: CategoryOption[] = [
                         { id: 'all', key: 'all', name: '전체' },
-                        ...(data.data?.categories || []).map((cat: any) => ({
+                        ...(responseData.data.categories || []).map((cat: any) => ({
                             id: cat.key,
                             key: cat.key,
                             name: cat.name,
@@ -159,13 +179,33 @@ export function useAnnouncements(initialOptions: UseAnnouncementsOptions = {}): 
                     ];
 
                     setCategories(categoryOptions);
-                    setSubcategories(data.data?.subcategories || []);
+                    setSubcategories(responseData.data.subcategories || []);
                 }
             }
         } catch (err) {
             console.error('메타 정보 가져오기 실패:', err);
         }
     }, [slug]);
+
+    // URL 파라미터 변화 감지하여 새로고침 트리거
+    const refreshParam = searchParams?.get('refresh');
+    const [lastRefresh, setLastRefresh] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (refreshParam && refreshParam !== lastRefresh) {
+            setLastRefresh(refreshParam);
+            // 강제 새로고침 실행
+            setTimeout(() => {
+                refresh();
+                // URL에서 refresh 파라미터 제거 (선택사항)
+                if (typeof window !== 'undefined') {
+                    const url = new URL(window.location.href);
+                    url.searchParams.delete('refresh');
+                    window.history.replaceState({}, '', url.toString());
+                }
+            }, 100);
+        }
+    }, [refreshParam, lastRefresh, refresh]);
 
     // 초기 메타 정보 로드
     useEffect(() => {

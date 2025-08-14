@@ -13,6 +13,7 @@ export async function GET(req: Request, context: { params: Promise<{ slug: strin
     const categoryKey = (url.searchParams.get('category_key') ?? '').trim();
     const subcategoryId = (url.searchParams.get('subcategory_id') ?? '').trim();
     const popupOnly = String(url.searchParams.get('popup') ?? '').trim() === 'true';
+    const searchTerm = (url.searchParams.get('search') ?? '').trim();
 
     if (!slug || !isValidSlug(slug)) return withSMaxAge(fail('BAD_REQUEST', 'invalid slug', 400), 30);
     if (!Number.isFinite(page) || page < 1) return withSMaxAge(fail('BAD_REQUEST', 'invalid page', 400), 30);
@@ -27,8 +28,22 @@ export async function GET(req: Request, context: { params: Promise<{ slug: strin
         .eq('union_id', unionId)
         .order('created_at', { ascending: false });
 
-    if (subcategoryId) query = query.eq('subcategory_id', subcategoryId);
-    if (popupOnly) query = query.eq('popup', true);
+    // 서브카테고리 필터
+    if (subcategoryId) {
+        query = query.eq('subcategory_id', subcategoryId);
+    }
+
+    // 팝업 필터
+    if (popupOnly) {
+        query = query.eq('popup', true);
+    }
+
+    // 검색 기능 구현
+    if (searchTerm) {
+        query = query.or(`title.ilike.%${searchTerm}%,content.ilike.%${searchTerm}%`);
+    }
+
+    // 카테고리 필터
     if (categoryKey) {
         const { data: cat, error: catErr } = await supabase
             .from('post_categories')
@@ -36,15 +51,35 @@ export async function GET(req: Request, context: { params: Promise<{ slug: strin
             .eq('union_id', unionId)
             .eq('key', categoryKey)
             .maybeSingle();
-        if (catErr) return withSMaxAge(fail('DB_ERROR', 'category lookup failed', 500), 30);
-        if (cat?.id) query = query.eq('category_id', cat.id);
-        else return withSMaxAge(ok({ items: [], page, page_size: pageSize, total: 0 }), 30);
+
+        if (catErr) {
+            return withSMaxAge(fail('DB_ERROR', `카테고리 조회 실패: ${catErr.message}`, 500), 30);
+        }
+
+        if (cat?.id) {
+            query = query.eq('category_id', cat.id);
+        } else {
+            // 카테고리가 존재하지 않는 경우 명확한 메시지와 함께 빈 결과 반환
+            return withSMaxAge(
+                ok({
+                    items: [],
+                    page,
+                    page_size: pageSize,
+                    total: 0,
+                    message: `'${categoryKey}' 카테고리를 찾을 수 없습니다.`,
+                }),
+                30
+            );
+        }
     }
 
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
     const { data, error, count } = await query.range(from, to);
-    if (error) return withSMaxAge(fail('DB_ERROR', 'query failed', 500), 30);
+
+    if (error) {
+        return withSMaxAge(fail('DB_ERROR', `게시글 조회 실패: ${error.message}`, 500), 30);
+    }
 
     return withSMaxAge(ok({ items: data ?? [], page, page_size: pageSize, total: count ?? 0 }), 30);
 }
@@ -60,6 +95,7 @@ export async function POST(req: Request, context: { params: Promise<{ slug: stri
 
     const body = await req.json().catch(() => null);
     if (!body) return withNoStore(fail('BAD_REQUEST', 'invalid body', 400));
+
     const {
         category_id: categoryId,
         subcategory_id: subcategoryId,
@@ -68,6 +104,7 @@ export async function POST(req: Request, context: { params: Promise<{ slug: stri
         popup,
         sendNotification,
     } = body as any;
+
     if (!title || !content) return withNoStore(fail('BAD_REQUEST', 'missing title or content', 400));
 
     const supabase = getSupabaseClient();
@@ -109,14 +146,18 @@ export async function POST(req: Request, context: { params: Promise<{ slug: stri
             title,
             content,
             popup: finalPopup,
+            created_by: auth.token, // 인증된 사용자 토큰을 텍스트로 저장
             created_at: new Date().toISOString(),
         })
         .select('id')
         .maybeSingle();
 
-    if (error || !data) return withNoStore(fail('DB_ERROR', 'insert failed', 500));
+    if (error || !data) {
+        return withNoStore(fail('DB_ERROR', `게시글 등록 실패: ${error?.message || '알 수 없는 오류'}`, 500));
+    }
 
     // 알림톡 발송 요청이 있는 경우 처리
+    let notificationSent = false;
     if (sendNotification && data.id) {
         try {
             // 알림톡 발송 로직 (실제 발송은 별도 서비스에서 처리)
@@ -125,13 +166,21 @@ export async function POST(req: Request, context: { params: Promise<{ slug: stri
                 title: `[공지] ${title}`,
                 content: content.replace(/<[^>]*>/g, '').substring(0, 1000), // HTML 태그 제거 후 1000자 제한
                 target_group: 'all',
-                created_by: auth, // 실제로는 사용자 ID
+                created_by: auth.token, // 인증된 사용자 토큰을 UUID로 저장 (alrimtalk은 UUID 타입)
             });
+            notificationSent = true;
         } catch (alrimError) {
             // 알림톡 발송 실패는 로그만 남기고 전체 요청은 성공 처리
-            console.error('Alrimtalk send failed:', alrimError);
+            console.error('알림톡 발송 실패:', alrimError);
+            notificationSent = false;
         }
     }
 
-    return withNoStore(ok({ id: data.id }));
+    return withNoStore(
+        ok({
+            id: data.id,
+            message: '게시글이 성공적으로 등록되었습니다.',
+            notification_sent: notificationSent,
+        })
+    );
 }

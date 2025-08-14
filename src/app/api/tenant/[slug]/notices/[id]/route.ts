@@ -17,12 +17,20 @@ export async function GET(_req: Request, context: { params: Promise<{ slug: stri
 
     const { data, error } = await supabase
         .from('posts')
-        .select('id, title, content, popup, created_at, category_id, subcategory_id')
+        .select('id, title, content, popup, created_at, created_by, category_id, subcategory_id')
         .eq('union_id', unionId)
         .eq('id', id)
         .maybeSingle();
-    if (error) return withSMaxAge(fail('DB_ERROR', 'query failed', 500), 30);
-    if (!data) return withSMaxAge(fail('NOT_FOUND', 'not found', 404), 30);
+
+    if (error) {
+        console.error('Query error:', error);
+        return withSMaxAge(fail('DB_ERROR', `게시글 조회 실패: ${error.message}`, 500), 30);
+    }
+
+    if (!data) {
+        return withSMaxAge(fail('NOT_FOUND', '게시글을 찾을 수 없습니다.', 404), 30);
+    }
+
     return withSMaxAge(ok(data), 30);
 }
 
@@ -52,11 +60,16 @@ export async function PATCH(req: Request, context: { params: Promise<{ slug: str
             popup: typeof popup === 'boolean' ? popup : undefined,
             category_id: categoryId ?? undefined,
             subcategory_id: subcategoryId ?? undefined,
+            updated_by: auth.token, // 수정자 정보 추가
+            updated_at: new Date().toISOString(), // 수정 시간 업데이트
         })
         .eq('id', id)
         .eq('union_id', unionId);
-    if (error) return withNoStore(fail('DB_ERROR', 'update failed', 500));
-    return withNoStore(ok({ updated: true }));
+    if (error) {
+        console.error('Update error:', error);
+        return withNoStore(fail('DB_ERROR', `게시글 수정 실패: ${error.message}`, 500));
+    }
+    return withNoStore(ok({ updated: true, message: '게시글이 성공적으로 수정되었습니다.' }));
 }
 
 export async function DELETE(req: Request, context: { params: Promise<{ slug: string; id: string }> }) {
@@ -74,6 +87,9 @@ export async function DELETE(req: Request, context: { params: Promise<{ slug: st
     if (!unionId) return withNoStore(fail('NOT_FOUND', 'union not found', 404));
 
     const { error } = await supabase.from('posts').delete().eq('id', id).eq('union_id', unionId);
-    if (error) return withNoStore(fail('DB_ERROR', 'delete failed', 500));
-    return withNoStore(ok({ deleted: true }));
+    if (error) {
+        console.error('Delete error:', error);
+        return withNoStore(fail('DB_ERROR', `게시글 삭제 실패: ${error.message}`, 500));
+    }
+    return withNoStore(ok({ deleted: true, message: '게시글이 성공적으로 삭제되었습니다.' }));
 }

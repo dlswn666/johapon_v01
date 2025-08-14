@@ -57,19 +57,13 @@ class TenantStore {
     }
 
     public async getOrFetchBySlug(slug: string): Promise<TenantInfo | null> {
-        console.log('[TENANT_STORE] getOrFetchBySlug called with slug:', slug);
-
         const cached = this.get(slug);
         if (cached) {
-            console.log('[TENANT_STORE] Found in cache:', cached);
             return cached;
         }
 
-        console.log('[TENANT_STORE] Not in cache, querying database...');
-
         try {
             const supabase = getSupabaseClient();
-            console.log('[TENANT_STORE] Supabase client created');
 
             const { data, error } = await supabase
                 .from('unions')
@@ -77,15 +71,11 @@ class TenantStore {
                 .eq('homepage', slug)
                 .maybeSingle<SupabaseUnionData>();
 
-            console.log('[TENANT_STORE] Database query result:', { data, error });
-
             if (error) {
-                console.error('[TENANT_STORE] Database error:', error);
                 return null;
             }
 
             if (!data) {
-                console.log('[TENANT_STORE] No data found for slug:', slug);
                 return null;
             }
 
@@ -101,7 +91,6 @@ class TenantStore {
                 contract_end_date: data.contract_end_date,
             };
 
-            console.log('[TENANT_STORE] Created tenant info:', info);
             this.set(slug, info);
             return info;
         } catch (error) {

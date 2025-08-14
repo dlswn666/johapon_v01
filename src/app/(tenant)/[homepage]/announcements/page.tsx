@@ -7,17 +7,47 @@ import AnnouncementsFilterClient from '@/features/announcements/filter/Announcem
 import { Card, CardContent } from '@/shared/ui/card';
 import { useAnnouncements } from '@/shared/hooks/useAnnouncements';
 import Link from 'next/link';
+import { useEffect, useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
 
 export default function TenantAnnouncementsPage() {
-    const { announcements, categories, subcategories, loading, error, total, hasMore, setFilter, observerRef } =
-        useAnnouncements({ pageSize: 10 });
+    const searchParams = useSearchParams();
+    const {
+        announcements,
+        categories,
+        subcategories,
+        loading,
+        error,
+        total,
+        hasMore,
+        setFilter,
+        observerRef,
+        refresh,
+    } = useAnnouncements({ pageSize: 10 });
 
-    // ListCategoryOption 형식으로 변환
-    const listCategories: ListCategoryOption[] = categories.map((cat) => ({
-        id: cat.key,
-        name: cat.name,
-        count: cat.count || 0,
-    }));
+    // 새로고침 파라미터 확인 (추가 안전장치)
+    useEffect(() => {
+        const refreshParam = searchParams?.get('refresh');
+        if (refreshParam) {
+            // 아주 짧은 지연 후 refresh 실행
+            const timer = setTimeout(() => {
+                refresh();
+            }, 50);
+
+            return () => clearTimeout(timer);
+        }
+    }, [searchParams, refresh]);
+
+    // ListCategoryOption 형식으로 변환 (메모이제이션)
+    const listCategories: ListCategoryOption[] = useMemo(
+        () =>
+            categories.map((cat) => ({
+                id: cat.key,
+                name: cat.name,
+                count: cat.count || 0,
+            })),
+        [categories]
+    );
 
     return (
         <div className="min-h-screen bg-gray-50">

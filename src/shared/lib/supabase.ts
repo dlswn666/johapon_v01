@@ -9,13 +9,6 @@ export function getSupabaseClient(): SupabaseClient {
     const url = `https://${projectId ?? 'project'}.supabase.co`;
     const key = publicAnonKey ?? 'anon_key_missing';
 
-    console.log('[SUPABASE] Environment check:', {
-        projectId: projectId ? `${projectId.slice(0, 8)}...` : 'MISSING',
-        anonKey: publicAnonKey ? `${publicAnonKey.slice(0, 20)}...` : 'MISSING',
-        url,
-        hasSupabaseEnv,
-    });
-
     return createClient(url, key);
 }
 

@@ -28,6 +28,16 @@ export interface AnnouncementApiResponse {
     total: number;
 }
 
+// API 래퍼 응답 타입 (success/data 구조)
+export interface AnnouncementApiWrapperResponse {
+    success: boolean;
+    data: AnnouncementApiResponse;
+    error?: {
+        code: string;
+        message: string;
+    };
+}
+
 // 프론트엔드에서 사용할 공지사항 타입 (기존 컴포넌트 호환성 유지)
 export interface AnnouncementItem {
     id: string; // UUID에서 string으로 변경
