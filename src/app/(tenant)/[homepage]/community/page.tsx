@@ -1,67 +1,79 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
 import { MessageSquare, Plus } from 'lucide-react';
 import BannerAd from '@/widgets/common/BannerAd';
 import PostCard from '@/components/community/PostCard';
 import ListFilter from '@/components/community/ListFilter';
-import { sampleCommunityPosts } from '@/lib/mockData';
+import { useInfoShare } from '@/shared/hooks/useInfoShare';
 import type { CommunityPost } from '@/entities/community/model/types';
 
 export default function TenantCommunityPage() {
     const router = useRouter();
-    const [posts, setPosts] = useState<CommunityPost[]>(sampleCommunityPosts);
-    const [searchTerm, setSearchTerm] = useState('');
+    const searchParams = useSearchParams();
+    const { posts, categories, loading, error, total, hasMore, setFilter, observerRef, refresh } = useInfoShare({
+        pageSize: 10,
+    });
     const [selectedCategory, setSelectedCategory] = useState('all');
+    const [searchTerm, setSearchTerm] = useState('');
 
-    // Filter and sort posts
-    const filteredPosts = useMemo(() => {
-        let result = posts;
+    // 새로고침 파라미터 확인 (추가 안전장치)
+    useEffect(() => {
+        const refreshParam = searchParams?.get('refresh');
+        if (refreshParam) {
+            // 아주 짧은 지연 후 refresh 실행
+            const timer = setTimeout(() => {
+                refresh();
+            }, 50);
 
-        // Apply category filter
-        if (selectedCategory !== 'all') {
-            result = result.filter((post) => post.category === selectedCategory);
+            return () => clearTimeout(timer);
         }
+    }, [searchParams, refresh]);
 
-        // Apply search filter
-        if (searchTerm) {
-            const searchLower = searchTerm.toLowerCase();
-            result = result.filter(
-                (post) =>
-                    post.title.toLowerCase().includes(searchLower) ||
-                    post.content.toLowerCase().includes(searchLower) ||
-                    post.author.toLowerCase().includes(searchLower)
-            );
-        }
-
-        // Sort by date (most recent first)
-        result = [...result].sort(
-            (a, b) => new Date(b.createdAt || b.date).getTime() - new Date(a.createdAt || a.date).getTime()
-        );
-
-        return result;
-    }, [posts, selectedCategory, searchTerm]);
+    // 정보공유방 게시글을 CommunityPost 형식으로 변환 (메모이제이션)
+    const convertedPosts: CommunityPost[] = useMemo(
+        () =>
+            posts.map((post) => ({
+                id: parseInt(post.id),
+                title: post.title,
+                content: post.content,
+                author: post.author,
+                date: post.date,
+                createdAt: post.date,
+                category: post.category,
+                views: post.views || 0,
+                likes: post.likes || 0,
+                isLiked: post.isLiked || false,
+                commentsCount: post.commentsCount || 0,
+            })),
+        [posts]
+    );
 
     const handleLikePost = (postId: number) => {
-        setPosts((prevPosts) =>
-            prevPosts.map((post) =>
-                post.id === postId
-                    ? {
-                          ...post,
-                          likes: post.isLiked ? (post.likes || 0) - 1 : (post.likes || 0) + 1,
-                          isLiked: !post.isLiked,
-                      }
-                    : post
-            )
-        );
+        // TODO: 추후 좋아요 API 연동
+        console.log('좋아요 기능:', postId);
+    };
+
+    const handleCategoryChange = (category: string) => {
+        setSelectedCategory(category);
+        setFilter({
+            categoryKey: category === 'all' ? undefined : category,
+            searchTerm: searchTerm || undefined,
+        });
+    };
+
+    const handleSearchTermChange = (term: string) => {
+        setSearchTerm(term);
     };
 
     const handleSearch = () => {
-        // 검색 버튼 클릭 시 추가 동작이 필요하면 여기에 구현
-        console.log('검색 실행:', searchTerm);
+        setFilter({
+            categoryKey: selectedCategory === 'all' ? undefined : selectedCategory,
+            searchTerm: searchTerm || undefined,
+        });
     };
 
     const handlePostClick = (postId: number) => {
@@ -96,24 +108,50 @@ export default function TenantCommunityPage() {
                         <ListFilter
                             searchTerm={searchTerm}
                             selectedCategory={selectedCategory}
-                            onSearchChange={setSearchTerm}
-                            onCategoryChange={setSelectedCategory}
+                            onSearchChange={handleSearchTermChange}
+                            onCategoryChange={handleCategoryChange}
                             onSearch={handleSearch}
                             onWriteClick={handleWriteClick}
-                            totalCount={posts.length}
+                            totalCount={total}
                         />
+
+                        {/* Error Display */}
+                        {error && (
+                            <Card>
+                                <CardContent className="p-4 text-center text-red-600">
+                                    <p>오류가 발생했습니다: {error}</p>
+                                    <Button variant="outline" onClick={refresh} className="mt-2">
+                                        다시 시도
+                                    </Button>
+                                </CardContent>
+                            </Card>
+                        )}
 
                         {/* Posts List */}
                         <div className="space-y-4">
-                            {filteredPosts.length > 0 ? (
-                                filteredPosts.map((post) => (
-                                    <PostCard
-                                        key={post.id}
-                                        post={post}
-                                        onLike={() => handleLikePost(post.id)}
-                                        onClick={() => handlePostClick(post.id)}
-                                    />
-                                ))
+                            {loading ? (
+                                <Card>
+                                    <CardContent className="p-8 text-center">
+                                        <p className="text-gray-600">로딩 중...</p>
+                                    </CardContent>
+                                </Card>
+                            ) : convertedPosts.length > 0 ? (
+                                <>
+                                    {convertedPosts.map((post) => (
+                                        <PostCard
+                                            key={post.id}
+                                            post={post}
+                                            onLike={() => handleLikePost(post.id)}
+                                            onClick={() => handlePostClick(post.id)}
+                                        />
+                                    ))}
+                                    {/* 무한 스크롤 트리거 */}
+                                    {hasMore && (
+                                        <div ref={observerRef} className="h-4 flex justify-center">
+                                            <p className="text-gray-500">더 많은 게시글을 불러오는 중...</p>
+                                        </div>
+                                    )}
+                                </>
                             ) : (
                                 <Card>
                                     <CardContent className="p-8 text-center">
@@ -136,14 +174,7 @@ export default function TenantCommunityPage() {
                             )}
                         </div>
 
-                        {/* Load More Button */}
-                        {filteredPosts.length >= 10 && (
-                            <div className="text-center">
-                                <Button variant="outline" size="lg">
-                                    더 많은 게시글 보기
-                                </Button>
-                            </div>
-                        )}
+                        {/* 무한 스크롤이 적용되어 Load More 버튼은 제거됨 */}
                     </div>
 
                     {/* Right Sidebar - Banners */}

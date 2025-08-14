@@ -22,6 +22,8 @@ export async function GET(req: Request, context: { params: Promise<{ slug: strin
     const slug = String(params?.slug ?? '').trim();
     const page = Number(url.searchParams.get('page') ?? '1');
     const pageSize = Math.min(100, Math.max(1, Number(url.searchParams.get('page_size') ?? '10')));
+    const searchTerm = (url.searchParams.get('search') ?? '').trim();
+
     if (!slug || !isValidSlug(slug)) return withSMaxAge(fail('BAD_REQUEST', 'invalid slug', 400), 30);
     if (!Number.isFinite(page) || page < 1) return withSMaxAge(fail('BAD_REQUEST', 'invalid page', 400), 30);
 
@@ -29,20 +31,54 @@ export async function GET(req: Request, context: { params: Promise<{ slug: strin
     const unionId = await getTenantIdBySlug(slug);
     if (!unionId) return withSMaxAge(fail('NOT_FOUND', 'union not found', 404), 30);
 
-    const categoryId = await resolveCategoryIdByKey(unionId, 'share');
-    if (!categoryId) return withSMaxAge(ok({ items: [], page, page_size: pageSize, total: 0 }), 30);
+    // 정보공유방 카테고리 ID 조회 (share -> free로 변경)
+    let categoryId = await resolveCategoryIdByKey(unionId, 'free');
+    if (!categoryId) {
+        // 글로벌 카테고리에서 조회
+        const { data: globalCategory } = await supabase
+            .from('post_categories')
+            .select('id')
+            .eq('key', 'free')
+            .is('union_id', null)
+            .maybeSingle();
+
+        if (!globalCategory) {
+            return withSMaxAge(
+                ok({
+                    items: [],
+                    page,
+                    page_size: pageSize,
+                    total: 0,
+                    message: '정보공유방 카테고리를 찾을 수 없습니다.',
+                }),
+                30
+            );
+        }
+        categoryId = globalCategory.id;
+    }
 
     let query = supabase
         .from('posts')
-        .select('id, title, content, created_at, category_id, subcategory_id', { count: 'exact' })
+        .select('id, title, content, created_by, created_at, updated_at, category_id, subcategory_id', {
+            count: 'exact',
+        })
         .eq('union_id', unionId)
         .eq('category_id', categoryId)
         .order('created_at', { ascending: false });
 
+    // 검색 기능 구현
+    if (searchTerm) {
+        query = query.or(`title.ilike.%${searchTerm}%,content.ilike.%${searchTerm}%`);
+    }
+
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
     const { data, error, count } = await query.range(from, to);
-    if (error) return withSMaxAge(fail('DB_ERROR', 'query failed', 500), 30);
+
+    if (error) {
+        return withSMaxAge(fail('DB_ERROR', `정보공유방 조회 실패: ${error.message}`, 500), 30);
+    }
+
     return withSMaxAge(ok({ items: data ?? [], page, page_size: pageSize, total: count ?? 0 }), 30);
 }
 
@@ -57,6 +93,7 @@ export async function POST(req: Request, context: { params: Promise<{ slug: stri
 
     const body = await req.json().catch(() => null);
     if (!body) return withNoStore(fail('BAD_REQUEST', 'invalid body', 400));
+
     const { subcategory_id: subcategoryId, title, content } = body as any;
     if (!title || !content) return withNoStore(fail('BAD_REQUEST', 'missing title or content', 400));
 
@@ -64,8 +101,21 @@ export async function POST(req: Request, context: { params: Promise<{ slug: stri
     const unionId = await getTenantIdBySlug(slug);
     if (!unionId) return withNoStore(fail('NOT_FOUND', 'union not found', 404));
 
-    const categoryId = await resolveCategoryIdByKey(unionId, 'share');
-    if (!categoryId) return withNoStore(fail('BAD_REQUEST', 'category share missing', 400));
+    // 정보공유방 카테고리 ID 조회 (share -> free로 변경)
+    let categoryId = await resolveCategoryIdByKey(unionId, 'free');
+    if (!categoryId) {
+        const { data: globalCategory } = await supabase
+            .from('post_categories')
+            .select('id')
+            .eq('key', 'free')
+            .is('union_id', null)
+            .maybeSingle();
+
+        if (!globalCategory) {
+            return withNoStore(fail('NOT_FOUND', '정보공유방 카테고리를 찾을 수 없습니다', 404));
+        }
+        categoryId = globalCategory.id;
+    }
 
     const { data, error } = await supabase
         .from('posts')
@@ -76,10 +126,20 @@ export async function POST(req: Request, context: { params: Promise<{ slug: stri
             title,
             content,
             popup: false,
+            created_by: auth.token,
             created_at: new Date().toISOString(),
         })
         .select('id')
         .maybeSingle();
-    if (error || !data) return withNoStore(fail('DB_ERROR', 'insert failed', 500));
-    return withNoStore(ok({ id: data.id }));
+
+    if (error || !data) {
+        return withNoStore(fail('DB_ERROR', `정보공유방 등록 실패: ${error?.message || '알 수 없는 오류'}`, 500));
+    }
+
+    return withNoStore(
+        ok({
+            id: data.id,
+            message: '정보공유방 게시글이 성공적으로 등록되었습니다.',
+        })
+    );
 }

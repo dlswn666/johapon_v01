@@ -27,18 +27,38 @@ export async function GET(_req: Request, context: { params: Promise<{ slug: stri
     const unionId = await getTenantIdBySlug(slug);
     if (!unionId) return withSMaxAge(fail('NOT_FOUND', 'union not found', 404), 30);
 
-    const categoryId = await resolveCategoryIdByKey(unionId, 'share');
-    if (!categoryId) return withSMaxAge(fail('NOT_FOUND', 'category not found', 404), 30);
+    // 정보공유방 카테고리 ID 조회 (share -> free로 변경)
+    let categoryId = await resolveCategoryIdByKey(unionId, 'free');
+    if (!categoryId) {
+        const { data: globalCategory } = await supabase
+            .from('post_categories')
+            .select('id')
+            .eq('key', 'free')
+            .is('union_id', null)
+            .maybeSingle();
+
+        if (!globalCategory) {
+            return withSMaxAge(fail('NOT_FOUND', '정보공유방 카테고리를 찾을 수 없습니다', 404), 30);
+        }
+        categoryId = globalCategory.id;
+    }
 
     const { data, error } = await supabase
         .from('posts')
-        .select('id, title, content, created_at, category_id, subcategory_id')
+        .select('id, title, content, created_by, created_at, updated_at, updated_by, category_id, subcategory_id')
         .eq('union_id', unionId)
         .eq('category_id', categoryId)
         .eq('id', id)
         .maybeSingle();
-    if (error) return withSMaxAge(fail('DB_ERROR', 'query failed', 500), 30);
-    if (!data) return withSMaxAge(fail('NOT_FOUND', 'not found', 404), 30);
+
+    if (error) {
+        return withSMaxAge(fail('DB_ERROR', `정보공유방 조회 실패: ${error.message}`, 500), 30);
+    }
+
+    if (!data) {
+        return withSMaxAge(fail('NOT_FOUND', '정보공유방 게시글을 찾을 수 없습니다.', 404), 30);
+    }
+
     return withSMaxAge(ok(data), 30);
 }
 
@@ -60,8 +80,21 @@ export async function PATCH(req: Request, context: { params: Promise<{ slug: str
     const unionId = await getTenantIdBySlug(slug);
     if (!unionId) return withNoStore(fail('NOT_FOUND', 'union not found', 404));
 
-    const categoryId = await resolveCategoryIdByKey(unionId, 'share');
-    if (!categoryId) return withNoStore(fail('BAD_REQUEST', 'category share missing', 400));
+    // 정보공유방 카테고리 ID 조회 (share -> free로 변경)
+    let categoryId = await resolveCategoryIdByKey(unionId, 'free');
+    if (!categoryId) {
+        const { data: globalCategory } = await supabase
+            .from('post_categories')
+            .select('id')
+            .eq('key', 'free')
+            .is('union_id', null)
+            .maybeSingle();
+
+        if (!globalCategory) {
+            return withNoStore(fail('NOT_FOUND', '정보공유방 카테고리를 찾을 수 없습니다', 404));
+        }
+        categoryId = globalCategory.id;
+    }
 
     const { error } = await supabase
         .from('posts')
@@ -69,12 +102,23 @@ export async function PATCH(req: Request, context: { params: Promise<{ slug: str
             title: typeof title === 'string' ? title : undefined,
             content: typeof content === 'string' ? content : undefined,
             subcategory_id: subcategoryId ?? undefined,
+            updated_by: auth.token,
+            updated_at: new Date().toISOString(),
         })
         .eq('id', id)
         .eq('union_id', unionId)
         .eq('category_id', categoryId);
-    if (error) return withNoStore(fail('DB_ERROR', 'update failed', 500));
-    return withNoStore(ok({ updated: true }));
+
+    if (error) {
+        return withNoStore(fail('DB_ERROR', `정보공유방 수정 실패: ${error.message}`, 500));
+    }
+
+    return withNoStore(
+        ok({
+            updated: true,
+            message: '정보공유방 게시글이 성공적으로 수정되었습니다.',
+        })
+    );
 }
 
 export async function DELETE(req: Request, context: { params: Promise<{ slug: string; id: string }> }) {
@@ -91,8 +135,21 @@ export async function DELETE(req: Request, context: { params: Promise<{ slug: st
     const unionId = await getTenantIdBySlug(slug);
     if (!unionId) return withNoStore(fail('NOT_FOUND', 'union not found', 404));
 
-    const categoryId = await resolveCategoryIdByKey(unionId, 'share');
-    if (!categoryId) return withNoStore(fail('BAD_REQUEST', 'category share missing', 400));
+    // 정보공유방 카테고리 ID 조회 (share -> free로 변경)
+    let categoryId = await resolveCategoryIdByKey(unionId, 'free');
+    if (!categoryId) {
+        const { data: globalCategory } = await supabase
+            .from('post_categories')
+            .select('id')
+            .eq('key', 'free')
+            .is('union_id', null)
+            .maybeSingle();
+
+        if (!globalCategory) {
+            return withNoStore(fail('NOT_FOUND', '정보공유방 카테고리를 찾을 수 없습니다', 404));
+        }
+        categoryId = globalCategory.id;
+    }
 
     const { error } = await supabase
         .from('posts')
@@ -100,6 +157,15 @@ export async function DELETE(req: Request, context: { params: Promise<{ slug: st
         .eq('id', id)
         .eq('union_id', unionId)
         .eq('category_id', categoryId);
-    if (error) return withNoStore(fail('DB_ERROR', 'delete failed', 500));
-    return withNoStore(ok({ deleted: true }));
+
+    if (error) {
+        return withNoStore(fail('DB_ERROR', `정보공유방 삭제 실패: ${error.message}`, 500));
+    }
+
+    return withNoStore(
+        ok({
+            deleted: true,
+            message: '정보공유방 게시글이 성공적으로 삭제되었습니다.',
+        })
+    );
 }

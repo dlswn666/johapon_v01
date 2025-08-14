@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
@@ -15,6 +15,8 @@ import type { AttachedFile } from '@/entities/community/model/types';
 
 export default function CommunityNewPage() {
     const router = useRouter();
+    const params = useParams();
+    const homepage = params?.homepage as string;
     const [loading, setLoading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -69,16 +71,34 @@ export default function CommunityNewPage() {
     };
 
     const validateForm = () => {
-        if (!formData.title.trim()) {
+        const trimmedTitle = formData.title.trim();
+        if (!trimmedTitle) {
             alert('게시글 제목을 입력해 주세요.');
+            return false;
+        }
+        if (trimmedTitle.length < 2) {
+            alert('제목은 최소 2글자 이상 입력해주세요.');
+            return false;
+        }
+        if (trimmedTitle.length > 100) {
+            alert('제목은 100글자를 초과할 수 없습니다.');
             return false;
         }
         if (!formData.category) {
             alert('카테고리를 선택해 주세요.');
             return false;
         }
-        if (!formData.content.trim() || formData.content === '<br>' || formData.content === '<div><br></div>') {
+        if (
+            !formData.content.trim() ||
+            formData.content === '<br>' ||
+            formData.content === '<div><br></div>' ||
+            formData.content === '<p></p>'
+        ) {
             alert('게시글 내용을 입력해 주세요.');
+            return false;
+        }
+        if (formData.content.length > 10000) {
+            alert('내용은 10,000글자를 초과할 수 없습니다.');
             return false;
         }
         return true;
@@ -89,27 +109,38 @@ export default function CommunityNewPage() {
 
         setLoading(true);
         try {
-            const post = {
-                id: Date.now(),
-                ...formData,
-                author: '조합원', // 실제로는 현재 사용자 정보
-                date: new Date().toISOString().split('T')[0],
-                createdAt: new Date().toISOString(),
-                likes: 0,
-                comments: 0,
-                views: 0,
-                isLiked: false,
-                attachments: attachedFiles,
-            };
+            const response = await fetch(`/api/tenant/${homepage}/boards/share`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: 'Bearer temp-token', // 임시 토큰
+                },
+                body: JSON.stringify({
+                    title: formData.title,
+                    content: formData.content,
+                    subcategory_id: formData.category !== '' ? formData.category : null,
+                    attachments: attachedFiles,
+                }),
+            });
 
-            // 여기에서 실제 API 호출을 할 예정
-            console.log('게시글 저장:', post);
+            if (response.ok) {
+                const result = await response.json();
+                alert('게시글이 성공적으로 등록되었습니다.');
 
-            alert('게시글이 성공적으로 등록되었습니다.');
-            router.push('/community');
+                // 강제 새로고침을 위해 타임스탬프 파라미터 추가
+                const timestamp = Date.now();
+                router.push(`../community?refresh=${timestamp}`);
+
+                // 추가 보장을 위해 router.refresh() 호출
+                router.refresh();
+            } else {
+                const error = await response.json();
+                const errorMessage = error.error?.message || error.message || '알 수 없는 오류';
+                alert(`등록에 실패했습니다: ${errorMessage}`);
+            }
         } catch (error) {
-            console.error('Save error:', error);
-            alert('게시글 등록 중 오류가 발생했습니다.');
+            console.error('게시글 등록 실패:', error);
+            alert('네트워크 오류가 발생했습니다. 다시 시도해주세요.');
         } finally {
             setLoading(false);
         }
@@ -120,10 +151,10 @@ export default function CommunityNewPage() {
 
         if (hasContent) {
             if (confirm('작성 중인 내용이 모두 사라집니다. 정말로 나가시겠습니까?')) {
-                router.push('/community');
+                router.push('../community');
             }
         } else {
-            router.push('/community');
+            router.push('../community');
         }
     };
 
