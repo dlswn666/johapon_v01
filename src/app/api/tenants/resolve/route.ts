@@ -16,8 +16,10 @@ export async function GET(req: Request) {
     }
 
     try {
+        console.log(slug);
         // tenantStore의 getOrFetchBySlug 메서드를 사용하여 캐시와 DB 조회를 한번에 처리
         const tenantInfo = await tenantStore.getOrFetchBySlug(slug);
+        console.log(tenantInfo);
 
         if (!tenantInfo) {
             return NextResponse.json({ error: 'not_found' }, { status: 404 });

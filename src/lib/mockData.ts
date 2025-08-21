@@ -83,7 +83,7 @@ export const adminMenuItems: MenuItem[] = [
             {
                 id: 'admin-homepage',
                 label: '홈페이지 관리',
-                href: '/admin/homepage-management',
+                href: '/homepage-management',
             },
             {
                 id: 'admin-business',

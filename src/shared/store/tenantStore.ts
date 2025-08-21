@@ -8,8 +8,6 @@ export interface TenantInfo {
     address?: string | null;
     phone?: string | null;
     email?: string | null;
-    is_expired?: boolean | null;
-    contract_end_date?: string | null; // ISO string
 }
 
 interface SupabaseUnionData {
@@ -20,8 +18,6 @@ interface SupabaseUnionData {
     address: string | null;
     phone: string | null;
     email: string | null;
-    is_expired: boolean | null;
-    contract_end_date: string | null;
 }
 
 interface CacheEntry {
@@ -58,6 +54,7 @@ class TenantStore {
 
     public async getOrFetchBySlug(slug: string): Promise<TenantInfo | null> {
         const cached = this.get(slug);
+        console.log('cached : ', cached);
         if (cached) {
             return cached;
         }
@@ -67,10 +64,10 @@ class TenantStore {
 
             const { data, error } = await supabase
                 .from('unions')
-                .select('id, homepage, name, logo_url, address, phone, email, is_expired, contract_end_date')
+                .select('id, homepage, name, logo_url, address, phone, email')
                 .eq('homepage', slug)
                 .maybeSingle<SupabaseUnionData>();
-
+            console.log('data : ', data);
             if (error) {
                 return null;
             }
@@ -87,8 +84,6 @@ class TenantStore {
                 address: data.address,
                 phone: data.phone,
                 email: data.email,
-                is_expired: data.is_expired,
-                contract_end_date: data.contract_end_date,
             };
 
             this.set(slug, info);

@@ -4,7 +4,16 @@ import { NextResponse, type NextRequest } from 'next/server';
  * 멀티테넌트 미들웨어 - 테넌트 슬러그 기반 라우팅
  */
 
-const SYSTEM_PATHS = new Set(['_next', 'api', 'static', 'favicon.ico', 'robots.txt', 'sitemap.xml', 'admin', 'health']);
+const SYSTEM_PATHS = new Set([
+    '_next',
+    'api',
+    'static',
+    'favicon.ico',
+    'robots.txt',
+    'sitemap.xml',
+    'homepage-management',
+    'health',
+]);
 
 function isValidSlug(slug: string): boolean {
     return /^[a-z0-9_-]+$/i.test(slug) && slug.length >= 2 && slug.length <= 50;
