@@ -12,6 +12,7 @@ const SYSTEM_PATHS = new Set([
     'robots.txt',
     'sitemap.xml',
     'homepage-management',
+    'nav-management',
     'health',
 ]);
 
