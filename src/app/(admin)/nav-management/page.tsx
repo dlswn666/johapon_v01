@@ -5,19 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
 import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
-import {
-    Search,
-    Filter,
-    Download,
-    Settings,
-    Plus,
-    Building2,
-    Menu,
-    CheckCircle2,
-    XCircle,
-    ChevronLeft,
-    ChevronRight,
-} from 'lucide-react';
+import { Search, Download, Plus, Building2, Menu, ChevronLeft, ChevronRight, Settings } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
 import Link from 'next/link';
@@ -28,31 +16,17 @@ interface UnionNavData {
     unionId: string;
     unionName: string;
     homepage: string;
-    totalMenus: number;
-    enabledMenus: number;
-    hasCustomLabels: boolean;
     lastUpdated: string;
-    status: 'configured' | 'default' | 'incomplete';
-}
-
-interface NavStats {
-    totalUnions: number;
-    configuredUnions: number;
-    defaultUnions: number;
-    incompleteUnions: number;
+    contractStatus: 'operating' | 'suspended'; // 운영중, 중단
 }
 
 export default function NavManagementPage() {
     const router = useRouter();
     const [searchTerm, setSearchTerm] = useState('');
-    const [filterStatus, setFilterStatus] = useState('all');
+    const [searchInput, setSearchInput] = useState(''); // 검색 입력용 별도 상태
+    const [sortBy, setSortBy] = useState('unionName'); // 정렬 기준
     const [navData, setNavData] = useState<UnionNavData[]>([]);
-    const [stats, setStats] = useState<NavStats>({
-        totalUnions: 0,
-        configuredUnions: 0,
-        defaultUnions: 0,
-        incompleteUnions: 0,
-    });
+    const [totalUnions, setTotalUnions] = useState(0);
     const [loading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
@@ -64,7 +38,7 @@ export default function NavManagementPage() {
             setLoading(true);
             const searchParams = new URLSearchParams({
                 search: searchTerm,
-                status: filterStatus,
+                sortBy: sortBy,
                 page: currentPage.toString(),
                 limit: '10',
             });
@@ -83,66 +57,41 @@ export default function NavManagementPage() {
 
             const result = await response.json();
             setNavData(result.data || []);
-            setStats(result.stats || { totalUnions: 0, configuredUnions: 0, defaultUnions: 0, incompleteUnions: 0 });
+            setTotalUnions(result.totalUnions || 0);
             setTotalPages(result.pagination?.totalPages || 1);
             setTotalCount(result.pagination?.totalCount || 0);
         } catch (error) {
             console.error('데이터 로드 오류:', error);
-            // 에러 상황에서도 빈 데이터 설정
             setNavData([]);
-            setStats({ totalUnions: 0, configuredUnions: 0, defaultUnions: 0, incompleteUnions: 0 });
+            setTotalUnions(0);
             setTotalPages(1);
             setTotalCount(0);
         } finally {
             setLoading(false);
         }
-    }, [searchTerm, filterStatus, currentPage]);
+    }, [searchTerm, sortBy, currentPage]);
 
     useEffect(() => {
         loadData();
     }, [loadData]);
 
-    // 검색 및 필터링
-    const filteredData = navData.filter((item) => {
-        const matchesSearch =
-            item.unionName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            item.homepage.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesFilter = filterStatus === 'all' || item.status === filterStatus;
-        return matchesSearch && matchesFilter;
-    });
+    // 검색 실행
+    const handleSearch = () => {
+        setSearchTerm(searchInput);
+        setCurrentPage(1); // 검색 시 첫 페이지로 이동
+    };
 
-    // 상태별 색상 및 아이콘
-    const getStatusConfig = (status: string) => {
-        switch (status) {
-            case 'configured':
-                return {
-                    color: 'bg-green-100 text-green-800',
-                    icon: CheckCircle2,
-                    text: '설정완료',
-                };
-            case 'default':
-                return {
-                    color: 'bg-blue-100 text-blue-800',
-                    icon: Settings,
-                    text: '기본설정',
-                };
-            case 'incomplete':
-                return {
-                    color: 'bg-red-100 text-red-800',
-                    icon: XCircle,
-                    text: '미완료',
-                };
-            default:
-                return {
-                    color: 'bg-gray-100 text-gray-800',
-                    icon: Settings,
-                    text: '알 수 없음',
-                };
+    // 엔터 키 처리
+    const handleKeyPress = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter') {
+            handleSearch();
         }
     };
 
-    const handleExport = () => {
-        console.log('데이터 내보내기');
+    // 정렬 변경 처리
+    const handleSortChange = (value: string) => {
+        setSortBy(value);
+        setCurrentPage(1); // 정렬 변경 시 첫 페이지로 이동
     };
 
     // 행 클릭 핸들러
@@ -176,6 +125,27 @@ export default function NavManagementPage() {
         return pages;
     };
 
+    // 계약 상태별 색상 및 텍스트
+    const getContractStatusConfig = (status: string) => {
+        switch (status) {
+            case 'operating':
+                return {
+                    color: 'bg-green-100 text-green-800',
+                    text: '운영중',
+                };
+            case 'suspended':
+                return {
+                    color: 'bg-red-100 text-red-800',
+                    text: '중단',
+                };
+            default:
+                return {
+                    color: 'bg-gray-100 text-gray-800',
+                    text: '알 수 없음',
+                };
+        }
+    };
+
     if (loading) {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -198,7 +168,13 @@ export default function NavManagementPage() {
                             <p className="text-gray-600 mt-1">조합별 메뉴 구성 및 권한 관리</p>
                         </div>
                         <div className="flex items-center space-x-3">
-                            <Button variant="outline" onClick={handleExport} className="flex items-center space-x-2">
+                            <Link href="../base-menu-management">
+                                <Button variant="outline" className="flex items-center space-x-2">
+                                    <Settings className="h-4 w-4" />
+                                    <span>기준 메뉴 관리</span>
+                                </Button>
+                            </Link>
+                            <Button variant="outline" onClick={() => {}} className="flex items-center space-x-2">
                                 <Download className="h-4 w-4" />
                                 <span>데이터 내보내기</span>
                             </Button>
@@ -215,48 +191,15 @@ export default function NavManagementPage() {
 
             {/* Main Content */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                {/* Stats Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">전체 조합</CardTitle>
-                            <Building2 className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{stats.totalUnions}</div>
-                            <p className="text-xs text-muted-foreground">등록된 조합 수</p>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">설정완료</CardTitle>
-                            <CheckCircle2 className="h-4 w-4 text-green-600" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold text-green-600">{stats.configuredUnions}</div>
-                            <p className="text-xs text-muted-foreground">커스텀 설정 완료</p>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">기본설정</CardTitle>
-                            <Settings className="h-4 w-4 text-blue-600" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold text-blue-600">{stats.defaultUnions}</div>
-                            <p className="text-xs text-muted-foreground">기본 메뉴 사용</p>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">미완료</CardTitle>
-                            <XCircle className="h-4 w-4 text-red-600" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold text-red-600">{stats.incompleteUnions}</div>
-                            <p className="text-xs text-muted-foreground">설정 필요</p>
-                        </CardContent>
-                    </Card>
+                {/* 조합 메뉴별 현황 라인 */}
+                <div className="flex items-center justify-between mb-8">
+                    <div className="flex items-center space-x-2">
+                        <Menu className="h-5 w-5 text-gray-600" />
+                        <span className="text-lg font-medium text-gray-900">조합 메뉴별 현황</span>
+                    </div>
+                    <div className="text-sm text-gray-600">
+                        전체 조합: <span className="font-semibold">{totalUnions}</span>개
+                    </div>
                 </div>
 
                 {/* Filters */}
@@ -268,22 +211,24 @@ export default function NavManagementPage() {
                                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                                     <Input
                                         placeholder="조합명 또는 홈페이지 주소로 검색..."
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        value={searchInput}
+                                        onChange={(e) => setSearchInput(e.target.value)}
+                                        onKeyPress={handleKeyPress}
                                         className="pl-10"
                                     />
                                 </div>
                             </div>
-                            <Select value={filterStatus} onValueChange={setFilterStatus}>
+                            <Button onClick={handleSearch} className="flex items-center space-x-2">
+                                <Search className="h-4 w-4" />
+                                <span>검색</span>
+                            </Button>
+                            <Select value={sortBy} onValueChange={handleSortChange}>
                                 <SelectTrigger className="w-[180px]">
-                                    <Filter className="h-4 w-4 mr-2" />
-                                    <SelectValue placeholder="상태 필터" />
+                                    <span>정렬 기준</span>
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">모든 상태</SelectItem>
-                                    <SelectItem value="configured">설정완료</SelectItem>
-                                    <SelectItem value="default">기본설정</SelectItem>
-                                    <SelectItem value="incomplete">미완료</SelectItem>
+                                    <SelectItem value="unionName">조합명</SelectItem>
+                                    <SelectItem value="createdAt">생성일</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -305,16 +250,13 @@ export default function NavManagementPage() {
                                     <TableRow>
                                         <TableHead className="bg-gray-50 font-semibold">조합명</TableHead>
                                         <TableHead className="bg-gray-50 font-semibold">홈페이지 주소</TableHead>
-                                        <TableHead className="bg-gray-50 font-semibold">메뉴 사용률</TableHead>
-                                        <TableHead className="bg-gray-50 font-semibold">커스텀 라벨</TableHead>
-                                        <TableHead className="bg-gray-50 font-semibold">상태</TableHead>
+                                        <TableHead className="bg-gray-50 font-semibold">계약 상태</TableHead>
                                         <TableHead className="bg-gray-50 font-semibold">최종 수정일</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody className="bg-white">
-                                    {filteredData.map((item) => {
-                                        const statusConfig = getStatusConfig(item.status);
-                                        const StatusIcon = statusConfig.icon;
+                                    {navData.map((item) => {
+                                        const statusConfig = getContractStatusConfig(item.contractStatus);
 
                                         return (
                                             <TableRow
@@ -334,41 +276,7 @@ export default function NavManagementPage() {
                                                     </code>
                                                 </TableCell>
                                                 <TableCell className="p-4">
-                                                    <div className="flex items-center space-x-2">
-                                                        <div className="w-24 bg-gray-200 rounded-full h-2">
-                                                            <div
-                                                                className="bg-blue-600 h-2 rounded-full"
-                                                                style={{
-                                                                    width: `${
-                                                                        (item.enabledMenus / item.totalMenus) * 100
-                                                                    }%`,
-                                                                }}
-                                                            ></div>
-                                                        </div>
-                                                        <span className="text-sm text-gray-600">
-                                                            {item.enabledMenus}/{item.totalMenus}
-                                                        </span>
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell className="p-4">
-                                                    {item.hasCustomLabels ? (
-                                                        <Badge
-                                                            variant="outline"
-                                                            className="text-orange-600 border-orange-200"
-                                                        >
-                                                            사용
-                                                        </Badge>
-                                                    ) : (
-                                                        <Badge variant="outline" className="text-gray-600">
-                                                            기본
-                                                        </Badge>
-                                                    )}
-                                                </TableCell>
-                                                <TableCell className="p-4">
-                                                    <Badge className={statusConfig.color}>
-                                                        <StatusIcon className="h-3 w-3 mr-1" />
-                                                        {statusConfig.text}
-                                                    </Badge>
+                                                    <Badge className={statusConfig.color}>{statusConfig.text}</Badge>
                                                 </TableCell>
                                                 <TableCell className="text-gray-600 p-4">{item.lastUpdated}</TableCell>
                                             </TableRow>
@@ -378,7 +286,7 @@ export default function NavManagementPage() {
                             </Table>
                         </div>
 
-                        {filteredData.length === 0 && (
+                        {navData.length === 0 && (
                             <div className="text-center py-8 px-4">
                                 <Menu className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                                 <p className="text-gray-600">검색 결과가 없습니다.</p>

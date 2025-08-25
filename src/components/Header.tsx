@@ -7,13 +7,16 @@ import { Button } from '@/shared/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/shared/ui/sheet';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/shared/ui/collapsible';
 import { Users, MapPin, Building2, Settings, LogOut, Menu, ChevronDown, ChevronUp } from 'lucide-react';
-import { menuItems, adminMenuItems } from '@/lib/mockData';
+import { useNavigation } from '@/shared/hooks/useNavigation';
+import { useAuth } from '@/shared/hooks/useAuth';
 
 interface HeaderProps {
-    isAdmin?: boolean;
+    userRole?: 'member' | 'admin' | 'systemadmin';
 }
 
-export default function Header({ isAdmin = true }: HeaderProps) {
+export default function Header({ userRole: propUserRole }: HeaderProps) {
+    const { userRole: authUserRole } = useAuth();
+    const userRole = propUserRole || authUserRole;
     const [isMenuHovered, setIsMenuHovered] = useState(false);
     const [activeMenuItem, setActiveMenuItem] = useState<string>('');
     const [isMobile, setIsMobile] = useState(false);
@@ -21,6 +24,16 @@ export default function Header({ isAdmin = true }: HeaderProps) {
     const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
     const menuTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const pathname = usePathname();
+
+    // 현재 slug 추출 (tenant 경로에서)
+    const currentSlug = pathname ? pathname.split('/')[1] : '';
+
+    // 네비게이션 데이터 로드
+    const { menus, loading, error } = useNavigation({
+        slug: currentSlug,
+        userRole: userRole,
+        enabled: Boolean(currentSlug),
+    });
 
     // Mobile detection
     useEffect(() => {
@@ -70,8 +83,42 @@ export default function Header({ isAdmin = true }: HeaderProps) {
         setActiveMenuItem('');
     };
 
-    // 관리자 메뉴 추가
-    const allMenuItems = isAdmin ? [...menuItems, ...adminMenuItems] : menuItems;
+    // 기본 fallback 메뉴 (메뉴 로딩 실패시 사용)
+    const fallbackMenuItems = [
+        {
+            id: 'home',
+            label: '홈',
+            subItems: [
+                { id: 'home-main', label: '메인', href: '/' },
+                { id: 'home-announcements', label: '공지사항', href: '/announcements' },
+            ],
+        },
+        {
+            id: 'info',
+            label: '조합정보',
+            subItems: [
+                { id: 'info-chairman', label: '조합장 인사말', href: '/chairman-greeting' },
+                { id: 'info-organization', label: '조직도', href: '/organization-chart' },
+                { id: 'info-office', label: '사무소 정보', href: '/office' },
+            ],
+        },
+        {
+            id: 'community',
+            label: '커뮤니티',
+            subItems: [
+                { id: 'community-board', label: '자유게시판', href: '/community' },
+                { id: 'community-qna', label: 'Q&A', href: '/qna' },
+            ],
+        },
+        {
+            id: 'redevelopment',
+            label: '재개발정보',
+            subItems: [{ id: 'redevelopment-info', label: '사업개요', href: '/redevelopment' }],
+        },
+    ];
+
+    // 데이터베이스에서 로드된 메뉴 사용 (로딩 중이거나 에러시 fallback 메뉴 사용)
+    const allMenuItems = loading ? [] : error || !menus.length ? fallbackMenuItems : menus;
 
     const mobileMenuItems = [
         { icon: Building2, label: '대시보드', href: '/', color: 'text-blue-600' },
@@ -104,6 +151,20 @@ export default function Header({ isAdmin = true }: HeaderProps) {
         if (href === '/') return `/${candidate}`;
         return `/${candidate}${href.startsWith('/') ? href : `/${href}`}`;
     };
+
+    // 로딩 또는 에러 상태 처리
+    if (loading) {
+        return (
+            <div className="bg-white shadow-sm border-b border-gray-200 h-20 flex items-center justify-center">
+                <div className="text-gray-500">메뉴를 불러오는 중...</div>
+            </div>
+        );
+    }
+
+    if (error) {
+        console.error('Navigation error:', error);
+        // 에러 발생시에도 기본 UI는 표시하되 메뉴는 비어있음
+    }
 
     return (
         <>

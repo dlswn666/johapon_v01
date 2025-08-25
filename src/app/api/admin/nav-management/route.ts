@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getSupabaseClient } from '@/shared/lib/supabase';
 
 // 임시 인터페이스 (나중에 실제 데이터베이스 연결 시 업데이트)
 interface MenuConfig {
@@ -25,86 +26,75 @@ export async function GET(request: NextRequest) {
     try {
         const { searchParams } = new URL(request.url);
         const search = searchParams.get('search') || '';
-        const status = searchParams.get('status') || 'all';
+        const sortBy = searchParams.get('sortBy') || 'unionName';
         const page = parseInt(searchParams.get('page') || '1');
         const limit = parseInt(searchParams.get('limit') || '10');
 
-        // TODO: 실제 데이터베이스 쿼리로 대체
-        // const result = await getUnionNavData({ search, status, page, limit });
+        const supabase = getSupabaseClient();
 
-        // 임시 응답 데이터
-        const mockData = [
-            {
-                id: '1',
-                unionId: 'union1',
-                unionName: '강남재개발조합',
-                homepage: 'gangnam',
-                totalMenus: 8,
-                enabledMenus: 6,
-                hasCustomLabels: true,
-                lastUpdated: '2024-01-15',
-                status: 'configured',
-            },
-            {
-                id: '2',
-                unionId: 'union2',
-                unionName: '서초재개발조합',
-                homepage: 'seocho',
-                totalMenus: 8,
-                enabledMenus: 8,
-                hasCustomLabels: false,
-                lastUpdated: '2024-01-10',
-                status: 'default',
-            },
-            {
-                id: '3',
-                unionId: 'union3',
-                unionName: '송파재개발조합',
-                homepage: 'songpa',
-                totalMenus: 8,
-                enabledMenus: 4,
-                hasCustomLabels: true,
-                lastUpdated: '2024-01-05',
-                status: 'incomplete',
-            },
-        ];
+        // 1. 조합 목록 조회 (검색 및 정렬 적용)
+        let unionsQuery = supabase.from('unions').select('id, name, homepage, created_at');
 
-        // 검색 및 필터링
-        let filteredData = mockData;
-
+        // 검색 조건 적용
         if (search) {
-            filteredData = filteredData.filter(
-                (item) =>
-                    item.unionName.toLowerCase().includes(search.toLowerCase()) ||
-                    item.homepage.toLowerCase().includes(search.toLowerCase())
+            unionsQuery = unionsQuery.or(`name.ilike.%${search}%,homepage.ilike.%${search}%`);
+        }
+
+        // 정렬 조건 적용
+        switch (sortBy) {
+            case 'unionName':
+                unionsQuery = unionsQuery.order('name');
+                break;
+            case 'createdAt':
+                unionsQuery = unionsQuery.order('created_at', { ascending: false });
+                break;
+            default:
+                unionsQuery = unionsQuery.order('name');
+        }
+
+        const { data: unions, error: unionsError } = await unionsQuery;
+
+        if (unionsError) {
+            console.error('Unions query error:', unionsError);
+            return NextResponse.json(
+                {
+                    success: false,
+                    message: '조합 데이터 조회에 실패했습니다.',
+                },
+                { status: 500 }
             );
         }
 
-        if (status !== 'all') {
-            filteredData = filteredData.filter((item) => item.status === status);
-        }
+        // 2. 데이터 변환 및 계약 상태 계산
+        const unionsWithStatus =
+            unions?.map((union) => {
+                // 임시로 모든 조합을 운영중으로 설정 (추후 계약 관련 필드 추가 시 수정)
+                const contractStatus: 'operating' | 'suspended' = 'operating';
 
-        // 페이징 처리
+                return {
+                    id: union.id,
+                    unionId: union.id,
+                    unionName: union.name,
+                    homepage: union.homepage,
+                    lastUpdated: union.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
+                    contractStatus: contractStatus,
+                };
+            }) || [];
+
+        // 3. 페이징 처리
         const startIndex = (page - 1) * limit;
         const endIndex = startIndex + limit;
-        const paginatedData = filteredData.slice(startIndex, endIndex);
-
-        const stats = {
-            totalUnions: mockData.length,
-            configuredUnions: mockData.filter((item) => item.status === 'configured').length,
-            defaultUnions: mockData.filter((item) => item.status === 'default').length,
-            incompleteUnions: mockData.filter((item) => item.status === 'incomplete').length,
-        };
+        const paginatedData = unionsWithStatus.slice(startIndex, endIndex);
 
         return NextResponse.json({
             success: true,
             data: paginatedData,
-            stats,
+            totalUnions: unionsWithStatus.length,
             pagination: {
                 page,
                 limit,
-                total: filteredData.length,
-                totalPages: Math.ceil(filteredData.length / limit),
+                total: unionsWithStatus.length,
+                totalPages: Math.ceil(unionsWithStatus.length / limit),
             },
         });
     } catch (error) {
@@ -119,10 +109,10 @@ export async function GET(request: NextRequest) {
     }
 }
 
-// POST: nav 설정 저장
+// POST: nav 설정 저장 (기존 로직 유지)
 export async function POST(request: NextRequest) {
     try {
-        const body: SaveRequest = await request.json();
+        const body = await request.json();
         const { unionId, menuConfigs, permissions } = body;
 
         // 입력 validation
@@ -156,69 +146,98 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // TODO: 실제 데이터베이스 저장 로직
-        /*
-        // 1. union_menus 테이블 처리
-        await Promise.all(menuConfigs.map(async (config) => {
-            // 기존 설정이 있는지 확인
-            const existingConfig = await supabase
-                .from('union_menus')
-                .select('*')
-                .eq('union_id', unionId)
-                .eq('menu_item_id', config.menuItemId)
-                .single();
+        const supabase = getSupabaseClient();
 
-            if (existingConfig.data) {
-                // 업데이트
-                await supabase
+        // 1. 조합 존재 여부 확인
+        const { data: unionData, error: unionError } = await supabase
+            .from('unions')
+            .select('id')
+            .eq('id', unionId)
+            .single();
+
+        if (unionError || !unionData) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    message: '존재하지 않는 조합입니다.',
+                },
+                { status: 404 }
+            );
+        }
+
+        // 2. union_menus 테이블 처리
+        await Promise.all(
+            menuConfigs.map(async (config) => {
+                // 기존 설정이 있는지 확인
+                const { data: existingConfig } = await supabase
                     .from('union_menus')
-                    .update({
-                        enabled: config.enabled,
-                        custom_label: config.customLabel || null,
-                        display_order: config.displayOrder
-                    })
+                    .select('*')
                     .eq('union_id', unionId)
-                    .eq('menu_item_id', config.menuItemId);
-            } else {
-                // 새로 생성
-                await supabase
-                    .from('union_menus')
-                    .insert({
+                    .eq('menu_item_id', config.menuItemId)
+                    .single();
+
+                if (existingConfig) {
+                    // 업데이트
+                    const { error: updateError } = await supabase
+                        .from('union_menus')
+                        .update({
+                            enabled: config.enabled,
+                            custom_label: config.customLabel || null,
+                            display_order: config.displayOrder,
+                        })
+                        .eq('union_id', unionId)
+                        .eq('menu_item_id', config.menuItemId);
+
+                    if (updateError) {
+                        console.error('Union menu update error:', updateError);
+                        throw new Error(`메뉴 설정 업데이트 실패: ${updateError.message}`);
+                    }
+                } else {
+                    // 새로 생성
+                    const { error: insertError } = await supabase.from('union_menus').insert({
                         union_id: unionId,
                         menu_item_id: config.menuItemId,
                         enabled: config.enabled,
                         custom_label: config.customLabel || null,
-                        display_order: config.displayOrder
+                        display_order: config.displayOrder,
                     });
-            }
-        }));
 
-        // 2. menu_permissions 테이블 처리
+                    if (insertError) {
+                        console.error('Union menu insert error:', insertError);
+                        throw new Error(`메뉴 설정 추가 실패: ${insertError.message}`);
+                    }
+                }
+            })
+        );
+
+        // 3. menu_permissions 테이블 처리
         // 기존 권한 설정 삭제
-        await supabase
+        const { error: deletePermissionError } = await supabase
             .from('menu_permissions')
             .delete()
             .eq('union_id', unionId);
 
+        if (deletePermissionError) {
+            console.error('Permission delete error:', deletePermissionError);
+            throw new Error(`기존 권한 삭제 실패: ${deletePermissionError.message}`);
+        }
+
         // 새 권한 설정 추가
-        const permissionInserts = permissions
-            .filter(p => p.canView) // 권한이 있는 것만 저장
-            .map(p => ({
-                union_id: unionId,
-                menu_item_id: p.menuItemId,
-                role_id: p.roleId,
-                can_view: p.canView
-            }));
+        const permissionInserts = permissions.map((p) => ({
+            union_id: unionId,
+            menu_item_id: p.menuItemId,
+            role_id: p.roleId,
+            can_view: p.canView,
+        }));
 
         if (permissionInserts.length > 0) {
-            await supabase
-                .from('menu_permissions')
-                .insert(permissionInserts);
-        }
-        */
+            const { error: insertPermissionError } = await supabase.from('menu_permissions').insert(permissionInserts);
 
-        // 임시 성공 응답
-        console.log('저장할 데이터:', { unionId, menuConfigs, permissions });
+            if (insertPermissionError) {
+                console.error('Permission insert error:', insertPermissionError);
+                throw new Error(`권한 설정 추가 실패: ${insertPermissionError.message}`);
+            }
+        }
 
         return NextResponse.json({
             success: true,

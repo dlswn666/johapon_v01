@@ -26,9 +26,11 @@ import {
     Shield,
     Settings,
     ChevronRight,
+    ChevronDown,
     Eye,
     Edit2,
     AlertTriangle,
+    GripVertical,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -70,6 +72,99 @@ interface UnionMenuConfig {
     displayOrder: number;
 }
 
+interface ExpandedMenus {
+    [key: string]: boolean;
+}
+
+// 메뉴 계층구조 빌드 함수
+const buildMenuHierarchy = (menuItems: MenuItem[]): MenuItem[] => {
+    const menuMap = new Map<string, MenuItem>();
+    const rootMenus: MenuItem[] = [];
+
+    // 모든 메뉴 아이템을 맵에 저장하고 children 배열 초기화
+    menuItems.forEach((item) => {
+        menuMap.set(item.id, { ...item, children: [] });
+    });
+
+    // 계층구조 생성
+    menuItems.forEach((item) => {
+        const menuItem = menuMap.get(item.id)!;
+        if (item.parent_id && menuMap.has(item.parent_id)) {
+            const parent = menuMap.get(item.parent_id)!;
+            parent.children!.push(menuItem);
+        } else {
+            rootMenus.push(menuItem);
+        }
+    });
+
+    // 각 레벨에서 display_order로 정렬
+    const sortMenus = (menus: MenuItem[]) => {
+        menus.sort((a, b) => a.display_order - b.display_order);
+        menus.forEach((menu) => {
+            if (menu.children && menu.children.length > 0) {
+                sortMenus(menu.children);
+            }
+        });
+    };
+
+    sortMenus(rootMenus);
+    return rootMenus;
+};
+
+// 순서 중복 체크 함수
+const validateDisplayOrders = (
+    menuConfigs: Record<string, UnionMenuConfig>,
+    hierarchicalMenus: MenuItem[]
+): string[] => {
+    const errors: string[] = [];
+
+    // 1차 메뉴 순서 중복 체크
+    const firstLevelOrders = new Map<number, string[]>();
+    hierarchicalMenus.forEach((menu) => {
+        const config = menuConfigs[menu.id];
+        if (config?.enabled) {
+            const order = config.displayOrder;
+            if (!firstLevelOrders.has(order)) {
+                firstLevelOrders.set(order, []);
+            }
+            firstLevelOrders.get(order)!.push(menu.label_default);
+        }
+    });
+
+    firstLevelOrders.forEach((menus, order) => {
+        if (menus.length > 1) {
+            errors.push(`1차 메뉴 순서 ${order}번이 중복됩니다: ${menus.join(', ')}`);
+        }
+    });
+
+    // 2차 메뉴 순서 중복 체크 (각 1차 메뉴별로)
+    hierarchicalMenus.forEach((parentMenu) => {
+        if (parentMenu.children && parentMenu.children.length > 0) {
+            const secondLevelOrders = new Map<number, string[]>();
+            parentMenu.children.forEach((childMenu) => {
+                const config = menuConfigs[childMenu.id];
+                if (config?.enabled) {
+                    const order = config.displayOrder;
+                    if (!secondLevelOrders.has(order)) {
+                        secondLevelOrders.set(order, []);
+                    }
+                    secondLevelOrders.get(order)!.push(childMenu.label_default);
+                }
+            });
+
+            secondLevelOrders.forEach((menus, order) => {
+                if (menus.length > 1) {
+                    errors.push(
+                        `"${parentMenu.label_default}" 하위 메뉴 순서 ${order}번이 중복됩니다: ${menus.join(', ')}`
+                    );
+                }
+            });
+        }
+    });
+
+    return errors;
+};
+
 export default function NewNavConfigPage() {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
@@ -80,8 +175,10 @@ export default function NewNavConfigPage() {
     const [unions, setUnions] = useState<Union[]>([]);
     const [roles, setRoles] = useState<Role[]>([]);
     const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+    const [hierarchicalMenus, setHierarchicalMenus] = useState<MenuItem[]>([]);
     const [menuConfigs, setMenuConfigs] = useState<Record<string, UnionMenuConfig>>({});
     const [permissions, setPermissions] = useState<Record<string, MenuPermission[]>>({});
+    const [expandedMenus, setExpandedMenus] = useState<ExpandedMenus>({});
 
     // Dialog state
     const [showExitDialog, setShowExitDialog] = useState(false);
@@ -109,14 +206,25 @@ export default function NewNavConfigPage() {
             setRoles(rolesData);
             setMenuItems(menuItemsData);
 
-            // 기본 메뉴 설정 초기화
+            // 메뉴 아이템들을 계층구조로 변환
+            const hierarchical = buildMenuHierarchy(menuItemsData);
+            setHierarchicalMenus(hierarchical);
+
+            // 1차 메뉴들을 기본적으로 펼친 상태로 설정
+            const initialExpanded: ExpandedMenus = {};
+            hierarchical.forEach((menu) => {
+                initialExpanded[menu.id] = true;
+            });
+            setExpandedMenus(initialExpanded);
+
+            // 기본 메뉴 설정 초기화 (display_order는 기본값 사용)
             const defaultConfigs: Record<string, UnionMenuConfig> = {};
-            menuItemsData.forEach((item: MenuItem, index: number) => {
+            menuItemsData.forEach((item: MenuItem) => {
                 defaultConfigs[item.id] = {
                     menuItemId: item.id,
                     enabled: true,
                     customLabel: '',
-                    displayOrder: index + 1,
+                    displayOrder: item.display_order,
                 };
             });
             setMenuConfigs(defaultConfigs);
@@ -158,6 +266,14 @@ export default function NewNavConfigPage() {
         setHasUnsavedChanges(true);
     };
 
+    // 메뉴 펼치기/접기 토글
+    const toggleMenuExpansion = (menuId: string) => {
+        setExpandedMenus((prev) => ({
+            ...prev,
+            [menuId]: !prev[menuId],
+        }));
+    };
+
     // 저장 처리
     const handleSave = async () => {
         if (!selectedUnionId) {
@@ -167,6 +283,14 @@ export default function NewNavConfigPage() {
 
         try {
             setSaving(true);
+
+            // 순서 중복 체크
+            const validationErrors = validateDisplayOrders(menuConfigs, hierarchicalMenus);
+            if (validationErrors.length > 0) {
+                alert('순서 설정에 오류가 있습니다:\n' + validationErrors.join('\n'));
+                setSaving(false);
+                return;
+            }
 
             const saveData = {
                 unionId: selectedUnionId,
@@ -322,60 +446,127 @@ export default function NewNavConfigPage() {
                                     </CardHeader>
                                     <CardContent>
                                         <div className="space-y-4">
-                                            {menuItems.map((item) => {
-                                                const config = menuConfigs[item.id];
-                                                if (!config) return null;
+                                            {hierarchicalMenus.map((parentMenu) => {
+                                                const parentConfig = menuConfigs[parentMenu.id];
+                                                if (!parentConfig) return null;
+
+                                                const isExpanded = expandedMenus[parentMenu.id];
 
                                                 return (
-                                                    <div key={item.id} className="border rounded-lg p-4">
-                                                        <div className="flex items-center justify-between mb-4">
-                                                            <div className="flex items-center space-x-3">
-                                                                <Switch
-                                                                    checked={config.enabled}
-                                                                    onCheckedChange={(enabled) =>
-                                                                        updateMenuConfig(item.id, { enabled })
-                                                                    }
-                                                                />
-                                                                <div>
-                                                                    <h4 className="font-medium">
-                                                                        {item.label_default}
-                                                                    </h4>
-                                                                    <p className="text-sm text-gray-500">{item.path}</p>
-                                                                </div>
-                                                            </div>
-                                                            <Badge variant={config.enabled ? 'default' : 'secondary'}>
-                                                                {config.enabled ? '활성' : '비활성'}
-                                                            </Badge>
-                                                        </div>
-
-                                                        {config.enabled && (
-                                                            <div className="space-y-3">
-                                                                <div>
-                                                                    <Label htmlFor={`custom-label-${item.id}`}>
-                                                                        커스텀 메뉴명 (선택사항)
-                                                                    </Label>
-                                                                    <Input
-                                                                        id={`custom-label-${item.id}`}
-                                                                        placeholder={item.label_default}
-                                                                        value={config.customLabel}
-                                                                        onChange={(e) =>
-                                                                            updateMenuConfig(item.id, {
-                                                                                customLabel: e.target.value,
-                                                                            })
+                                                    <div
+                                                        key={parentMenu.id}
+                                                        className="border rounded-lg overflow-hidden"
+                                                    >
+                                                        {/* 1차 메뉴 */}
+                                                        <div className="bg-gray-50 border-b p-4">
+                                                            <div className="flex items-center justify-between mb-4">
+                                                                <div className="flex items-center space-x-3">
+                                                                    <Switch
+                                                                        checked={parentConfig.enabled}
+                                                                        onCheckedChange={(enabled) =>
+                                                                            updateMenuConfig(parentMenu.id, { enabled })
                                                                         }
                                                                     />
+                                                                    <div className="flex items-center space-x-2">
+                                                                        <Badge variant="outline" className="text-xs">
+                                                                            1차
+                                                                        </Badge>
+                                                                        <h4 className="font-medium text-lg">
+                                                                            {parentMenu.label_default}
+                                                                        </h4>
+                                                                        {parentMenu.children &&
+                                                                            parentMenu.children.length > 0 && (
+                                                                                <Button
+                                                                                    variant="ghost"
+                                                                                    size="sm"
+                                                                                    onClick={() =>
+                                                                                        toggleMenuExpansion(
+                                                                                            parentMenu.id
+                                                                                        )
+                                                                                    }
+                                                                                    className="p-1 h-6 w-6"
+                                                                                >
+                                                                                    {isExpanded ? (
+                                                                                        <ChevronDown className="h-4 w-4" />
+                                                                                    ) : (
+                                                                                        <ChevronRight className="h-4 w-4" />
+                                                                                    )}
+                                                                                </Button>
+                                                                            )}
+                                                                    </div>
                                                                 </div>
+                                                                <div className="flex items-center space-x-2">
+                                                                    <Badge
+                                                                        variant={
+                                                                            parentConfig.enabled
+                                                                                ? 'default'
+                                                                                : 'secondary'
+                                                                        }
+                                                                    >
+                                                                        {parentConfig.enabled ? '활성' : '비활성'}
+                                                                    </Badge>
+                                                                    {parentMenu.is_admin_area && (
+                                                                        <Badge
+                                                                            variant="destructive"
+                                                                            className="text-xs"
+                                                                        >
+                                                                            관리자 전용
+                                                                        </Badge>
+                                                                    )}
+                                                                </div>
+                                                            </div>
 
-                                                                {/* 권한 설정 */}
-                                                                <div>
+                                                            {parentConfig.enabled && (
+                                                                <div className="grid grid-cols-2 gap-4">
+                                                                    <div>
+                                                                        <Label
+                                                                            htmlFor={`custom-label-${parentMenu.id}`}
+                                                                        >
+                                                                            커스텀 메뉴명 (선택사항)
+                                                                        </Label>
+                                                                        <Input
+                                                                            id={`custom-label-${parentMenu.id}`}
+                                                                            placeholder={parentMenu.label_default}
+                                                                            value={parentConfig.customLabel}
+                                                                            onChange={(e) =>
+                                                                                updateMenuConfig(parentMenu.id, {
+                                                                                    customLabel: e.target.value,
+                                                                                })
+                                                                            }
+                                                                        />
+                                                                    </div>
+                                                                    <div>
+                                                                        <Label
+                                                                            htmlFor={`display-order-${parentMenu.id}`}
+                                                                        >
+                                                                            메뉴 순서
+                                                                        </Label>
+                                                                        <Input
+                                                                            id={`display-order-${parentMenu.id}`}
+                                                                            type="number"
+                                                                            min="1"
+                                                                            value={parentConfig.displayOrder}
+                                                                            onChange={(e) =>
+                                                                                updateMenuConfig(parentMenu.id, {
+                                                                                    displayOrder:
+                                                                                        parseInt(e.target.value) || 1,
+                                                                                })
+                                                                            }
+                                                                        />
+                                                                    </div>
+                                                                </div>
+                                                            )}
+
+                                                            {parentConfig.enabled && (
+                                                                <div className="mt-4">
                                                                     <Label className="flex items-center space-x-2 mb-2">
                                                                         <Shield className="h-4 w-4" />
                                                                         <span>접근 권한</span>
                                                                     </Label>
-                                                                    <div className="grid grid-cols-3 gap-2">
+                                                                    <div className="grid grid-cols-4 gap-2">
                                                                         {roles.map((role) => {
                                                                             const permission = permissions[
-                                                                                item.id
+                                                                                parentMenu.id
                                                                             ]?.find((p) => p.roleId === role.id);
                                                                             return (
                                                                                 <div
@@ -388,7 +579,7 @@ export default function NewNavConfigPage() {
                                                                                         }
                                                                                         onCheckedChange={(canView) =>
                                                                                             updatePermission(
-                                                                                                item.id,
+                                                                                                parentMenu.id,
                                                                                                 role.id,
                                                                                                 canView
                                                                                             )
@@ -402,8 +593,195 @@ export default function NewNavConfigPage() {
                                                                         })}
                                                                     </div>
                                                                 </div>
-                                                            </div>
-                                                        )}
+                                                            )}
+                                                        </div>
+
+                                                        {/* 2차 메뉴 */}
+                                                        {isExpanded &&
+                                                            parentMenu.children &&
+                                                            parentMenu.children.length > 0 && (
+                                                                <div className="bg-white">
+                                                                    {parentMenu.children.map((childMenu) => {
+                                                                        const childConfig = menuConfigs[childMenu.id];
+                                                                        if (!childConfig) return null;
+
+                                                                        return (
+                                                                            <div
+                                                                                key={childMenu.id}
+                                                                                className="border-b last:border-b-0 p-4 pl-8"
+                                                                            >
+                                                                                <div className="flex items-center justify-between mb-4">
+                                                                                    <div className="flex items-center space-x-3">
+                                                                                        <Switch
+                                                                                            checked={
+                                                                                                childConfig.enabled
+                                                                                            }
+                                                                                            onCheckedChange={(
+                                                                                                enabled
+                                                                                            ) =>
+                                                                                                updateMenuConfig(
+                                                                                                    childMenu.id,
+                                                                                                    { enabled }
+                                                                                                )
+                                                                                            }
+                                                                                        />
+                                                                                        <div className="flex items-center space-x-2">
+                                                                                            <Badge
+                                                                                                variant="outline"
+                                                                                                className="text-xs bg-blue-50"
+                                                                                            >
+                                                                                                2차
+                                                                                            </Badge>
+                                                                                            <h5 className="font-medium">
+                                                                                                {
+                                                                                                    childMenu.label_default
+                                                                                                }
+                                                                                            </h5>
+                                                                                            <span className="text-sm text-gray-500">
+                                                                                                {childMenu.path}
+                                                                                            </span>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                    <div className="flex items-center space-x-2">
+                                                                                        <Badge
+                                                                                            variant={
+                                                                                                childConfig.enabled
+                                                                                                    ? 'default'
+                                                                                                    : 'secondary'
+                                                                                            }
+                                                                                        >
+                                                                                            {childConfig.enabled
+                                                                                                ? '활성'
+                                                                                                : '비활성'}
+                                                                                        </Badge>
+                                                                                        {childMenu.is_admin_area && (
+                                                                                            <Badge
+                                                                                                variant="destructive"
+                                                                                                className="text-xs"
+                                                                                            >
+                                                                                                관리자 전용
+                                                                                            </Badge>
+                                                                                        )}
+                                                                                    </div>
+                                                                                </div>
+
+                                                                                {childConfig.enabled && (
+                                                                                    <div className="space-y-4">
+                                                                                        <div className="grid grid-cols-2 gap-4">
+                                                                                            <div>
+                                                                                                <Label
+                                                                                                    htmlFor={`custom-label-${childMenu.id}`}
+                                                                                                >
+                                                                                                    커스텀 메뉴명
+                                                                                                    (선택사항)
+                                                                                                </Label>
+                                                                                                <Input
+                                                                                                    id={`custom-label-${childMenu.id}`}
+                                                                                                    placeholder={
+                                                                                                        childMenu.label_default
+                                                                                                    }
+                                                                                                    value={
+                                                                                                        childConfig.customLabel
+                                                                                                    }
+                                                                                                    onChange={(e) =>
+                                                                                                        updateMenuConfig(
+                                                                                                            childMenu.id,
+                                                                                                            {
+                                                                                                                customLabel:
+                                                                                                                    e
+                                                                                                                        .target
+                                                                                                                        .value,
+                                                                                                            }
+                                                                                                        )
+                                                                                                    }
+                                                                                                />
+                                                                                            </div>
+                                                                                            <div>
+                                                                                                <Label
+                                                                                                    htmlFor={`display-order-${childMenu.id}`}
+                                                                                                >
+                                                                                                    메뉴 순서
+                                                                                                </Label>
+                                                                                                <Input
+                                                                                                    id={`display-order-${childMenu.id}`}
+                                                                                                    type="number"
+                                                                                                    min="1"
+                                                                                                    value={
+                                                                                                        childConfig.displayOrder
+                                                                                                    }
+                                                                                                    onChange={(e) =>
+                                                                                                        updateMenuConfig(
+                                                                                                            childMenu.id,
+                                                                                                            {
+                                                                                                                displayOrder:
+                                                                                                                    parseInt(
+                                                                                                                        e
+                                                                                                                            .target
+                                                                                                                            .value
+                                                                                                                    ) ||
+                                                                                                                    1,
+                                                                                                            }
+                                                                                                        )
+                                                                                                    }
+                                                                                                />
+                                                                                            </div>
+                                                                                        </div>
+
+                                                                                        {/* 권한 설정 */}
+                                                                                        <div>
+                                                                                            <Label className="flex items-center space-x-2 mb-2">
+                                                                                                <Shield className="h-4 w-4" />
+                                                                                                <span>접근 권한</span>
+                                                                                            </Label>
+                                                                                            <div className="grid grid-cols-4 gap-2">
+                                                                                                {roles.map((role) => {
+                                                                                                    const permission =
+                                                                                                        permissions[
+                                                                                                            childMenu.id
+                                                                                                        ]?.find(
+                                                                                                            (p) =>
+                                                                                                                p.roleId ===
+                                                                                                                role.id
+                                                                                                        );
+                                                                                                    return (
+                                                                                                        <div
+                                                                                                            key={
+                                                                                                                role.id
+                                                                                                            }
+                                                                                                            className="flex items-center space-x-2"
+                                                                                                        >
+                                                                                                            <Switch
+                                                                                                                checked={
+                                                                                                                    permission?.canView ||
+                                                                                                                    false
+                                                                                                                }
+                                                                                                                onCheckedChange={(
+                                                                                                                    canView
+                                                                                                                ) =>
+                                                                                                                    updatePermission(
+                                                                                                                        childMenu.id,
+                                                                                                                        role.id,
+                                                                                                                        canView
+                                                                                                                    )
+                                                                                                                }
+                                                                                                            />
+                                                                                                            <span className="text-sm">
+                                                                                                                {
+                                                                                                                    role.name
+                                                                                                                }
+                                                                                                            </span>
+                                                                                                        </div>
+                                                                                                    );
+                                                                                                })}
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            )}
                                                     </div>
                                                 );
                                             })}

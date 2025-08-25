@@ -1,27 +1,51 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getSupabaseClient } from '@/shared/lib/supabase';
 
 // GET: 메뉴 설정에 필요한 기본 데이터 조회 (조합 목록, 역할 목록, 메뉴 항목 목록)
 export async function GET(request: NextRequest) {
     try {
-        // TODO: 실제 데이터베이스 쿼리로 대체
-        /*
+        const supabase = getSupabaseClient();
+
         // 1. 조합 목록 조회
-        const { data: unions } = await supabase
+        const { data: unions, error: unionsError } = await supabase
             .from('unions')
             .select('id, name, homepage')
             .order('name');
 
-        // 2. 역할 목록 조회
-        const { data: roles } = await supabase
+        if (unionsError) {
+            console.error('Unions query error:', unionsError);
+            throw new Error('조합 목록 조회 실패');
+        }
+
+        // 2. 역할 목록 조회 (시스템 관리자 제외)
+        const { data: roles, error: rolesError } = await supabase
             .from('roles')
             .select('id, key, name')
             .eq('is_system', false) // 조합별 역할만
             .order('key');
 
-        // 3. 메뉴 항목 목록 조회
-        const { data: menuItems } = await supabase
+        if (rolesError) {
+            console.error('Roles query error:', rolesError);
+            throw new Error('역할 목록 조회 실패');
+        }
+
+        // 3. MAIN_HEADER 메뉴 ID 조회
+        const { data: mainHeaderMenu, error: headerError } = await supabase
+            .from('nav_menus')
+            .select('id')
+            .eq('key', 'MAIN_HEADER')
+            .single();
+
+        if (headerError || !mainHeaderMenu) {
+            console.error('Main header menu not found:', headerError);
+            throw new Error('MAIN_HEADER 메뉴를 찾을 수 없습니다');
+        }
+
+        // 4. 메뉴 항목 목록 조회 (MAIN_HEADER의 모든 아이템)
+        const { data: menuItems, error: menuItemsError } = await supabase
             .from('nav_menu_items')
-            .select(`
+            .select(
+                `
                 id,
                 key,
                 label_default,
@@ -30,11 +54,28 @@ export async function GET(request: NextRequest) {
                 parent_id,
                 display_order,
                 is_admin_area
-            `)
-            .order('display_order');
-        */
+            `
+            )
+            .eq('menu_id', mainHeaderMenu.id)
+            .order('depth, display_order');
 
-        // 임시 응답 데이터
+        if (menuItemsError) {
+            console.error('Menu items query error:', menuItemsError);
+            throw new Error('메뉴 항목 목록 조회 실패');
+        }
+
+        return NextResponse.json({
+            success: true,
+            data: {
+                unions: unions || [],
+                roles: roles || [],
+                menuItems: menuItems || [],
+            },
+        });
+    } catch (error) {
+        console.error('기본 데이터 조회 오류:', error);
+
+        // 개발 중일 때 임시 데이터 제공
         const unions = [
             { id: 'union1', name: '강남재개발조합', homepage: 'gangnam' },
             { id: 'union2', name: '서초재개발조합', homepage: 'seocho' },
@@ -45,90 +86,155 @@ export async function GET(request: NextRequest) {
 
         const roles = [
             { id: 'role1', key: 'admin', name: '관리자' },
-            { id: 'role2', key: 'officer', name: '임원' },
             { id: 'role3', key: 'member', name: '조합원' },
         ];
 
+        // 새로운 메뉴 구조에 맞춘 임시 데이터
         const menuItems = [
+            // 1차 메뉴
             {
                 id: 'menu1',
-                key: 'home',
-                label_default: '홈',
-                path: '/',
+                key: 'ABOUT',
+                label_default: '조합 소개',
+                path: null,
                 depth: 1,
                 parent_id: null,
-                display_order: 1,
+                display_order: 10,
                 is_admin_area: false,
             },
             {
                 id: 'menu2',
-                key: 'announcements',
-                label_default: '공지사항',
-                path: '/announcements',
+                key: 'REDEV',
+                label_default: '재개발 소개',
+                path: null,
                 depth: 1,
                 parent_id: null,
-                display_order: 2,
+                display_order: 20,
                 is_admin_area: false,
             },
             {
                 id: 'menu3',
-                key: 'community',
+                key: 'COMMUNITY',
                 label_default: '커뮤니티',
-                path: '/community',
+                path: null,
                 depth: 1,
                 parent_id: null,
-                display_order: 3,
+                display_order: 30,
                 is_admin_area: false,
             },
             {
                 id: 'menu4',
-                key: 'qna',
-                label_default: 'Q&A',
-                path: '/qna',
+                key: 'ADMIN',
+                label_default: '관리자',
+                path: null,
                 depth: 1,
                 parent_id: null,
-                display_order: 4,
-                is_admin_area: false,
+                display_order: 90,
+                is_admin_area: true,
             },
+            // 2차 메뉴 - 조합 소개 하위
             {
                 id: 'menu5',
-                key: 'chairman-greeting',
-                label_default: '조합장 인사말',
+                key: 'ABOUT_GREETING',
+                label_default: '조합장 인사',
                 path: '/chairman-greeting',
-                depth: 1,
-                parent_id: null,
-                display_order: 5,
+                depth: 2,
+                parent_id: 'menu1',
+                display_order: 10,
                 is_admin_area: false,
             },
             {
                 id: 'menu6',
-                key: 'organization-chart',
+                key: 'ABOUT_ORGANIZATION',
                 label_default: '조직도',
                 path: '/organization-chart',
-                depth: 1,
-                parent_id: null,
-                display_order: 6,
+                depth: 2,
+                parent_id: 'menu1',
+                display_order: 20,
                 is_admin_area: false,
             },
             {
                 id: 'menu7',
-                key: 'office',
-                label_default: '사무소 안내',
+                key: 'OFFICE',
+                label_default: '사무실 안내',
                 path: '/office',
-                depth: 1,
-                parent_id: null,
-                display_order: 7,
+                depth: 2,
+                parent_id: 'menu1',
+                display_order: 30,
+                is_admin_area: false,
+            },
+            // 2차 메뉴 - 재개발 소개 하위
+            {
+                id: 'menu8',
+                key: 'REDEV_PROCESS',
+                label_default: '재개발 진행 과정',
+                path: '/redevelopment',
+                depth: 2,
+                parent_id: 'menu2',
+                display_order: 10,
                 is_admin_area: false,
             },
             {
-                id: 'menu8',
-                key: 'redevelopment',
-                label_default: '재개발 현황',
-                path: '/redevelopment',
-                depth: 1,
-                parent_id: null,
-                display_order: 8,
+                id: 'menu9',
+                key: 'REDEV_INFO',
+                label_default: '재개발 정보',
+                path: '/redevelopment/info',
+                depth: 2,
+                parent_id: 'menu2',
+                display_order: 20,
                 is_admin_area: false,
+            },
+            // 2차 메뉴 - 커뮤니티 하위
+            {
+                id: 'menu10',
+                key: 'BOARD_NOTICE',
+                label_default: '공지사항',
+                path: '/announcements',
+                depth: 2,
+                parent_id: 'menu3',
+                display_order: 10,
+                is_admin_area: false,
+            },
+            {
+                id: 'menu11',
+                key: 'BOARD_QNA',
+                label_default: 'Q&A',
+                path: '/qna',
+                depth: 2,
+                parent_id: 'menu3',
+                display_order: 20,
+                is_admin_area: false,
+            },
+            {
+                id: 'menu12',
+                key: 'BOARD_FREE',
+                label_default: '자유게시판',
+                path: '/community',
+                depth: 2,
+                parent_id: 'menu3',
+                display_order: 30,
+                is_admin_area: false,
+            },
+            // 2차 메뉴 - 관리자 하위
+            {
+                id: 'menu13',
+                key: 'ADMIN_USERS',
+                label_default: '사용자 관리',
+                path: '/admin/users',
+                depth: 2,
+                parent_id: 'menu4',
+                display_order: 10,
+                is_admin_area: true,
+            },
+            {
+                id: 'menu14',
+                key: 'ADMIN_ALRIMTALK',
+                label_default: '알림톡 관리',
+                path: '/admin/alrimtalk',
+                depth: 2,
+                parent_id: 'menu4',
+                display_order: 20,
+                is_admin_area: true,
             },
         ];
 
@@ -140,14 +246,5 @@ export async function GET(request: NextRequest) {
                 menuItems,
             },
         });
-    } catch (error) {
-        console.error('기본 데이터 조회 오류:', error);
-        return NextResponse.json(
-            {
-                success: false,
-                message: '기본 데이터 조회 중 오류가 발생했습니다.',
-            },
-            { status: 500 }
-        );
     }
 }

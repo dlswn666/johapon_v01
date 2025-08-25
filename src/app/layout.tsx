@@ -18,13 +18,7 @@ export default function RootLayout({
 }>) {
     return (
         <html lang="ko">
-            <body className={inter.className}>
-                <div className="min-h-screen bg-gray-50">
-                    <Header />
-                    <main>{children}</main>
-                    <Footer />
-                </div>
-            </body>
+            <body className={inter.className}>{children}</body>
         </html>
     );
 }

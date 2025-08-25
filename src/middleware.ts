@@ -13,6 +13,7 @@ const SYSTEM_PATHS = new Set([
     'sitemap.xml',
     'homepage-management',
     'nav-management',
+    'base-menu-management',
     'health',
 ]);
 

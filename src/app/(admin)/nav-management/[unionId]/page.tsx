@@ -99,7 +99,6 @@ export default function NavDetailPage() {
                         displayOrder: 1,
                         permissions: [
                             { roleId: 'role1', roleName: '관리자', canView: true },
-                            { roleId: 'role2', roleName: '임원', canView: true },
                             { roleId: 'role3', roleName: '조합원', canView: true },
                         ],
                     },
@@ -113,7 +112,6 @@ export default function NavDetailPage() {
                         displayOrder: 2,
                         permissions: [
                             { roleId: 'role1', roleName: '관리자', canView: true },
-                            { roleId: 'role2', roleName: '임원', canView: true },
                             { roleId: 'role3', roleName: '조합원', canView: true },
                         ],
                     },
@@ -126,7 +124,6 @@ export default function NavDetailPage() {
                         displayOrder: 3,
                         permissions: [
                             { roleId: 'role1', roleName: '관리자', canView: true },
-                            { roleId: 'role2', roleName: '임원', canView: true },
                             { roleId: 'role3', roleName: '조합원', canView: false },
                         ],
                     },
@@ -139,7 +136,6 @@ export default function NavDetailPage() {
                         displayOrder: 4,
                         permissions: [
                             { roleId: 'role1', roleName: '관리자', canView: true },
-                            { roleId: 'role2', roleName: '임원', canView: false },
                             { roleId: 'role3', roleName: '조합원', canView: false },
                         ],
                     },
@@ -153,7 +149,6 @@ export default function NavDetailPage() {
                         displayOrder: 5,
                         permissions: [
                             { roleId: 'role1', roleName: '관리자', canView: true },
-                            { roleId: 'role2', roleName: '임원', canView: true },
                             { roleId: 'role3', roleName: '조합원', canView: true },
                         ],
                     },
@@ -166,7 +161,6 @@ export default function NavDetailPage() {
                         displayOrder: 6,
                         permissions: [
                             { roleId: 'role1', roleName: '관리자', canView: true },
-                            { roleId: 'role2', roleName: '임원', canView: true },
                             { roleId: 'role3', roleName: '조합원', canView: false },
                         ],
                     },
@@ -179,7 +173,6 @@ export default function NavDetailPage() {
                         displayOrder: 7,
                         permissions: [
                             { roleId: 'role1', roleName: '관리자', canView: true },
-                            { roleId: 'role2', roleName: '임원', canView: true },
                             { roleId: 'role3', roleName: '조합원', canView: true },
                         ],
                     },
@@ -192,7 +185,6 @@ export default function NavDetailPage() {
                         displayOrder: 8,
                         permissions: [
                             { roleId: 'role1', roleName: '관리자', canView: true },
-                            { roleId: 'role2', roleName: '임원', canView: false },
                             { roleId: 'role3', roleName: '조합원', canView: false },
                         ],
                     },
@@ -373,7 +365,6 @@ export default function NavDetailPage() {
                                         <TableHead>경로</TableHead>
                                         <TableHead>상태</TableHead>
                                         <TableHead>관리자</TableHead>
-                                        <TableHead>임원</TableHead>
                                         <TableHead>조합원</TableHead>
                                     </TableRow>
                                 </TableHeader>
@@ -382,7 +373,6 @@ export default function NavDetailPage() {
                                         .sort((a, b) => a.displayOrder - b.displayOrder)
                                         .map((menu) => {
                                             const adminPerm = menu.permissions.find((p) => p.roleName === '관리자');
-                                            const officerPerm = menu.permissions.find((p) => p.roleName === '임원');
                                             const memberPerm = menu.permissions.find((p) => p.roleName === '조합원');
 
                                             return (
@@ -429,13 +419,6 @@ export default function NavDetailPage() {
                                                     </TableCell>
                                                     <TableCell className="text-center">
                                                         {adminPerm?.canView ? (
-                                                            <CheckCircle2 className="h-4 w-4 text-green-600 mx-auto" />
-                                                        ) : (
-                                                            <XCircle className="h-4 w-4 text-red-400 mx-auto" />
-                                                        )}
-                                                    </TableCell>
-                                                    <TableCell className="text-center">
-                                                        {officerPerm?.canView ? (
                                                             <CheckCircle2 className="h-4 w-4 text-green-600 mx-auto" />
                                                         ) : (
                                                             <XCircle className="h-4 w-4 text-red-400 mx-auto" />
