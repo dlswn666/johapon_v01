@@ -18,42 +18,57 @@ export async function GET(req: Request, context: { params: Promise<{ slug: strin
     const unionId = await getTenantIdBySlug(slug);
 
     if (!unionId) {
+        console.error('Union ID not found for slug:', slug);
         return withSMaxAge(fail('NOT_FOUND', 'union not found', 404), 30);
     }
 
     try {
+        // URL 구성을 더 안전하게 처리
+        const baseUrl = new URL(req.url).origin;
+        const navApiUrl = `${baseUrl}/api/nav?unionId=${unionId}&role=${userRole}`;
+
         // 새로운 표준화된 API 사용
-        const navResponse = await fetch(`${req.url.split('/api/')[0]}/api/nav?unionId=${unionId}&role=${userRole}`, {
+        const navResponse = await fetch(navApiUrl, {
             method: 'GET',
             headers: { 'Content-Type': 'application/json' },
         });
 
         if (!navResponse.ok) {
-            console.error('Nav API call failed:', navResponse.status);
-            return withSMaxAge(fail('DB_ERROR', '메뉴 데이터 조회 실패', 500), 30);
+            const errorText = await navResponse.text();
+            return withSMaxAge(fail('DB_ERROR', `메뉴 데이터 조회 실패: ${navResponse.status}`, 500), 30);
         }
 
         const navData = await navResponse.json();
 
         if (!navData.success) {
-            console.error('Nav API returned error:', navData.message);
             return withSMaxAge(fail('DB_ERROR', navData.message || '메뉴 데이터 조회 실패', 500), 30);
         }
 
         // 응답 형식을 기존 API와 호환되도록 변환
         const convertToLegacyFormat = (items: any[]) => {
+            if (!Array.isArray(items)) {
+                console.error('Invalid items array for legacy format conversion:', items);
+                return [];
+            }
+
             return items.map((item) => ({
                 id: item.key, // key를 id로 사용
                 key: item.key,
                 label: item.label,
-                subItems: item.children.map((child: any) => ({
-                    id: child.key,
-                    key: child.key,
-                    label: child.label,
-                    href: child.path,
-                })),
+                subItems: Array.isArray(item.children)
+                    ? item.children.map((child: any) => ({
+                          id: child.key,
+                          key: child.key,
+                          label: child.label,
+                          href: child.path,
+                      }))
+                    : [],
             }));
         };
+
+        if (!navData.data || !navData.data.items) {
+            return withSMaxAge(fail('DB_ERROR', '메뉴 데이터 구조가 올바르지 않습니다.', 500), 30);
+        }
 
         const legacyMenus = convertToLegacyFormat(navData.data.items);
 
@@ -66,7 +81,6 @@ export async function GET(req: Request, context: { params: Promise<{ slug: strin
             300
         ); // 5분 캐시
     } catch (error) {
-        console.error('Menu API error:', error);
         return withSMaxAge(fail('INTERNAL_ERROR', '메뉴 데이터 조회 중 오류가 발생했습니다.', 500), 30);
     }
 }

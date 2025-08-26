@@ -1,12 +1,12 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
-const projectId = process.env.SUPABASE_PROJECT_ID;
-const publicAnonKey = process.env.SUPABASE_PUBLIC_ANON_KEY;
+const projectId = process.env.NEXT_PUBLIC_SUPABASE_PROJECT_ID;
+const publicAnonKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLIC_ANON_KEY;
 
 export const hasSupabaseEnv = Boolean(projectId && publicAnonKey);
 
 export function getSupabaseClient(): SupabaseClient {
-    const url = `https://${projectId ?? 'project'}.supabase.co`;
+    const url = `https://${projectId}.supabase.co`;
     const key = publicAnonKey ?? 'anon_key_missing';
 
     return createClient(url, key);

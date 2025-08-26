@@ -1,183 +1,210 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { Card, CardContent } from '@/shared/ui/card';
-import { Button } from '@/shared/ui/button';
-import { MessageSquare, Plus } from 'lucide-react';
+import { useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
+import CommunityPostList from '@/widgets/community/CommunityPostList';
 import BannerAd from '@/widgets/common/BannerAd';
-import PostCard from '@/components/community/PostCard';
-import ListFilter from '@/components/community/ListFilter';
-import { useInfoShare } from '@/shared/hooks/useInfoShare';
-import type { CommunityPost, CommunityCategory } from '@/entities/community/model/types';
+import { type ListCategoryOption } from '@/components/common/ListFilter';
+import { Card, CardContent } from '@/shared/ui/card';
+import { useCommunityStore } from '@/shared/store/communityStore';
+import { AlertTriangle } from 'lucide-react';
+import Link from 'next/link';
+import { useParams } from 'next/navigation';
 
 export default function TenantCommunityPage() {
-    const router = useRouter();
     const searchParams = useSearchParams();
-    const { posts, categories, loading, error, total, hasMore, setFilter, observerRef, refresh } = useInfoShare({
-        pageSize: 10,
-    });
-    const [selectedCategory, setSelectedCategory] = useState('all');
-    const [searchTerm, setSearchTerm] = useState('');
+    const params = useParams();
+    const homepage = params?.homepage as string;
 
-    // 새로고침 파라미터 확인 (추가 안전장치)
+    // Store 사용
+    const {
+        posts,
+        categories,
+        subcategories,
+        loading,
+        error,
+        total,
+        hasMore,
+        filters,
+        setFilters,
+        fetchPosts,
+        resetState,
+    } = useCommunityStore();
+
+    // 새로고침 파라미터 확인 및 초기 데이터 로드
     useEffect(() => {
+        if (!homepage) return;
+
         const refreshParam = searchParams?.get('refresh');
+
         if (refreshParam) {
-            // 아주 짧은 지연 후 refresh 실행
-            const timer = setTimeout(() => {
-                refresh();
+            // 새로고침 요청 시 상태 초기화 후 다시 로드
+            resetState();
+            setTimeout(() => {
+                fetchPosts(homepage, true).catch((error) => {
+                    console.error('게시글 로딩 실패:', error);
+                });
             }, 50);
-
-            return () => clearTimeout(timer);
+        } else {
+            // 일반 페이지 로드
+            fetchPosts(homepage, true).catch((error) => {
+                console.error('게시글 로딩 실패:', error);
+            });
         }
-    }, [searchParams, refresh]);
+    }, [searchParams, homepage, fetchPosts, resetState]);
 
-    // 정보공유방 게시글을 CommunityPost 형식으로 변환 (메모이제이션)
-    const convertedPosts: CommunityPost[] = useMemo(
-        () =>
-            posts.map((post) => ({
-                id: parseInt(post.id),
-                title: post.title,
-                content: post.content,
-                author: post.author,
-                date: post.date,
-                createdAt: post.date,
-                category: post.category as unknown as CommunityCategory, // 추후 카테고리 타입 변경 필요
-                views: post.views || 0,
-                likes: post.likes || 0,
-                isLiked: post.isLiked || false,
-                commentsCount: post.commentsCount || 0,
-            })),
-        [posts]
-    );
+    // 필터 변경 시 데이터 다시 로드
+    useEffect(() => {
+        if (homepage) {
+            fetchPosts(homepage, true).catch((error) => {
+                console.error('필터링된 게시글 로딩 실패:', error);
+            });
+        }
+    }, [filters, homepage, fetchPosts]);
 
-    const handleLikePost = (postId: number) => {
-        // TODO: 추후 좋아요 API 연동
-        console.log('좋아요 기능:', postId);
+    // 더 많은 데이터 로드 (무한 스크롤)
+    const loadMore = async () => {
+        if (!loading && hasMore && homepage) {
+            try {
+                await fetchPosts(homepage, false);
+            } catch (error) {
+                console.error('추가 게시글 로딩 실패:', error);
+            }
+        }
     };
 
-    const handleCategoryChange = (category: string) => {
-        setSelectedCategory(category);
-        setFilter({
-            categoryKey: category === 'all' ? undefined : category,
-            searchTerm: searchTerm || undefined,
-        });
+    // Observer ref for infinite scroll
+    const observerRef = (node: HTMLElement | null) => {
+        if (node && hasMore && !loading) {
+            const observer = new IntersectionObserver(
+                (entries) => {
+                    if (entries[0].isIntersecting) {
+                        loadMore();
+                    }
+                },
+                { threshold: 0.1 }
+            );
+            observer.observe(node);
+            return () => observer.disconnect();
+        }
     };
 
-    const handleSearchTermChange = (term: string) => {
-        setSearchTerm(term);
-    };
+    // ListCategoryOption 형식으로 변환
+    const listCategories: ListCategoryOption[] = categories.map((cat) => ({
+        id: cat.key,
+        name: cat.name,
+        count: cat.count || 0,
+    }));
 
-    const handleSearch = () => {
-        setFilter({
-            categoryKey: selectedCategory === 'all' ? undefined : selectedCategory,
-            searchTerm: searchTerm || undefined,
-        });
-    };
+    // 에러 상태 표시
+    if (error) {
+        return (
+            <div className="min-h-screen bg-gray-50">
+                <div className="bg-white border-b border-gray-200">
+                    <div className="max-w-none mx-auto px-6 sm:px-10 lg:px-32 py-6 lg:py-8">
+                        <h1 className="text-2xl lg:text-3xl text-gray-900 mb-2">자유게시판</h1>
+                        <p className="text-gray-600 text-sm lg:text-base">
+                            조합원들과 자유롭게 소통하고 정보를 나누는 공간입니다
+                        </p>
+                    </div>
+                </div>
 
-    const handlePostClick = (postId: number) => {
-        router.push(`community/${postId}`);
-    };
-
-    const handleWriteClick = () => {
-        router.push('community/new');
-    };
+                <div className="max-w-none mx-auto px-6 sm:px-10 lg:px-32 py-6 lg:py-12">
+                    <div className="flex items-center justify-center min-h-[400px]">
+                        <div className="text-center">
+                            <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+                            <h2 className="text-xl font-semibold text-gray-900 mb-2">오류가 발생했습니다</h2>
+                            <p className="text-gray-600 mb-4">{error}</p>
+                            <button
+                                onClick={() => window.location.reload()}
+                                className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700"
+                            >
+                                다시 시도
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-gray-50">
-            {/* Page Title */}
             <div className="bg-white border-b border-gray-200">
                 <div className="max-w-none mx-auto px-6 sm:px-10 lg:px-32 py-6 lg:py-8">
-                    <h1 className="text-2xl lg:text-3xl text-gray-900 mb-2">정보공유방</h1>
-                    <p className="text-gray-600 text-sm lg:text-base">조합원들과 함께 정보를 나누고 소통하는 공간</p>
+                    <h1 className="text-2xl lg:text-3xl text-gray-900 mb-2">자유게시판</h1>
+                    <p className="text-gray-600 text-sm lg:text-base">
+                        조합원들과 자유롭게 소통하고 정보를 나누는 공간입니다
+                    </p>
                 </div>
             </div>
 
-            {/* Main Content */}
             <div className="max-w-none mx-auto px-6 sm:px-10 lg:px-32 py-6 lg:py-12">
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-                    {/* Left Sidebar - Banners */}
                     <div className="lg:col-span-1 space-y-6">
                         <BannerAd />
                     </div>
 
-                    {/* Center Content */}
                     <div className="lg:col-span-3 space-y-6">
-                        {/* Search and Filter */}
-                        <ListFilter
-                            searchTerm={searchTerm}
-                            selectedCategory={selectedCategory}
-                            onSearchChange={handleSearchTermChange}
-                            onCategoryChange={handleCategoryChange}
-                            onSearch={handleSearch}
-                            onWriteClick={handleWriteClick}
-                            totalCount={total}
-                        />
+                        <Card>
+                            <CardContent className="p-6">
+                                <div className="flex items-center justify-between mb-6">
+                                    <h2 className="text-lg font-semibold text-gray-900">전체 게시글 ({total}개)</h2>
+                                    <Link
+                                        href="./community/new"
+                                        className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 text-sm"
+                                    >
+                                        글 작성
+                                    </Link>
+                                </div>
 
-                        {/* Error Display */}
-                        {error && (
-                            <Card>
-                                <CardContent className="p-4 text-center text-red-600">
-                                    <p>오류가 발생했습니다: {error}</p>
-                                    <Button variant="outline" onClick={refresh} className="mt-2">
-                                        다시 시도
-                                    </Button>
-                                </CardContent>
-                            </Card>
-                        )}
-
-                        {/* Posts List */}
-                        <div className="space-y-4">
-                            {loading ? (
-                                <Card>
-                                    <CardContent className="p-8 text-center">
-                                        <p className="text-gray-600">로딩 중...</p>
-                                    </CardContent>
-                                </Card>
-                            ) : convertedPosts.length > 0 ? (
-                                <>
-                                    {convertedPosts.map((post) => (
-                                        <PostCard
-                                            key={post.id}
-                                            post={post}
-                                            onLike={() => handleLikePost(post.id)}
-                                            onClick={() => handlePostClick(post.id)}
-                                        />
-                                    ))}
-                                    {/* 무한 스크롤 트리거 */}
-                                    {hasMore && (
-                                        <div ref={observerRef} className="h-4 flex justify-center">
-                                            <p className="text-gray-500">더 많은 게시글을 불러오는 중...</p>
-                                        </div>
-                                    )}
-                                </>
-                            ) : (
-                                <Card>
-                                    <CardContent className="p-8 text-center">
-                                        <MessageSquare className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                                        <h3 className="text-lg text-gray-900 mb-2">게시글이 없습니다</h3>
-                                        <p className="text-gray-600 mb-4">
-                                            {searchTerm || selectedCategory !== 'all'
-                                                ? '검색 조건에 맞는 게시글이 없습니다.'
-                                                : '첫 번째 게시글을 작성해보세요.'}
-                                        </p>
-                                        <Button
-                                            onClick={handleWriteClick}
-                                            className="bg-purple-600 hover:bg-purple-700"
+                                {/* 필터 옵션 */}
+                                <div className="mb-6 space-y-4">
+                                    <div className="flex flex-wrap gap-2">
+                                        <button
+                                            onClick={() => setFilters({ isAnonymous: undefined })}
+                                            className={`px-3 py-1 rounded-full text-sm ${
+                                                filters.isAnonymous === undefined
+                                                    ? 'bg-purple-600 text-white'
+                                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                            }`}
                                         >
-                                            <Plus className="h-4 w-4 mr-2" />
-                                            게시글 작성하기
-                                        </Button>
-                                    </CardContent>
-                                </Card>
-                            )}
-                        </div>
+                                            전체
+                                        </button>
+                                        <button
+                                            onClick={() => setFilters({ isAnonymous: false })}
+                                            className={`px-3 py-1 rounded-full text-sm ${
+                                                filters.isAnonymous === false
+                                                    ? 'bg-blue-600 text-white'
+                                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                            }`}
+                                        >
+                                            실명 글
+                                        </button>
+                                        <button
+                                            onClick={() => setFilters({ isAnonymous: true })}
+                                            className={`px-3 py-1 rounded-full text-sm ${
+                                                filters.isAnonymous === true
+                                                    ? 'bg-gray-600 text-white'
+                                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                            }`}
+                                        >
+                                            익명 글
+                                        </button>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
 
-                        {/* 무한 스크롤이 적용되어 Load More 버튼은 제거됨 */}
+                        <CommunityPostList
+                            posts={posts}
+                            loading={loading}
+                            error={error}
+                            hasMore={hasMore}
+                            observerRef={observerRef}
+                        />
                     </div>
 
-                    {/* Right Sidebar - Banners */}
                     <div className="lg:col-span-1 space-y-6">
                         <BannerAd />
                     </div>

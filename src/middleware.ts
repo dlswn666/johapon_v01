@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { tenantStore } from '@/shared/store/tenantStore';
 
 /**
  * 멀티테넌트 미들웨어 - 테넌트 슬러그 기반 라우팅
@@ -48,30 +49,25 @@ export async function middleware(request: NextRequest) {
         return NextResponse.rewrite(new URL('/not-found', request.url));
     }
 
-    // 테넌트 존재 여부 확인
+    // 테넌트 존재 여부 확인 (tenantStore 사용)
     try {
-        const apiUrl = new URL(`/api/tenants/resolve?slug=${encodeURIComponent(slug)}`, request.url);
-        const response = await fetch(apiUrl, {
-            method: 'GET',
-            headers: { 'Cache-Control': 'no-cache' },
-        });
+        const tenantInfo = await tenantStore.getOrFetchBySlug(slug);
 
-        if (!response.ok) {
+        if (!tenantInfo) {
             return NextResponse.rewrite(new URL('/not-found', request.url));
         }
-
-        const tenantInfo = await response.json();
 
         // 테넌트 그룹 라우트로 내부 리다이렉트
         const rewriteResponse = NextResponse.rewrite(new URL(`${pathname}`, request.url));
 
         // 테넌트 정보를 헤더에 추가
         rewriteResponse.headers.set('x-tenant-slug', slug);
-        rewriteResponse.headers.set('x-tenant-id', tenantInfo?.id || '');
-        rewriteResponse.headers.set('x-tenant-name', tenantInfo?.homepage || '');
+        rewriteResponse.headers.set('x-tenant-id', tenantInfo.id);
+        rewriteResponse.headers.set('x-tenant-name', tenantInfo.homepage);
 
         return rewriteResponse;
     } catch (error) {
+        console.error('[MIDDLEWARE] Tenant resolution error:', error);
         return NextResponse.rewrite(new URL('/not-found', request.url));
     }
 }

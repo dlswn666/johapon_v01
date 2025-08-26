@@ -7,93 +7,81 @@ import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
 import { Badge } from '@/shared/ui/badge';
+import { Switch } from '@/shared/ui/switch';
 import BannerAd from '@/widgets/common/BannerAd';
-import { FileText, ArrowLeft, Calendar, User, Eye, Send, AlertCircle } from 'lucide-react';
+import {
+    FileText,
+    ArrowLeft,
+    Calendar,
+    User,
+    Eye,
+    Send,
+    AlertCircle,
+    Edit,
+    Save,
+    X,
+    Pin,
+    Star,
+    AlertTriangle,
+} from 'lucide-react';
 import { useRouter, useParams } from 'next/navigation';
-
-interface Subcategory {
-    id: string;
-    name: string;
-}
-
-interface AnnouncementDetail {
-    id: string;
-    title: string;
-    content: string;
-    subcategory_id: string;
-    subcategory_name?: string;
-    popup: boolean;
-    created_at: string;
-    updated_at: string;
-    views?: number;
-    author_name?: string;
-    sendNotification?: boolean;
-}
+import RichTextEditor from '@/components/community/RichTextEditor';
+import { useAnnouncementStore } from '@/shared/store/announcementStore';
+import type { AnnouncementUpdateData } from '@/entities/announcement/model/types';
 
 export default function TenantAnnouncementDetailPage() {
     const router = useRouter();
     const params = useParams();
     const homepage = params?.homepage as string;
-    const announcementId = params?.id as string;
+    const id = params?.id as string;
 
-    const [announcement, setAnnouncement] = useState<AnnouncementDetail | null>(null);
-    const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    // Store 사용
+    const {
+        currentAnnouncement: announcement,
+        subcategories,
+        loading,
+        error,
+        fetchAnnouncementDetail,
+        fetchMetadata,
+        updateAnnouncement,
+        resetState,
+    } = useAnnouncementStore();
 
-    // 공지사항 데이터 및 서브카테고리 목록 가져오기
+    // 수정 모드 관련 상태
+    const [isEditMode, setIsEditMode] = useState(false);
+    const [editData, setEditData] = useState<Partial<AnnouncementUpdateData>>({});
+    const [isSaving, setIsSaving] = useState(false);
+
+    // 데이터 로드
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                setIsLoading(true);
-                setError(null);
-
-                // 공지사항 상세 정보와 메타 정보를 병렬로 가져오기
-                const [announcementResponse, metaResponse] = await Promise.all([
-                    fetch(`/api/tenant/${homepage}/notices/${announcementId}`),
-                    fetch(`/api/tenant/${homepage}/meta`),
-                ]);
-
-                // 공지사항 데이터 처리
-                if (announcementResponse.ok) {
-                    const announcementData = await announcementResponse.json();
-                    if (announcementData.success) {
-                        setAnnouncement(announcementData.data);
-                    } else {
-                        throw new Error(announcementData.message || '공지사항을 찾을 수 없습니다.');
-                    }
-                } else {
-                    throw new Error('공지사항을 불러오는데 실패했습니다.');
-                }
-
-                // 서브카테고리 데이터 처리
-                if (metaResponse.ok) {
-                    const metaData = await metaResponse.json();
-                    if (metaData.success) {
-                        const noticeSubcategories =
-                            metaData.data?.subcategories?.filter((sub: any) => sub.category_key === 'notice') || [];
-                        setSubcategories(noticeSubcategories);
-                    }
-                } else {
-                    // 메타 데이터 실패 시 기본값 설정
-                    setSubcategories([
-                        { id: 'e2ead72f-d169-431a-bbb3-7948e8713c33', name: '긴급공지' },
-                        { id: 'b2603582-a52c-4984-9a5d-2bd3fce755d0', name: '일반공지' },
-                        { id: 'afec53c2-3b2e-43b8-b03d-6f0d63cc2fda', name: '안내사항' },
-                    ]);
-                }
-            } catch (error) {
+        if (homepage && id) {
+            resetState();
+            Promise.all([fetchAnnouncementDetail(homepage, id), fetchMetadata(homepage)]).catch((error) => {
                 console.error('데이터 로딩 실패:', error);
-                setError(error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.');
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        if (homepage && announcementId) {
-            fetchData();
+            });
         }
-    }, [homepage, announcementId]);
+
+        return () => {
+            resetState();
+        };
+    }, [homepage, id, fetchAnnouncementDetail, fetchMetadata, resetState]);
+
+    // 수정 모드 변경 시 editData 초기화
+    useEffect(() => {
+        if (isEditMode && announcement) {
+            setEditData({
+                title: announcement.title,
+                content: announcement.content || '',
+                subcategory_id: announcement.subcategory_id,
+                popup: announcement.popup,
+                priority: announcement.priority,
+                is_urgent: announcement.isUrgent,
+                is_pinned: announcement.isPinned,
+                published_at: announcement.publishedAt,
+                expires_at: announcement.expiresAt,
+            });
+        }
+    }, [isEditMode, announcement]);
 
     // 날짜 포맷팅
     const formatDate = (dateString: string) => {
@@ -116,8 +104,55 @@ export default function TenantAnnouncementDetailPage() {
         return subcategory?.name || '일반공지';
     };
 
+    // 수정 모드 시작
+    const handleEditStart = () => {
+        if (announcement) {
+            setIsEditMode(true);
+        }
+    };
+
+    // 수정 취소
+    const handleEditCancel = () => {
+        setIsEditMode(false);
+        setEditData({});
+    };
+
+    // 수정 저장
+    const handleEditSave = async () => {
+        if (!announcement || isSaving || !homepage) return;
+
+        try {
+            setIsSaving(true);
+
+            const result = await updateAnnouncement(homepage, announcement.id, editData);
+
+            if (result.success) {
+                setIsEditMode(false);
+                setEditData({});
+                alert('공지사항이 성공적으로 수정되었습니다.');
+                // 수정 후 데이터 다시 로드
+                await fetchAnnouncementDetail(homepage, announcement.id);
+            } else {
+                alert(result.message);
+            }
+        } catch (error) {
+            console.error('공지사항 수정 실패:', error);
+            alert('수정 중 오류가 발생했습니다.');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    // 수정 데이터 변경 핸들러
+    const handleEditDataChange = (field: keyof AnnouncementUpdateData, value: any) => {
+        setEditData((prev: any) => ({
+            ...prev,
+            [field]: value,
+        }));
+    };
+
     // 로딩 상태
-    if (isLoading) {
+    if (loading) {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
                 <div className="text-center">
@@ -169,8 +204,14 @@ export default function TenantAnnouncementDetailPage() {
                         <div className="flex items-center space-x-3">
                             <FileText className="h-6 w-6" />
                             <div>
-                                <h1 className="text-2xl lg:text-3xl text-gray-900">공지사항 상세보기</h1>
-                                <p className="text-gray-600 mt-1">공지사항 내용을 확인하실 수 있습니다</p>
+                                <h1 className="text-2xl lg:text-3xl text-gray-900">
+                                    {isEditMode ? '공지사항 수정' : '공지사항 상세보기'}
+                                </h1>
+                                <p className="text-gray-600 mt-1">
+                                    {isEditMode
+                                        ? '공지사항 내용을 수정하실 수 있습니다'
+                                        : '공지사항 내용을 확인하실 수 있습니다'}
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -189,7 +230,42 @@ export default function TenantAnnouncementDetailPage() {
                     <div className="lg:col-span-3 space-y-6">
                         <Card>
                             <CardHeader>
-                                <CardTitle>공지사항 정보</CardTitle>
+                                <CardTitle className="flex items-center justify-between">
+                                    <span>{isEditMode ? '공지사항 수정' : '공지사항 정보'}</span>
+                                    {isEditMode ? (
+                                        <div className="flex gap-2">
+                                            <Button
+                                                onClick={handleEditSave}
+                                                disabled={isSaving}
+                                                className="flex items-center space-x-2 bg-green-600 hover:bg-green-700"
+                                                size="sm"
+                                            >
+                                                <Save className="h-4 w-4" />
+                                                <span>{isSaving ? '저장 중...' : '저장하기'}</span>
+                                            </Button>
+                                            <Button
+                                                onClick={handleEditCancel}
+                                                disabled={isSaving}
+                                                variant="outline"
+                                                size="sm"
+                                                className="flex items-center space-x-2"
+                                            >
+                                                <X className="h-4 w-4" />
+                                                <span>취소</span>
+                                            </Button>
+                                        </div>
+                                    ) : (
+                                        <div className="flex gap-2">
+                                            <Button
+                                                onClick={handleEditStart}
+                                                className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700"
+                                            >
+                                                <Edit className="h-4 w-4" />
+                                                <span>수정하기</span>
+                                            </Button>
+                                        </div>
+                                    )}
+                                </CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-6">
                                 {/* 기본 정보 */}
@@ -199,17 +275,37 @@ export default function TenantAnnouncementDetailPage() {
                                         <Label htmlFor="title">제목</Label>
                                         <Input
                                             id="title"
-                                            value={announcement.title}
-                                            readOnly
-                                            className="mt-2 bg-gray-50 border-gray-200 text-gray-900"
+                                            value={isEditMode ? editData.title || '' : announcement.title}
+                                            readOnly={!isEditMode}
+                                            onChange={(e) => handleEditDataChange('title', e.target.value)}
+                                            className={`mt-2 ${
+                                                isEditMode
+                                                    ? 'bg-white border-gray-300 text-gray-900'
+                                                    : 'bg-gray-50 border-gray-200 text-gray-900'
+                                            }`}
+                                            placeholder={isEditMode ? '제목을 입력하세요' : ''}
                                         />
                                     </div>
 
                                     {/* 카테고리 */}
                                     <div>
                                         <Label>카테고리</Label>
-                                        <Select value={announcement.subcategory_id} disabled>
-                                            <SelectTrigger className="mt-2 bg-gray-50 border-gray-200 text-gray-900">
+                                        <Select
+                                            value={
+                                                isEditMode
+                                                    ? editData.subcategory_id || announcement.subcategory_id
+                                                    : announcement.subcategory_id
+                                            }
+                                            disabled={!isEditMode}
+                                            onValueChange={(value) => handleEditDataChange('subcategory_id', value)}
+                                        >
+                                            <SelectTrigger
+                                                className={`mt-2 ${
+                                                    isEditMode
+                                                        ? 'bg-white border-gray-300 text-gray-900'
+                                                        : 'bg-gray-50 border-gray-200 text-gray-900'
+                                                }`}
+                                            >
                                                 <SelectValue />
                                             </SelectTrigger>
                                             <SelectContent>
@@ -225,8 +321,20 @@ export default function TenantAnnouncementDetailPage() {
                                     {/* 공지 유형 */}
                                     <div>
                                         <Label>공지 유형</Label>
-                                        <Select value={String(announcement.popup)} disabled>
-                                            <SelectTrigger className="mt-2 bg-gray-50 border-gray-200 text-gray-900">
+                                        <Select
+                                            value={String(
+                                                isEditMode ? editData.popup ?? announcement.popup : announcement.popup
+                                            )}
+                                            disabled={!isEditMode}
+                                            onValueChange={(value) => handleEditDataChange('popup', value === 'true')}
+                                        >
+                                            <SelectTrigger
+                                                className={`mt-2 ${
+                                                    isEditMode
+                                                        ? 'bg-white border-gray-300 text-gray-900'
+                                                        : 'bg-gray-50 border-gray-200 text-gray-900'
+                                                }`}
+                                            >
                                                 <SelectValue />
                                             </SelectTrigger>
                                             <SelectContent>
@@ -238,6 +346,150 @@ export default function TenantAnnouncementDetailPage() {
                                             </SelectContent>
                                         </Select>
                                     </div>
+
+                                    <div>
+                                        <Label>우선순위</Label>
+                                        <Select
+                                            value={String(
+                                                isEditMode
+                                                    ? editData.priority ?? announcement.priority
+                                                    : announcement.priority
+                                            )}
+                                            disabled={!isEditMode}
+                                            onValueChange={(value) => handleEditDataChange('priority', parseInt(value))}
+                                        >
+                                            <SelectTrigger
+                                                className={`mt-2 ${
+                                                    isEditMode
+                                                        ? 'bg-white border-gray-300 text-gray-900'
+                                                        : 'bg-gray-50 border-gray-200 text-gray-900'
+                                                }`}
+                                            >
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="0">일반 (0)</SelectItem>
+                                                <SelectItem value="1">중요 (1)</SelectItem>
+                                                <SelectItem value="2">매우 중요 (2)</SelectItem>
+                                                <SelectItem value="3">최우선 (3)</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+
+                                    <div>
+                                        <Label>게시 시작일</Label>
+                                        <Input
+                                            type="datetime-local"
+                                            value={
+                                                isEditMode
+                                                    ? editData.published_at ?? announcement.publishedAt ?? ''
+                                                    : announcement.publishedAt ?? ''
+                                            }
+                                            readOnly={!isEditMode}
+                                            onChange={(e) =>
+                                                handleEditDataChange('published_at', e.target.value || null)
+                                            }
+                                            className={`mt-2 ${
+                                                isEditMode
+                                                    ? 'bg-white border-gray-300 text-gray-900'
+                                                    : 'bg-gray-50 border-gray-200 text-gray-900'
+                                            }`}
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <Label>게시 종료일</Label>
+                                        <Input
+                                            type="datetime-local"
+                                            value={
+                                                isEditMode
+                                                    ? editData.expires_at ?? announcement.expiresAt ?? ''
+                                                    : announcement.expiresAt ?? ''
+                                            }
+                                            readOnly={!isEditMode}
+                                            onChange={(e) => handleEditDataChange('expires_at', e.target.value || null)}
+                                            className={`mt-2 ${
+                                                isEditMode
+                                                    ? 'bg-white border-gray-300 text-gray-900'
+                                                    : 'bg-gray-50 border-gray-200 text-gray-900'
+                                            }`}
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* 특별 옵션 상태 표시 */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {isEditMode ? (
+                                        <>
+                                            <div className="flex items-center justify-between p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                                                <div className="flex items-center space-x-3">
+                                                    <AlertTriangle className="h-5 w-5 text-yellow-600" />
+                                                    <div>
+                                                        <Label className="text-base text-yellow-800">
+                                                            긴급 공지사항
+                                                        </Label>
+                                                        <p className="text-sm text-yellow-600">
+                                                            긴급 공지사항으로 설정하면 목록에서 강조 표시됩니다
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <Switch
+                                                    checked={editData.is_urgent ?? announcement.isUrgent}
+                                                    onCheckedChange={(c: boolean) =>
+                                                        handleEditDataChange('is_urgent', c)
+                                                    }
+                                                />
+                                            </div>
+
+                                            <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg border border-blue-200">
+                                                <div className="flex items-center space-x-3">
+                                                    <Pin className="h-5 w-5 text-blue-600" />
+                                                    <div>
+                                                        <Label className="text-base text-blue-800">상단 고정</Label>
+                                                        <p className="text-sm text-blue-600">
+                                                            목록 상단에 항상 고정되어 표시됩니다
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <Switch
+                                                    checked={editData.is_pinned ?? announcement.isPinned}
+                                                    onCheckedChange={(c: boolean) =>
+                                                        handleEditDataChange('is_pinned', c)
+                                                    }
+                                                />
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <>
+                                            {announcement.isUrgent && (
+                                                <div className="flex items-center p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                                                    <AlertTriangle className="h-5 w-5 text-yellow-600 mr-2" />
+                                                    <Badge variant="destructive" className="bg-yellow-600">
+                                                        긴급 공지
+                                                    </Badge>
+                                                </div>
+                                            )}
+                                            {announcement.isPinned && (
+                                                <div className="flex items-center p-3 bg-blue-50 rounded-lg border border-blue-200">
+                                                    <Pin className="h-5 w-5 text-blue-600 mr-2" />
+                                                    <Badge variant="secondary" className="bg-blue-600 text-white">
+                                                        상단 고정
+                                                    </Badge>
+                                                </div>
+                                            )}
+                                            {announcement.priority > 0 && (
+                                                <div className="flex items-center p-3 bg-green-50 rounded-lg border border-green-200">
+                                                    <Star className="h-5 w-5 text-green-600 mr-2" />
+                                                    <Badge
+                                                        variant="outline"
+                                                        className="border-green-600 text-green-600"
+                                                    >
+                                                        우선순위 {announcement.priority}
+                                                    </Badge>
+                                                </div>
+                                            )}
+                                        </>
+                                    )}
                                 </div>
 
                                 {/* 작성자 및 날짜 정보 */}
@@ -272,7 +524,7 @@ export default function TenantAnnouncementDetailPage() {
                                 </div>
 
                                 {/* 알림톡 발송 상태 */}
-                                {announcement.sendNotification && (
+                                {announcement.alrimtalkSent && (
                                     <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg border border-green-200">
                                         <div className="flex items-center space-x-3">
                                             <AlertCircle className="h-5 w-5 text-green-600" />
@@ -287,21 +539,19 @@ export default function TenantAnnouncementDetailPage() {
                                     </div>
                                 )}
 
-                                {/* 내용 - 읽기 전용 리치 텍스트 뷰어 */}
+                                {/* 내용 */}
                                 <div>
                                     <Label>내용</Label>
-                                    <div className="mt-2 border rounded-lg overflow-hidden">
-                                        {/* 읽기 전용 내용 */}
-                                        <div
-                                            className="min-h-[400px] p-6 bg-white text-gray-800 leading-relaxed prose prose-slate max-w-none"
-                                            style={{
-                                                lineHeight: '1.7',
-                                            }}
-                                            dangerouslySetInnerHTML={{
-                                                __html:
-                                                    announcement.content ||
-                                                    '<p class="text-gray-500">내용이 없습니다.</p>',
-                                            }}
+                                    <div className="mt-2">
+                                        <RichTextEditor
+                                            content={
+                                                isEditMode
+                                                    ? editData.content ?? announcement.content ?? ''
+                                                    : announcement.content ?? ''
+                                            }
+                                            onChange={(content) => handleEditDataChange('content', content)}
+                                            placeholder="공지사항 내용을 입력하세요..."
+                                            readonly={!isEditMode}
                                         />
                                     </div>
                                 </div>
@@ -309,28 +559,31 @@ export default function TenantAnnouncementDetailPage() {
                         </Card>
 
                         {/* 액션 버튼 */}
-                        <div className="flex justify-between gap-3">
-                            <Button
-                                variant="outline"
-                                onClick={() => router.push('../announcements')}
-                                className="flex items-center space-x-2"
-                            >
-                                <ArrowLeft className="h-4 w-4" />
-                                <span>목록으로 돌아가기</span>
-                            </Button>
-
-                            {/* 관리자 권한이 있을 경우 수정/삭제 버튼 추가 가능 */}
-                            {/* 
-                            <div className="flex gap-2">
-                                <Button variant="outline">
-                                    수정하기
-                                </Button>
-                                <Button variant="destructive">
-                                    삭제하기
+                        {!isEditMode && (
+                            <div className="flex justify-between gap-3">
+                                <Button
+                                    variant="outline"
+                                    onClick={() => router.push('../announcements')}
+                                    className="flex items-center space-x-2"
+                                >
+                                    <ArrowLeft className="h-4 w-4" />
+                                    <span>목록으로 돌아가기</span>
                                 </Button>
                             </div>
-                            */}
-                        </div>
+                        )}
+
+                        {/* 수정 모드일 때 안내 메시지 */}
+                        {isEditMode && (
+                            <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                                <div className="flex items-center space-x-2">
+                                    <AlertCircle className="h-5 w-5 text-blue-600" />
+                                    <p className="text-sm text-blue-800">
+                                        수정이 완료되면 <strong>저장하기</strong> 버튼을 클릭하세요. 변경사항을
+                                        취소하려면 <strong>취소</strong> 버튼을 클릭하세요.
+                                    </p>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* 오른쪽 사이드바 - 배너 */}

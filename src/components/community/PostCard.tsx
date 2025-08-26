@@ -5,10 +5,10 @@ import { Card, CardContent } from '@/shared/ui/card';
 import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
 import { ThumbsUp, MessageCircle, Eye, Calendar, User } from 'lucide-react';
-import type { CommunityPost } from '@/entities/community/model/types';
+import type { CommunityPostItem } from '@/entities/community/model/types';
 
 interface PostCardProps {
-    post: CommunityPost;
+    post: CommunityPostItem;
     onLike?: () => void;
     onClick?: () => void;
 }
@@ -60,7 +60,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onClick }) => {
                                 <Badge className={getCategoryColorClass(post.category)}>{post.category}</Badge>
                                 <div className="flex items-center text-sm text-gray-500">
                                     <Calendar className="h-4 w-4 mr-1" />
-                                    {formatDate(post.createdAt || post.date)}
+                                    {formatDate(post.date)}
                                 </div>
                             </div>
                             <h3 className="text-lg text-gray-900 mb-2 line-clamp-2 hover:text-purple-600 transition-colors">
@@ -105,13 +105,9 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onClick }) => {
                                         e.stopPropagation();
                                         onLike();
                                     }}
-                                    className={`flex items-center space-x-1 ${
-                                        post.isLiked
-                                            ? 'text-red-600 hover:text-red-700'
-                                            : 'text-gray-500 hover:text-red-600'
-                                    }`}
+                                    className="flex items-center space-x-1 text-gray-500 hover:text-red-600"
                                 >
-                                    <ThumbsUp className={`h-4 w-4 ${post.isLiked ? 'fill-current' : ''}`} />
+                                    <ThumbsUp className="h-4 w-4" />
                                     <span className="text-sm">{post.likes || 0}</span>
                                 </Button>
                             )}

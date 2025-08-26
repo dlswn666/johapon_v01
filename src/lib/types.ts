@@ -47,7 +47,7 @@ export interface QnA {
 }
 
 // 커뮤니티 게시글 타입은 entities/community/model/types.ts에서 import
-export type { CommunityPost, AttachedFile } from '../entities/community/model/types';
+export type { CommunityPostItem } from '../entities/community/model/types';
 
 // 통계 정보 타입
 export interface Stats {

@@ -6,7 +6,7 @@ import { Input } from '@/shared/ui/input';
 import { Button } from '@/shared/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
 import { Search, Filter, Plus } from 'lucide-react';
-import { communityCategories } from '@/lib/mockData';
+import { useSubcategories } from '@/shared/hooks/useSubcategories';
 
 interface ListFilterProps {
     searchTerm: string;
@@ -27,6 +27,8 @@ const ListFilter: React.FC<ListFilterProps> = ({
     onWriteClick,
     totalCount,
 }) => {
+    // DB에서 정보공유방 서브카테고리 조회
+    const { subcategories } = useSubcategories('community');
     const handleKeyPress = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter') {
             onSearch();
@@ -48,14 +50,14 @@ const ListFilter: React.FC<ListFilterProps> = ({
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">전체 ({totalCount})</SelectItem>
-                                    {communityCategories.map((category) => {
+                                    {subcategories?.map((category) => {
                                         // 실제로는 API에서 각 카테고리별 개수를 가져와야 함
                                         return (
-                                            <SelectItem key={category} value={category}>
-                                                {category}
+                                            <SelectItem key={category.id} value={category.name}>
+                                                {category.name}
                                             </SelectItem>
                                         );
-                                    })}
+                                    }) || []}
                                 </SelectContent>
                             </Select>
                         </div>

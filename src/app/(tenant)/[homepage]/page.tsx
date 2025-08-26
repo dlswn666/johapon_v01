@@ -1,7 +1,15 @@
 import { notFound } from 'next/navigation';
 import { headers } from 'next/headers';
+import { Metadata } from 'next';
 import HomeRoot from '@/widgets/home/HomeRoot';
 import { hasSupabaseEnv } from '@/shared/lib/supabase';
+import { generateTenantMetadata } from '@/shared/lib/metadata';
+
+// 동적 메타데이터 생성 함수
+export async function generateMetadata({ params }: { params: Promise<{ homepage: string }> }): Promise<Metadata> {
+    const { homepage } = await params;
+    return generateTenantMetadata(homepage);
+}
 
 export default async function TenantLanding(props: any) {
     const { params } = props ?? {};

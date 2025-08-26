@@ -10,13 +10,19 @@ const querySchema = z.object({
 
 export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
+    const unionIdParam = searchParams.get('unionId');
+    const roleParam = searchParams.get('role');
+
+    console.log('Nav API called with:', { unionId: unionIdParam, role: roleParam });
+
     const parseResult = querySchema.safeParse({
-        unionId: searchParams.get('unionId'),
-        role: searchParams.get('role'),
+        unionId: unionIdParam,
+        role: roleParam,
     });
 
     if (!parseResult.success) {
-        return NextResponse.json(fail('BAD_REQUEST', 'Invalid parameters', 400));
+        console.error('Nav API validation failed:', parseResult.error);
+        return NextResponse.json(fail('BAD_REQUEST', `Invalid parameters: ${parseResult.error.message}`, 400));
     }
 
     const { unionId, role } = parseResult.data;
@@ -165,19 +171,29 @@ export async function GET(req: NextRequest) {
 
         const menuTree = buildMenuTree(filteredItems);
 
-        return NextResponse.json(
-            ok({
-                items: menuTree,
-                meta: {
-                    unionId,
-                    role,
-                    totalItems: menuTree.length,
-                },
-            })
-        );
+        console.log('Nav API returning menu tree with', menuTree.length, 'items');
+        console.log('Menu tree sample:', JSON.stringify(menuTree.slice(0, 2), null, 2));
+
+        const responseData = {
+            items: menuTree,
+            meta: {
+                unionId,
+                role,
+                totalItems: menuTree.length,
+            },
+        };
+
+        console.log('Nav API returning response data:', JSON.stringify(responseData, null, 2));
+
+        return ok(responseData);
     } catch (error) {
-        console.error('Menu API error:', error);
-        return NextResponse.json(fail('INTERNAL_ERROR', 'Internal server error', 500));
+        console.error('Nav API error:', error);
+        console.error('Nav API error details:', {
+            message: error instanceof Error ? error.message : 'Unknown error',
+            stack: error instanceof Error ? error.stack : undefined,
+            unionId,
+            role,
+        });
+        return fail('INTERNAL_ERROR', 'Internal server error', 500);
     }
 }
-

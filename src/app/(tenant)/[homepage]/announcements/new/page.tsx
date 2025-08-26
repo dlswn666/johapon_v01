@@ -7,77 +7,52 @@ import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
 import { Switch } from '@/shared/ui/switch';
-import RichTextEditor from '@/features/rich-text-editor/RichTextEditor';
+import RichTextEditor from '@/components/community/RichTextEditor';
 import BannerAd from '@/widgets/common/BannerAd';
-import { FileText, Save, Send, Loader2 } from 'lucide-react';
+import { FileText, Save, Send, Loader2, AlertTriangle, Pin } from 'lucide-react';
 import { useRouter, useParams } from 'next/navigation';
-
-interface Subcategory {
-    id: string;
-    name: string;
-}
+import { useAnnouncementStore } from '@/shared/store/announcementStore';
+import type { AnnouncementCreateData } from '@/entities/announcement/model/types';
 
 export default function TenantAnnouncementNewPage() {
     const router = useRouter();
     const params = useParams();
     const homepage = params?.homepage as string;
 
-    const [form, setForm] = useState({
+    // Store 사용
+    const { subcategories, loading, error, fetchMetadata, createAnnouncement, resetState } = useAnnouncementStore();
+
+    const [form, setForm] = useState<AnnouncementCreateData & { sendNotification: boolean }>({
         title: '',
         subcategory_id: '',
         popup: false,
+        priority: 0,
+        is_urgent: false,
+        is_pinned: false,
+        published_at: null,
+        expires_at: null,
         sendNotification: false,
         content: '',
     });
 
-    const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
-    const [isLoading, setIsLoading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // 서브카테고리 목록 가져오기
+    // 컴포넌트 마운트 시 메타데이터 로드
     useEffect(() => {
-        const fetchSubcategories = async () => {
-            try {
-                setIsLoading(true);
-                const response = await fetch(`/api/tenant/${homepage}/meta`);
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.success) {
-                        // 공지사항 서브카테고리만 필터링
-                        const noticeSubcategories =
-                            data.data?.subcategories?.filter((sub: any) => sub.category_key === 'notice') || [];
-                        setSubcategories(noticeSubcategories);
-                    } else {
-                        throw new Error(data.message || '데이터 로딩 실패');
-                    }
-                } else {
-                    throw new Error('API 요청 실패');
-                }
-            } catch (error) {
-                console.error('서브카테고리 로딩 실패:', error);
-                // Supabase에서 직접 가져오기 시도
-                try {
-                    // 기본 전역 카테고리에서 공지사항 서브카테고리 가져오기
-                    setSubcategories([
-                        { id: 'e2ead72f-d169-431a-bbb3-7948e8713c33', name: '긴급공지' },
-                        { id: 'b2603582-a52c-4984-9a5d-2bd3fce755d0', name: '일반공지' },
-                        { id: 'afec53c2-3b2e-43b8-b03d-6f0d63cc2fda', name: '안내사항' },
-                    ]);
-                } catch (fallbackError) {
-                    console.error('기본 카테고리 설정 실패:', fallbackError);
-                    setSubcategories([]);
-                }
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
         if (homepage) {
-            fetchSubcategories();
+            resetState(); // 이전 상태 초기화
+            fetchMetadata(homepage).catch((error) => {
+                console.error('메타데이터 로딩 실패:', error);
+            });
         }
-    }, [homepage]);
 
-    const handleChange = (field: string, value: any) => setForm((p) => ({ ...p, [field]: value }));
+        // 컴포넌트 언마운트 시 상태 초기화
+        return () => {
+            resetState();
+        };
+    }, [homepage, fetchMetadata, resetState]);
+
+    const handleChange = (field: string, value: any) => setForm((p: any) => ({ ...p, [field]: value }));
 
     const validate = () => {
         const trimmedTitle = form.title.trim();
@@ -114,40 +89,16 @@ export default function TenantAnnouncementNewPage() {
         try {
             setIsSubmitting(true);
 
-            const response = await fetch(`/api/tenant/${homepage}/notices`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: 'Bearer temp-token', // 임시 토큰
-                },
-                body: JSON.stringify({
-                    subcategory_id: form.subcategory_id,
-                    title: form.title,
-                    content: form.content,
-                    popup: form.popup,
-                    sendNotification: form.sendNotification,
-                }),
-            });
+            const result = await createAnnouncement(homepage, form);
 
-            if (response.ok) {
-                const result = await response.json();
-
-                // 성공 메시지 개선
-                const message = result.notification_sent
-                    ? '공지사항이 성공적으로 등록되었고 알림톡이 발송되었습니다.'
-                    : '공지사항이 성공적으로 등록되었습니다.';
-                alert(message);
-
+            if (result.success) {
+                alert(result.message);
                 // 강제 새로고침을 위해 타임스탬프 파라미터 추가
                 const timestamp = Date.now();
                 router.push(`../announcements?refresh=${timestamp}`);
-
-                // 추가 보장을 위해 router.refresh() 호출
                 router.refresh();
             } else {
-                const error = await response.json();
-                const errorMessage = error.error?.message || error.message || '알 수 없는 오류';
-                alert(`등록에 실패했습니다: ${errorMessage}`);
+                alert(result.message);
             }
         } catch (error) {
             console.error('공지사항 등록 실패:', error);
@@ -161,6 +112,22 @@ export default function TenantAnnouncementNewPage() {
         { value: 'false', label: '일반 공지' },
         { value: 'true', label: '팝업 공지' },
     ];
+
+    // 에러 상태 표시
+    if (error) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <div className="text-center">
+                    <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+                    <h2 className="text-xl font-semibold text-gray-900 mb-2">오류가 발생했습니다</h2>
+                    <p className="text-gray-600 mb-4">{error}</p>
+                    <Button onClick={() => router.push('../announcements')} variant="outline">
+                        목록으로 돌아가기
+                    </Button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -205,12 +172,12 @@ export default function TenantAnnouncementNewPage() {
                                         <Select
                                             value={form.subcategory_id}
                                             onValueChange={(v) => handleChange('subcategory_id', v)}
-                                            disabled={isLoading}
+                                            disabled={loading}
                                         >
                                             <SelectTrigger className="mt-2">
                                                 <SelectValue
                                                     placeholder={
-                                                        isLoading ? '카테고리 로딩 중...' : '카테고리를 선택하세요'
+                                                        loading ? '카테고리 로딩 중...' : '카테고리를 선택하세요'
                                                     }
                                                 />
                                             </SelectTrigger>
@@ -242,6 +209,81 @@ export default function TenantAnnouncementNewPage() {
                                             </SelectContent>
                                         </Select>
                                     </div>
+
+                                    <div>
+                                        <Label>우선순위</Label>
+                                        <Select
+                                            value={String(form.priority)}
+                                            onValueChange={(v) => handleChange('priority', parseInt(v))}
+                                        >
+                                            <SelectTrigger className="mt-2">
+                                                <SelectValue placeholder="우선순위를 선택하세요" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="0">일반 (0)</SelectItem>
+                                                <SelectItem value="1">중요 (1)</SelectItem>
+                                                <SelectItem value="2">매우 중요 (2)</SelectItem>
+                                                <SelectItem value="3">최우선 (3)</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+
+                                    <div>
+                                        <Label>게시 시작일</Label>
+                                        <Input
+                                            type="datetime-local"
+                                            value={form.published_at || ''}
+                                            onChange={(e) => handleChange('published_at', e.target.value || null)}
+                                            className="mt-2"
+                                        />
+                                        <p className="text-xs text-gray-500 mt-1">설정하지 않으면 즉시 게시됩니다</p>
+                                    </div>
+
+                                    <div>
+                                        <Label>게시 종료일</Label>
+                                        <Input
+                                            type="datetime-local"
+                                            value={form.expires_at || ''}
+                                            onChange={(e) => handleChange('expires_at', e.target.value || null)}
+                                            className="mt-2"
+                                        />
+                                        <p className="text-xs text-gray-500 mt-1">설정하지 않으면 계속 게시됩니다</p>
+                                    </div>
+                                </div>
+
+                                {/* 특별 옵션들 */}
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                                        <div className="flex items-center space-x-3">
+                                            <AlertTriangle className="h-5 w-5 text-yellow-600" />
+                                            <div>
+                                                <Label className="text-base text-yellow-800">긴급 공지사항</Label>
+                                                <p className="text-sm text-yellow-600">
+                                                    긴급 공지사항으로 설정하면 목록에서 강조 표시됩니다
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <Switch
+                                            checked={form.is_urgent}
+                                            onCheckedChange={(c: boolean) => handleChange('is_urgent', c)}
+                                        />
+                                    </div>
+
+                                    <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg border border-blue-200">
+                                        <div className="flex items-center space-x-3">
+                                            <Pin className="h-5 w-5 text-blue-600" />
+                                            <div>
+                                                <Label className="text-base text-blue-800">상단 고정</Label>
+                                                <p className="text-sm text-blue-600">
+                                                    목록 상단에 항상 고정되어 표시됩니다
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <Switch
+                                            checked={form.is_pinned}
+                                            onCheckedChange={(c: boolean) => handleChange('is_pinned', c)}
+                                        />
+                                    </div>
                                 </div>
 
                                 <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
@@ -264,8 +306,8 @@ export default function TenantAnnouncementNewPage() {
                                     <Label>내용 *</Label>
                                     <div className="mt-2">
                                         <RichTextEditor
-                                            value={form.content}
-                                            onChange={(html) => handleChange('content', html)}
+                                            content={form.content}
+                                            onChange={(content) => handleChange('content', content)}
                                             placeholder="공지사항 내용을 작성해 주세요..."
                                         />
                                     </div>
@@ -274,13 +316,13 @@ export default function TenantAnnouncementNewPage() {
                         </Card>
 
                         <div className="flex justify-end gap-3">
-                            <Button variant="outline" onClick={() => router.back()} disabled={isSubmitting}>
+                            <Button variant="outline" onClick={() => router.back()} disabled={isSubmitting || loading}>
                                 취소
                             </Button>
                             <Button
                                 onClick={handleSave}
                                 className="bg-green-600 hover:bg-green-700 text-white"
-                                disabled={isSubmitting}
+                                disabled={isSubmitting || loading}
                             >
                                 {isSubmitting ? (
                                     <>

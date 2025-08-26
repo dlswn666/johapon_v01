@@ -2,7 +2,7 @@ import {
     MenuItem,
     Announcement,
     QnA,
-    CommunityPost,
+    CommunityPostItem,
     Stats,
     Partner,
     Banner,
@@ -10,7 +10,7 @@ import {
     FooterInfo,
     OrgMember,
 } from './types';
-import type { CommunityCategory } from '../entities/community/model/types';
+import type { CommunityCategory } from './types';
 
 // 메뉴 데이터
 export const menuItems: MenuItem[] = [
@@ -193,51 +193,55 @@ export const sampleQnAList: QnA[] = [
 ];
 
 // 커뮤니티 게시글 샘플 데이터
-export const sampleCommunityPosts: CommunityPost[] = [
+export const sampleCommunityPosts: CommunityPostItem[] = [
     {
-        id: 1,
+        id: '1',
         title: '새로운 재개발 계획에 대한 의견 나눔',
         content:
             '조합원 여러분들과 함께 새로운 재개발 계획에 대해 토론하고 의견을 나누고 싶습니다. 많은 참여 부탁드립니다. 최근 발표된 새로운 계획안을 검토해보니 이전 계획과 비교했을 때 여러 가지 개선점이 있는 것 같습니다. 특히 공용시설 배치나 교통 접근성 부분에서 눈에 띄는 변화가 있어 조합원분들의 다양한 의견을 듣고 싶습니다. 건설적인 토론을 통해 더 나은 방향으로 발전시켜 나갈 수 있기를 기대합니다.',
         author: '김조합원',
         date: '2025-01-21',
         category: '일반토론',
-        attachments: undefined,
         likes: 5,
-        isLiked: false,
+        views: 25,
+        comments: 3,
+        isAnonymous: false,
     },
     {
-        id: 2,
+        id: '2',
         title: '주변 개발 현황 정보 공유',
         content: '인근 지역의 재개발 진행 상황과 시세 변동 등 유용한 정보를 공유합니다.',
         author: '이정보',
         date: '2025-01-20',
         category: '정보공유',
-        attachments: undefined,
         likes: 3,
-        isLiked: false,
+        views: 18,
+        comments: 1,
+        isAnonymous: false,
     },
     {
-        id: 3,
+        id: '3',
         title: '조합원 모임 후기',
         content: '지난 주말 조합원 모임에서 나눈 이야기들을 정리해서 공유드립니다.',
         author: '박회원',
         date: '2025-01-19',
         category: '모임후기',
-        attachments: undefined,
         likes: 8,
-        isLiked: false,
+        views: 32,
+        comments: 5,
+        isAnonymous: false,
     },
     {
-        id: 4,
+        id: '4',
         title: '재개발 관련 법령 변경사항',
         content: '최근 변경된 재개발 관련 법령과 규정에 대해 알려드립니다.',
         author: '관리자',
         date: '2025-01-18',
         category: '공지',
-        attachments: undefined,
         likes: 12,
-        isLiked: false,
+        views: 45,
+        comments: 2,
+        isAnonymous: false,
     },
 ];
 
@@ -405,10 +409,10 @@ export const organizationData: OrgMember[] = [
 ];
 
 export const communityCategories: CommunityCategory[] = [
-    '일반토론',
-    '정보공유',
-    '모임후기',
-    '공지',
-    '질문답변',
-    '건의사항',
+    { id: 'general', name: '일반토론' },
+    { id: 'info', name: '정보공유' },
+    { id: 'meeting', name: '모임후기' },
+    { id: 'notice', name: '공지' },
+    { id: 'qna', name: '질문답변' },
+    { id: 'suggestion', name: '건의사항' },
 ];

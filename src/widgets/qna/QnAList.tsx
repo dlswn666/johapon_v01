@@ -2,103 +2,53 @@
 
 import { Card, CardContent } from '@/shared/ui/card';
 import { Badge } from '@/shared/ui/badge';
-import { Button } from '@/shared/ui/button';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/shared/ui/collapsible';
-import {
-    MessageSquare,
-    Plus,
-    Calendar,
-    User,
-    Clock,
-    CheckCircle,
-    AlertCircle,
-    ChevronDown,
-    ChevronUp,
-    Reply,
-} from 'lucide-react';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Eye, MessageCircle, Lock, CheckCircle, Clock, User, Calendar } from 'lucide-react';
+import Link from 'next/link';
+import { useParams } from 'next/navigation';
 import type { QnAItem } from '@/entities/qna/model/types';
 
 interface QnAListProps {
-    qnas: QnAItem[];
+    qnaList: QnAItem[];
     loading: boolean;
     error: string | null;
     hasMore: boolean;
     observerRef: (node: HTMLElement | null) => void;
 }
 
-export default function QnAList({ qnas, loading, error, hasMore, observerRef }: QnAListProps) {
-    const router = useRouter();
-    const [expandedQuestions, setExpandedQuestions] = useState<number[]>([]);
-
-    const toggleQuestion = (questionId: number) => {
-        setExpandedQuestions((prev) =>
-            prev.includes(questionId) ? prev.filter((id) => id !== questionId) : [...prev, questionId]
-        );
-    };
-
-    const getStatusColor = (status: string) => {
-        switch (status) {
-            case 'answered':
-                return 'bg-green-100 text-green-800';
-            case 'pending':
-                return 'bg-yellow-100 text-yellow-800';
-            default:
-                return 'bg-gray-100 text-gray-800';
-        }
-    };
-
-    const getStatusText = (status: string) => {
-        switch (status) {
-            case 'answered':
-                return '답변완료';
-            case 'pending':
-                return '답변대기';
-            default:
-                return '알 수 없음';
-        }
-    };
+export default function QnAList({ qnaList, loading, error, hasMore, observerRef }: QnAListProps) {
+    const params = useParams();
+    const homepage = params?.homepage as string;
 
     // 날짜 포맷팅
     const formatDate = (dateString: string) => {
-        try {
-            return new Date(dateString).toLocaleDateString('ko-KR', {
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffTime = Math.abs(now.getTime() - date.getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        if (diffDays === 1) {
+            return '오늘';
+        } else if (diffDays === 2) {
+            return '어제';
+        } else if (diffDays <= 7) {
+            return `${diffDays - 1}일 전`;
+        } else {
+            return date.toLocaleDateString('ko-KR', {
                 year: 'numeric',
                 month: 'long',
                 day: 'numeric',
             });
-        } catch {
-            return dateString;
         }
     };
 
     if (error) {
         return (
             <Card>
-                <CardContent className="p-8 text-center">
-                    <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">오류가 발생했습니다</h3>
-                    <p className="text-gray-600 mb-4">{error}</p>
-                    <Button onClick={() => window.location.reload()} variant="outline">
-                        다시 시도
-                    </Button>
-                </CardContent>
-            </Card>
-        );
-    }
-
-    if (!loading && qnas.length === 0) {
-        return (
-            <Card>
-                <CardContent className="p-8 text-center">
-                    <MessageSquare className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                    <h3 className="text-lg text-gray-900 mb-2">질문이 없습니다</h3>
-                    <p className="text-gray-600 mb-4">첫 번째 질문을 남겨보세요.</p>
-                    <Button onClick={() => router.push('./qna/new')} className="bg-blue-600 hover:bg-blue-700">
-                        <Plus className="h-4 w-4 mr-2" />
-                        질문하기
-                    </Button>
+                <CardContent className="p-6">
+                    <div className="text-center py-8">
+                        <p className="text-red-600 mb-2">오류가 발생했습니다</p>
+                        <p className="text-gray-600 text-sm">{error}</p>
+                    </div>
                 </CardContent>
             </Card>
         );
@@ -106,104 +56,119 @@ export default function QnAList({ qnas, loading, error, hasMore, observerRef }: 
 
     return (
         <div className="space-y-4">
-            {qnas.map((question) => (
-                <Card key={question.id}>
-                    <CardContent className="p-6">
-                        <Collapsible
-                            open={expandedQuestions.includes(question.id)}
-                            onOpenChange={() => toggleQuestion(question.id)}
-                        >
-                            <CollapsibleTrigger className="w-full">
-                                <div className="flex items-start justify-between">
-                                    <div className="flex-1 text-left">
-                                        <div className="flex items-center space-x-2 mb-2">
-                                            <Badge variant="secondary">{question.category}</Badge>
-                                            <Badge className={getStatusColor(question.status)}>
-                                                {getStatusText(question.status)}
-                                            </Badge>
-                                            <div className="flex items-center text-sm text-gray-500">
-                                                <Calendar className="h-4 w-4 mr-1" />
-                                                {formatDate(question.date)}
-                                            </div>
-                                        </div>
-                                        <h3 className="text-lg text-gray-900 mb-2">{question.title}</h3>
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center text-sm text-gray-500">
-                                                <User className="h-4 w-4 mr-1" />
-                                                {question.author}
-                                            </div>
-                                            <div className="flex items-center text-sm text-gray-500">
-                                                <MessageSquare className="h-4 w-4 mr-1" />
-                                                {question.views} 조회
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="ml-4">
-                                        {expandedQuestions.includes(question.id) ? (
-                                            <ChevronUp className="h-5 w-5 text-gray-400" />
-                                        ) : (
-                                            <ChevronDown className="h-5 w-5 text-gray-400" />
-                                        )}
-                                    </div>
-                                </div>
-                            </CollapsibleTrigger>
-
-                            <CollapsibleContent className="mt-4">
-                                <div className="space-y-4">
-                                    {/* Question Content */}
-                                    <div className="bg-gray-50 p-4 rounded-lg">
-                                        <div className="flex items-center space-x-2 mb-2">
-                                            <MessageSquare className="h-4 w-4 text-blue-600" />
-                                            <span className="text-sm text-blue-600">질문</span>
-                                        </div>
-                                        <p className="text-sm text-gray-700 leading-relaxed">{question.content}</p>
-                                    </div>
-
-                                    {/* Answer */}
-                                    {question.answer ? (
-                                        <div className="bg-green-50 p-4 rounded-lg border-l-4 border-green-400">
-                                            <div className="flex items-center justify-between mb-2">
-                                                <div className="flex items-center space-x-2">
-                                                    <Reply className="h-4 w-4 text-green-600" />
-                                                    <span className="text-sm text-green-600">답변</span>
-                                                </div>
-                                                <div className="text-sm text-gray-500">
-                                                    {question.answeredBy} ·{' '}
-                                                    {question.answeredDate && formatDate(question.answeredDate)}
-                                                </div>
-                                            </div>
-                                            <p className="text-sm text-gray-700 leading-relaxed">{question.answer}</p>
-                                        </div>
-                                    ) : (
-                                        <div className="bg-yellow-50 p-4 rounded-lg border-l-4 border-yellow-400">
-                                            <div className="flex items-center space-x-2">
-                                                <AlertCircle className="h-4 w-4 text-yellow-600" />
-                                                <span className="text-sm text-yellow-600">
-                                                    아직 답변이 등록되지 않았습니다. 빠른 시일 내에 답변드리겠습니다.
-                                                </span>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            </CollapsibleContent>
-                        </Collapsible>
-                    </CardContent>
-                </Card>
-            ))}
-
-            {/* Loading indicator for infinite scroll */}
-            {loading && (
+            {qnaList.length === 0 && !loading ? (
                 <Card>
-                    <CardContent className="p-8 text-center">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                        <p className="text-gray-600">질문을 불러오는 중...</p>
+                    <CardContent className="p-6">
+                        <div className="text-center py-12">
+                            <MessageCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                            <h3 className="text-lg font-medium text-gray-900 mb-2">아직 등록된 Q&A가 없습니다</h3>
+                            <p className="text-gray-600 mb-4">
+                                궁금한 점이나 문의사항이 있으시면 언제든지 질문을 남겨주세요.
+                            </p>
+                            <Link
+                                href={`/${homepage}/qna/new`}
+                                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                            >
+                                <MessageCircle className="h-4 w-4 mr-2" />첫 질문 작성하기
+                            </Link>
+                        </div>
                     </CardContent>
                 </Card>
-            )}
+            ) : (
+                <>
+                    {qnaList.map((qna, index) => (
+                        <Card key={qna.id} className="hover:shadow-md transition-shadow">
+                            <CardContent className="p-6">
+                                <div className="flex items-start justify-between">
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            {qna.isSecret && (
+                                                <Badge variant="secondary" className="text-xs">
+                                                    <Lock className="h-3 w-3 mr-1" />
+                                                    비밀글
+                                                </Badge>
+                                            )}
 
-            {/* Infinite scroll observer */}
-            {hasMore && <div ref={observerRef} className="h-4" />}
+                                            {qna.isAnswered ? (
+                                                <Badge variant="default" className="bg-green-600 text-xs">
+                                                    <CheckCircle className="h-3 w-3 mr-1" />
+                                                    답변완료
+                                                </Badge>
+                                            ) : (
+                                                <Badge variant="secondary" className="bg-orange-600 text-white text-xs">
+                                                    <Clock className="h-3 w-3 mr-1" />
+                                                    답변대기
+                                                </Badge>
+                                            )}
+
+                                            <Badge variant="outline" className="text-xs">
+                                                {qna.category}
+                                            </Badge>
+                                        </div>
+
+                                        <Link href={`/${homepage}/qna/${qna.id}`} className="block group">
+                                            <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors mb-2 line-clamp-2">
+                                                {qna.title}
+                                            </h3>
+                                            <p className="text-gray-600 text-sm line-clamp-2 mb-3">{qna.content}</p>
+                                        </Link>
+
+                                        <div className="flex items-center justify-between text-sm text-gray-500">
+                                            <div className="flex items-center space-x-4">
+                                                <div className="flex items-center space-x-1">
+                                                    <User className="h-4 w-4" />
+                                                    <span>{qna.author}</span>
+                                                </div>
+                                                <div className="flex items-center space-x-1">
+                                                    <Calendar className="h-4 w-4" />
+                                                    <span>{formatDate(qna.date)}</span>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center space-x-3">
+                                                <div className="flex items-center space-x-1">
+                                                    <Eye className="h-4 w-4" />
+                                                    <span>{qna.views.toLocaleString()}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))}
+
+                    {/* 무한 스크롤 로딩 트리거 */}
+                    {hasMore && (
+                        <div ref={observerRef} className="h-20 flex items-center justify-center">
+                            {loading && (
+                                <div className="flex items-center space-x-2 text-gray-600">
+                                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                                    <span>더 많은 Q&A를 불러오는 중...</span>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* 로딩 중이지만 첫 페이지가 아닌 경우 */}
+                    {loading && qnaList.length === 0 && (
+                        <Card>
+                            <CardContent className="p-6">
+                                <div className="text-center py-8">
+                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                                    <p className="text-gray-600">Q&A를 불러오는 중...</p>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
+
+                    {/* 더 이상 불러올 데이터가 없는 경우 */}
+                    {!hasMore && qnaList.length > 0 && (
+                        <div className="text-center py-4">
+                            <p className="text-gray-500 text-sm">모든 Q&A를 확인했습니다.</p>
+                        </div>
+                    )}
+                </>
+            )}
         </div>
     );
 }
-

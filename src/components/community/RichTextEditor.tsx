@@ -44,11 +44,8 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         }
     };
 
-    useEffect(() => {
-        if (editorRef.current && editorRef.current.innerHTML !== content) {
-            editorRef.current.innerHTML = content;
-        }
-    }, [content]);
+    // dangerouslySetInnerHTML을 사용하므로 useEffect는 더 이상 필요하지 않음
+    // React가 자동으로 content prop 변경을 감지하여 DOM을 업데이트함
 
     if (readonly) {
         return (
@@ -158,6 +155,8 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                     lineHeight: '1.6',
                 }}
                 data-placeholder={placeholder}
+                dangerouslySetInnerHTML={{ __html: content }}
+                suppressContentEditableWarning={true}
             />
 
             <style jsx>{`

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { MenuItem } from '@/lib/types';
+import { useTenant } from '@/shared/providers/TenantProvider';
 
 interface NavigationData {
     menus: MenuItem[];
@@ -18,8 +19,11 @@ export function useNavigation({ slug, userRole = 'member', enabled = true }: Use
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    // 전역 테넌트 상태 사용
+    const { tenantInfo } = useTenant();
+
     useEffect(() => {
-        if (!enabled || !slug) {
+        if (!enabled || !slug || !tenantInfo) {
             return;
         }
 
@@ -27,6 +31,9 @@ export function useNavigation({ slug, userRole = 'member', enabled = true }: Use
             try {
                 setLoading(true);
                 setError(null);
+
+                console.log('useNavigation: slug =', slug);
+                console.log('useNavigation: tenantInfo =', tenantInfo);
 
                 const params = new URLSearchParams({
                     role: userRole,
@@ -61,7 +68,7 @@ export function useNavigation({ slug, userRole = 'member', enabled = true }: Use
         };
 
         fetchNavigation();
-    }, [slug, userRole, enabled]);
+    }, [slug, userRole, enabled, tenantInfo]);
 
     const refetch = () => {
         if (slug && enabled) {

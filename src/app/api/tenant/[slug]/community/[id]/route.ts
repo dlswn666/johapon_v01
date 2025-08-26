@@ -1,140 +1,111 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { sampleCommunityPosts } from '@/lib/mockData';
+export const runtime = 'nodejs';
 
-// GET: 특정 커뮤니티 게시글 조회
-export async function GET(request: NextRequest, { params }: { params: Promise<{ slug: string; id: string }> }) {
-    const { slug, id } = await params;
-    try {
-        const postId = parseInt(id);
-        const post = sampleCommunityPosts.find((p) => p.id === postId);
+import { ok, fail, withSMaxAge, withNoStore, requireAuth, isValidSlug } from '@/shared/lib/api';
+import { getSupabaseClient } from '@/shared/lib/supabase';
+import { getTenantIdBySlug } from '@/shared/store/tenantStore';
 
-        if (!post) {
-            return NextResponse.json({ success: false, error: 'Post not found' }, { status: 404 });
-        }
+export async function GET(req: Request, context: { params: Promise<{ slug: string; id: string }> }) {
+    const params = await context.params;
+    const slug = String(params?.slug ?? '').trim();
+    const id = String(params?.id ?? '').trim();
 
-        // 조회수 증가 (실제로는 DB 업데이트)
-        const updatedPost = {
-            ...post,
-            views: (post.views || 0) + 1,
-        };
+    if (!slug || !isValidSlug(slug)) return withSMaxAge(fail('BAD_REQUEST', 'invalid slug', 400), 30);
+    if (!id) return withSMaxAge(fail('BAD_REQUEST', 'invalid id', 400), 30);
 
-        return NextResponse.json({
-            success: true,
-            data: updatedPost,
-        });
-    } catch (error) {
-        console.error('Error fetching community post:', error);
-        return NextResponse.json({ success: false, error: 'Failed to fetch community post' }, { status: 500 });
+    const supabase = getSupabaseClient();
+    const unionId = await getTenantIdBySlug(slug);
+    if (!unionId) return withSMaxAge(fail('NOT_FOUND', 'union not found', 404), 30);
+
+    // 게시글 조회
+    const { data, error } = await supabase
+        .from('community_posts')
+        .select(
+            `
+            id, title, content, view_count, like_count, comment_count, is_anonymous,
+            created_at, updated_at, category_id, subcategory_id, created_by
+            `
+        )
+        .eq('id', id)
+        .eq('union_id', unionId)
+        .maybeSingle();
+
+    if (error) {
+        return withSMaxAge(fail('DB_ERROR', `게시글 조회 실패: ${error.message}`, 500), 30);
     }
+
+    if (!data) {
+        return withSMaxAge(fail('NOT_FOUND', '게시글을 찾을 수 없습니다.', 404), 30);
+    }
+
+    // 조회수 증가
+    await supabase
+        .from('community_posts')
+        .update({ view_count: (data.view_count || 0) + 1 })
+        .eq('id', id);
+
+    return withSMaxAge(ok(data), 30);
 }
 
-// PUT: 커뮤니티 게시글 수정
-export async function PUT(request: NextRequest, { params }: { params: Promise<{ slug: string; id: string }> }) {
-    const { slug, id } = await params;
-    try {
-        const postId = parseInt(id);
-        const body = await request.json();
-        const { title, content, category, attachments } = body;
+export async function PUT(req: Request, context: { params: Promise<{ slug: string; id: string }> }) {
+    const params = await context.params;
+    const slug = String(params?.slug ?? '').trim();
+    const id = String(params?.id ?? '').trim();
 
-        const post = sampleCommunityPosts.find((p) => p.id === postId);
-        if (!post) {
-            return NextResponse.json({ success: false, error: 'Post not found' }, { status: 404 });
-        }
+    if (!slug || !isValidSlug(slug)) return withNoStore(fail('BAD_REQUEST', 'invalid slug', 400));
+    if (!id) return withNoStore(fail('BAD_REQUEST', 'invalid id', 400));
 
-        // 유효성 검사
-        if (!title || !content || !category) {
-            return NextResponse.json(
-                { success: false, error: 'Title, content, and category are required' },
-                { status: 400 }
-            );
-        }
+    // 권한 체크: Authorization 헤더 필수
+    const auth = requireAuth(req);
+    if (!auth) return withNoStore(fail('UNAUTHORIZED', 'authorization required', 401));
 
-        // 게시글 업데이트
-        const updatedPost = {
-            ...post,
-            title,
-            content,
-            category,
-            attachments: attachments || post.attachments,
-            updatedAt: new Date().toISOString(),
-        };
+    const body = await req.json().catch(() => null);
+    if (!body) return withNoStore(fail('BAD_REQUEST', 'invalid body', 400));
 
-        // 실제로는 데이터베이스에서 업데이트
-        console.log('Community post updated:', updatedPost);
+    const { title, content, subcategory_id, is_anonymous } = body as any;
 
-        return NextResponse.json({
-            success: true,
-            data: updatedPost,
-        });
-    } catch (error) {
-        console.error('Error updating community post:', error);
-        return NextResponse.json({ success: false, error: 'Failed to update community post' }, { status: 500 });
+    const supabase = getSupabaseClient();
+    const unionId = await getTenantIdBySlug(slug);
+    if (!unionId) return withNoStore(fail('NOT_FOUND', 'union not found', 404));
+
+    const updateData: any = {
+        updated_at: new Date().toISOString(),
+    };
+
+    if (title !== undefined) updateData.title = title;
+    if (content !== undefined) updateData.content = content;
+    if (subcategory_id !== undefined) updateData.subcategory_id = subcategory_id;
+    if (is_anonymous !== undefined) updateData.is_anonymous = Boolean(is_anonymous);
+
+    const { error } = await supabase.from('community_posts').update(updateData).eq('id', id).eq('union_id', unionId);
+
+    if (error) {
+        return withNoStore(fail('DB_ERROR', `게시글 수정 실패: ${error.message}`, 500));
     }
+
+    return withNoStore(ok({ message: '게시글이 성공적으로 수정되었습니다.' }));
 }
 
-// DELETE: 커뮤니티 게시글 삭제
-export async function DELETE(request: NextRequest, { params }: { params: Promise<{ slug: string; id: string }> }) {
-    const { slug, id } = await params;
-    try {
-        const postId = parseInt(id);
-        const post = sampleCommunityPosts.find((p) => p.id === postId);
+export async function DELETE(req: Request, context: { params: Promise<{ slug: string; id: string }> }) {
+    const params = await context.params;
+    const slug = String(params?.slug ?? '').trim();
+    const id = String(params?.id ?? '').trim();
 
-        if (!post) {
-            return NextResponse.json({ success: false, error: 'Post not found' }, { status: 404 });
-        }
+    if (!slug || !isValidSlug(slug)) return withNoStore(fail('BAD_REQUEST', 'invalid slug', 400));
+    if (!id) return withNoStore(fail('BAD_REQUEST', 'invalid id', 400));
 
-        // 실제로는 데이터베이스에서 삭제
-        console.log('Community post deleted:', postId);
+    // 권한 체크: Authorization 헤더 필수
+    const auth = requireAuth(req);
+    if (!auth) return withNoStore(fail('UNAUTHORIZED', 'authorization required', 401));
 
-        return NextResponse.json({
-            success: true,
-            message: 'Post deleted successfully',
-        });
-    } catch (error) {
-        console.error('Error deleting community post:', error);
-        return NextResponse.json({ success: false, error: 'Failed to delete community post' }, { status: 500 });
+    const supabase = getSupabaseClient();
+    const unionId = await getTenantIdBySlug(slug);
+    if (!unionId) return withNoStore(fail('NOT_FOUND', 'union not found', 404));
+
+    const { error } = await supabase.from('community_posts').delete().eq('id', id).eq('union_id', unionId);
+
+    if (error) {
+        return withNoStore(fail('DB_ERROR', `게시글 삭제 실패: ${error.message}`, 500));
     }
-}
 
-// PATCH: 게시글 좋아요/취소
-export async function PATCH(request: NextRequest, { params }: { params: Promise<{ slug: string; id: string }> }) {
-    const { slug, id } = await params;
-    try {
-        const postId = parseInt(id);
-        const body = await request.json();
-        const { action } = body; // 'like' or 'unlike'
-
-        const post = sampleCommunityPosts.find((p) => p.id === postId);
-        if (!post) {
-            return NextResponse.json({ success: false, error: 'Post not found' }, { status: 404 });
-        }
-
-        let updatedPost;
-        if (action === 'like') {
-            updatedPost = {
-                ...post,
-                likes: (post.likes || 0) + 1,
-                isLiked: true,
-            };
-        } else if (action === 'unlike') {
-            updatedPost = {
-                ...post,
-                likes: Math.max((post.likes || 0) - 1, 0),
-                isLiked: false,
-            };
-        } else {
-            return NextResponse.json({ success: false, error: 'Invalid action' }, { status: 400 });
-        }
-
-        // 실제로는 데이터베이스에서 업데이트
-        console.log('Community post like updated:', updatedPost);
-
-        return NextResponse.json({
-            success: true,
-            data: updatedPost,
-        });
-    } catch (error) {
-        console.error('Error updating post like:', error);
-        return NextResponse.json({ success: false, error: 'Failed to update post like' }, { status: 500 });
-    }
+    return withNoStore(ok({ message: '게시글이 성공적으로 삭제되었습니다.' }));
 }

@@ -54,21 +54,24 @@ class TenantStore {
 
     public async getOrFetchBySlug(slug: string): Promise<TenantInfo | null> {
         const cached = this.get(slug);
-        console.log('cached : ', cached);
         if (cached) {
             return cached;
         }
 
         try {
             const supabase = getSupabaseClient();
+            console.log('[TENANT_STORE] Fetching tenant data for slug:', slug);
 
             const { data, error } = await supabase
                 .from('unions')
                 .select('id, homepage, name, logo_url, address, phone, email')
                 .eq('homepage', slug)
                 .maybeSingle<SupabaseUnionData>();
-            console.log('data : ', data);
+
+            console.log('[TENANT_STORE] Query result:', { data, error });
+
             if (error) {
+                console.error('[TENANT_STORE] Database error:', error);
                 return null;
             }
 

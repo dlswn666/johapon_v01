@@ -9,6 +9,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/shared/ui
 import { Users, MapPin, Building2, Settings, LogOut, Menu, ChevronDown, ChevronUp } from 'lucide-react';
 import { useNavigation } from '@/shared/hooks/useNavigation';
 import { useAuth } from '@/shared/hooks/useAuth';
+import { useTenant } from '@/shared/providers/TenantProvider';
+import Image from 'next/image';
 
 interface HeaderProps {
     userRole?: 'member' | 'admin' | 'systemadmin';
@@ -25,14 +27,14 @@ export default function Header({ userRole: propUserRole }: HeaderProps) {
     const menuTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const pathname = usePathname();
 
-    // 현재 slug 추출 (tenant 경로에서)
-    const currentSlug = pathname ? pathname.split('/')[1] : '';
+    // 전역 테넌트 상태 사용
+    const { tenantInfo, slug: currentSlug, loading: tenantLoading, error: tenantError } = useTenant();
 
-    // 네비게이션 데이터 로드
+    // 네비게이션 데이터 로드 (tenantInfo가 있을 때만)
     const { menus, loading, error } = useNavigation({
-        slug: currentSlug,
+        slug: currentSlug || undefined,
         userRole: userRole,
-        enabled: Boolean(currentSlug),
+        enabled: Boolean(currentSlug && tenantInfo),
     });
 
     // Mobile detection
@@ -83,48 +85,11 @@ export default function Header({ userRole: propUserRole }: HeaderProps) {
         setActiveMenuItem('');
     };
 
-    // 기본 fallback 메뉴 (메뉴 로딩 실패시 사용)
-    const fallbackMenuItems = [
-        {
-            id: 'home',
-            label: '홈',
-            subItems: [
-                { id: 'home-main', label: '메인', href: '/' },
-                { id: 'home-announcements', label: '공지사항', href: '/announcements' },
-            ],
-        },
-        {
-            id: 'info',
-            label: '조합정보',
-            subItems: [
-                { id: 'info-chairman', label: '조합장 인사말', href: '/chairman-greeting' },
-                { id: 'info-organization', label: '조직도', href: '/organization-chart' },
-                { id: 'info-office', label: '사무소 정보', href: '/office' },
-            ],
-        },
-        {
-            id: 'community',
-            label: '커뮤니티',
-            subItems: [
-                { id: 'community-board', label: '자유게시판', href: '/community' },
-                { id: 'community-qna', label: 'Q&A', href: '/qna' },
-            ],
-        },
-        {
-            id: 'redevelopment',
-            label: '재개발정보',
-            subItems: [{ id: 'redevelopment-info', label: '사업개요', href: '/redevelopment' }],
-        },
-    ];
+    // 데이터베이스에서 로드된 메뉴 사용
+    const allMenuItems = menus || [];
 
-    // 데이터베이스에서 로드된 메뉴 사용 (로딩 중이거나 에러시 fallback 메뉴 사용)
-    const allMenuItems = loading ? [] : error || !menus.length ? fallbackMenuItems : menus;
-
-    const mobileMenuItems = [
-        { icon: Building2, label: '대시보드', href: '/', color: 'text-blue-600' },
-        { icon: MapPin, label: '사무소 정보', href: '/office', color: 'text-gray-600' },
-        { icon: Users, label: '추진 일정', href: '/timeline', color: 'text-orange-600' },
-    ];
+    // 모바일 메뉴도 API 데이터 사용
+    const mobileMenuItems = allMenuItems;
 
     // Build tenant-prefixed hrefs when inside a tenant route (/[homepage]/...)
     const prefixedHref = (href: string) => {
@@ -152,18 +117,59 @@ export default function Header({ userRole: propUserRole }: HeaderProps) {
         return `/${candidate}${href.startsWith('/') ? href : `/${href}`}`;
     };
 
-    // 로딩 또는 에러 상태 처리
-    if (loading) {
-        return (
-            <div className="bg-white shadow-sm border-b border-gray-200 h-20 flex items-center justify-center">
-                <div className="text-gray-500">메뉴를 불러오는 중...</div>
-            </div>
-        );
-    }
+    // 테넌트 경로에서 로딩 중일 때 로딩 스켈레톤 표시
+    const isInTenantRoute = currentSlug && currentSlug !== 'admin' && currentSlug !== 'api';
+    const shouldShowLoading = isInTenantRoute && tenantLoading;
 
-    if (error) {
-        console.error('Navigation error:', error);
-        // 에러 발생시에도 기본 UI는 표시하되 메뉴는 비어있음
+    // 테넌트 정보를 가져올 때 표시할 텍스트 결정
+    const getTenantDisplayName = () => {
+        if (tenantInfo?.name) return tenantInfo.name;
+        if (isInTenantRoute) {
+            if (tenantLoading) return '로딩중...';
+            if (tenantError) return '로딩 실패';
+            return '테넌트 없음';
+        }
+        return '조합';
+    };
+
+    // 테넌트 경로에서 로딩 중일 때 스켈레톤 헤더 표시
+    if (shouldShowLoading) {
+        return (
+            <>
+                {/* Mobile Loading Header */}
+                {isMobile && (
+                    <div className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
+                        <div className="flex justify-between items-center h-16 px-4">
+                            <div className="flex items-center">
+                                <div className="w-6 h-6 bg-gray-200 rounded mr-2 animate-pulse"></div>
+                                <div className="w-20 h-5 bg-gray-200 rounded animate-pulse"></div>
+                            </div>
+                            <div className="w-10 h-10 bg-gray-200 rounded animate-pulse"></div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Desktop Loading Header */}
+                {!isMobile && (
+                    <nav className="bg-white shadow-sm border-b border-gray-200 relative">
+                        <div className="max-w-none mx-auto px-32 sm:px-32 lg:px-32">
+                            <div className="flex justify-between items-center h-20">
+                                <div className="flex items-center">
+                                    <div className="w-8 h-8 bg-gray-200 rounded mr-3 animate-pulse"></div>
+                                    <div className="w-32 h-6 bg-gray-200 rounded animate-pulse"></div>
+                                </div>
+                                <div className="flex items-center space-x-12">
+                                    <div className="w-16 h-5 bg-gray-200 rounded animate-pulse"></div>
+                                    <div className="w-16 h-5 bg-gray-200 rounded animate-pulse"></div>
+                                    <div className="w-16 h-5 bg-gray-200 rounded animate-pulse"></div>
+                                    <div className="w-20 h-10 bg-gray-200 rounded animate-pulse"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </nav>
+                )}
+            </>
+        );
     }
 
     return (
@@ -173,10 +179,20 @@ export default function Header({ userRole: propUserRole }: HeaderProps) {
                 <div className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
                     <div className="flex justify-between items-center h-16 px-4">
                         {/* Title */}
-                        <div className="flex items-center">
-                            <Building2 className="h-6 w-6 text-green-600 mr-2" />
-                            <span className="text-lg text-gray-900">우리마을 재개발</span>
-                        </div>
+                        <Link href={prefixedHref('/')} className="flex items-center">
+                            {tenantInfo?.logo_url ? (
+                                <Image
+                                    src={tenantInfo.logo_url}
+                                    alt={`${tenantInfo.name || '조합'} 로고`}
+                                    width={24}
+                                    height={24}
+                                    className="mr-2"
+                                />
+                            ) : (
+                                <Building2 className="h-6 w-6 text-green-600 mr-2" />
+                            )}
+                            <span className="text-lg text-gray-900">{getTenantDisplayName()}</span>
+                        </Link>
 
                         {/* Hamburger Menu */}
                         <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
@@ -189,8 +205,18 @@ export default function Header({ userRole: propUserRole }: HeaderProps) {
                                 <SheetHeader className="p-6 bg-green-50 border-b">
                                     <SheetTitle className="text-left">
                                         <div className="flex items-center">
-                                            <Building2 className="h-6 w-6 text-green-600 mr-2" />
-                                            <span className="text-gray-900">우리마을 재개발</span>
+                                            {tenantInfo?.logo_url ? (
+                                                <Image
+                                                    src={tenantInfo.logo_url}
+                                                    alt={`${tenantInfo.name || '조합'} 로고`}
+                                                    width={24}
+                                                    height={24}
+                                                    className="mr-2"
+                                                />
+                                            ) : (
+                                                <Building2 className="h-6 w-6 text-green-600 mr-2" />
+                                            )}
+                                            <span className="text-gray-900">{getTenantDisplayName()}</span>
                                         </div>
                                     </SheetTitle>
                                 </SheetHeader>
@@ -199,20 +225,7 @@ export default function Header({ userRole: propUserRole }: HeaderProps) {
                                 <div className="flex flex-col h-full bg-white">
                                     <div className="flex-1 p-4 overflow-y-auto max-h-[calc(100vh-200px)]">
                                         <div className="space-y-2">
-                                            {/* Simple menu items */}
-                                            {mobileMenuItems.map((item) => (
-                                                <Link
-                                                    key={item.href}
-                                                    href={prefixedHref(item.href)}
-                                                    onClick={() => setMobileMenuOpen(false)}
-                                                    className="w-full flex items-center px-4 py-3 text-left rounded-lg hover:bg-gray-100 transition-colors"
-                                                >
-                                                    <item.icon className={`h-5 w-5 mr-3 ${item.color}`} />
-                                                    <span className="text-gray-900">{item.label}</span>
-                                                </Link>
-                                            ))}
-
-                                            {/* Hierarchical menu items */}
+                                            {/* API 데이터 기반 메뉴 아이템 */}
                                             {allMenuItems.map((menuCategory) => (
                                                 <Collapsible
                                                     key={menuCategory.id}
@@ -293,9 +306,20 @@ export default function Header({ userRole: propUserRole }: HeaderProps) {
                 <nav className="bg-white shadow-sm border-b border-gray-200 relative">
                     <div className="max-w-none mx-auto px-32 sm:px-32 lg:px-32">
                         <div className="flex justify-between items-center h-20">
-                            <div className="flex items-center">
-                                <h1 className="text-xl text-gray-900">작전현대아파트구역 주택재개발정비사업조합</h1>
-                            </div>
+                            <Link href={prefixedHref('/')} className="flex items-center">
+                                {tenantInfo?.logo_url ? (
+                                    <Image
+                                        src={tenantInfo.logo_url}
+                                        alt={`${tenantInfo.name || '조합'} 로고`}
+                                        width={32}
+                                        height={32}
+                                        className="mr-3"
+                                    />
+                                ) : null}
+                                <h1 className="text-xl text-gray-900 hover:text-green-600 transition-colors">
+                                    {getTenantDisplayName()}
+                                </h1>
+                            </Link>
 
                             <div
                                 className="flex items-center space-x-12"
