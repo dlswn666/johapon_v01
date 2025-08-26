@@ -2,15 +2,7 @@
 
 import { Card, CardContent } from '@/shared/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/ui/tabs';
-import {
-    sampleAnnouncements,
-    sampleQnAList,
-    sampleCommunityPosts,
-    statsData,
-    samplePartners,
-    bannerData,
-    shortcutData,
-} from '@/lib/mockData';
+import { statsData, samplePartners, bannerData, shortcutData } from '@/lib/mockData';
 import HeroSection from '@/widgets/home/HeroSection';
 import InformationCard from '@/widgets/home/InformationCard';
 import AnnouncementsTab from '@/widgets/home/AnnouncementsTab';
@@ -21,10 +13,6 @@ import PartnersSection from '@/widgets/home/PartnersSection';
 import BannerSlider from '@/widgets/home/BannerSlider';
 
 export default function HomeRoot() {
-    const safeAnnouncements = sampleAnnouncements || [];
-    const safeQnaList = sampleQnAList || [];
-    const safeCommunityPosts = sampleCommunityPosts || [];
-
     return (
         <div className="min-h-screen bg-gray-50">
             <HeroSection />

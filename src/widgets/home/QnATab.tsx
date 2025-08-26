@@ -33,89 +33,127 @@ export default function QnATab({}: QnATabProps) {
         };
     }, [slug, fetchQnAList, resetState]);
 
+    // 더보기 버튼 클릭 핸들러
+    const handleViewMore = () => {
+        router.push(`/${slug}/qna`);
+    };
+
+    // 개별 Q&A 클릭 핸들러
+    const handleQnAClick = (qnaId: string) => {
+        router.push(`/${slug}/qna/${qnaId}`);
+    };
+
     if (loading) {
         return (
-            <div className="space-y-4">
-                {[...Array(4)].map((_, i) => (
-                    <div key={i} className="animate-pulse">
-                        <div className="flex items-start space-x-3 p-4 bg-gray-100 rounded-lg">
-                            <div className="w-2 h-2 bg-gray-300 rounded-full mt-2"></div>
-                            <div className="flex-1 space-y-2">
-                                <div className="h-4 bg-gray-300 rounded w-3/4"></div>
-                                <div className="h-3 bg-gray-300 rounded w-1/2"></div>
-                            </div>
-                        </div>
-                    </div>
-                ))}
+            <div className="p-8 text-center text-gray-500 flex-1 flex flex-col justify-center">
+                <HelpCircle className="h-8 w-8 mx-auto mb-2 text-gray-300 animate-pulse" />
+                <p>Q&A를 불러오는 중...</p>
             </div>
         );
     }
 
     if (error) {
         return (
-            <div className="text-center p-6">
-                <HelpCircle className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                <p className="text-gray-500">Q&A를 불러올 수 없습니다</p>
-                <p className="text-sm text-red-500 mt-1">{error}</p>
+            <div className="p-8 text-center text-gray-500 flex-1 flex flex-col justify-center">
+                <HelpCircle className="h-8 w-8 mx-auto mb-2 text-red-300" />
+                <p className="text-red-500">{error}</p>
             </div>
         );
     }
 
     if (!qnaList || qnaList.length === 0) {
         return (
-            <div className="text-center p-6">
-                <HelpCircle className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                <p className="text-gray-500">등록된 Q&A가 없습니다</p>
+            <div className="p-8 text-center text-gray-500 flex-1 flex flex-col justify-center">
+                <HelpCircle className="h-8 w-8 mx-auto mb-2 text-gray-300" />
+                <p>등록된 Q&A가 없습니다</p>
             </div>
         );
     }
 
     return (
-        <div className="space-y-3">
-            {qnaList.slice(0, 4).map((qna: QnAItem, index: number) => (
+        <div className="flex flex-col gap-3 flex-1 sm:grid sm:grid-cols-2">
+            <div className="flex-1 sm:col-span-1">
                 <div
-                    key={qna.id}
-                    className="flex items-start space-x-3 p-3 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"
-                    onClick={() => router.push(`/${slug}/qna/${qna.id}`)}
+                    className="bg-orange-50 border border-orange-200 rounded-lg p-6 h-full cursor-pointer hover:bg-orange-100 transition-colors"
+                    onClick={() => handleQnAClick(qnaList[0].id)}
                 >
-                    <div className="flex-shrink-0 mt-1">
-                        {qna.isAnswered ? (
-                            <CheckCircle className="h-4 w-4 text-green-500" />
+                    <div className="flex items-center gap-2 mb-3">
+                        <h4 className="text-lg text-orange-900 hover:text-orange-700 transition-colors">
+                            {qnaList[0].title}
+                        </h4>
+                        {qnaList[0].isSecret && (
+                            <Badge variant="secondary" className="text-xs">
+                                비밀
+                            </Badge>
+                        )}
+                        {qnaList[0].isAnswered ? (
+                            <Badge variant="default" className="bg-green-600 text-xs">
+                                답변완료
+                            </Badge>
                         ) : (
-                            <Clock className="h-4 w-4 text-orange-500" />
+                            <Badge variant="secondary" className="bg-orange-600 text-white text-xs">
+                                답변대기
+                            </Badge>
                         )}
                     </div>
-                    <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                            <h4 className="text-sm font-medium text-gray-900 line-clamp-1">{qna.title}</h4>
-                            {qna.isSecret && (
-                                <Badge variant="secondary" className="text-xs">
-                                    비밀
-                                </Badge>
-                            )}
-                        </div>
-                        <div className="flex items-center space-x-2 text-xs text-gray-500">
-                            <Calendar className="h-3 w-3" />
-                            <span>{qna.date}</span>
-                            <span>•</span>
-                            <span>조회 {qna.views}</span>
-                            <span>•</span>
-                            {qna.isAnswered ? (
-                                <span className="text-green-600">답변완료</span>
-                            ) : (
-                                <span className="text-orange-600">답변대기</span>
-                            )}
-                        </div>
+                    <p className="text-sm text-orange-700 mb-4 leading-relaxed line-clamp-3 overflow-hidden">
+                        {qnaList[0].content}
+                    </p>
+                    <div className="flex items-center justify-between text-sm text-orange-600">
+                        <span>{qnaList[0].author}</span>
+                        <span>{qnaList[0].date}</span>
                     </div>
-                    <ArrowRight className="h-4 w-4 text-gray-400 flex-shrink-0" />
                 </div>
-            ))}
+            </div>
 
-            <div className="pt-3 border-t">
-                <Button variant="outline" className="w-full" onClick={() => router.push(`/${slug}/qna`)}>
-                    모든 Q&A 보기
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
+            <div className="flex-1 sm:col-span-1 flex flex-col h-full">
+                <div className="flex justify-end mb-3">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-orange-600 border-orange-600 hover:bg-orange-50"
+                        onClick={handleViewMore}
+                    >
+                        + 더보기
+                    </Button>
+                </div>
+                <div className="space-y-0 border border-gray-200 rounded-lg overflow-hidden flex-1">
+                    {qnaList.slice(1, 4).map((qna, index) => (
+                        <div
+                            key={qna.id}
+                            className={`flex items-center justify-between p-3 hover:bg-gray-50 transition-colors cursor-pointer ${
+                                index !== qnaList.slice(1, 4).length - 1 ? 'border-b border-gray-100' : ''
+                            }`}
+                            onClick={() => handleQnAClick(qna.id)}
+                        >
+                            <div className="flex-1 pr-3">
+                                <div className="flex items-center gap-2">
+                                    <h5 className="text-sm text-gray-900 hover:text-orange-600 transition-colors leading-tight">
+                                        {qna.title}
+                                    </h5>
+                                    {qna.isSecret && (
+                                        <Badge variant="secondary" className="text-xs">
+                                            비밀
+                                        </Badge>
+                                    )}
+                                    {qna.isAnswered ? (
+                                        <Badge variant="default" className="bg-green-600 text-xs">
+                                            답변완료
+                                        </Badge>
+                                    ) : (
+                                        <Badge variant="secondary" className="bg-orange-600 text-white text-xs">
+                                            답변대기
+                                        </Badge>
+                                    )}
+                                </div>
+                                <div className="flex items-center text-xs text-gray-500 mt-1">
+                                    <span>{qna.author}</span>
+                                </div>
+                            </div>
+                            <div className="text-xs text-gray-500 whitespace-nowrap">{qna.date}</div>
+                        </div>
+                    ))}
+                </div>
             </div>
         </div>
     );

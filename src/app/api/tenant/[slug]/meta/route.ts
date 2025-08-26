@@ -11,14 +11,17 @@ export async function GET(_req: Request, context: { params: Promise<{ slug: stri
     const supabase = getSupabaseClient();
     const { data, error } = await supabase
         .from('unions')
-        .select('id, homepage, name, logo_url, address, phone, email, is_expired, contract_end_date')
+        .select('id, homepage, name, logo_url, address, phone, email, created_at, union_chairman, area, union_members')
         .eq('homepage', slug)
         .maybeSingle();
-    if (error) return withNoStore(fail('DB_ERROR', 'query failed', 500));
+    if (error) {
+        console.error('Unions query error:', error);
+        return withNoStore(fail('DB_ERROR', `조합 조회 실패: ${error.message}`, 500));
+    }
     if (!data) return withNoStore(fail('NOT_FOUND', 'union not found', 404));
 
     // 카테고리 및 서브카테고리 정보 가져오기
-    const { data: categories } = await supabase
+    const { data: categories, error: categoriesError } = await supabase
         .from('post_categories')
         .select(
             `
@@ -28,6 +31,11 @@ export async function GET(_req: Request, context: { params: Promise<{ slug: stri
         )
         .or(`union_id.eq.${data.id},union_id.is.null`)
         .order('name');
+
+    if (categoriesError) {
+        console.error('Categories query error:', categoriesError);
+        return withNoStore(fail('DB_ERROR', `카테고리 조회 실패: ${categoriesError.message}`, 500));
+    }
 
     // 서브카테고리를 카테고리 키와 함께 정리
     const subcategories =

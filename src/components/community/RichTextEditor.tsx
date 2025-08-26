@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/shared/ui/button';
 import { Bold, Italic, Underline, List, AlignLeft, AlignCenter, AlignRight, Image as ImageIcon } from 'lucide-react';
 
@@ -18,13 +18,56 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     readonly = false,
 }) => {
     const editorRef = useRef<HTMLDivElement>(null);
+    const isUpdatingRef = useRef(false);
 
-    const handleContentChange = () => {
-        if (editorRef.current && !readonly) {
+    // 커서 위치 저장 및 복원 함수
+    const saveCursorPosition = useCallback(() => {
+        if (!editorRef.current) return null;
+
+        const selection = window.getSelection();
+        if (!selection || selection.rangeCount === 0) return null;
+
+        const range = selection.getRangeAt(0);
+        return {
+            startContainer: range.startContainer,
+            startOffset: range.startOffset,
+            endContainer: range.endContainer,
+            endOffset: range.endOffset,
+        };
+    }, []);
+
+    const restoreCursorPosition = useCallback((position: any) => {
+        if (!position || !editorRef.current) return;
+
+        try {
+            const selection = window.getSelection();
+            if (!selection) return;
+
+            const range = document.createRange();
+            range.setStart(position.startContainer, position.startOffset);
+            range.setEnd(position.endContainer, position.endOffset);
+
+            selection.removeAllRanges();
+            selection.addRange(range);
+        } catch (error) {
+            // 커서 복원 실패 시 에디터 끝으로 이동
+            const range = document.createRange();
+            const selection = window.getSelection();
+            if (selection && editorRef.current) {
+                range.selectNodeContents(editorRef.current);
+                range.collapse(false);
+                selection.removeAllRanges();
+                selection.addRange(range);
+            }
+        }
+    }, []);
+
+    const handleContentChange = useCallback(() => {
+        if (editorRef.current && !readonly && !isUpdatingRef.current) {
             const newContent = editorRef.current.innerHTML;
             onChange(newContent);
         }
-    };
+    }, [onChange, readonly]);
 
     const execCommand = (command: string, value?: string) => {
         if (readonly) return;
@@ -44,8 +87,28 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         }
     };
 
-    // dangerouslySetInnerHTML을 사용하므로 useEffect는 더 이상 필요하지 않음
-    // React가 자동으로 content prop 변경을 감지하여 DOM을 업데이트함
+    // 초기 content 설정
+    useEffect(() => {
+        if (editorRef.current && !isUpdatingRef.current) {
+            editorRef.current.innerHTML = content || '';
+        }
+    }, []);
+
+    // content prop이 변경될 때만 DOM 업데이트 (커서 위치 보존)
+    useEffect(() => {
+        if (editorRef.current && editorRef.current.innerHTML !== content && !isUpdatingRef.current) {
+            const cursorPosition = saveCursorPosition();
+            isUpdatingRef.current = true;
+
+            editorRef.current.innerHTML = content;
+
+            // 다음 tick에서 커서 위치 복원
+            setTimeout(() => {
+                restoreCursorPosition(cursorPosition);
+                isUpdatingRef.current = false;
+            }, 0);
+        }
+    }, [content, saveCursorPosition, restoreCursorPosition]);
 
     if (readonly) {
         return (
@@ -155,7 +218,6 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                     lineHeight: '1.6',
                 }}
                 data-placeholder={placeholder}
-                dangerouslySetInnerHTML={{ __html: content }}
                 suppressContentEditableWarning={true}
             />
 

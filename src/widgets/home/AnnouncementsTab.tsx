@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/shared/ui/button';
+import { Badge } from '@/shared/ui/badge';
 import { Bell, Calendar, ArrowRight } from 'lucide-react';
 import { useAnnouncementStore } from '@/shared/store/announcementStore';
 import type { AnnouncementItem } from '@/entities/announcement/model/types';
@@ -32,76 +33,109 @@ export default function AnnouncementsTab({}: AnnouncementsTabProps) {
         };
     }, [slug, fetchAnnouncements, resetState]);
 
+    // 더보기 버튼 클릭 핸들러
+    const handleViewMore = () => {
+        router.push(`/${slug}/announcements`);
+    };
+
+    // 개별 공지사항 클릭 핸들러
+    const handleAnnouncementClick = (announcementId: string) => {
+        router.push(`/${slug}/announcements/${announcementId}`);
+    };
+
     if (loading) {
         return (
-            <div className="space-y-4">
-                {[...Array(4)].map((_, i) => (
-                    <div key={i} className="animate-pulse">
-                        <div className="flex items-start space-x-3 p-4 bg-gray-100 rounded-lg">
-                            <div className="w-2 h-2 bg-gray-300 rounded-full mt-2"></div>
-                            <div className="flex-1 space-y-2">
-                                <div className="h-4 bg-gray-300 rounded w-3/4"></div>
-                                <div className="h-3 bg-gray-300 rounded w-1/2"></div>
-                            </div>
-                        </div>
-                    </div>
-                ))}
+            <div className="p-8 text-center text-gray-500 flex-1 flex flex-col justify-center">
+                <Bell className="h-8 w-8 mx-auto mb-2 text-gray-300 animate-pulse" />
+                <p>공지사항을 불러오는 중...</p>
             </div>
         );
     }
 
     if (error) {
         return (
-            <div className="text-center p-6">
-                <Bell className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                <p className="text-gray-500">공지사항을 불러올 수 없습니다</p>
-                <p className="text-sm text-red-500 mt-1">{error}</p>
+            <div className="p-8 text-center text-gray-500 flex-1 flex flex-col justify-center">
+                <Bell className="h-8 w-8 mx-auto mb-2 text-red-300" />
+                <p className="text-red-500">{error}</p>
             </div>
         );
     }
 
     if (!announcements || announcements.length === 0) {
         return (
-            <div className="text-center p-6">
-                <Bell className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                <p className="text-gray-500">등록된 공지사항이 없습니다</p>
+            <div className="p-8 text-center text-gray-500 flex-1 flex flex-col justify-center">
+                <Bell className="h-8 w-8 mx-auto mb-2 text-gray-300" />
+                <p>등록된 공지사항이 없습니다</p>
             </div>
         );
     }
 
     return (
-        <div className="space-y-3">
-            {announcements.slice(0, 4).map((announcement: AnnouncementItem, index: number) => (
+        <div className="flex flex-col gap-3 flex-1 sm:grid sm:grid-cols-2">
+            <div className="flex-1 sm:col-span-1">
                 <div
-                    key={announcement.id}
-                    className="flex items-start space-x-3 p-3 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"
-                    onClick={() => router.push(`/${slug}/announcements/${announcement.id}`)}
+                    className="bg-blue-50 border border-blue-200 rounded-lg p-6 h-full cursor-pointer hover:bg-blue-100 transition-colors"
+                    onClick={() => handleAnnouncementClick(announcements[0].id)}
                 >
-                    <div className="flex-shrink-0 mt-1">
-                        {announcement.isUrgent ? (
-                            <Bell className="h-4 w-4 text-red-500" />
-                        ) : (
-                            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    <div className="flex items-center gap-2 mb-3">
+                        <h4 className="text-lg text-blue-900 hover:text-blue-700 transition-colors">
+                            {announcements[0].title}
+                        </h4>
+                        {announcements[0].isUrgent && (
+                            <Badge variant="destructive" className="text-xs">
+                                긴급
+                            </Badge>
                         )}
                     </div>
-                    <div className="flex-1 min-w-0">
-                        <h4 className="text-sm font-medium text-gray-900 line-clamp-1 mb-1">{announcement.title}</h4>
-                        <div className="flex items-center space-x-2 text-xs text-gray-500">
-                            <Calendar className="h-3 w-3" />
-                            <span>{announcement.date}</span>
-                            <span>•</span>
-                            <span>조회 {announcement.views}</span>
-                        </div>
+                    <p className="text-sm text-blue-700 mb-4 leading-relaxed line-clamp-3 overflow-hidden">
+                        {announcements[0].content}
+                    </p>
+                    <div className="flex items-center justify-between text-sm text-blue-600">
+                        <span>{announcements[0].author}</span>
+                        <span>{announcements[0].date}</span>
                     </div>
-                    <ArrowRight className="h-4 w-4 text-gray-400 flex-shrink-0" />
                 </div>
-            ))}
+            </div>
 
-            <div className="pt-3 border-t">
-                <Button variant="outline" className="w-full" onClick={() => router.push(`/${slug}/announcements`)}>
-                    모든 공지사항 보기
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
+            <div className="flex-1 sm:col-span-1 flex flex-col h-full">
+                <div className="flex justify-end mb-3">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                        onClick={handleViewMore}
+                    >
+                        + 더보기
+                    </Button>
+                </div>
+                <div className="space-y-0 border border-gray-200 rounded-lg overflow-hidden flex-1">
+                    {announcements.slice(1, 4).map((announcement, index) => (
+                        <div
+                            key={announcement.id}
+                            className={`flex items-center justify-between p-3 hover:bg-gray-50 transition-colors cursor-pointer ${
+                                index !== announcements.slice(1, 4).length - 1 ? 'border-b border-gray-100' : ''
+                            }`}
+                            onClick={() => handleAnnouncementClick(announcement.id)}
+                        >
+                            <div className="flex-1 pr-3">
+                                <div className="flex items-center gap-2">
+                                    <h5 className="text-sm text-gray-900 hover:text-blue-600 transition-colors leading-tight">
+                                        {announcement.title}
+                                    </h5>
+                                    {announcement.isUrgent && (
+                                        <Badge variant="destructive" className="text-xs">
+                                            긴급
+                                        </Badge>
+                                    )}
+                                </div>
+                                <div className="flex items-center text-xs text-gray-500 mt-1">
+                                    <span>{announcement.author}</span>
+                                </div>
+                            </div>
+                            <div className="text-xs text-gray-500 whitespace-nowrap">{announcement.date}</div>
+                        </div>
+                    ))}
+                </div>
             </div>
         </div>
     );

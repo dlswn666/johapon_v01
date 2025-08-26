@@ -16,20 +16,32 @@ export async function GET(_req: Request, context: { params: Promise<{ slug: stri
     if (!unionId) return withSMaxAge(fail('NOT_FOUND', 'union not found', 404), 30);
 
     const { data, error } = await supabase
-        .from('posts')
-        .select('id, title, content, popup, created_at, created_by, category_id, subcategory_id')
+        .from('announcements')
+        .select(
+            `
+            id, title, content, popup, priority, is_urgent, is_pinned,
+            published_at, expires_at, view_count, alrimtalk_sent, alrimtalk_sent_at,
+            created_at, updated_at, created_by, category_id, subcategory_id
+        `
+        )
         .eq('union_id', unionId)
         .eq('id', id)
         .maybeSingle();
 
     if (error) {
         console.error('Query error:', error);
-        return withSMaxAge(fail('DB_ERROR', `게시글 조회 실패: ${error.message}`, 500), 30);
+        return withSMaxAge(fail('DB_ERROR', `공지사항 조회 실패: ${error.message}`, 500), 30);
     }
 
     if (!data) {
-        return withSMaxAge(fail('NOT_FOUND', '게시글을 찾을 수 없습니다.', 404), 30);
+        return withSMaxAge(fail('NOT_FOUND', '공지사항을 찾을 수 없습니다.', 404), 30);
     }
+
+    // 조회수 증가
+    await supabase
+        .from('announcements')
+        .update({ view_count: (data.view_count || 0) + 1 })
+        .eq('id', id);
 
     return withSMaxAge(ok(data), 30);
 }
@@ -46,30 +58,46 @@ export async function PATCH(req: Request, context: { params: Promise<{ slug: str
 
     const body = await req.json().catch(() => null);
     if (!body) return withNoStore(fail('BAD_REQUEST', 'invalid body', 400));
-    const { title, content, popup, category_id: categoryId, subcategory_id: subcategoryId } = body as any;
+    const {
+        title,
+        content,
+        popup,
+        priority,
+        is_urgent,
+        is_pinned,
+        published_at,
+        expires_at,
+        category_id: categoryId,
+        subcategory_id: subcategoryId,
+    } = body as any;
 
     const supabase = getSupabaseClient();
     const unionId = await getTenantIdBySlug(slug);
     if (!unionId) return withNoStore(fail('NOT_FOUND', 'union not found', 404));
 
-    const { error } = await supabase
-        .from('posts')
-        .update({
-            title: typeof title === 'string' ? title : undefined,
-            content: typeof content === 'string' ? content : undefined,
-            popup: typeof popup === 'boolean' ? popup : undefined,
-            category_id: categoryId ?? undefined,
-            subcategory_id: subcategoryId ?? undefined,
-            updated_by: auth.token, // 수정자 정보 추가
-            updated_at: new Date().toISOString(), // 수정 시간 업데이트
-        })
-        .eq('id', id)
-        .eq('union_id', unionId);
+    const updateData: any = {
+        updated_by: auth.token,
+        updated_at: new Date().toISOString(),
+    };
+
+    // 제공된 필드만 업데이트
+    if (typeof title === 'string') updateData.title = title;
+    if (typeof content === 'string') updateData.content = content;
+    if (typeof popup === 'boolean') updateData.popup = popup;
+    if (typeof priority === 'number') updateData.priority = priority;
+    if (typeof is_urgent === 'boolean') updateData.is_urgent = is_urgent;
+    if (typeof is_pinned === 'boolean') updateData.is_pinned = is_pinned;
+    if (published_at) updateData.published_at = new Date(published_at).toISOString();
+    if (expires_at) updateData.expires_at = new Date(expires_at).toISOString();
+    if (categoryId) updateData.category_id = categoryId;
+    if (subcategoryId) updateData.subcategory_id = subcategoryId;
+
+    const { error } = await supabase.from('announcements').update(updateData).eq('id', id).eq('union_id', unionId);
     if (error) {
         console.error('Update error:', error);
-        return withNoStore(fail('DB_ERROR', `게시글 수정 실패: ${error.message}`, 500));
+        return withNoStore(fail('DB_ERROR', `공지사항 수정 실패: ${error.message}`, 500));
     }
-    return withNoStore(ok({ updated: true, message: '게시글이 성공적으로 수정되었습니다.' }));
+    return withNoStore(ok({ updated: true, message: '공지사항이 성공적으로 수정되었습니다.' }));
 }
 
 export async function DELETE(req: Request, context: { params: Promise<{ slug: string; id: string }> }) {
@@ -86,10 +114,10 @@ export async function DELETE(req: Request, context: { params: Promise<{ slug: st
     const unionId = await getTenantIdBySlug(slug);
     if (!unionId) return withNoStore(fail('NOT_FOUND', 'union not found', 404));
 
-    const { error } = await supabase.from('posts').delete().eq('id', id).eq('union_id', unionId);
+    const { error } = await supabase.from('announcements').delete().eq('id', id).eq('union_id', unionId);
     if (error) {
         console.error('Delete error:', error);
-        return withNoStore(fail('DB_ERROR', `게시글 삭제 실패: ${error.message}`, 500));
+        return withNoStore(fail('DB_ERROR', `공지사항 삭제 실패: ${error.message}`, 500));
     }
-    return withNoStore(ok({ deleted: true, message: '게시글이 성공적으로 삭제되었습니다.' }));
+    return withNoStore(ok({ deleted: true, message: '공지사항이 성공적으로 삭제되었습니다.' }));
 }

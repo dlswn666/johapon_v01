@@ -1,9 +1,10 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/shared/ui/button';
 import { MessageCircle } from 'lucide-react';
-import { useInfoShare } from '@/shared/hooks/useInfoShare';
+import { useCommunityStore } from '@/shared/store/communityStore';
 
 interface CommunityTabProps {
     // props는 제거하고 내부에서 데이터를 가져오도록 변경
@@ -14,10 +15,21 @@ export default function CommunityTab({}: CommunityTabProps) {
     const router = useRouter();
     const slug = params.homepage as string;
 
-    // useInfoShare 훅을 사용하여 최신 4개 정보공유방 게시글 가져오기
-    const { posts, loading, error } = useInfoShare({
-        pageSize: 4,
-    });
+    // useCommunityStore를 사용하여 최신 4개 정보공유방 게시글 가져오기
+    const { posts, loading, error, fetchPosts, resetState } = useCommunityStore();
+
+    useEffect(() => {
+        if (slug) {
+            // 페이지 크기를 4로 설정하여 최신 4개만 가져오기
+            const currentState = useCommunityStore.getState();
+            currentState.pageSize = 4;
+            fetchPosts(slug, true).catch(console.error);
+        }
+
+        return () => {
+            resetState();
+        };
+    }, [slug, fetchPosts, resetState]);
 
     // 더보기 버튼 클릭 핸들러
     const handleViewMore = () => {
@@ -47,7 +59,7 @@ export default function CommunityTab({}: CommunityTabProps) {
         );
     }
 
-    if (posts.length === 0) {
+    if (!posts || posts.length === 0) {
         return (
             <div className="p-8 text-center text-gray-500 flex-1 flex flex-col justify-center">
                 <MessageCircle className="h-8 w-8 mx-auto mb-2 text-gray-300" />

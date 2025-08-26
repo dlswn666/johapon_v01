@@ -23,9 +23,17 @@ export async function GET(req: Request, context: { params: Promise<{ slug: strin
     if (!unionId) return withSMaxAge(fail('NOT_FOUND', 'union not found', 404), 30);
 
     let query = supabase
-        .from('posts')
-        .select('id, title, content, popup, created_at, category_id, subcategory_id', { count: 'exact' })
+        .from('announcements')
+        .select(
+            `
+            id, title, content, popup, priority, is_urgent, is_pinned, 
+            published_at, expires_at, view_count, alrimtalk_sent, alrimtalk_sent_at,
+            created_at, updated_at, category_id, subcategory_id, created_by
+        `,
+            { count: 'exact' }
+        )
         .eq('union_id', unionId)
+        .order('priority', { ascending: false })
         .order('created_at', { ascending: false });
 
     // 서브카테고리 필터
@@ -78,7 +86,7 @@ export async function GET(req: Request, context: { params: Promise<{ slug: strin
     const { data, error, count } = await query.range(from, to);
 
     if (error) {
-        return withSMaxAge(fail('DB_ERROR', `게시글 조회 실패: ${error.message}`, 500), 30);
+        return withSMaxAge(fail('DB_ERROR', `공지사항 조회 실패: ${error.message}`, 500), 30);
     }
 
     return withSMaxAge(ok({ items: data ?? [], page, page_size: pageSize, total: count ?? 0 }), 30);
@@ -102,6 +110,11 @@ export async function POST(req: Request, context: { params: Promise<{ slug: stri
         title,
         content,
         popup,
+        priority,
+        is_urgent,
+        is_pinned,
+        published_at,
+        expires_at,
         sendNotification,
     } = body as any;
 
@@ -138,7 +151,7 @@ export async function POST(req: Request, context: { params: Promise<{ slug: stri
     const finalPopup = Boolean(popup ?? false);
 
     const { data, error } = await supabase
-        .from('posts')
+        .from('announcements')
         .insert({
             union_id: unionId,
             category_id: finalCategoryId,
@@ -146,14 +159,21 @@ export async function POST(req: Request, context: { params: Promise<{ slug: stri
             title,
             content,
             popup: finalPopup,
-            created_by: auth.token, // 인증된 사용자 토큰을 텍스트로 저장
+            priority: priority ?? 0,
+            is_urgent: Boolean(is_urgent ?? false),
+            is_pinned: Boolean(is_pinned ?? false),
+            published_at: published_at ? new Date(published_at).toISOString() : new Date().toISOString(),
+            expires_at: expires_at ? new Date(expires_at).toISOString() : null,
+            view_count: 0,
+            alrimtalk_sent: false,
+            created_by: auth.token, // 인증된 사용자 토큰을 UUID로 저장
             created_at: new Date().toISOString(),
         })
         .select('id')
         .maybeSingle();
 
     if (error || !data) {
-        return withNoStore(fail('DB_ERROR', `게시글 등록 실패: ${error?.message || '알 수 없는 오류'}`, 500));
+        return withNoStore(fail('DB_ERROR', `공지사항 등록 실패: ${error?.message || '알 수 없는 오류'}`, 500));
     }
 
     // 알림톡 발송 요청이 있는 경우 처리
@@ -168,6 +188,16 @@ export async function POST(req: Request, context: { params: Promise<{ slug: stri
                 target_group: 'all',
                 created_by: auth.token, // 인증된 사용자 토큰을 UUID로 저장 (alrimtalk은 UUID 타입)
             });
+
+            // announcements 테이블에 알림톡 발송 상태 업데이트
+            await supabase
+                .from('announcements')
+                .update({
+                    alrimtalk_sent: true,
+                    alrimtalk_sent_at: new Date().toISOString(),
+                })
+                .eq('id', data.id);
+
             notificationSent = true;
         } catch (alrimError) {
             // 알림톡 발송 실패는 로그만 남기고 전체 요청은 성공 처리
@@ -179,7 +209,7 @@ export async function POST(req: Request, context: { params: Promise<{ slug: stri
     return withNoStore(
         ok({
             id: data.id,
-            message: '게시글이 성공적으로 등록되었습니다.',
+            message: '공지사항이 성공적으로 등록되었습니다.',
             notification_sent: notificationSent,
         })
     );
