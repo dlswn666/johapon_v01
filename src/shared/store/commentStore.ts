@@ -44,7 +44,7 @@ function transformDbCommentToItem(comment: DbCommentWithAuthor): CommentItem {
     return {
         id: comment.id,
         content: comment.content,
-        author: comment.is_anonymous ? '익명' : comment.author_name || comment.created_by || '작성자',
+        author: comment.is_anonymous ? '익명님' : `${comment.creator?.name || comment.author_name || '작성자'}님`,
         date: new Date(comment.created_at).toISOString().split('T')[0],
         isAnonymous: comment.is_anonymous || false,
         parentId: comment.parent_id || undefined,

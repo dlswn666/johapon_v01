@@ -86,7 +86,7 @@ function transformDbCommunityPostToItem(post: DbCommunityPostWithCategory): Comm
         id: post.id,
         title: post.title,
         content: contentText,
-        author: post.is_anonymous ? '익명' : post.author_name || post.created_by || '작성자',
+        author: post.is_anonymous ? '익명님' : `${post.creator?.name || post.author_name || '작성자'}님`,
         date: new Date(post.created_at).toISOString().split('T')[0],
         category: post.subcategory_name || post.category_name || '자유게시판',
         views: post.view_count || 0,
@@ -104,7 +104,11 @@ function transformDbCommunityPostToDetail(post: DbCommunityPostWithCategory): Co
         content: post.content, // 상세에서는 원본 컨텐츠 사용
         created_at: post.created_at,
         updated_at: post.updated_at || undefined,
-        author_name: post.author_name || undefined,
+        author_name: post.creator?.name
+            ? `${post.creator.name}님`
+            : post.author_name
+            ? `${post.author_name}님`
+            : undefined,
         created_by: post.created_by || undefined,
     };
 }

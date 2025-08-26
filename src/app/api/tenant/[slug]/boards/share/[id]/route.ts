@@ -102,7 +102,7 @@ export async function PATCH(req: Request, context: { params: Promise<{ slug: str
             title: typeof title === 'string' ? title : undefined,
             content: typeof content === 'string' ? content : undefined,
             subcategory_id: subcategoryId ?? undefined,
-            updated_by: auth.token,
+            updated_by: '81600fb2-cae7-4faa-9c65-a30f78508e73', // TODO: 추후 실제 로그인 user uuid로 변경
             updated_at: new Date().toISOString(),
         })
         .eq('id', id)

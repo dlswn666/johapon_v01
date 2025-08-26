@@ -21,7 +21,9 @@ export async function GET(_req: Request, context: { params: Promise<{ slug: stri
             `
             id, title, content, popup, priority, is_urgent, is_pinned,
             published_at, expires_at, view_count, alrimtalk_sent, alrimtalk_sent_at,
-            created_at, updated_at, created_by, category_id, subcategory_id
+            created_at, updated_at, created_by, category_id, subcategory_id,
+            creator:users!created_by(name),
+            updater:users!updated_by(name)
         `
         )
         .eq('union_id', unionId)
@@ -76,7 +78,7 @@ export async function PATCH(req: Request, context: { params: Promise<{ slug: str
     if (!unionId) return withNoStore(fail('NOT_FOUND', 'union not found', 404));
 
     const updateData: any = {
-        updated_by: auth.token,
+        updated_by: '81600fb2-cae7-4faa-9c65-a30f78508e73', // TODO: 추후 실제 로그인 user uuid로 변경
         updated_at: new Date().toISOString(),
     };
 

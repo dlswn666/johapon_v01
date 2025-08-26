@@ -33,7 +33,7 @@ export async function POST(req: Request, context: { params: Promise<{ slug: stri
             answer_content,
             is_answered: true,
             answered_at: new Date().toISOString(),
-            answered_by: auth.token, // 관리자 토큰
+            answered_by: '81600fb2-cae7-4faa-9c65-a30f78508e73', // TODO: 추후 실제 로그인 user uuid로 변경
             updated_at: new Date().toISOString(),
         })
         .eq('id', id)

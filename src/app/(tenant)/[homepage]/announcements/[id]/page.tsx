@@ -546,8 +546,8 @@ export default function TenantAnnouncementDetailPage() {
                                         <RichTextEditor
                                             content={
                                                 isEditMode
-                                                    ? editData.content ?? announcement.content ?? ''
-                                                    : announcement.content ?? ''
+                                                    ? editData.content ?? announcement.content ?? '111'
+                                                    : announcement.content ?? '111'
                                             }
                                             onChange={(content) => handleEditDataChange('content', content)}
                                             placeholder="공지사항 내용을 입력하세요..."

@@ -22,7 +22,9 @@ export async function GET(req: Request, context: { params: Promise<{ slug: strin
         .select(
             `
             id, title, content, is_secret, is_answered, answer_content, answered_at, answered_by,
-            view_count, created_at, updated_at, category_id, subcategory_id, created_by
+            view_count, created_at, updated_at, category_id, subcategory_id, created_by,
+            creator:users!created_by(name),
+            answerer:users!answered_by(name)
             `
         )
         .eq('id', id)
@@ -68,6 +70,7 @@ export async function PUT(req: Request, context: { params: Promise<{ slug: strin
     if (!unionId) return withNoStore(fail('NOT_FOUND', 'union not found', 404));
 
     const updateData: any = {
+        updated_by: '81600fb2-cae7-4faa-9c65-a30f78508e73', // TODO: 추후 실제 로그인 user uuid로 변경
         updated_at: new Date().toISOString(),
     };
 

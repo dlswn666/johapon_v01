@@ -16,9 +16,11 @@ export interface DbAnnouncement {
     alrimtalk_sent: boolean; // 알림톡 발송 여부
     alrimtalk_sent_at: string | null; // 알림톡 발송 일시
     created_at: string; // ISO timestamp
-    created_by: string | null; // 작성자 (관리자만)
+    created_by: string | null; // 작성자 UUID
     updated_at: string | null;
-    updated_by: string | null;
+    updated_by: string | null; // 수정자 UUID
+    creator?: { name: string } | null; // 작성자 정보 (JOIN 결과)
+    updater?: { name: string } | null; // 수정자 정보 (JOIN 결과)
 }
 
 // 카테고리 정보를 포함한 확장 타입

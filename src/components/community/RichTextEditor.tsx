@@ -62,12 +62,22 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         }
     }, []);
 
+    // 에디터가 비어있는지 확인하는 함수
+    const updateEmptyState = useCallback(() => {
+        if (editorRef.current) {
+            const text = editorRef.current.textContent || '';
+            const isEmpty = text.trim() === '';
+            editorRef.current.setAttribute('data-empty', isEmpty.toString());
+        }
+    }, []);
+
     const handleContentChange = useCallback(() => {
         if (editorRef.current && !readonly && !isUpdatingRef.current) {
             const newContent = editorRef.current.innerHTML;
+            updateEmptyState();
             onChange(newContent);
         }
-    }, [onChange, readonly]);
+    }, [onChange, readonly, updateEmptyState]);
 
     const execCommand = (command: string, value?: string) => {
         if (readonly) return;
@@ -87,39 +97,52 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         }
     };
 
-    // 초기 content 설정
+    // content prop 변경 시 에디터 내용 업데이트
     useEffect(() => {
         if (editorRef.current && !isUpdatingRef.current) {
-            editorRef.current.innerHTML = content || '';
+            const currentContent = editorRef.current.innerHTML;
+            const newContent = content || '';
+
+            console.log('=== RichTextEditor useEffect ===');
+            console.log('readonly:', readonly);
+            console.log('currentContent:', currentContent);
+            console.log('newContent:', newContent);
+            console.log('content prop:', content);
+
+            // readonly가 false일 때(수정 모드)에만 content 업데이트
+            if (!readonly) {
+                console.log('Edit mode - updating content...');
+                isUpdatingRef.current = true;
+
+                editorRef.current.innerHTML = newContent;
+                console.log('After setting innerHTML:', editorRef.current.innerHTML);
+
+                updateEmptyState();
+
+                setTimeout(() => {
+                    isUpdatingRef.current = false;
+                    console.log('Content update completed');
+                }, 0);
+            } else {
+                console.log('Readonly mode - skipping content update');
+                updateEmptyState();
+            }
         }
-    }, []);
-
-    // content prop이 변경될 때만 DOM 업데이트 (커서 위치 보존)
-    useEffect(() => {
-        if (editorRef.current && editorRef.current.innerHTML !== content && !isUpdatingRef.current) {
-            const cursorPosition = saveCursorPosition();
-            isUpdatingRef.current = true;
-
-            editorRef.current.innerHTML = content;
-
-            // 다음 tick에서 커서 위치 복원
-            setTimeout(() => {
-                restoreCursorPosition(cursorPosition);
-                isUpdatingRef.current = false;
-            }, 0);
-        }
-    }, [content, saveCursorPosition, restoreCursorPosition]);
+    }, [content, readonly, updateEmptyState]);
 
     if (readonly) {
         return (
-            <div className="border rounded-lg overflow-hidden">
-                <div className="min-h-[400px] p-4 prose max-w-none" dangerouslySetInnerHTML={{ __html: content }} />
+            <div className="border rounded-lg overflow-hidden bg-white">
+                <div
+                    className="min-h-[400px] p-4 prose max-w-none bg-white"
+                    dangerouslySetInnerHTML={{ __html: content }}
+                />
             </div>
         );
     }
 
     return (
-        <div className="border rounded-lg overflow-hidden">
+        <div className="border rounded-lg overflow-hidden bg-white">
             {/* Editor Toolbar */}
             <div className="border-b bg-gray-50 p-2">
                 <div className="flex items-center space-x-1 flex-wrap gap-2">
@@ -213,23 +236,25 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 ref={editorRef}
                 contentEditable={!readonly}
                 onInput={handleContentChange}
-                className="min-h-[400px] p-4 focus:outline-none editor-content prose max-w-none"
+                className="min-h-[400px] p-4 focus:outline-none editor-content prose max-w-none bg-white"
                 style={{
                     lineHeight: '1.6',
+                    backgroundColor: 'white',
                 }}
                 data-placeholder={placeholder}
+                data-empty="true"
                 suppressContentEditableWarning={true}
             />
 
             <style jsx>{`
-                .editor-content:empty:before {
+                .editor-content[data-empty='true']:before {
                     content: attr(data-placeholder);
                     color: #9ca3af;
                     pointer-events: none;
                     font-style: italic;
                 }
-                .editor-content:focus:empty:before {
-                    color: #d1d5db;
+                .editor-content[data-empty='true']:focus:before {
+                    color: #6b7280;
                 }
             `}</style>
         </div>

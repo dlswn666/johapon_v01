@@ -21,7 +21,13 @@ export async function GET(req: Request, context: { params: Promise<{ slug: strin
 
     const { data, error, count } = await supabase
         .from('comments')
-        .select('*', { count: 'exact' })
+        .select(
+            `
+            *, 
+            creator:users!created_by(name)
+        `,
+            { count: 'exact' }
+        )
         .eq('union_id', unionId)
         .eq('target_table', targetTable)
         .eq('target_id', targetId)
@@ -65,7 +71,7 @@ export async function POST(req: Request, context: { params: Promise<{ slug: stri
             parent_id,
             content,
             is_anonymous: Boolean(is_anonymous),
-            created_by: auth.token, // 인증된 사용자 토큰을 UUID로 저장 (임시)
+            created_by: '81600fb2-cae7-4faa-9c65-a30f78508e73', // TODO: 추후 실제 로그인 user uuid로 변경
             created_at: new Date().toISOString(),
         })
         .select('id')

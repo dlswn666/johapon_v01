@@ -81,7 +81,7 @@ function transformDbQnAToItem(qna: DbQnAWithCategory): QnAItem {
         id: qna.id,
         title: qna.title,
         content: contentText,
-        author: qna.is_anonymous ? '익명' : qna.author_name || qna.created_by || '작성자',
+        author: qna.is_anonymous ? '익명님' : `${qna.creator?.name || qna.author_name || '작성자'}님`,
         date: new Date(qna.created_at).toISOString().split('T')[0],
         category: qna.subcategory_name || qna.category_name || 'Q&A',
         views: qna.view_count || 0,
@@ -101,7 +101,7 @@ function transformDbQnAToDetail(qna: DbQnAWithCategory): QnADetail {
         content: qna.content, // 상세에서는 원본 컨텐츠 사용
         created_at: qna.created_at,
         updated_at: qna.updated_at || undefined,
-        author_name: qna.author_name || undefined,
+        author_name: qna.creator?.name ? `${qna.creator.name}님` : qna.author_name ? `${qna.author_name}님` : undefined,
         created_by: qna.created_by || undefined,
     };
 }

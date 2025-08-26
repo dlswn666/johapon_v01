@@ -28,7 +28,9 @@ export async function GET(req: Request, context: { params: Promise<{ slug: strin
             `
             id, title, content, popup, priority, is_urgent, is_pinned, 
             published_at, expires_at, view_count, alrimtalk_sent, alrimtalk_sent_at,
-            created_at, updated_at, category_id, subcategory_id, created_by
+            created_at, updated_at, category_id, subcategory_id, created_by,
+            creator:users!created_by(name),
+            updater:users!updated_by(name)
         `,
             { count: 'exact' }
         )
@@ -166,7 +168,7 @@ export async function POST(req: Request, context: { params: Promise<{ slug: stri
             expires_at: expires_at ? new Date(expires_at).toISOString() : null,
             view_count: 0,
             alrimtalk_sent: false,
-            created_by: auth.token, // 인증된 사용자 토큰을 UUID로 저장
+            created_by: '81600fb2-cae7-4faa-9c65-a30f78508e73', // TODO: 추후 실제 로그인 user uuid로 변경
             created_at: new Date().toISOString(),
         })
         .select('id')
@@ -186,7 +188,7 @@ export async function POST(req: Request, context: { params: Promise<{ slug: stri
                 title: `[공지] ${title}`,
                 content: content.replace(/<[^>]*>/g, '').substring(0, 1000), // HTML 태그 제거 후 1000자 제한
                 target_group: 'all',
-                created_by: auth.token, // 인증된 사용자 토큰을 UUID로 저장 (alrimtalk은 UUID 타입)
+                created_by: '81600fb2-cae7-4faa-9c65-a30f78508e73', // TODO: 추후 실제 로그인 user uuid로 변경
             });
 
             // announcements 테이블에 알림톡 발송 상태 업데이트

@@ -27,7 +27,8 @@ export async function GET(req: Request, context: { params: Promise<{ slug: strin
         .select(
             `
             id, title, content, view_count, like_count, comment_count, is_anonymous,
-            created_at, updated_at, category_id, subcategory_id, created_by
+            created_at, updated_at, category_id, subcategory_id, created_by,
+            creator:users!created_by(name)
         `,
             { count: 'exact' }
         )
@@ -150,7 +151,7 @@ export async function POST(req: Request, context: { params: Promise<{ slug: stri
             view_count: 0,
             like_count: 0,
             comment_count: 0,
-            created_by: auth.token, // 인증된 사용자 토큰을 UUID로 저장 (임시)
+            created_by: '81600fb2-cae7-4faa-9c65-a30f78508e73', // TODO: 추후 실제 로그인 user uuid로 변경
             created_at: new Date().toISOString(),
         })
         .select('id')

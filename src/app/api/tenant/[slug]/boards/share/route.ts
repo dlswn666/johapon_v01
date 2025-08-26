@@ -126,7 +126,7 @@ export async function POST(req: Request, context: { params: Promise<{ slug: stri
             title,
             content,
             popup: false,
-            created_by: auth.token,
+            created_by: '81600fb2-cae7-4faa-9c65-a30f78508e73', // TODO: 추후 실제 로그인 user uuid로 변경
             created_at: new Date().toISOString(),
         })
         .select('id')

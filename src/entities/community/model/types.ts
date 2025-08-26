@@ -11,9 +11,10 @@ export interface DbCommunityPost {
     comment_count: number; // 댓글 수
     is_anonymous: boolean; // 익명 작성 여부
     created_at: string; // ISO timestamp
-    created_by: string | null; // 작성자
+    created_by: string | null; // 작성자 UUID
     updated_at: string | null;
-    updated_by: string | null;
+    updated_by: string | null; // 수정자 UUID
+    creator?: { name: string } | null; // 작성자 정보 (JOIN 결과)
 }
 
 // 카테고리 정보를 포함한 확장 타입

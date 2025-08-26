@@ -27,7 +27,7 @@ export async function POST(req: Request, context: { params: Promise<{ slug: stri
         .eq('target_table', 'community_posts')
         .eq('target_id', id)
         .eq('union_id', unionId)
-        .eq('created_by', auth.token)
+        .eq('created_by', '81600fb2-cae7-4faa-9c65-a30f78508e73') // TODO: 추후 실제 로그인 user uuid로 변경
         .maybeSingle();
 
     let liked = false;
@@ -57,7 +57,7 @@ export async function POST(req: Request, context: { params: Promise<{ slug: stri
             union_id: unionId,
             target_table: 'community_posts',
             target_id: id,
-            created_by: auth.token,
+            created_by: '81600fb2-cae7-4faa-9c65-a30f78508e73', // TODO: 추후 실제 로그인 user uuid로 변경
             created_at: new Date().toISOString(),
         });
 

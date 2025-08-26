@@ -85,7 +85,7 @@ function transformDbAnnouncementToItem(announcement: DbAnnouncementWithCategory)
         id: announcement.id,
         title: announcement.title,
         content: contentText,
-        author: announcement.author_name || announcement.created_by || '관리자',
+        author: `${announcement.creator?.name || announcement.author_name || '관리자'}님`,
         date: new Date(announcement.created_at).toISOString().split('T')[0],
         category: announcement.subcategory_name || announcement.category_name || '일반공지',
         views: announcement.view_count || 0,
@@ -108,7 +108,11 @@ function transformDbAnnouncementToDetail(announcement: DbAnnouncementWithCategor
         content: announcement.content, // 상세에서는 원본 컨텐츠 사용
         created_at: announcement.created_at,
         updated_at: announcement.updated_at || undefined,
-        author_name: announcement.author_name || undefined,
+        author_name: announcement.creator?.name
+            ? `${announcement.creator.name}님`
+            : announcement.author_name
+            ? `${announcement.author_name}님`
+            : undefined,
         // 수정 API용 필드들
         published_at: announcement.published_at || undefined,
         expires_at: announcement.expires_at || undefined,

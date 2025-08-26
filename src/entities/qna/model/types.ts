@@ -11,12 +11,14 @@ export interface DbQnA {
     is_answered: boolean; // 답변 완료 여부
     answer_content: string | null; // 관리자 답변 내용
     answered_at: string | null; // 답변 일시
-    answered_by: string | null; // 답변한 관리자
+    answered_by: string | null; // 답변한 관리자 UUID
     view_count: number; // 조회수
     created_at: string; // ISO timestamp
-    created_by: string | null; // 작성자
+    created_by: string | null; // 작성자 UUID
     updated_at: string | null;
-    updated_by: string | null;
+    updated_by: string | null; // 수정자 UUID
+    creator?: { name: string } | null; // 작성자 정보 (JOIN 결과)
+    answerer?: { name: string } | null; // 답변자 정보 (JOIN 결과)
 }
 
 // 카테고리 정보를 포함한 확장 타입
