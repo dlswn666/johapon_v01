@@ -46,6 +46,7 @@ export interface CommunityPostDetail extends CommunityPostItem {
     updated_at?: string | null;
     author_name?: string;
     created_by?: string | null;
+    is_anonymous?: boolean;
 }
 
 // 자유게시판 생성 요청 타입

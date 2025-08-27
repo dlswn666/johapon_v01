@@ -1,40 +1,20 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useTenantSlug } from '@/shared/providers/TenantProvider';
-import { footerStore, type FooterInfo } from '@/shared/store/footerStore';
+import { useFooterStore } from '@/shared/store/footerStore';
 
 export default function Footer() {
     const slug = useTenantSlug();
-    const [footerInfo, setFooterInfo] = useState<FooterInfo | null>(null);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const { currentFooterInfo, loading, error, fetchFooterInfo } = useFooterStore();
 
     useEffect(() => {
-        const loadFooterInfo = async () => {
-            if (!slug) return;
+        if (!slug) return;
 
-            try {
-                setLoading(true);
-                setError(null);
-
-                const info = await footerStore.getOrFetchBySlug(slug);
-                setFooterInfo(info);
-
-                if (!info) {
-                    setError('Footer 정보를 불러올 수 없습니다.');
-                }
-            } catch (err) {
-                console.error('[Footer] Failed to load footer info:', err);
-                setError(err instanceof Error ? err.message : 'Footer 정보 로드 중 오류가 발생했습니다.');
-                setFooterInfo(null);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        loadFooterInfo();
-    }, [slug]);
+        fetchFooterInfo(slug).catch((err) => {
+            console.error('[Footer] Failed to load footer info:', err);
+        });
+    }, [slug, fetchFooterInfo]);
 
     if (loading) {
         return (
@@ -46,7 +26,7 @@ export default function Footer() {
         );
     }
 
-    if (error || !footerInfo) {
+    if (error || !currentFooterInfo) {
         return (
             <footer className="bg-gray-800 text-white mt-12">
                 <div className="max-w-none mx-auto px-32 sm:px-32 lg:px-32 py-8">
@@ -61,32 +41,32 @@ export default function Footer() {
             <div className="max-w-none mx-auto px-32 sm:px-32 lg:px-32 py-8">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                     <div>
-                        <h3 className="text-xl mb-4">{footerInfo.associationName}</h3>
-                        <p className="text-gray-300 text-base">{footerInfo.associationSubtitle}</p>
-                        {footerInfo.chairman && (
-                            <p className="text-gray-300 text-sm mt-2">조합장: {footerInfo.chairman}</p>
+                        <h3 className="text-xl mb-4">{currentFooterInfo.associationName}</h3>
+                        <p className="text-gray-300 text-base">{currentFooterInfo.associationSubtitle}</p>
+                        {currentFooterInfo.chairman && (
+                            <p className="text-gray-300 text-sm mt-2">조합장: {currentFooterInfo.chairman}</p>
                         )}
-                        {footerInfo.area && <p className="text-gray-300 text-sm">면적: {footerInfo.area}</p>}
-                        {footerInfo.members && <p className="text-gray-300 text-sm">조합원: {footerInfo.members}명</p>}
+                        {currentFooterInfo.area && <p className="text-gray-300 text-sm">면적: {currentFooterInfo.area}</p>}
+                        {currentFooterInfo.members && <p className="text-gray-300 text-sm">조합원: {currentFooterInfo.members}명</p>}
                     </div>
 
                     <div>
                         <h4 className="text-lg mb-4">연락처</h4>
                         <div className="space-y-2 text-base text-gray-300">
-                            {footerInfo.contact.phone && <p>전화번호: {footerInfo.contact.phone}</p>}
-                            {footerInfo.contact.email && <p>이메일: {footerInfo.contact.email}</p>}
-                            {footerInfo.contact.address && <p>주소: {footerInfo.contact.address}</p>}
+                            {currentFooterInfo.contact.phone && <p>전화번호: {currentFooterInfo.contact.phone}</p>}
+                            {currentFooterInfo.contact.email && <p>이메일: {currentFooterInfo.contact.email}</p>}
+                            {currentFooterInfo.contact.address && <p>주소: {currentFooterInfo.contact.address}</p>}
                         </div>
                     </div>
 
                     <div>
                         <h4 className="text-lg mb-4">사업관련 문의</h4>
                         <div className="space-y-2 text-base text-gray-300">
-                            {footerInfo.business.businessPhone && (
-                                <p>사업추진실: {footerInfo.business.businessPhone}</p>
+                            {currentFooterInfo.business.businessPhone && (
+                                <p>사업추진실: {currentFooterInfo.business.businessPhone}</p>
                             )}
-                            {footerInfo.business.webmasterEmail && (
-                                <p>홈페이지관리: {footerInfo.business.webmasterEmail}</p>
+                            {currentFooterInfo.business.webmasterEmail && (
+                                <p>홈페이지관리: {currentFooterInfo.business.webmasterEmail}</p>
                             )}
                         </div>
                     </div>
@@ -94,7 +74,7 @@ export default function Footer() {
 
                 <div className="border-t border-gray-700 mt-8 pt-8 text-center text-base text-gray-400">
                     <p>
-                        © 2024 {footerInfo.associationName} {footerInfo.associationSubtitle}. All rights reserved.
+                        © 2024 {currentFooterInfo.associationName} {currentFooterInfo.associationSubtitle}. All rights reserved.
                     </p>
                 </div>
             </div>

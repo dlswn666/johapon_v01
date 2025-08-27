@@ -53,6 +53,9 @@ export interface QnADetail extends QnAItem {
     updated_at?: string | null;
     author_name?: string;
     created_by?: string | null;
+    is_anonymous?: boolean;
+    is_secret?: boolean;
+    is_answered?: boolean;
 }
 
 // Q&A 생성 요청 타입

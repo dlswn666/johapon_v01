@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import CommunityPostList from '@/widgets/community/CommunityPostList';
 import BannerAd from '@/widgets/common/BannerAd';
+import CommunityFilterClient from '@/features/community/filter/CommunityFilterClient';
 import { type ListCategoryOption } from '@/components/common/ListFilter';
 import { Card, CardContent } from '@/shared/ui/card';
 import { useCommunityStore } from '@/shared/store/communityStore';
@@ -28,6 +29,7 @@ export default function TenantCommunityPage() {
         filters,
         setFilters,
         fetchPosts,
+        fetchMetadata,
         resetState,
     } = useCommunityStore();
 
@@ -41,17 +43,27 @@ export default function TenantCommunityPage() {
             // 새로고침 요청 시 상태 초기화 후 다시 로드
             resetState();
             setTimeout(() => {
-                fetchPosts(homepage, true).catch((error) => {
-                    console.error('게시글 로딩 실패:', error);
-                });
+                Promise.all([
+                    fetchMetadata(homepage).catch((error) => {
+                        console.error('메타데이터 로딩 실패:', error);
+                    }),
+                    fetchPosts(homepage, true).catch((error) => {
+                        console.error('게시글 로딩 실패:', error);
+                    }),
+                ]);
             }, 50);
         } else {
             // 일반 페이지 로드
-            fetchPosts(homepage, true).catch((error) => {
-                console.error('게시글 로딩 실패:', error);
-            });
+            Promise.all([
+                fetchMetadata(homepage).catch((error) => {
+                    console.error('메타데이터 로딩 실패:', error);
+                }),
+                fetchPosts(homepage, true).catch((error) => {
+                    console.error('게시글 로딩 실패:', error);
+                }),
+            ]);
         }
-    }, [searchParams, homepage, fetchPosts, resetState]);
+    }, [searchParams, homepage, fetchPosts, fetchMetadata, resetState]);
 
     // 필터 변경 시 데이터 다시 로드
     useEffect(() => {
@@ -152,47 +164,23 @@ export default function TenantCommunityPage() {
                                     <h2 className="text-lg font-semibold text-gray-900">전체 게시글 ({total}개)</h2>
                                     <Link
                                         href="./community/new"
-                                        className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 text-sm"
+                                        className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm"
                                     >
                                         글 작성
                                     </Link>
                                 </div>
 
-                                {/* 필터 옵션 */}
-                                <div className="mb-6 space-y-4">
-                                    <div className="flex flex-wrap gap-2">
-                                        <button
-                                            onClick={() => setFilters({ isAnonymous: undefined })}
-                                            className={`px-3 py-1 rounded-full text-sm ${
-                                                filters.isAnonymous === undefined
-                                                    ? 'bg-purple-600 text-white'
-                                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                                            }`}
-                                        >
-                                            전체
-                                        </button>
-                                        <button
-                                            onClick={() => setFilters({ isAnonymous: false })}
-                                            className={`px-3 py-1 rounded-full text-sm ${
-                                                filters.isAnonymous === false
-                                                    ? 'bg-blue-600 text-white'
-                                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                                            }`}
-                                        >
-                                            실명 글
-                                        </button>
-                                        <button
-                                            onClick={() => setFilters({ isAnonymous: true })}
-                                            className={`px-3 py-1 rounded-full text-sm ${
-                                                filters.isAnonymous === true
-                                                    ? 'bg-gray-600 text-white'
-                                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                                            }`}
-                                        >
-                                            익명 글
-                                        </button>
-                                    </div>
-                                </div>
+                                <CommunityFilterClient
+                                    onFilterChange={(filterData) => {
+                                        setFilters({
+                                            categoryKey:
+                                                filterData.categoryKey === 'all' ? undefined : filterData.categoryKey,
+                                            subcategoryId: filterData.subcategoryId || undefined,
+                                            searchTerm: filterData.searchTerm || undefined,
+                                            isAnonymous: filterData.isAnonymous,
+                                        });
+                                    }}
+                                />
                             </CardContent>
                         </Card>
 

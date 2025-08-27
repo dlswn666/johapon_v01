@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import QnAList from '@/widgets/qna/QnAList';
 import BannerAd from '@/widgets/common/BannerAd';
+import QnAFilterClient from '@/features/qna/filter/QnAFilterClient';
 import { type ListCategoryOption } from '@/components/common/ListFilter';
 import { Card, CardContent } from '@/shared/ui/card';
 import { useQnAStore } from '@/shared/store/qnaStore';
@@ -28,6 +29,7 @@ export default function TenantQnAPage() {
         filters,
         setFilters,
         fetchQnAList,
+        fetchMetadata,
         resetState,
     } = useQnAStore();
 
@@ -41,17 +43,27 @@ export default function TenantQnAPage() {
             // 새로고침 요청 시 상태 초기화 후 다시 로드
             resetState();
             setTimeout(() => {
-                fetchQnAList(homepage, true).catch((error) => {
-                    console.error('Q&A 로딩 실패:', error);
-                });
+                Promise.all([
+                    fetchMetadata(homepage).catch((error) => {
+                        console.error('메타데이터 로딩 실패:', error);
+                    }),
+                    fetchQnAList(homepage, true).catch((error) => {
+                        console.error('Q&A 로딩 실패:', error);
+                    }),
+                ]);
             }, 50);
         } else {
             // 일반 페이지 로드
-            fetchQnAList(homepage, true).catch((error) => {
-                console.error('Q&A 로딩 실패:', error);
-            });
+            Promise.all([
+                fetchMetadata(homepage).catch((error) => {
+                    console.error('메타데이터 로딩 실패:', error);
+                }),
+                fetchQnAList(homepage, true).catch((error) => {
+                    console.error('Q&A 로딩 실패:', error);
+                }),
+            ]);
         }
-    }, [searchParams, homepage, fetchQnAList, resetState]);
+    }, [searchParams, homepage, fetchQnAList, fetchMetadata, resetState]);
 
     // 필터 변경 시 데이터 다시 로드
     useEffect(() => {
@@ -152,47 +164,24 @@ export default function TenantQnAPage() {
                                     <h2 className="text-lg font-semibold text-gray-900">전체 Q&A ({total}개)</h2>
                                     <Link
                                         href="./qna/new"
-                                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
+                                        className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm"
                                     >
-                                        질문 작성
+                                        Q&A 작성
                                     </Link>
                                 </div>
 
-                                {/* 필터 옵션 */}
-                                <div className="mb-6 space-y-4">
-                                    <div className="flex flex-wrap gap-2">
-                                        <button
-                                            onClick={() => setFilters({ isAnswered: undefined })}
-                                            className={`px-3 py-1 rounded-full text-sm ${
-                                                filters.isAnswered === undefined
-                                                    ? 'bg-blue-600 text-white'
-                                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                                            }`}
-                                        >
-                                            전체
-                                        </button>
-                                        <button
-                                            onClick={() => setFilters({ isAnswered: false })}
-                                            className={`px-3 py-1 rounded-full text-sm ${
-                                                filters.isAnswered === false
-                                                    ? 'bg-orange-600 text-white'
-                                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                                            }`}
-                                        >
-                                            답변 대기
-                                        </button>
-                                        <button
-                                            onClick={() => setFilters({ isAnswered: true })}
-                                            className={`px-3 py-1 rounded-full text-sm ${
-                                                filters.isAnswered === true
-                                                    ? 'bg-green-600 text-white'
-                                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                                            }`}
-                                        >
-                                            답변 완료
-                                        </button>
-                                    </div>
-                                </div>
+                                <QnAFilterClient
+                                    onFilterChange={(filterData) => {
+                                        setFilters({
+                                            categoryKey:
+                                                filterData.categoryKey === 'all' ? undefined : filterData.categoryKey,
+                                            subcategoryId: filterData.subcategoryId || undefined,
+                                            searchTerm: filterData.searchTerm || undefined,
+                                            isAnswered: filterData.isAnswered,
+                                            isSecret: filterData.isSecret,
+                                        });
+                                    }}
+                                />
                             </CardContent>
                         </Card>
 
