@@ -4,7 +4,6 @@ import { useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import AnnouncementsList from '@/widgets/announcements/AnnouncementsList';
 import BannerAd from '@/widgets/common/BannerAd';
-import { type ListCategoryOption } from '@/components/common/ListFilter';
 import AnnouncementsFilterClient from '@/features/announcements/filter/AnnouncementsFilterClient';
 import { Card, CardContent } from '@/shared/ui/card';
 import { useAnnouncementStore } from '@/shared/store/announcementStore';
@@ -29,6 +28,7 @@ export default function TenantAnnouncementsPage() {
         filters,
         setFilters,
         fetchAnnouncements,
+        fetchMetadata,
         resetState,
     } = useAnnouncementStore();
 
@@ -42,17 +42,27 @@ export default function TenantAnnouncementsPage() {
             // 새로고침 요청 시 상태 초기화 후 다시 로드
             resetState();
             setTimeout(() => {
-                fetchAnnouncements(homepage, true).catch((error) => {
-                    console.error('공지사항 로딩 실패:', error);
-                });
+                Promise.all([
+                    fetchMetadata(homepage).catch((error) => {
+                        console.error('메타데이터 로딩 실패:', error);
+                    }),
+                    fetchAnnouncements(homepage, true).catch((error) => {
+                        console.error('공지사항 로딩 실패:', error);
+                    }),
+                ]);
             }, 50);
         } else {
             // 일반 페이지 로드
-            fetchAnnouncements(homepage, true).catch((error) => {
-                console.error('공지사항 로딩 실패:', error);
-            });
+            Promise.all([
+                fetchMetadata(homepage).catch((error) => {
+                    console.error('메타데이터 로딩 실패:', error);
+                }),
+                fetchAnnouncements(homepage, true).catch((error) => {
+                    console.error('공지사항 로딩 실패:', error);
+                }),
+            ]);
         }
-    }, [searchParams, homepage, fetchAnnouncements, resetState]);
+    }, [searchParams, homepage, fetchAnnouncements, fetchMetadata, resetState]);
 
     // 필터 변경 시 데이터 다시 로드
     useEffect(() => {
@@ -89,13 +99,6 @@ export default function TenantAnnouncementsPage() {
             return () => observer.disconnect();
         }
     };
-
-    // ListCategoryOption 형식으로 변환
-    const listCategories: ListCategoryOption[] = categories.map((cat) => ({
-        id: cat.key,
-        name: cat.name,
-        count: cat.count || 0,
-    }));
 
     // 에러 상태 표시
     if (error) {
@@ -160,7 +163,6 @@ export default function TenantAnnouncementsPage() {
                                 </div>
 
                                 <AnnouncementsFilterClient
-                                    categories={listCategories}
                                     onFilterChange={(filterData) => {
                                         setFilters({
                                             categoryKey:

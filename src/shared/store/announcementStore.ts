@@ -402,11 +402,22 @@ export const useAnnouncementStore = create<AnnouncementState>()(
                         throw new Error(data.message || '메타데이터 로딩 실패');
                     }
 
+                    // 공지사항 카테고리만 필터링
+                    const noticeCategories = data.data?.categories?.filter((cat: any) => cat.key === 'notice') || [];
+
                     // 공지사항 서브카테고리만 필터링
                     const noticeSubcategories =
                         data.data?.subcategories?.filter((sub: any) => sub.category_key === 'notice') || [];
 
+                    // CategoryOption 형식으로 변환
+                    const categoryOptions: CategoryOption[] = noticeCategories.map((cat: any) => ({
+                        key: cat.key,
+                        name: cat.name,
+                        count: 0, // 카운트는 별도 API에서 가져와야 함
+                    }));
+
                     set({
+                        categories: categoryOptions,
                         subcategories: noticeSubcategories,
                         loading: false,
                     });

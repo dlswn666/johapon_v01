@@ -1,15 +1,5 @@
-import {
-    MenuItem,
-    Announcement,
-    QnA,
-    CommunityPostItem,
-    Stats,
-    Partner,
-    Banner,
-    Shortcut,
-    FooterInfo,
-    OrgMember,
-} from './types';
+import { MenuItem, Announcement, QnA, CommunityPostItem, Stats, Partner, Banner, Shortcut, OrgMember } from './types';
+import type { FooterInfo } from '@/shared/store/footerStore';
 import type { CommunityCategory } from './types';
 
 // 메뉴 데이터

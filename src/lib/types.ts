@@ -85,19 +85,7 @@ export interface Shortcut {
 }
 
 // Footer 정보 타입
-export interface FooterInfo {
-    associationName: string;
-    associationSubtitle: string;
-    contact: {
-        phone: string;
-        email: string;
-        address: string;
-    };
-    business: {
-        businessPhone: string;
-        webmasterEmail: string;
-    };
-}
+// FooterInfo 타입은 src/shared/store/footerStore.ts로 이동됨
 
 // 조직도 멤버 타입
 export interface OrgMember {
