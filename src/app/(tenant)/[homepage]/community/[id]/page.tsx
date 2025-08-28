@@ -35,9 +35,9 @@ export default function TenantCommunityDetailPage() {
     useEffect(() => {
         if (isEditMode && community) {
             setEditData({
-                title: community.title,
-                content: community.content || '',
-                subcategory_id: community.subcategory_id,
+                title: community?.title || '',
+                content: community?.content || '',
+                subcategory_id: community?.subcategory_id || '',
             });
         }
     }, [isEditMode, community]);
@@ -112,7 +112,7 @@ export default function TenantCommunityDetailPage() {
     // 로딩 상태
     if (isLoading) {
         return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+            <div className="min-h-screen bg-white flex items-center justify-center">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
                     <p className="text-gray-600">게시글을 불러오는 중...</p>
@@ -124,7 +124,7 @@ export default function TenantCommunityDetailPage() {
     // 에러 상태 (로딩이 끝났지만 데이터가 없고 에러가 있는 경우만)
     if (!isLoading && (error || !community)) {
         return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+            <div className="min-h-screen bg-white flex items-center justify-center">
                 <div className="text-center">
                     <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
                     <h2 className="text-xl font-semibold text-gray-900 mb-2">게시글을 불러올 수 없습니다</h2>
@@ -139,7 +139,7 @@ export default function TenantCommunityDetailPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-white">
             {/* 페이지 헤더 */}
             <div className="bg-white border-b border-gray-200">
                 <div className="max-w-none mx-auto px-6 sm:px-10 lg:px-32 py-6">
@@ -229,13 +229,13 @@ export default function TenantCommunityDetailPage() {
                                         <Label htmlFor="title">제목</Label>
                                         <Input
                                             id="title"
-                                            value={isEditMode ? editData.title || '' : community.title}
+                                            value={isEditMode ? editData.title || '' : community?.title || ''}
                                             readOnly={!isEditMode}
                                             onChange={(e) => handleEditDataChange('title', e.target.value)}
                                             className={`mt-2 ${
                                                 isEditMode
                                                     ? 'bg-white border-gray-300 text-gray-900'
-                                                    : 'bg-gray-50 border-gray-200 text-gray-900'
+                                                    : 'bg-white border-gray-200 text-gray-900'
                                             }`}
                                             placeholder={isEditMode ? '제목을 입력하세요' : ''}
                                         />
@@ -247,8 +247,8 @@ export default function TenantCommunityDetailPage() {
                                         <Select
                                             value={
                                                 isEditMode
-                                                    ? editData.subcategory_id || community.subcategory_id
-                                                    : community.subcategory_id
+                                                    ? editData.subcategory_id || community?.subcategory_id || ''
+                                                    : community?.subcategory_id || ''
                                             }
                                             disabled={!isEditMode}
                                             onValueChange={(value) => handleEditDataChange('subcategory_id', value)}
@@ -257,10 +257,10 @@ export default function TenantCommunityDetailPage() {
                                                 className={`mt-2 ${
                                                     isEditMode
                                                         ? 'bg-white border-gray-300 text-gray-900'
-                                                        : 'bg-gray-50 border-gray-200 text-gray-900'
+                                                        : 'bg-white border-gray-200 text-gray-900'
                                                 }`}
                                             >
-                                                <SelectValue placeholder={getCategoryName(community.subcategory_id)} />
+                                                <SelectValue placeholder={getCategoryName(community?.subcategory_id)} />
                                             </SelectTrigger>
                                             <SelectContent>
                                                 {subcategories.map((category) => (
@@ -275,7 +275,7 @@ export default function TenantCommunityDetailPage() {
                                     {/* 공개 상태 (임시) */}
                                     <div>
                                         <Label>공개 상태</Label>
-                                        <div className="mt-2 p-3 bg-gray-50 border border-gray-200 rounded-md text-gray-900">
+                                        <div className="mt-2 p-3 bg-white border border-gray-200 rounded-md text-gray-900">
                                             <div className="flex items-center space-x-2">
                                                 <Users className="h-4 w-4 text-gray-500" />
                                                 <span>전체 공개</span>
@@ -288,37 +288,39 @@ export default function TenantCommunityDetailPage() {
                                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                                     <div>
                                         <Label>작성자</Label>
-                                        <div className="mt-2 p-3 bg-gray-50 border border-gray-200 rounded-md text-gray-900">
+                                        <div className="mt-2 p-3 bg-white border border-gray-200 rounded-md text-gray-900">
                                             <div className="flex items-center space-x-2">
                                                 <User className="h-4 w-4 text-gray-500" />
-                                                <span>{community.author_name || '익명'}</span>
+                                                <span>{community?.author_name || '익명'}</span>
                                             </div>
                                         </div>
                                     </div>
                                     <div>
                                         <Label>작성일</Label>
-                                        <div className="mt-2 p-3 bg-gray-50 border border-gray-200 rounded-md text-gray-900">
+                                        <div className="mt-2 p-3 bg-white border border-gray-200 rounded-md text-gray-900">
                                             <div className="flex items-center space-x-2">
                                                 <Calendar className="h-4 w-4 text-gray-500" />
-                                                <span>{formatDate(community.created_at)}</span>
+                                                <span>
+                                                    {community?.created_at ? formatDate(community.created_at) : ''}
+                                                </span>
                                             </div>
                                         </div>
                                     </div>
                                     <div>
                                         <Label>조회수</Label>
-                                        <div className="mt-2 p-3 bg-gray-50 border border-gray-200 rounded-md text-gray-900">
+                                        <div className="mt-2 p-3 bg-white border border-gray-200 rounded-md text-gray-900">
                                             <div className="flex items-center space-x-2">
                                                 <Eye className="h-4 w-4 text-gray-500" />
-                                                <span>{community.views?.toLocaleString() || 0}회</span>
+                                                <span>{community?.views?.toLocaleString() || 0}회</span>
                                             </div>
                                         </div>
                                     </div>
                                     <div>
                                         <Label>댓글수</Label>
-                                        <div className="mt-2 p-3 bg-gray-50 border border-gray-200 rounded-md text-gray-900">
+                                        <div className="mt-2 p-3 bg-white border border-gray-200 rounded-md text-gray-900">
                                             <div className="flex items-center space-x-2">
                                                 <MessageSquare className="h-4 w-4 text-gray-500" />
-                                                <span>{community.comments?.toLocaleString() || 0}개</span>
+                                                <span>{community?.comments?.toLocaleString() || 0}개</span>
                                             </div>
                                         </div>
                                     </div>
@@ -331,8 +333,8 @@ export default function TenantCommunityDetailPage() {
                                         <TiptapEditor
                                             content={
                                                 isEditMode
-                                                    ? editData.content ?? community.content ?? ''
-                                                    : community.content ?? ''
+                                                    ? editData.content ?? community?.content ?? ''
+                                                    : community?.content ?? ''
                                             }
                                             onChange={(content) => handleEditDataChange('content', content)}
                                             placeholder="게시글 내용을 입력하세요..."
@@ -353,21 +355,21 @@ export default function TenantCommunityDetailPage() {
                                                 variant="outline"
                                                 onClick={handleLikeToggle}
                                                 className={`flex items-center space-x-2 ${
-                                                    community.isLiked ? 'text-red-600 border-red-200' : 'text-gray-600'
+                                                    community?.isLiked ? 'text-red-600 border-red-200' : 'text-gray-600'
                                                 }`}
                                             >
                                                 <Heart
-                                                    className={`h-4 w-4 ${community.isLiked ? 'fill-current' : ''}`}
+                                                    className={`h-4 w-4 ${community?.isLiked ? 'fill-current' : ''}`}
                                                 />
-                                                <span>좋아요 {community.likes?.toLocaleString() || 0}</span>
+                                                <span>좋아요 {community?.likes?.toLocaleString() || 0}</span>
                                             </Button>
                                             <Button variant="outline" className="flex items-center space-x-2">
                                                 <MessageSquare className="h-4 w-4" />
-                                                <span>댓글 {community.comments?.toLocaleString() || 0}</span>
+                                                <span>댓글 {community?.comments?.toLocaleString() || 0}</span>
                                             </Button>
                                         </div>
                                         <div className="text-sm text-gray-500">
-                                            조회수 {community.views?.toLocaleString() || 0}회
+                                            조회수 {community?.views?.toLocaleString() || 0}회
                                         </div>
                                     </div>
                                 </CardContent>

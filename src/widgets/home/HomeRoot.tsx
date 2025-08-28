@@ -25,7 +25,7 @@ export default function HomeRoot() {
 
                     <div className="lg:col-span-3 flex">
                         <Card className="border-gray-200 flex flex-col min-h-full min-w-full">
-                            <CardContent className="p-4 flex-1 flex flex-col">
+                            <CardContent className="p-4 flex-1 flex flex-col bg-white rounded-lg">
                                 <Tabs defaultValue="announcements" className="w-full flex-1 flex flex-col">
                                     <TabsList className="grid w-full grid-cols-3 mb-2 text-basic-primary font-wanted">
                                         <TabsTrigger value="announcements" className="text-base">

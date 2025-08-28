@@ -17,7 +17,7 @@ interface InformationCardProps {
 export default function InformationCard({ statsData }: InformationCardProps) {
     return (
         <Card className="border-gray-200 flex flex-col border-radius-lg">
-            <CardHeader className="bg-gray-200 border-b border-gray-200 py-4 flex-shrink-0">
+            <CardHeader className="bg-white border-b border-gray-200 py-4 flex-shrink-0">
                 <CardTitle className="text-green-800 flex items-center text-xl">
                     <Info className="h-6 w-6 mr-3" />
                     Information

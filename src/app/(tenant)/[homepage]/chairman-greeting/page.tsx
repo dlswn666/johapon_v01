@@ -94,7 +94,7 @@ export default function ChairmanGreetingPage() {
                                 </div>
                             </div>
 
-                            <div className="bg-gray-50 p-6 border-t">
+                            <div className="bg-white p-6 border-t">
                                 <div className="flex items-center justify-center space-x-8 text-sm text-gray-600">
                                     <div className="flex items-center">
                                         <Building2 className="h-4 w-4 mr-2" /> 인천광역시 남동구 작전동 일원

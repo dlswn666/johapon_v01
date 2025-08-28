@@ -109,7 +109,7 @@ export default function TenantCommunityPage() {
     // 에러 상태 표시
     if (error) {
         return (
-            <div className="min-h-screen bg-gray-50">
+            <div className="min-h-screen bg-white">
                 <div className="bg-white border-b border-gray-200">
                     <div className="max-w-none mx-auto px-6 sm:px-10 lg:px-32 py-6 lg:py-8">
                         <h1 className="text-2xl lg:text-3xl text-gray-900 mb-2">자유게시판</h1>
@@ -139,7 +139,7 @@ export default function TenantCommunityPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-white">
             <div className="bg-white border-b border-gray-200">
                 <div className="max-w-none mx-auto px-6 sm:px-10 lg:px-32 py-6 lg:py-8">
                     <h1 className="text-2xl lg:text-3xl text-gray-900 mb-2">자유게시판</h1>

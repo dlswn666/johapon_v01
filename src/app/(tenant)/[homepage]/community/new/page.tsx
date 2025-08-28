@@ -133,7 +133,7 @@ export default function TenantCommunityNewPage() {
     // 에러 상태 표시
     if (error) {
         return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+            <div className="min-h-screen bg-white flex items-center justify-center">
                 <div className="text-center">
                     <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
                     <h2 className="text-xl font-semibold text-gray-900 mb-2">오류가 발생했습니다</h2>
@@ -147,7 +147,7 @@ export default function TenantCommunityNewPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-white">
             <div className="bg-white border-b border-gray-200">
                 <div className="max-w-none mx-auto px-6 sm:px-10 lg:px-32 py-6">
                     <div className="flex items-center space-x-3">
@@ -210,7 +210,7 @@ export default function TenantCommunityNewPage() {
                                 </div>
 
                                 {/* 익명 작성 옵션 */}
-                                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+                                <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200">
                                     <div className="flex items-center space-x-3">
                                         <UserX className="h-5 w-5 text-gray-600" />
                                         <div>

@@ -76,10 +76,10 @@ export default function TenantQnADetailPage() {
     useEffect(() => {
         if (isEditMode && qna) {
             setEditData({
-                title: qna.title,
-                content: qna.content || '',
-                subcategory_id: qna.subcategory_id,
-                is_secret: qna.isSecret,
+                title: qna?.title,
+                content: qna?.content || '',
+                subcategory_id: qna?.subcategory_id,
+                is_secret: qna?.isSecret,
             });
         }
     }, [isEditMode, qna]);
@@ -125,14 +125,14 @@ export default function TenantQnADetailPage() {
         try {
             setIsSaving(true);
 
-            const result = await updateQnA(homepage, qna.id, editData);
+            const result = await updateQnA(homepage, qna?.id, editData);
 
             if (result.success) {
                 setIsEditMode(false);
                 setEditData({});
                 alert('Q&A가 성공적으로 수정되었습니다.');
                 // 수정 후 데이터 다시 로드
-                await fetchQnADetail(homepage, qna.id);
+                await fetchQnADetail(homepage, qna?.id);
             } else {
                 alert(result.message);
             }
@@ -163,14 +163,14 @@ export default function TenantQnADetailPage() {
         try {
             setIsAnswering(true);
 
-            const result = await answerQnA(homepage, qna.id, answerData);
+            const result = await answerQnA(homepage, qna?.id, answerData);
 
             if (result.success) {
                 setIsAnswerMode(false);
                 setAnswerData({ answer_content: '' });
                 alert('답변이 성공적으로 등록되었습니다.');
                 // 답변 후 데이터 다시 로드
-                await fetchQnADetail(homepage, qna.id);
+                await fetchQnADetail(homepage, qna?.id);
             } else {
                 alert(result.message);
             }
@@ -193,7 +193,7 @@ export default function TenantQnADetailPage() {
     // 로딩 상태
     if (loading) {
         return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+            <div className="min-h-screen bg-white flex items-center justify-center">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
                     <p className="text-gray-600">Q&A를 불러오는 중...</p>
@@ -205,7 +205,7 @@ export default function TenantQnADetailPage() {
     // 에러 상태 (로딩이 끝났지만 데이터가 없고 에러가 있는 경우만)
     if (!loading && (error || !qna)) {
         return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+            <div className="min-h-screen bg-white flex items-center justify-center">
                 <div className="text-center">
                     <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
                     <h2 className="text-xl font-semibold text-gray-900 mb-2">Q&A를 불러올 수 없습니다</h2>
@@ -220,7 +220,7 @@ export default function TenantQnADetailPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-white">
             {/* 페이지 헤더 */}
             <div className="bg-white border-b border-gray-200">
                 <div className="max-w-none mx-auto px-6 sm:px-10 lg:px-32 py-6">
@@ -303,14 +303,14 @@ export default function TenantQnADetailPage() {
                             <CardContent className="space-y-6">
                                 {/* 상태 배지 */}
                                 <div className="flex items-center gap-2">
-                                    {qna.isSecret && (
+                                    {qna?.isSecret && (
                                         <Badge variant="secondary">
                                             <Lock className="h-3 w-3 mr-1" />
                                             비밀글
                                         </Badge>
                                     )}
 
-                                    {qna.isAnswered ? (
+                                    {qna?.isAnswered ? (
                                         <Badge variant="default" className="bg-green-600">
                                             <CheckCircle className="h-3 w-3 mr-1" />
                                             답변완료
@@ -322,7 +322,7 @@ export default function TenantQnADetailPage() {
                                         </Badge>
                                     )}
 
-                                    <Badge variant="outline">{getCategoryName(qna.subcategory_id || '')}</Badge>
+                                    <Badge variant="outline">{getCategoryName(qna?.subcategory_id || '')}</Badge>
                                 </div>
 
                                 {/* 기본 정보 */}
@@ -332,13 +332,13 @@ export default function TenantQnADetailPage() {
                                         <Label htmlFor="title">제목</Label>
                                         <Input
                                             id="title"
-                                            value={isEditMode ? editData.title || '' : qna.title}
+                                            value={isEditMode ? editData.title || '' : qna?.title}
                                             readOnly={!isEditMode}
                                             onChange={(e) => handleEditDataChange('title', e.target.value)}
                                             className={`mt-2 ${
                                                 isEditMode
                                                     ? 'bg-white border-gray-300 text-gray-900'
-                                                    : 'bg-gray-50 border-gray-200 text-gray-900'
+                                                    : 'bg-white border-gray-200 text-gray-900'
                                             }`}
                                             placeholder={isEditMode ? '제목을 입력하세요' : ''}
                                         />
@@ -350,8 +350,8 @@ export default function TenantQnADetailPage() {
                                         <Select
                                             value={
                                                 isEditMode
-                                                    ? editData.subcategory_id || qna.subcategory_id
-                                                    : qna.subcategory_id || ''
+                                                    ? editData.subcategory_id || qna?.subcategory_id
+                                                    : qna?.subcategory_id || ''
                                             }
                                             disabled={!isEditMode}
                                             onValueChange={(value) => handleEditDataChange('subcategory_id', value)}
@@ -360,7 +360,7 @@ export default function TenantQnADetailPage() {
                                                 className={`mt-2 ${
                                                     isEditMode
                                                         ? 'bg-white border-gray-300 text-gray-900'
-                                                        : 'bg-gray-50 border-gray-200 text-gray-900'
+                                                        : 'bg-white border-gray-200 text-gray-900'
                                                 }`}
                                             >
                                                 <SelectValue />
@@ -388,7 +388,7 @@ export default function TenantQnADetailPage() {
                                                 </div>
                                             </div>
                                             <Switch
-                                                checked={editData.is_secret ?? qna.isSecret}
+                                                checked={editData.is_secret ?? qna?.isSecret}
                                                 onCheckedChange={(c: boolean) => handleEditDataChange('is_secret', c)}
                                             />
                                         </div>
@@ -399,28 +399,28 @@ export default function TenantQnADetailPage() {
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                     <div>
                                         <Label>작성자</Label>
-                                        <div className="mt-2 p-3 bg-gray-50 border border-gray-200 rounded-md text-gray-900">
+                                        <div className="mt-2 p-3 bg-white border border-gray-200 rounded-md text-gray-900">
                                             <div className="flex items-center space-x-2">
                                                 <User className="h-4 w-4 text-gray-500" />
-                                                <span>{qna.author_name || qna.author}</span>
+                                                <span>{qna?.author_name || qna?.author}</span>
                                             </div>
                                         </div>
                                     </div>
                                     <div>
                                         <Label>작성일</Label>
-                                        <div className="mt-2 p-3 bg-gray-50 border border-gray-200 rounded-md text-gray-900">
+                                        <div className="mt-2 p-3 bg-white border border-gray-200 rounded-md text-gray-900">
                                             <div className="flex items-center space-x-2">
                                                 <Calendar className="h-4 w-4 text-gray-500" />
-                                                <span>{formatDate(qna.created_at)}</span>
+                                                <span>{qna?.created_at ? formatDate(qna.created_at) : ''}</span>
                                             </div>
                                         </div>
                                     </div>
                                     <div>
                                         <Label>조회수</Label>
-                                        <div className="mt-2 p-3 bg-gray-50 border border-gray-200 rounded-md text-gray-900">
+                                        <div className="mt-2 p-3 bg-white border border-gray-200 rounded-md text-gray-900">
                                             <div className="flex items-center space-x-2">
                                                 <Eye className="h-4 w-4 text-gray-500" />
-                                                <span>{qna.views?.toLocaleString() || 0}회</span>
+                                                <span>{qna?.views?.toLocaleString() || 0}회</span>
                                             </div>
                                         </div>
                                     </div>
@@ -432,7 +432,7 @@ export default function TenantQnADetailPage() {
                                     <div className="mt-2">
                                         <TiptapEditor
                                             content={
-                                                isEditMode ? editData.content ?? qna.content ?? '' : qna.content ?? ''
+                                                isEditMode ? editData.content ?? qna?.content ?? '' : qna?.content ?? ''
                                             }
                                             onChange={(content) => handleEditDataChange('content', content)}
                                             placeholder="Q&A 내용을 입력하세요..."
@@ -444,7 +444,7 @@ export default function TenantQnADetailPage() {
                         </Card>
 
                         {/* 답변 섹션 */}
-                        {qna.isAnswered || isAnswerMode ? (
+                        {qna?.isAnswered || isAnswerMode ? (
                             <Card>
                                 <CardHeader>
                                     <CardTitle className="flex items-center justify-between">
@@ -492,13 +492,13 @@ export default function TenantQnADetailPage() {
                                     ) : (
                                         <div>
                                             <TiptapEditor
-                                                content={qna.answerContent || ''}
+                                                content={qna?.answerContent || ''}
                                                 onChange={() => {}}
                                                 readonly={true}
                                             />
-                                            {qna.answeredAt && (
+                                            {qna?.answeredAt && (
                                                 <div className="mt-4 text-sm text-gray-500">
-                                                    답변일: {formatDate(qna.answeredAt)}
+                                                    답변일: {qna?.answeredAt ? formatDate(qna.answeredAt) : ''}
                                                 </div>
                                             )}
                                         </div>

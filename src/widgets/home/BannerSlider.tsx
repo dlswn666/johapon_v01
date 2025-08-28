@@ -36,7 +36,7 @@ export default function BannerSlider({ bannerData }: BannerSliderProps) {
 
     return (
         <Card className="border-gray-200">
-            <CardHeader className="bg-gray-50 border-b border-gray-200">
+            <CardHeader className="bg-white border-b border-gray-200">
                 <CardTitle className="text-gray-800 text-xl">광고 베너</CardTitle>
             </CardHeader>
             <CardContent className="p-0 overflow-hidden">

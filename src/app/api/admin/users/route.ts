@@ -16,12 +16,25 @@ export async function GET(req: Request) {
     const supabase = getSupabaseClient();
     let query = supabase
         .from('users')
-        .select('id, user_id, name, role, status, created_at', { count: 'exact' })
+        .select('id, user_id, name, property_location, phone, user_type, is_approved, created_at', { count: 'exact' })
         .order('created_at', { ascending: false });
     if (q) query = query.ilike('name', `%${q}%`);
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
     const { data, error, count } = await query.range(from, to);
     if (error) return withNoStore(fail('DB_ERROR', 'query failed', 500));
-    return withNoStore(ok({ items: data ?? [], page, page_size: pageSize, total: count ?? 0 }));
+
+    // DB 데이터를 화면용 데이터로 변환
+    const transformedData = (data ?? []).map((user: any) => ({
+        id: user.id,
+        user_id: user.user_id,
+        name: user.name,
+        address: user.property_location,
+        phone: user.phone,
+        role: user.user_type,
+        status: user.is_approved ? 'active' : 'pending',
+        created_at: user.created_at,
+    }));
+
+    return withNoStore(ok({ items: transformedData, page, page_size: pageSize, total: count ?? 0 }));
 }

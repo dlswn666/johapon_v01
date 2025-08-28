@@ -11,7 +11,7 @@ export default function PartnersSection({ partners }: PartnersSectionProps) {
 
     return (
         <Card className="border-gray-200">
-            <CardHeader className="bg-gray-50 border-b border-gray-200 py-4">
+            <CardHeader className="bg-white border-b border-gray-200 py-4">
                 <CardTitle className="text-gray-800 text-xl">협력업체</CardTitle>
             </CardHeader>
             <CardContent className="p-4">
@@ -21,7 +21,7 @@ export default function PartnersSection({ partners }: PartnersSectionProps) {
                             key={partner.id}
                             className="flex items-center p-4 bg-white border border-gray-200 rounded-lg hover:shadow-md transition-all duration-200 hover:border-green-300"
                         >
-                            <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center mr-4 flex-shrink-0">
+                            <div className="w-12 h-12 bg-white border border-gray-200 rounded-lg flex items-center justify-center mr-4 flex-shrink-0">
                                 <Building2 className="h-6 w-6 text-gray-600" />
                             </div>
                             <div className="flex-1 min-w-0">

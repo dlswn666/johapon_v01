@@ -9,7 +9,7 @@ interface ShortcutsSectionProps {
 export default function ShortcutsSection({ shortcutData }: ShortcutsSectionProps) {
     return (
         <Card className="border-gray-200">
-            <CardHeader className="bg-gray-50 border-b border-gray-200 py-4">
+            <CardHeader className="bg-white border-b border-gray-200 py-4">
                 <CardTitle className="text-gray-800 text-xl">바로가기</CardTitle>
             </CardHeader>
             <CardContent className="p-4">

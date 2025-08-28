@@ -103,7 +103,7 @@ export default function CommunityTab({}: CommunityTabProps) {
                     {posts.slice(1, 4).map((post, index) => (
                         <div
                             key={post.id}
-                            className={`flex items-center justify-between p-3 hover:bg-gray-50 transition-colors cursor-pointer ${
+                            className={`flex items-center justify-between p-3 hover:bg-blue-50 transition-colors cursor-pointer ${
                                 index !== posts.slice(1, 4).length - 1 ? 'border-b border-gray-100' : ''
                             }`}
                             onClick={() => handlePostClick(post.id)}

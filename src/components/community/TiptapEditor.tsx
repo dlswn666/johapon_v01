@@ -183,7 +183,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({
     return (
         <div className="border rounded-lg overflow-hidden bg-white">
             {/* Toolbar */}
-            <div className="border-b bg-gray-50 p-2">
+            <div className="border-b bg-white p-2">
                 <div className="flex items-center space-x-1 flex-wrap gap-2">
                     {/* Undo/Redo */}
                     <Button

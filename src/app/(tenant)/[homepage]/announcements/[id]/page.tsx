@@ -156,7 +156,7 @@ export default function TenantAnnouncementDetailPage() {
     // 로딩 상태
     if (loading) {
         return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+            <div className="min-h-screen bg-white flex items-center justify-center">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
                     <p className="text-gray-600">공지사항을 불러오는 중...</p>
@@ -168,7 +168,7 @@ export default function TenantAnnouncementDetailPage() {
     // 에러 상태 (로딩이 끝났지만 데이터가 없고 에러가 있는 경우만)
     if (!loading && (error || !announcement)) {
         return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+            <div className="min-h-screen bg-white flex items-center justify-center">
                 <div className="text-center">
                     <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
                     <h2 className="text-xl font-semibold text-gray-900 mb-2">공지사항을 불러올 수 없습니다</h2>
@@ -188,7 +188,7 @@ export default function TenantAnnouncementDetailPage() {
     ];
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-white">
             {/* 페이지 헤더 */}
             <div className="bg-white border-b border-gray-200">
                 <div className="max-w-none mx-auto px-6 sm:px-10 lg:px-32 py-6">
@@ -283,7 +283,7 @@ export default function TenantAnnouncementDetailPage() {
                                             className={`mt-2 ${
                                                 isEditMode
                                                     ? 'bg-white border-gray-300 text-gray-900'
-                                                    : 'bg-gray-50 border-gray-200 text-gray-900'
+                                                    : 'bg-white border-gray-200 text-gray-900'
                                             }`}
                                             placeholder={isEditMode ? '제목을 입력하세요' : ''}
                                         />
@@ -305,7 +305,7 @@ export default function TenantAnnouncementDetailPage() {
                                                 className={`mt-2 ${
                                                     isEditMode
                                                         ? 'bg-white border-gray-300 text-gray-900'
-                                                        : 'bg-gray-50 border-gray-200 text-gray-900'
+                                                        : 'bg-white border-gray-200 text-gray-900'
                                                 }`}
                                             >
                                                 <SelectValue />
@@ -334,7 +334,7 @@ export default function TenantAnnouncementDetailPage() {
                                                 className={`mt-2 ${
                                                     isEditMode
                                                         ? 'bg-white border-gray-300 text-gray-900'
-                                                        : 'bg-gray-50 border-gray-200 text-gray-900'
+                                                        : 'bg-white border-gray-200 text-gray-900'
                                                 }`}
                                             >
                                                 <SelectValue />
@@ -364,7 +364,7 @@ export default function TenantAnnouncementDetailPage() {
                                                 className={`mt-2 ${
                                                     isEditMode
                                                         ? 'bg-white border-gray-300 text-gray-900'
-                                                        : 'bg-gray-50 border-gray-200 text-gray-900'
+                                                        : 'bg-white border-gray-200 text-gray-900'
                                                 }`}
                                             >
                                                 <SelectValue />
@@ -391,7 +391,7 @@ export default function TenantAnnouncementDetailPage() {
                                         ) : (
                                             <>
                                                 <Label>게시 시작일</Label>
-                                                <div className="mt-2 p-3 bg-gray-50 border border-gray-200 rounded-md text-gray-900">
+                                                <div className="mt-2 p-3 bg-white border border-gray-200 rounded-md text-gray-900">
                                                     {announcement?.publishedAt
                                                         ? formatDate(announcement.publishedAt)
                                                         : '즉시 게시'}
@@ -413,7 +413,7 @@ export default function TenantAnnouncementDetailPage() {
                                         ) : (
                                             <>
                                                 <Label>게시 종료일</Label>
-                                                <div className="mt-2 p-3 bg-gray-50 border border-gray-200 rounded-md text-gray-900">
+                                                <div className="mt-2 p-3 bg-white border border-gray-200 rounded-md text-gray-900">
                                                     {announcement?.expiresAt
                                                         ? formatDate(announcement.expiresAt)
                                                         : '계속 게시'}
@@ -502,7 +502,7 @@ export default function TenantAnnouncementDetailPage() {
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                     <div>
                                         <Label>작성자</Label>
-                                        <div className="mt-2 p-3 bg-gray-50 border border-gray-200 rounded-md text-gray-900">
+                                        <div className="mt-2 p-3 bg-white border border-gray-200 rounded-md text-gray-900">
                                             <div className="flex items-center space-x-2">
                                                 <User className="h-4 w-4 text-gray-500" />
                                                 <span>{announcement?.author_name || '관리자'}</span>
@@ -511,7 +511,7 @@ export default function TenantAnnouncementDetailPage() {
                                     </div>
                                     <div>
                                         <Label>작성일</Label>
-                                        <div className="mt-2 p-3 bg-gray-50 border border-gray-200 rounded-md text-gray-900">
+                                        <div className="mt-2 p-3 bg-white border border-gray-200 rounded-md text-gray-900">
                                             <div className="flex items-center space-x-2">
                                                 <Calendar className="h-4 w-4 text-gray-500" />
                                                 <span>{formatDate(announcement?.created_at || '')}</span>

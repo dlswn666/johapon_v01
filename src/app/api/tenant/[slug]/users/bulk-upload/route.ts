@@ -1,12 +1,22 @@
 export const runtime = 'nodejs';
 
-import { ok, fail, withNoStore, requireAuth } from '@/shared/lib/api';
+import { ok, fail, withNoStore, requireAuth, isValidSlug } from '@/shared/lib/api';
 import { getSupabaseClient } from '@/shared/lib/supabase';
+import { getTenantIdBySlug } from '@/shared/store/tenantStore';
 import * as XLSX from 'xlsx';
 
-export async function POST(req: Request) {
+export async function POST(req: Request, context: { params: Promise<{ slug: string }> }) {
+    const params = await context.params;
+    const slug = String(params?.slug ?? '').trim();
+
+    if (!slug || !isValidSlug(slug)) return withNoStore(fail('BAD_REQUEST', 'invalid slug', 400));
+
     const auth = requireAuth(req);
     if (!auth) return withNoStore(fail('UNAUTHORIZED', 'authorization required', 401));
+
+    const supabase = getSupabaseClient();
+    const unionId = await getTenantIdBySlug(slug);
+    if (!unionId) return withNoStore(fail('NOT_FOUND', 'union not found', 404));
 
     const contentType = req.headers.get('content-type') || '';
     if (!contentType.includes('multipart/form-data'))
@@ -44,7 +54,10 @@ export async function POST(req: Request) {
             const row = jsonData[i] as any[];
             if (!row || row.length === 0) continue;
 
-            const rowData: any = { created_at: new Date().toISOString() };
+            const rowData: any = {
+                created_at: new Date().toISOString(),
+                union_id: unionId, // tenant ID 추가
+            };
 
             headers.forEach((header, index) => {
                 const value = row[index];
@@ -96,7 +109,10 @@ export async function POST(req: Request) {
         rows = lines
             .map((line) => {
                 const values = line.split(',').map((s) => s.trim());
-                const rowData: any = { created_at: new Date().toISOString() };
+                const rowData: any = {
+                    created_at: new Date().toISOString(),
+                    union_id: unionId, // tenant ID 추가
+                };
 
                 headers.forEach((header, index) => {
                     const value = values[index];
@@ -135,7 +151,6 @@ export async function POST(req: Request) {
         return withNoStore(fail('BAD_REQUEST', 'no valid data found', 400));
     }
 
-    const supabase = getSupabaseClient();
     const { error } = await supabase.from('users').insert(rows);
     if (error) return withNoStore(fail('DB_ERROR', 'bulk insert failed', 500));
     return withNoStore(ok({ inserted: rows.length }));
