@@ -41,16 +41,14 @@ export default function TenantAnnouncementsPage() {
         if (refreshParam) {
             // 새로고침 요청 시 상태 초기화 후 다시 로드
             resetState();
-            setTimeout(() => {
-                Promise.all([
-                    fetchMetadata(homepage).catch((error) => {
-                        console.error('메타데이터 로딩 실패:', error);
-                    }),
-                    fetchAnnouncements(homepage, true).catch((error) => {
-                        console.error('공지사항 로딩 실패:', error);
-                    }),
-                ]);
-            }, 50);
+            Promise.all([
+                fetchMetadata(homepage).catch((error) => {
+                    console.error('메타데이터 로딩 실패:', error);
+                }),
+                fetchAnnouncements(homepage, true).catch((error) => {
+                    console.error('공지사항 로딩 실패:', error);
+                }),
+            ]);
         } else {
             // 일반 페이지 로드
             Promise.all([

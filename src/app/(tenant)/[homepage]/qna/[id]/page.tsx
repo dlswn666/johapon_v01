@@ -202,8 +202,8 @@ export default function TenantQnADetailPage() {
         );
     }
 
-    // 에러 상태
-    if (error || !qna) {
+    // 에러 상태 (로딩이 끝났지만 데이터가 없고 에러가 있는 경우만)
+    if (!loading && (error || !qna)) {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
                 <div className="text-center">

@@ -8,7 +8,7 @@ import { Label } from '@/shared/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
 import { Switch } from '@/shared/ui/switch';
 import TiptapEditor from '@/components/community/TiptapEditor';
-import FileUpload from '@/components/common/FileUpload';
+import TempFileUpload, { type TempFile } from '@/components/common/TempFileUpload';
 import BannerAd from '@/widgets/common/BannerAd';
 import { FileText, Save, Send, Loader2, AlertTriangle, Pin } from 'lucide-react';
 import { useRouter, useParams } from 'next/navigation';
@@ -51,6 +51,7 @@ export default function TenantAnnouncementNewPage() {
     });
 
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [tempFiles, setTempFiles] = useState<TempFile[]>([]);
 
     // 컴포넌트 마운트 시 메타데이터 로드
     useEffect(() => {
@@ -106,11 +107,37 @@ export default function TenantAnnouncementNewPage() {
 
             const result = await createAnnouncement(homepage, form);
 
-            if (result.success) {
+            if (result.success && result.id) {
+                // 게시글 저장 성공 시 첨부파일 업로드
+                if (tempFiles.length > 0) {
+                    try {
+                        for (const tempFile of tempFiles) {
+                            const formData = new FormData();
+                            formData.append('slug', homepage);
+                            formData.append('target_table', 'announcements');
+                            formData.append('target_id', result.id);
+                            formData.append('file', tempFile.file);
+
+                            const uploadResponse = await fetch('/api/attachments', {
+                                method: 'POST',
+                                body: formData,
+                            });
+
+                            if (!uploadResponse.ok) {
+                                console.error(`파일 업로드 실패: ${tempFile.name}`);
+                            }
+                        }
+                    } catch (fileError) {
+                        console.error('첨부파일 업로드 중 오류:', fileError);
+                        // 파일 업로드 실패해도 게시글은 이미 생성되었으므로 계속 진행
+                    }
+                }
+
                 alert(result.message);
-                // 강제 새로고침을 위해 타임스탬프 파라미터 추가
+                // 리스트 페이지 데이터 새로고침을 위한 이동
                 const timestamp = Date.now();
                 router.push(`../announcements?refresh=${timestamp}`);
+                // 페이지 전체 새로고침으로 확실한 데이터 업데이트 보장
                 router.refresh();
             } else {
                 alert(result.message);
@@ -318,6 +345,17 @@ export default function TenantAnnouncementNewPage() {
                                 </div>
 
                                 <div>
+                                    <Label>첨부파일</Label>
+                                    <div className="mt-2">
+                                        <TempFileUpload
+                                            onFilesChange={setTempFiles}
+                                            disabled={isSubmitting}
+                                            maxFiles={10}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
                                     <Label>내용 *</Label>
                                     <div className="mt-2">
                                         <TiptapEditor
@@ -327,23 +365,6 @@ export default function TenantAnnouncementNewPage() {
                                             slug={homepage}
                                             targetTable="announcements"
                                             targetId={tempPostId}
-                                        />
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <Label>첨부파일</Label>
-                                    <div className="mt-2">
-                                        <FileUpload
-                                            slug={homepage}
-                                            targetTable="announcements"
-                                            targetId={tempPostId}
-                                            onFileUploaded={(attachment) => {
-                                                console.log('File uploaded:', attachment);
-                                            }}
-                                            onFileDeleted={(fileId) => {
-                                                console.log('File deleted:', fileId);
-                                            }}
                                         />
                                     </div>
                                 </div>
