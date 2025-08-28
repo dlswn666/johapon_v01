@@ -27,6 +27,7 @@ import {
 import { useRouter, useParams } from 'next/navigation';
 import TiptapEditor from '@/components/community/TiptapEditor';
 import FileUpload from '@/components/common/FileUpload';
+import DateTimePicker from '@/components/common/DateTimePicker';
 import { useAnnouncementStore } from '@/shared/store/announcementStore';
 import type { AnnouncementUpdateData } from '@/entities/announcement/model/types';
 
@@ -378,43 +379,47 @@ export default function TenantAnnouncementDetailPage() {
                                     </div>
 
                                     <div>
-                                        <Label>게시 시작일</Label>
-                                        <Input
-                                            type="datetime-local"
-                                            value={
-                                                isEditMode
-                                                    ? editData.published_at ?? announcement?.publishedAt ?? ''
-                                                    : announcement?.publishedAt ?? ''
-                                            }
-                                            readOnly={!isEditMode}
-                                            onChange={(e) =>
-                                                handleEditDataChange('published_at', e.target.value || null)
-                                            }
-                                            className={`mt-2 ${
-                                                isEditMode
-                                                    ? 'bg-white border-gray-300 text-gray-900'
-                                                    : 'bg-gray-50 border-gray-200 text-gray-900'
-                                            }`}
-                                        />
+                                        {isEditMode ? (
+                                            <DateTimePicker
+                                                label="게시 시작일"
+                                                value={editData.published_at ?? announcement?.publishedAt ?? ''}
+                                                onChange={(value) => handleEditDataChange('published_at', value)}
+                                                placeholder="언제부터 게시할까요?"
+                                                disabled={isSaving}
+                                                helperText="설정하지 않으면 즉시 게시됩니다"
+                                            />
+                                        ) : (
+                                            <>
+                                                <Label>게시 시작일</Label>
+                                                <div className="mt-2 p-3 bg-gray-50 border border-gray-200 rounded-md text-gray-900">
+                                                    {announcement?.publishedAt
+                                                        ? formatDate(announcement.publishedAt)
+                                                        : '즉시 게시'}
+                                                </div>
+                                            </>
+                                        )}
                                     </div>
 
                                     <div>
-                                        <Label>게시 종료일</Label>
-                                        <Input
-                                            type="datetime-local"
-                                            value={
-                                                isEditMode
-                                                    ? editData.expires_at ?? announcement?.expiresAt ?? ''
-                                                    : announcement?.expiresAt ?? ''
-                                            }
-                                            readOnly={!isEditMode}
-                                            onChange={(e) => handleEditDataChange('expires_at', e.target.value || null)}
-                                            className={`mt-2 ${
-                                                isEditMode
-                                                    ? 'bg-white border-gray-300 text-gray-900'
-                                                    : 'bg-gray-50 border-gray-200 text-gray-900'
-                                            }`}
-                                        />
+                                        {isEditMode ? (
+                                            <DateTimePicker
+                                                label="게시 종료일"
+                                                value={editData.expires_at ?? announcement?.expiresAt ?? ''}
+                                                onChange={(value) => handleEditDataChange('expires_at', value)}
+                                                placeholder="언제까지 게시할까요?"
+                                                disabled={isSaving}
+                                                helperText="설정하지 않으면 계속 게시됩니다"
+                                            />
+                                        ) : (
+                                            <>
+                                                <Label>게시 종료일</Label>
+                                                <div className="mt-2 p-3 bg-gray-50 border border-gray-200 rounded-md text-gray-900">
+                                                    {announcement?.expiresAt
+                                                        ? formatDate(announcement.expiresAt)
+                                                        : '계속 게시'}
+                                                </div>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
 
@@ -513,15 +518,6 @@ export default function TenantAnnouncementDetailPage() {
                                             </div>
                                         </div>
                                     </div>
-                                    <div>
-                                        <Label>조회수</Label>
-                                        <div className="mt-2 p-3 bg-gray-50 border border-gray-200 rounded-md text-gray-900">
-                                            <div className="flex items-center space-x-2">
-                                                <Eye className="h-4 w-4 text-gray-500" />
-                                                <span>{announcement?.views?.toLocaleString() || 0}회</span>
-                                            </div>
-                                        </div>
-                                    </div>
                                 </div>
 
                                 {/* 알림톡 발송 상태 */}
@@ -540,6 +536,25 @@ export default function TenantAnnouncementDetailPage() {
                                     </div>
                                 )}
 
+                                {/* 첨부파일 */}
+                                <div>
+                                    <Label>첨부파일</Label>
+                                    <div className="mt-2">
+                                        <FileUpload
+                                            slug={homepage}
+                                            targetTable="announcements"
+                                            targetId={id}
+                                            disabled={!isEditMode}
+                                            onFileUploaded={(attachment) => {
+                                                console.log('File uploaded:', attachment);
+                                            }}
+                                            onFileDeleted={(fileId) => {
+                                                console.log('File deleted:', fileId);
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+
                                 {/* 내용 */}
                                 <div>
                                     <Label>내용</Label>
@@ -557,25 +572,6 @@ export default function TenantAnnouncementDetailPage() {
                                             slug={homepage}
                                             targetTable="announcements"
                                             targetId={id}
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* 첨부파일 */}
-                                <div>
-                                    <Label>첨부파일</Label>
-                                    <div className="mt-2">
-                                        <FileUpload
-                                            slug={homepage}
-                                            targetTable="announcements"
-                                            targetId={id}
-                                            disabled={!isEditMode}
-                                            onFileUploaded={(attachment) => {
-                                                console.log('File uploaded:', attachment);
-                                            }}
-                                            onFileDeleted={(fileId) => {
-                                                console.log('File deleted:', fileId);
-                                            }}
                                         />
                                     </div>
                                 </div>

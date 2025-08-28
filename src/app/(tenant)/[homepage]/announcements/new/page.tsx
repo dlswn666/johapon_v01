@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/shared/ui/switch';
 import TiptapEditor from '@/components/community/TiptapEditor';
 import TempFileUpload, { type TempFile } from '@/components/common/TempFileUpload';
+import DateTimePicker from '@/components/common/DateTimePicker';
 import BannerAd from '@/widgets/common/BannerAd';
 import { FileText, Save, Send, Loader2, AlertTriangle, Pin } from 'lucide-react';
 import { useRouter, useParams } from 'next/navigation';
@@ -269,28 +270,26 @@ export default function TenantAnnouncementNewPage() {
                                             </SelectContent>
                                         </Select>
                                     </div>
+                                </div>
 
-                                    <div>
-                                        <Label>게시 시작일</Label>
-                                        <Input
-                                            type="datetime-local"
-                                            value={form.published_at || ''}
-                                            onChange={(e) => handleChange('published_at', e.target.value || null)}
-                                            className="mt-2"
-                                        />
-                                        <p className="text-xs text-gray-500 mt-1">설정하지 않으면 즉시 게시됩니다</p>
-                                    </div>
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                    <DateTimePicker
+                                        label="게시 시작일"
+                                        value={form.published_at || ''}
+                                        onChange={(value) => handleChange('published_at', value)}
+                                        placeholder="언제부터 게시할까요?"
+                                        disabled={isSubmitting}
+                                        helperText="설정하지 않으면 즉시 게시됩니다"
+                                    />
 
-                                    <div>
-                                        <Label>게시 종료일</Label>
-                                        <Input
-                                            type="datetime-local"
-                                            value={form.expires_at || ''}
-                                            onChange={(e) => handleChange('expires_at', e.target.value || null)}
-                                            className="mt-2"
-                                        />
-                                        <p className="text-xs text-gray-500 mt-1">설정하지 않으면 계속 게시됩니다</p>
-                                    </div>
+                                    <DateTimePicker
+                                        label="게시 종료일"
+                                        value={form.expires_at || ''}
+                                        onChange={(value) => handleChange('expires_at', value)}
+                                        placeholder="언제까지 게시할까요?"
+                                        disabled={isSubmitting}
+                                        helperText="설정하지 않으면 계속 게시됩니다"
+                                    />
                                 </div>
 
                                 {/* 특별 옵션들 */}
