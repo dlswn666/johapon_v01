@@ -7,7 +7,7 @@ import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
 import { Switch } from '@/shared/ui/switch';
-import RichTextEditor from '@/components/community/RichTextEditor';
+import TiptapEditor from '@/components/community/TiptapEditor';
 import BannerAd from '@/widgets/common/BannerAd';
 import { MessageSquare, Save, Loader2, AlertTriangle, UserX } from 'lucide-react';
 import { useRouter, useParams } from 'next/navigation';
@@ -201,7 +201,7 @@ export default function TenantCommunityNewPage() {
                                 <div>
                                     <Label>내용 *</Label>
                                     <div className="mt-2">
-                                        <RichTextEditor
+                                        <TiptapEditor
                                             content={form.content}
                                             onChange={(content) => handleChange('content', content)}
                                             placeholder="게시글 내용을 작성해 주세요..."

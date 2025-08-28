@@ -10,7 +10,7 @@ import { Badge } from '@/shared/ui/badge';
 import BannerAd from '@/widgets/common/BannerAd';
 import { Users, ArrowLeft, Calendar, User, Eye, Heart, MessageSquare, Edit, Save, X, AlertCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import RichTextEditor from '@/components/community/RichTextEditor';
+import TiptapEditor from '@/components/community/TiptapEditor';
 import { useCommunityDetail, type CommunityDetail, type CommunityUpdateData } from '@/shared/hooks/useCommunityDetail';
 
 export default function TenantCommunityDetailPage() {
@@ -328,7 +328,7 @@ export default function TenantCommunityDetailPage() {
                                 <div>
                                     <Label>게시글 내용</Label>
                                     <div className="mt-2">
-                                        <RichTextEditor
+                                        <TiptapEditor
                                             content={
                                                 isEditMode
                                                     ? editData.content ?? community.content ?? ''

@@ -2,7 +2,7 @@
 
 import { Card, CardContent } from '@/shared/ui/card';
 import { Badge } from '@/shared/ui/badge';
-import { Eye, MessageCircle, Heart, User, Calendar, UserX } from 'lucide-react';
+import { Eye, MessageCircle, Heart, User, Calendar, UserX, Users, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import type { CommunityPostItem } from '@/entities/community/model/types';
@@ -87,23 +87,47 @@ export default function CommunityPostList({ posts, loading, error, hasMore, obse
                                 <div className="flex items-start justify-between">
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2 mb-2">
+                                            {/* 커뮤니티 타입 표시 */}
+                                            <Badge variant="outline" className="text-xs px-2 py-1 border-purple-300 text-purple-700">
+                                                <Users className="h-3 w-3 mr-1" />
+                                                커뮤니티
+                                            </Badge>
+                                            
+                                            {/* 익명 여부 */}
                                             {post.isAnonymous && (
-                                                <Badge variant="secondary" className="text-xs">
+                                                <Badge variant="secondary" className="text-xs px-2 py-1 bg-gray-100 text-gray-700">
                                                     <UserX className="h-3 w-3 mr-1" />
                                                     익명
                                                 </Badge>
                                             )}
-
-                                            <Badge variant="outline" className="text-xs">
-                                                {post.category}
-                                            </Badge>
-
+                                            
                                             {/* 인기 게시글 표시 */}
                                             {getPopularityScore(post) >= 10 && (
-                                                <Badge variant="default" className="bg-red-500 text-xs">
-                                                    🔥 인기
+                                                <Badge variant="default" className="bg-red-500 text-xs px-2 py-1">
+                                                    <TrendingUp className="h-3 w-3 mr-1" />
+                                                    인기
                                                 </Badge>
                                             )}
+                                            
+                                            {/* 많은 좋아요 게시글 */}
+                                            {post.likes >= 5 && (
+                                                <Badge variant="outline" className="text-xs px-2 py-1 border-pink-300 text-pink-700">
+                                                    <Heart className="h-3 w-3 mr-1" />
+                                                    좋아요 {post.likes}
+                                                </Badge>
+                                            )}
+                                            
+                                            {/* 많은 댓글 게시글 */}
+                                            {post.comments >= 5 && (
+                                                <Badge variant="outline" className="text-xs px-2 py-1 border-blue-300 text-blue-700">
+                                                    <MessageCircle className="h-3 w-3 mr-1" />
+                                                    댓글 {post.comments}
+                                                </Badge>
+                                            )}
+
+                                            <Badge variant="outline" className="text-xs ml-auto">
+                                                {post.category}
+                                            </Badge>
                                         </div>
 
                                         <Link href={`/${homepage}/community/${post.id}`} className="block group">

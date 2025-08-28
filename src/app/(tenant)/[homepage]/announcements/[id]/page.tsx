@@ -25,7 +25,7 @@ import {
     AlertTriangle,
 } from 'lucide-react';
 import { useRouter, useParams } from 'next/navigation';
-import RichTextEditor from '@/components/community/RichTextEditor';
+import TiptapEditor from '@/components/community/TiptapEditor';
 import { useAnnouncementStore } from '@/shared/store/announcementStore';
 import type { AnnouncementUpdateData } from '@/entities/announcement/model/types';
 
@@ -543,11 +543,12 @@ export default function TenantAnnouncementDetailPage() {
                                 <div>
                                     <Label>내용</Label>
                                     <div className="mt-2">
-                                        <RichTextEditor
+                                        <TiptapEditor
+                                            key={`editor-${isEditMode ? 'edit' : 'view'}`}
                                             content={
                                                 isEditMode
-                                                    ? editData.content ?? announcement.content ?? '111'
-                                                    : announcement.content ?? '111'
+                                                    ? editData.content ?? announcement.content ?? ''
+                                                    : announcement.content ?? ''
                                             }
                                             onChange={(content) => handleEditDataChange('content', content)}
                                             placeholder="공지사항 내용을 입력하세요..."

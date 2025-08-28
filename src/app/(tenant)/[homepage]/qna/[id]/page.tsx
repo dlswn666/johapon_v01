@@ -25,7 +25,7 @@ import {
     Clock,
 } from 'lucide-react';
 import { useRouter, useParams } from 'next/navigation';
-import RichTextEditor from '@/components/community/RichTextEditor';
+import TiptapEditor from '@/components/community/TiptapEditor';
 import { useQnAStore } from '@/shared/store/qnaStore';
 import type { QnAUpdateData, QnAAnswerData } from '@/entities/qna/model/types';
 
@@ -430,7 +430,7 @@ export default function TenantQnADetailPage() {
                                 <div>
                                     <Label>내용</Label>
                                     <div className="mt-2">
-                                        <RichTextEditor
+                                        <TiptapEditor
                                             content={
                                                 isEditMode ? editData.content ?? qna.content ?? '' : qna.content ?? ''
                                             }
@@ -467,7 +467,7 @@ export default function TenantQnADetailPage() {
                                 <CardContent>
                                     {isAnswerMode ? (
                                         <div className="space-y-4">
-                                            <RichTextEditor
+                                            <TiptapEditor
                                                 content={answerData.answer_content}
                                                 onChange={(content) => setAnswerData({ answer_content: content })}
                                                 placeholder="답변 내용을 입력하세요..."
@@ -491,7 +491,7 @@ export default function TenantQnADetailPage() {
                                         </div>
                                     ) : (
                                         <div>
-                                            <RichTextEditor
+                                            <TiptapEditor
                                                 content={qna.answerContent || ''}
                                                 onChange={() => {}}
                                                 readonly={true}

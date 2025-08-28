@@ -87,6 +87,7 @@ function transformDbQnAToItem(qna: DbQnAWithCategory): QnAItem {
         views: qna.view_count || 0,
         isSecret: qna.is_secret || false,
         isAnswered: qna.is_answered || false,
+        isAnonymous: qna.is_anonymous || false,
         answerContent: qna.answer_content || undefined,
         answeredAt: qna.answered_at || undefined,
         answererName: qna.answerer_name || undefined,

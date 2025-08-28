@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import { Card, CardContent } from '@/shared/ui/card';
 import { Badge } from '@/shared/ui/badge';
-import { Calendar, Eye, Pin, User } from 'lucide-react';
+import { Calendar, Eye, Pin, User, AlertTriangle, Megaphone, Bell, CheckCircle } from 'lucide-react';
 import InfiniteScrollContainer from '@/shared/components/InfiniteScrollContainer';
 import type { AnnouncementItem } from '@/entities/announcement/model/types';
 import { useParams, useRouter } from 'next/navigation';
@@ -132,17 +132,60 @@ export default function AnnouncementsList({
                         <div className="space-y-4">
                             <div className="flex items-start justify-between">
                                 <div className="flex-1">
+                                    {/* 상태 아이콘들과 카테고리 */}
                                     <div className="flex items-center space-x-2 mb-2">
-                                        {announcement.isPinned && <Pin className="h-4 w-4 text-red-600" />}
-                                        <Badge variant="secondary" className="text-gray-900">
+                                        {/* 긴급 공지 */}
+                                        {announcement.isUrgent && (
+                                            <Badge variant="destructive" className="text-xs px-2 py-1 bg-red-600">
+                                                <AlertTriangle className="h-3 w-3 mr-1" />
+                                                긴급
+                                            </Badge>
+                                        )}
+                                        
+                                        {/* 상단 고정 */}
+                                        {announcement.isPinned && (
+                                            <Badge variant="default" className="text-xs px-2 py-1 bg-green-600">
+                                                <Pin className="h-3 w-3 mr-1" />
+                                                고정
+                                            </Badge>
+                                        )}
+                                        
+                                        {/* 팝업 공지 */}
+                                        {announcement.popup && (
+                                            <Badge variant="secondary" className="text-xs px-2 py-1 bg-blue-100 text-blue-800">
+                                                <Megaphone className="h-3 w-3 mr-1" />
+                                                팝업
+                                            </Badge>
+                                        )}
+                                        
+                                        {/* 알림톡 발송 */}
+                                        {announcement.alrimtalkSent ? (
+                                            <Badge variant="outline" className="text-xs px-2 py-1 border-orange-300 text-orange-700">
+                                                <CheckCircle className="h-3 w-3 mr-1" />
+                                                알림발송
+                                            </Badge>
+                                        ) : (
+                                            <Badge variant="outline" className="text-xs px-2 py-1 border-gray-300 text-gray-600">
+                                                <Bell className="h-3 w-3 mr-1" />
+                                                미발송
+                                            </Badge>
+                                        )}
+                                        
+                                        <Badge variant="secondary" className="text-gray-900 ml-auto">
                                             {announcement.category}
                                         </Badge>
-                                        <div className="flex items-center text-sm text-gray-500">
+                                    </div>
+                                    
+                                    {/* 제목과 날짜 */}
+                                    <div className="flex items-start justify-between mb-2">
+                                        <h3 className={`text-lg mb-0 flex-1 ${announcement.isUrgent ? 'text-red-700 font-semibold' : 'text-gray-900'}`}>
+                                            {announcement.title}
+                                        </h3>
+                                        <div className="flex items-center text-sm text-gray-500 ml-4">
                                             <Calendar className="h-4 w-4 mr-1" />
                                             {announcement.date}
                                         </div>
                                     </div>
-                                    <h3 className="text-lg text-gray-900 mb-2">{announcement.title}</h3>
                                 </div>
                             </div>
 

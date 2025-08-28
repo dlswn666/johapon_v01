@@ -7,7 +7,7 @@ import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
 import { Switch } from '@/shared/ui/switch';
-import RichTextEditor from '@/components/community/RichTextEditor';
+import TiptapEditor from '@/components/community/TiptapEditor';
 import BannerAd from '@/widgets/common/BannerAd';
 import { FileText, Save, Send, Loader2, AlertTriangle, Pin } from 'lucide-react';
 import { useRouter, useParams } from 'next/navigation';
@@ -305,7 +305,7 @@ export default function TenantAnnouncementNewPage() {
                                 <div>
                                     <Label>내용 *</Label>
                                     <div className="mt-2">
-                                        <RichTextEditor
+                                        <TiptapEditor
                                             content={form.content}
                                             onChange={(content) => handleChange('content', content)}
                                             placeholder="공지사항 내용을 작성해 주세요..."

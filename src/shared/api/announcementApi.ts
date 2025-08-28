@@ -21,6 +21,10 @@ interface FetchAnnouncementsParams {
     subcategoryId?: string;
     searchTerm?: string;
     popupOnly?: boolean;
+    isUrgent?: boolean;
+    isPinned?: boolean;
+    popup?: boolean;
+    alrimtalkSent?: boolean;
 }
 
 interface FetchAnnouncementsResponse {
@@ -89,7 +93,7 @@ function transformDbAnnouncementToDetail(announcement: DbAnnouncementWithCategor
 export const announcementApi = {
     // 공지사항 목록 조회
     async fetchAnnouncements(params: FetchAnnouncementsParams): Promise<FetchAnnouncementsResponse> {
-        const { slug, page, pageSize, categoryKey, subcategoryId, searchTerm, popupOnly } = params;
+        const { slug, page, pageSize, categoryKey, subcategoryId, searchTerm, popupOnly, isUrgent, isPinned, popup, alrimtalkSent } = params;
         
         const queryParams = new URLSearchParams({
             page: String(page),
@@ -104,6 +108,18 @@ export const announcementApi = {
         }
         if (popupOnly) {
             queryParams.set('popup', 'true');
+        }
+        if (popup !== undefined) {
+            queryParams.set('popup', String(popup));
+        }
+        if (isUrgent !== undefined) {
+            queryParams.set('is_urgent', String(isUrgent));
+        }
+        if (isPinned !== undefined) {
+            queryParams.set('is_pinned', String(isPinned));
+        }
+        if (alrimtalkSent !== undefined) {
+            queryParams.set('alrimtalk_sent', String(alrimtalkSent));
         }
         if (searchTerm) {
             queryParams.set('search', searchTerm);

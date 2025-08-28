@@ -32,6 +32,10 @@ interface AnnouncementState {
         subcategoryId?: string;
         searchTerm?: string;
         popupOnly?: boolean;
+        isUrgent?: boolean;
+        isPinned?: boolean;
+        popup?: boolean;
+        alrimtalkSent?: boolean;
     };
 
     // 액션
@@ -126,6 +130,10 @@ export const useAnnouncementStore = create<AnnouncementState>()(
                         subcategoryId: filters.subcategoryId,
                         searchTerm: filters.searchTerm,
                         popupOnly: filters.popupOnly,
+                        isUrgent: filters.isUrgent,
+                        isPinned: filters.isPinned,
+                        popup: filters.popup,
+                        alrimtalkSent: filters.alrimtalkSent,
                     });
 
                     set((state) => ({

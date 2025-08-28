@@ -41,6 +41,7 @@ export interface QnAItem {
     views: number;
     isSecret: boolean;
     isAnswered: boolean;
+    isAnonymous: boolean;
     answerContent?: string | null;
     answeredAt?: string | null;
     answererName?: string | null;

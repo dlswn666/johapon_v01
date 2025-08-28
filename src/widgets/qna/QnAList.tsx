@@ -2,7 +2,7 @@
 
 import { Card, CardContent } from '@/shared/ui/card';
 import { Badge } from '@/shared/ui/badge';
-import { Eye, MessageCircle, Lock, CheckCircle, Clock, User, Calendar } from 'lucide-react';
+import { Eye, MessageCircle, Lock, CheckCircle, Clock, User, Calendar, UserX, HelpCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import type { QnAItem } from '@/entities/qna/model/types';
@@ -82,26 +82,42 @@ export default function QnAList({ qnaList, loading, error, hasMore, observerRef 
                                 <div className="flex items-start justify-between">
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2 mb-2">
-                                            {qna.isSecret && (
-                                                <Badge variant="secondary" className="text-xs">
-                                                    <Lock className="h-3 w-3 mr-1" />
-                                                    비밀글
-                                                </Badge>
-                                            )}
-
+                                            {/* Q&A 타입 표시 */}
+                                            <Badge variant="outline" className="text-xs px-2 py-1 border-blue-300 text-blue-700">
+                                                <HelpCircle className="h-3 w-3 mr-1" />
+                                                Q&A
+                                            </Badge>
+                                            
+                                            {/* 답변 상태 */}
                                             {qna.isAnswered ? (
-                                                <Badge variant="default" className="bg-green-600 text-xs">
+                                                <Badge variant="default" className="bg-green-600 text-xs px-2 py-1">
                                                     <CheckCircle className="h-3 w-3 mr-1" />
                                                     답변완료
                                                 </Badge>
                                             ) : (
-                                                <Badge variant="secondary" className="bg-orange-600 text-white text-xs">
+                                                <Badge variant="secondary" className="bg-orange-100 text-orange-800 text-xs px-2 py-1">
                                                     <Clock className="h-3 w-3 mr-1" />
                                                     답변대기
                                                 </Badge>
                                             )}
+                                            
+                                            {/* 비밀글 여부 */}
+                                            {qna.isSecret && (
+                                                <Badge variant="secondary" className="text-xs px-2 py-1 bg-gray-100 text-gray-700">
+                                                    <Lock className="h-3 w-3 mr-1" />
+                                                    비밀글
+                                                </Badge>
+                                            )}
+                                            
+                                            {/* 익명 여부 */}
+                                            {qna.isAnonymous && (
+                                                <Badge variant="outline" className="text-xs px-2 py-1 border-purple-300 text-purple-700">
+                                                    <UserX className="h-3 w-3 mr-1" />
+                                                    익명
+                                                </Badge>
+                                            )}
 
-                                            <Badge variant="outline" className="text-xs">
+                                            <Badge variant="outline" className="text-xs ml-auto">
                                                 {qna.category}
                                             </Badge>
                                         </div>
@@ -116,7 +132,11 @@ export default function QnAList({ qnaList, loading, error, hasMore, observerRef 
                                         <div className="flex items-center justify-between text-sm text-gray-500">
                                             <div className="flex items-center space-x-4">
                                                 <div className="flex items-center space-x-1">
-                                                    <User className="h-4 w-4" />
+                                                    {qna.isAnonymous ? (
+                                                        <UserX className="h-4 w-4" />
+                                                    ) : (
+                                                        <User className="h-4 w-4" />
+                                                    )}
                                                     <span>{qna.author}</span>
                                                 </div>
                                                 <div className="flex items-center space-x-1">
