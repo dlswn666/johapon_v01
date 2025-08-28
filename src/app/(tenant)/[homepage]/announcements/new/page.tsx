@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
@@ -8,6 +8,7 @@ import { Label } from '@/shared/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
 import { Switch } from '@/shared/ui/switch';
 import TiptapEditor from '@/components/community/TiptapEditor';
+import FileUpload from '@/components/common/FileUpload';
 import BannerAd from '@/widgets/common/BannerAd';
 import { FileText, Save, Send, Loader2, AlertTriangle, Pin } from 'lucide-react';
 import { useRouter, useParams } from 'next/navigation';
@@ -21,6 +22,20 @@ export default function TenantAnnouncementNewPage() {
 
     // Store 사용
     const { subcategories, loading, error, fetchMetadata, createAnnouncement, resetState } = useAnnouncementStore();
+
+    // 임시 게시물 ID 생성 (첨부파일용)
+    const tempPostId = useMemo(() => {
+        // UUID v4 형식의 임시 ID 생성
+        if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+            return crypto.randomUUID();
+        }
+        // Fallback for older browsers
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+            const r = (Math.random() * 16) | 0;
+            const v = c === 'x' ? r : (r & 0x3) | 0x8;
+            return v.toString(16);
+        });
+    }, []);
 
     const [form, setForm] = useState<AnnouncementCreateData & { sendNotification: boolean }>({
         title: '',
@@ -309,6 +324,26 @@ export default function TenantAnnouncementNewPage() {
                                             content={form.content}
                                             onChange={(content) => handleChange('content', content)}
                                             placeholder="공지사항 내용을 작성해 주세요..."
+                                            slug={homepage}
+                                            targetTable="announcements"
+                                            targetId={tempPostId}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <Label>첨부파일</Label>
+                                    <div className="mt-2">
+                                        <FileUpload
+                                            slug={homepage}
+                                            targetTable="announcements"
+                                            targetId={tempPostId}
+                                            onFileUploaded={(attachment) => {
+                                                console.log('File uploaded:', attachment);
+                                            }}
+                                            onFileDeleted={(fileId) => {
+                                                console.log('File deleted:', fileId);
+                                            }}
                                         />
                                     </div>
                                 </div>

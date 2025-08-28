@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 
@@ -13,6 +13,8 @@ import Link from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
 
 import { Button } from '@/shared/ui/button';
+import { useAttachmentStore } from '@/shared/store/attachmentStore';
+import { IMAGE_FILE_TYPES } from '@/entities/attachment/model/types';
 import {
     Bold,
     Italic,
@@ -26,6 +28,7 @@ import {
     Link as LinkIcon,
     Undo,
     Redo,
+    Upload,
 } from 'lucide-react';
 
 interface TiptapEditorProps {
@@ -33,6 +36,10 @@ interface TiptapEditorProps {
     onChange: (content: string) => void;
     placeholder?: string;
     readonly?: boolean;
+    // 파일 업로드를 위한 메타데이터
+    slug?: string;
+    targetTable?: string;
+    targetId?: string;
 }
 
 const TiptapEditor: React.FC<TiptapEditorProps> = ({
@@ -40,7 +47,12 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({
     onChange,
     placeholder = '내용을 입력하세요...',
     readonly = false,
+    slug,
+    targetTable,
+    targetId,
 }) => {
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const { uploadEditorImage, error: uploadError, clearError } = useAttachmentStore();
     const editor = useEditor({
         // ✅ Next.js SSR 수화 불일치 방지(필수)
         immediatelyRender: false,
@@ -110,8 +122,45 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({
     }
 
     const handleImageUpload = () => {
-        const url = window.prompt('이미지 URL을 입력하세요:');
-        if (url) editor.chain().focus().setImage({ src: url }).run();
+        fileInputRef.current?.click();
+    };
+
+    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        // 이미지 파일 타입 검증
+        if (!IMAGE_FILE_TYPES.includes(file.type)) {
+            alert('이미지 파일만 업로드 가능합니다. (JPEG, PNG, GIF, WebP)');
+            return;
+        }
+
+        // 파일 크기 검증 (5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            alert('파일 크기가 너무 큽니다. 최대 5MB까지 업로드 가능합니다.');
+            return;
+        }
+
+        // 업로드에 필요한 메타데이터 확인
+        if (!slug || !targetTable || !targetId) {
+            alert('이미지 업로드를 위한 정보가 부족합니다.');
+            return;
+        }
+
+        try {
+            clearError();
+            const imageUrl = await uploadEditorImage(slug, targetTable, targetId, file);
+            editor?.chain().focus().setImage({ src: imageUrl }).run();
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            console.error('Image upload failed:', errorMessage);
+            alert(`이미지 업로드에 실패했습니다: ${errorMessage}`);
+        }
+
+        // 파일 input 초기화
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
     };
 
     const handleLinkAdd = () => {
@@ -273,6 +322,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({
                         className="h-8 w-8 p-0"
                         aria-label="Insert Image"
                         title="Insert Image"
+                        disabled={!slug || !targetTable || !targetId}
                     >
                         <ImageIcon className="h-4 w-4" />
                     </Button>
@@ -290,8 +340,24 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({
                 </div>
             </div>
 
+            {/* Hidden file input */}
+            <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                style={{ display: 'none' }}
+            />
+
             {/* Editor */}
             <EditorContent editor={editor} />
+
+            {/* 업로드 에러 표시 */}
+            {uploadError && (
+                <div className="p-2 bg-red-50 border-t border-red-200 text-red-600 text-sm">
+                    업로드 오류: {uploadError}
+                </div>
+            )}
 
             <style jsx global>{`
                 .ProseMirror {

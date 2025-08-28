@@ -74,6 +74,7 @@ export async function POST(req: Request, context: { params: Promise<{ slug: stri
                 file_url: fileUrl,
                 file_name: safeName,
                 file_type: file.type || 'application/octet-stream',
+                file_size: file.size,
                 uploaded_at: new Date().toISOString(),
             })
             .select('id, file_url')
@@ -123,6 +124,7 @@ export async function POST(req: Request, context: { params: Promise<{ slug: stri
             file_url: fileUrl,
             file_name: safeName,
             file_type: contentTypeJson || 'application/octet-stream',
+            file_size: binary.length,
             uploaded_at: new Date().toISOString(),
         })
         .select('id, file_url')

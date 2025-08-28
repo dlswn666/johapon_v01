@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { useRouter, useParams } from 'next/navigation';
 import TiptapEditor from '@/components/community/TiptapEditor';
+import FileUpload from '@/components/common/FileUpload';
 import { useAnnouncementStore } from '@/shared/store/announcementStore';
 import type { AnnouncementUpdateData } from '@/entities/announcement/model/types';
 
@@ -553,6 +554,28 @@ export default function TenantAnnouncementDetailPage() {
                                             onChange={(content) => handleEditDataChange('content', content)}
                                             placeholder="공지사항 내용을 입력하세요..."
                                             readonly={!isEditMode}
+                                            slug={homepage}
+                                            targetTable="announcements"
+                                            targetId={id}
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* 첨부파일 */}
+                                <div>
+                                    <Label>첨부파일</Label>
+                                    <div className="mt-2">
+                                        <FileUpload
+                                            slug={homepage}
+                                            targetTable="announcements"
+                                            targetId={id}
+                                            disabled={!isEditMode}
+                                            onFileUploaded={(attachment) => {
+                                                console.log('File uploaded:', attachment);
+                                            }}
+                                            onFileDeleted={(fileId) => {
+                                                console.log('File deleted:', fileId);
+                                            }}
                                         />
                                     </div>
                                 </div>

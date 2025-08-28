@@ -67,6 +67,7 @@ export async function POST(req: Request) {
                 file_url: fileUrl,
                 file_name: safeName,
                 file_type: file.type || 'application/octet-stream',
+                file_size: file.size,
                 uploaded_at: new Date().toISOString(),
             })
             .select('id, file_url')
