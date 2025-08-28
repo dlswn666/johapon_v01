@@ -276,7 +276,7 @@ export default function TenantAnnouncementDetailPage() {
                                         <Label htmlFor="title">제목</Label>
                                         <Input
                                             id="title"
-                                            value={isEditMode ? editData.title || '' : announcement.title}
+                                            value={isEditMode ? editData.title || '' : announcement?.title || ''}
                                             readOnly={!isEditMode}
                                             onChange={(e) => handleEditDataChange('title', e.target.value)}
                                             className={`mt-2 ${
@@ -294,8 +294,8 @@ export default function TenantAnnouncementDetailPage() {
                                         <Select
                                             value={
                                                 isEditMode
-                                                    ? editData.subcategory_id || announcement.subcategory_id
-                                                    : announcement.subcategory_id
+                                                    ? editData.subcategory_id || announcement?.subcategory_id
+                                                    : announcement?.subcategory_id
                                             }
                                             disabled={!isEditMode}
                                             onValueChange={(value) => handleEditDataChange('subcategory_id', value)}
@@ -324,7 +324,7 @@ export default function TenantAnnouncementDetailPage() {
                                         <Label>공지 유형</Label>
                                         <Select
                                             value={String(
-                                                isEditMode ? editData.popup ?? announcement.popup : announcement.popup
+                                                isEditMode ? editData.popup ?? announcement?.popup : announcement?.popup
                                             )}
                                             disabled={!isEditMode}
                                             onValueChange={(value) => handleEditDataChange('popup', value === 'true')}
@@ -353,8 +353,8 @@ export default function TenantAnnouncementDetailPage() {
                                         <Select
                                             value={String(
                                                 isEditMode
-                                                    ? editData.priority ?? announcement.priority
-                                                    : announcement.priority
+                                                    ? editData.priority ?? announcement?.priority
+                                                    : announcement?.priority
                                             )}
                                             disabled={!isEditMode}
                                             onValueChange={(value) => handleEditDataChange('priority', parseInt(value))}
@@ -383,8 +383,8 @@ export default function TenantAnnouncementDetailPage() {
                                             type="datetime-local"
                                             value={
                                                 isEditMode
-                                                    ? editData.published_at ?? announcement.publishedAt ?? ''
-                                                    : announcement.publishedAt ?? ''
+                                                    ? editData.published_at ?? announcement?.publishedAt ?? ''
+                                                    : announcement?.publishedAt ?? ''
                                             }
                                             readOnly={!isEditMode}
                                             onChange={(e) =>
@@ -404,8 +404,8 @@ export default function TenantAnnouncementDetailPage() {
                                             type="datetime-local"
                                             value={
                                                 isEditMode
-                                                    ? editData.expires_at ?? announcement.expiresAt ?? ''
-                                                    : announcement.expiresAt ?? ''
+                                                    ? editData.expires_at ?? announcement?.expiresAt ?? ''
+                                                    : announcement?.expiresAt ?? ''
                                             }
                                             readOnly={!isEditMode}
                                             onChange={(e) => handleEditDataChange('expires_at', e.target.value || null)}
@@ -435,7 +435,7 @@ export default function TenantAnnouncementDetailPage() {
                                                     </div>
                                                 </div>
                                                 <Switch
-                                                    checked={editData.is_urgent ?? announcement.isUrgent}
+                                                    checked={editData.is_urgent ?? announcement?.isUrgent}
                                                     onCheckedChange={(c: boolean) =>
                                                         handleEditDataChange('is_urgent', c)
                                                     }
@@ -453,7 +453,7 @@ export default function TenantAnnouncementDetailPage() {
                                                     </div>
                                                 </div>
                                                 <Switch
-                                                    checked={editData.is_pinned ?? announcement.isPinned}
+                                                    checked={editData.is_pinned ?? announcement?.isPinned}
                                                     onCheckedChange={(c: boolean) =>
                                                         handleEditDataChange('is_pinned', c)
                                                     }
@@ -462,7 +462,7 @@ export default function TenantAnnouncementDetailPage() {
                                         </>
                                     ) : (
                                         <>
-                                            {announcement.isUrgent && (
+                                            {announcement?.isUrgent && (
                                                 <div className="flex items-center p-3 bg-yellow-50 rounded-lg border border-yellow-200">
                                                     <AlertTriangle className="h-5 w-5 text-yellow-600 mr-2" />
                                                     <Badge variant="destructive" className="bg-yellow-600">
@@ -470,7 +470,7 @@ export default function TenantAnnouncementDetailPage() {
                                                     </Badge>
                                                 </div>
                                             )}
-                                            {announcement.isPinned && (
+                                            {announcement?.isPinned && (
                                                 <div className="flex items-center p-3 bg-blue-50 rounded-lg border border-blue-200">
                                                     <Pin className="h-5 w-5 text-blue-600 mr-2" />
                                                     <Badge variant="secondary" className="bg-blue-600 text-white">
@@ -478,7 +478,7 @@ export default function TenantAnnouncementDetailPage() {
                                                     </Badge>
                                                 </div>
                                             )}
-                                            {announcement.priority > 0 && (
+                                            {announcement?.priority && announcement.priority > 0 && (
                                                 <div className="flex items-center p-3 bg-green-50 rounded-lg border border-green-200">
                                                     <Star className="h-5 w-5 text-green-600 mr-2" />
                                                     <Badge
@@ -500,7 +500,7 @@ export default function TenantAnnouncementDetailPage() {
                                         <div className="mt-2 p-3 bg-gray-50 border border-gray-200 rounded-md text-gray-900">
                                             <div className="flex items-center space-x-2">
                                                 <User className="h-4 w-4 text-gray-500" />
-                                                <span>{announcement.author_name || '관리자'}</span>
+                                                <span>{announcement?.author_name || '관리자'}</span>
                                             </div>
                                         </div>
                                     </div>
@@ -509,7 +509,7 @@ export default function TenantAnnouncementDetailPage() {
                                         <div className="mt-2 p-3 bg-gray-50 border border-gray-200 rounded-md text-gray-900">
                                             <div className="flex items-center space-x-2">
                                                 <Calendar className="h-4 w-4 text-gray-500" />
-                                                <span>{formatDate(announcement.created_at)}</span>
+                                                <span>{formatDate(announcement?.created_at || '')}</span>
                                             </div>
                                         </div>
                                     </div>
@@ -518,14 +518,14 @@ export default function TenantAnnouncementDetailPage() {
                                         <div className="mt-2 p-3 bg-gray-50 border border-gray-200 rounded-md text-gray-900">
                                             <div className="flex items-center space-x-2">
                                                 <Eye className="h-4 w-4 text-gray-500" />
-                                                <span>{announcement.views?.toLocaleString() || 0}회</span>
+                                                <span>{announcement?.views?.toLocaleString() || 0}회</span>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
 
                                 {/* 알림톡 발송 상태 */}
-                                {announcement.alrimtalkSent && (
+                                {announcement?.alrimtalkSent && (
                                     <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg border border-green-200">
                                         <div className="flex items-center space-x-3">
                                             <AlertCircle className="h-5 w-5 text-green-600" />
@@ -548,8 +548,8 @@ export default function TenantAnnouncementDetailPage() {
                                             key={`editor-${isEditMode ? 'edit' : 'view'}`}
                                             content={
                                                 isEditMode
-                                                    ? editData.content ?? announcement.content ?? ''
-                                                    : announcement.content ?? ''
+                                                    ? editData.content ?? announcement?.content ?? ''
+                                                    : announcement?.content ?? ''
                                             }
                                             onChange={(content) => handleEditDataChange('content', content)}
                                             placeholder="공지사항 내용을 입력하세요..."
