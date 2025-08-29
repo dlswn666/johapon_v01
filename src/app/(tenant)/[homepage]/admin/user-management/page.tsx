@@ -32,8 +32,8 @@ const UserManagementPage: React.FC = () => {
     } = useUserStore();
 
     const [searchQuery, setSearchQuery] = useState('');
-    const [roleFilter, setRoleFilter] = useState('');
-    const [statusFilter, setStatusFilter] = useState('');
+    const [roleFilter, setRoleFilter] = useState('all');
+    const [statusFilter, setStatusFilter] = useState('all');
 
     // 컴포넌트 마운트 시 사용자 목록 로드
     useEffect(() => {
@@ -46,8 +46,8 @@ const UserManagementPage: React.FC = () => {
     const handleSearch = () => {
         const newFilters = {
             q: searchQuery || undefined,
-            role: roleFilter || undefined,
-            status: statusFilter || undefined,
+            role: roleFilter === 'all' ? undefined : roleFilter,
+            status: statusFilter === 'all' ? undefined : statusFilter,
         };
         setFilters(newFilters);
         if (homepage) {
@@ -58,8 +58,8 @@ const UserManagementPage: React.FC = () => {
     // 필터 초기화
     const handleClearFilters = () => {
         setSearchQuery('');
-        setRoleFilter('');
-        setStatusFilter('');
+        setRoleFilter('all');
+        setStatusFilter('all');
         clearFilters();
         if (homepage) {
             fetchUsers(homepage, {});
@@ -157,7 +157,7 @@ const UserManagementPage: React.FC = () => {
                                             <SelectValue placeholder="권한 선택" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="">전체</SelectItem>
+                                            <SelectItem value="all">전체</SelectItem>
                                             <SelectItem value="member">회원</SelectItem>
                                             <SelectItem value="admin">관리자</SelectItem>
                                             <SelectItem value="systemadmin">시스템관리자</SelectItem>
@@ -172,7 +172,7 @@ const UserManagementPage: React.FC = () => {
                                             <SelectValue placeholder="상태 선택" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="">전체</SelectItem>
+                                            <SelectItem value="all">전체</SelectItem>
                                             <SelectItem value="active">활성</SelectItem>
                                             <SelectItem value="inactive">비활성</SelectItem>
                                             <SelectItem value="pending">대기</SelectItem>
