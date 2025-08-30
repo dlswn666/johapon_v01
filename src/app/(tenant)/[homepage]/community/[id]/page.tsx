@@ -7,7 +7,7 @@ import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
 import { Badge } from '@/shared/ui/badge';
-import BannerAd from '@/widgets/common/BannerAd';
+import SideBannerAds from '@/widgets/common/SideBannerAds';
 import { Users, ArrowLeft, Calendar, User, Eye, Heart, MessageSquare, Edit, Save, X, AlertCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import TiptapEditor from '@/components/community/TiptapEditor';
@@ -176,7 +176,7 @@ export default function TenantCommunityDetailPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
                     {/* 왼쪽 사이드바 - 배너 */}
                     <div className="lg:col-span-1 space-y-6">
-                        <BannerAd onClick={() => alert('배너 이동')} />
+                        <SideBannerAds />
                     </div>
 
                     {/* 중앙 콘텐츠 */}
@@ -421,7 +421,7 @@ export default function TenantCommunityDetailPage() {
 
                     {/* 오른쪽 사이드바 - 배너 */}
                     <div className="lg:col-span-1 space-y-6">
-                        <BannerAd onClick={() => alert('배너 이동')} />
+                        <SideBannerAds />
                     </div>
                 </div>
             </div>

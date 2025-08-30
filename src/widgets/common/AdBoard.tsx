@@ -76,7 +76,7 @@ export default function AdBoard({ className = '' }: AdBoardProps) {
             {/* 검색 결과 정보 */}
             {boardSearch && (
                 <div className="text-sm text-gray-600">
-                    '{boardSearch}' 검색 결과: {boardTotal}건
+                    &apos;{boardSearch}&apos; 검색 결과: {boardTotal}건
                 </div>
             )}
 

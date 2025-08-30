@@ -3,9 +3,9 @@ import { getSupabaseServerClient } from '@/shared/lib/supabaseServer';
 import { ok, fail } from '@/shared/lib/api';
 
 // GET /api/tenant/[slug]/ads/board - 테넌트별 광고 게시판 (모든 광고 열람)
-export async function GET(request: NextRequest, { params }: { params: { slug: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
     try {
-        const { slug } = params;
+        const { slug } = await params;
         const { searchParams } = new URL(request.url);
         const page = parseInt(searchParams.get('page') || '1');
         const pageSize = parseInt(searchParams.get('pageSize') || '12');

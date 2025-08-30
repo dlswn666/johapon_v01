@@ -83,7 +83,7 @@ export async function GET(request: NextRequest) {
         const overdueAmount = overdueInvoices.reduce((sum, inv) => sum + parseFloat(inv.amount), 0);
 
         const overduePartners = Array.from(
-            new Set(overdueInvoices.map((inv) => inv.ad_contracts?.ads?.partner_name))
+            new Set(overdueInvoices.map((inv) => (inv.ad_contracts as any)?.ads?.partner_name))
         ).filter(Boolean);
 
         // 2. 계약 상태 통계

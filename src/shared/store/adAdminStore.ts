@@ -544,7 +544,7 @@ export const useAdAdminStore = create<AdAdminState>()(
                 set({ loading: true, error: null });
 
                 try {
-                    const unionId = selectedUnionId === 'all' ? undefined : selectedUnionId;
+                    const unionId = selectedUnionId === 'all' || selectedUnionId === null ? undefined : selectedUnionId;
                     const data = await advertisementAdminApi.fetchDashboard(unionId);
                     set({ dashboardData: data, loading: false });
                 } catch (error) {

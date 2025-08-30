@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/shared/ui/switch';
 import TiptapEditor from '@/components/community/TiptapEditor';
 import TempFileUpload, { type TempFile } from '@/components/common/TempFileUpload';
-import BannerAd from '@/widgets/common/BannerAd';
+import SideBannerAds from '@/widgets/common/SideBannerAds';
 import { MessageSquare, Save, Loader2, AlertTriangle, UserX } from 'lucide-react';
 import { useRouter, useParams } from 'next/navigation';
 import { useCommunityStore } from '@/shared/store/communityStore';
@@ -163,7 +163,7 @@ export default function TenantCommunityNewPage() {
             <div className="max-w-none mx-auto px-6 sm:px-10 lg:px-32 py-8">
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
                     <div className="lg:col-span-1 space-y-6">
-                        <BannerAd onClick={() => alert('배너 이동')} />
+                        <SideBannerAds />
                     </div>
 
                     <div className="lg:col-span-3 space-y-6">
@@ -293,7 +293,7 @@ export default function TenantCommunityNewPage() {
                     </div>
 
                     <div className="lg:col-span-1 space-y-6">
-                        <BannerAd onClick={() => alert('배너 이동')} />
+                        <SideBannerAds />
                     </div>
                 </div>
             </div>

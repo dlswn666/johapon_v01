@@ -4,14 +4,14 @@ import { ok, fail, requireAuth } from '@/shared/lib/api';
 import type { AdInvoice, AdInvoiceUpdateData } from '@/entities/advertisement/model/types';
 
 // GET /api/admin/ad-invoices/[id] - 청구서 상세 조회
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
         const auth = requireAuth(request);
         if (!auth) {
             return fail('UNAUTHORIZED', '인증이 필요합니다.', 401);
         }
 
-        const { id } = params;
+        const { id } = await params;
         const supabase = getSupabaseServerClient();
 
         const { data: invoice, error } = await supabase
@@ -80,14 +80,14 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 }
 
 // PUT /api/admin/ad-invoices/[id] - 청구서 수정 (주로 입금 처리)
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
         const auth = requireAuth(request);
         if (!auth) {
             return fail('UNAUTHORIZED', '인증이 필요합니다.', 401);
         }
 
-        const { id } = params;
+        const { id } = await params;
         const data: AdInvoiceUpdateData = await request.json();
 
         const supabase = getSupabaseServerClient();

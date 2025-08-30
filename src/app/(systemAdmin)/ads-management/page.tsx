@@ -33,7 +33,7 @@ function DashboardCard({
     icon: any;
     trend?: 'up' | 'down' | 'neutral';
 }) {
-    const trendIcon = trend === 'up' ? TrendingUp : trend === 'down' ? TrendingDown : null;
+    const TrendIcon = trend === 'up' ? TrendingUp : trend === 'down' ? TrendingDown : null;
     const trendColor = trend === 'up' ? 'text-green-500' : trend === 'down' ? 'text-red-500' : 'text-gray-500';
 
     return (
@@ -45,7 +45,7 @@ function DashboardCard({
             <CardContent>
                 <div className="text-2xl font-bold">{value}</div>
                 <div className="flex items-center text-xs text-muted-foreground">
-                    {trendIcon && <trendIcon className={`mr-1 h-3 w-3 ${trendColor}`} />}
+                    {TrendIcon && <TrendIcon className={`mr-1 h-3 w-3 ${trendColor}`} />}
                     {description}
                 </div>
             </CardContent>

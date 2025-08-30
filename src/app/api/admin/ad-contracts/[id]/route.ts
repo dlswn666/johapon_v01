@@ -4,14 +4,14 @@ import { ok, fail, requireAuth } from '@/shared/lib/api';
 import type { AdContract, AdContractUpdateData } from '@/entities/advertisement/model/types';
 
 // GET /api/admin/ad-contracts/[id] - 계약 상세 조회
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
         const auth = requireAuth(request);
         if (!auth) {
             return fail('UNAUTHORIZED', '인증이 필요합니다.', 401);
         }
 
-        const { id } = params;
+        const { id } = await params;
         const supabase = getSupabaseServerClient();
 
         const { data: contract, error } = await supabase
@@ -66,14 +66,14 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 }
 
 // PUT /api/admin/ad-contracts/[id] - 계약 수정
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
         const auth = requireAuth(request);
         if (!auth) {
             return fail('UNAUTHORIZED', '인증이 필요합니다.', 401);
         }
 
-        const { id } = params;
+        const { id } = await params;
         const data: AdContractUpdateData = await request.json();
 
         const supabase = getSupabaseServerClient();
@@ -172,14 +172,14 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 }
 
 // DELETE /api/admin/ad-contracts/[id] - 계약 삭제
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
         const auth = requireAuth(request);
         if (!auth) {
             return fail('UNAUTHORIZED', '인증이 필요합니다.', 401);
         }
 
-        const { id } = params;
+        const { id } = await params;
         const supabase = getSupabaseServerClient();
 
         // 관련 청구서가 있는지 확인

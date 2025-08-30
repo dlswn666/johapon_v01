@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import QnAList from '@/widgets/qna/QnAList';
-import BannerAd from '@/widgets/common/BannerAd';
+import SideBannerAds from '@/widgets/common/SideBannerAds';
 import QnAFilterClient from '@/features/qna/filter/QnAFilterClient';
 import { type ListCategoryOption } from '@/components/common/ListFilter';
 import { Card, CardContent } from '@/shared/ui/card';
@@ -152,7 +152,7 @@ export default function TenantQnAPage() {
             <div className="max-w-none mx-auto px-6 sm:px-10 lg:px-32 py-6 lg:py-12">
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
                     <div className="lg:col-span-1 space-y-6">
-                        <BannerAd />
+                        <SideBannerAds />
                     </div>
 
                     <div className="lg:col-span-3 space-y-6">
@@ -193,7 +193,7 @@ export default function TenantQnAPage() {
                     </div>
 
                     <div className="lg:col-span-1 space-y-6">
-                        <BannerAd />
+                        <SideBannerAds />
                     </div>
                 </div>
             </div>

@@ -3,15 +3,27 @@ import { getSupabaseServerClient } from '@/shared/lib/supabaseServer';
 import { ok, fail, requireAuth } from '@/shared/lib/api';
 import type { Ad, AdUpdateData, DbAdWithPlacements, DbAdPlacement } from '@/entities/advertisement/model/types';
 
+// 광고가 사이드 광고인지 확인하는 헬퍼 함수
+async function checkIfSideAd(supabase: any, adId: string): Promise<boolean> {
+    const { data, error } = await supabase
+        .from('ad_placements')
+        .select('placement')
+        .eq('ad_id', adId)
+        .eq('placement', 'SIDE')
+        .single();
+
+    return !error && !!data;
+}
+
 // GET /api/admin/ads/[id] - 광고 상세 조회
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
         const auth = requireAuth(request);
         if (!auth) {
             return fail('UNAUTHORIZED', '인증이 필요합니다.', 401);
         }
 
-        const { id } = params;
+        const { id } = await params;
         const supabase = getSupabaseServerClient();
 
         const { data: ad, error } = await supabase
@@ -56,14 +68,14 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 }
 
 // PUT /api/admin/ads/[id] - 광고 수정
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
         const auth = requireAuth(request);
         if (!auth) {
             return fail('UNAUTHORIZED', '인증이 필요합니다.', 401);
         }
 
-        const { id } = params;
+        const { id } = await params;
         const data: AdUpdateData = await request.json();
 
         const supabase = getSupabaseServerClient();
@@ -76,6 +88,32 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
                 return fail('NOT_FOUND', '광고를 찾을 수 없습니다.', 404);
             }
             return fail('DATABASE_ERROR', `광고 확인 실패: ${checkError.message}`, 500);
+        }
+
+        // 사이드 광고 10개 제한 검증 (활성화하려는 경우)
+        if (data.is_active === true || (data.is_active === undefined && data.placements?.includes('SIDE'))) {
+            // 현재 광고가 사이드 광고인지 확인
+            const isSideAd =
+                data.placements?.includes('SIDE') ||
+                (data.placements === undefined && (await checkIfSideAd(supabase, id)));
+
+            if (isSideAd) {
+                const { count: activeSideAdsCount, error: countError } = await supabase
+                    .from('ads')
+                    .select('id', { count: 'exact', head: true })
+                    .eq('is_active', true)
+                    .neq('id', id) // 현재 수정 중인 광고는 제외
+                    .in('id', supabase.from('ad_placements').select('ad_id').eq('placement', 'SIDE'));
+
+                if (countError) {
+                    console.error('[ADS_API] Error counting active side ads:', countError);
+                    return fail('DATABASE_ERROR', '활성 광고 개수 확인 중 오류가 발생했습니다.', 500);
+                }
+
+                if ((activeSideAdsCount || 0) >= 10) {
+                    return fail('VALIDATION_ERROR', '사이드 광고는 최대 10개까지만 활성화할 수 있습니다.', 400);
+                }
+            }
         }
 
         // 광고 기본 정보 업데이트
@@ -134,14 +172,14 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 }
 
 // DELETE /api/admin/ads/[id] - 광고 삭제
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
         const auth = requireAuth(request);
         if (!auth) {
             return fail('UNAUTHORIZED', '인증이 필요합니다.', 401);
         }
 
-        const { id } = params;
+        const { id } = await params;
         const supabase = getSupabaseServerClient();
 
         // 활성 계약이 있는지 확인

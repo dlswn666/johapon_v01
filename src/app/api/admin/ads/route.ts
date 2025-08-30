@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
         const supabase = getSupabaseServerClient();
 
         // 기본 쿼리 구성 - placement 필터가 있을 때만 inner join 사용
-        const hasPlacementFilter = placement && placement !== '';
+        const hasPlacementFilter = placement !== null;
 
         let query = supabase.from('ads').select(
             `
@@ -135,6 +135,24 @@ export async function POST(request: NextRequest) {
         }
 
         const supabase = getSupabaseServerClient();
+
+        // 사이드 광고 10개 제한 검증 (활성화된 광고인 경우)
+        if (data.is_active !== false && data.placements.includes('SIDE')) {
+            const { count: activeSideAdsCount, error: countError } = await supabase
+                .from('ads')
+                .select('id', { count: 'exact', head: true })
+                .eq('is_active', true)
+                .in('id', supabase.from('ad_placements').select('ad_id').eq('placement', 'SIDE'));
+
+            if (countError) {
+                console.error('[ADS_API] Error counting active side ads:', countError);
+                return fail('DATABASE_ERROR', '활성 광고 개수 확인 중 오류가 발생했습니다.', 500);
+            }
+
+            if ((activeSideAdsCount || 0) >= 10) {
+                return fail('VALIDATION_ERROR', '사이드 광고는 최대 10개까지만 활성화할 수 있습니다.', 400);
+            }
+        }
 
         // 트랜잭션으로 광고와 게재 위치 동시 생성
         const { data: ad, error: adError } = await supabase

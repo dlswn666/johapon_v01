@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import AnnouncementsList from '@/widgets/announcements/AnnouncementsList';
-import BannerAd from '@/widgets/common/BannerAd';
+import TenantContentLayout from '@/components/layout/TenantContentLayout';
 import AnnouncementsFilterClient from '@/features/announcements/filter/AnnouncementsFilterClient';
 import { Card, CardContent } from '@/shared/ui/card';
 import { useAnnouncementStore } from '@/shared/store/announcementStore';
@@ -141,52 +141,39 @@ export default function TenantAnnouncementsPage() {
                 </div>
             </div>
 
-            <div className="max-w-none mx-auto px-6 sm:px-10 lg:px-32 py-6 lg:py-12">
-                <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-                    <div className="lg:col-span-1 space-y-6">
-                        <BannerAd />
-                    </div>
+            <TenantContentLayout>
+                <Card>
+                    <CardContent className="p-6">
+                        <div className="flex items-center justify-between mb-6">
+                            <h2 className="text-lg font-semibold text-gray-900">전체 공지사항 ({total}개)</h2>
+                            <Link
+                                href="./announcements/new"
+                                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm"
+                            >
+                                공지사항 작성
+                            </Link>
+                        </div>
 
-                    <div className="lg:col-span-3 space-y-6">
-                        <Card>
-                            <CardContent className="p-6">
-                                <div className="flex items-center justify-between mb-6">
-                                    <h2 className="text-lg font-semibold text-gray-900">전체 공지사항 ({total}개)</h2>
-                                    <Link
-                                        href="./announcements/new"
-                                        className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm"
-                                    >
-                                        공지사항 작성
-                                    </Link>
-                                </div>
-
-                                <AnnouncementsFilterClient
-                                    onFilterChange={(filterData) => {
-                                        setFilters({
-                                            categoryKey:
-                                                filterData.categoryKey === 'all' ? undefined : filterData.categoryKey,
-                                            subcategoryId: filterData.subcategoryId || undefined,
-                                            searchTerm: filterData.searchTerm || undefined,
-                                        });
-                                    }}
-                                />
-                            </CardContent>
-                        </Card>
-
-                        <AnnouncementsList
-                            announcements={announcements}
-                            loading={loading}
-                            error={error}
-                            hasMore={hasMore}
-                            observerRef={observerRef}
+                        <AnnouncementsFilterClient
+                            onFilterChange={(filterData) => {
+                                setFilters({
+                                    categoryKey: filterData.categoryKey === 'all' ? undefined : filterData.categoryKey,
+                                    subcategoryId: filterData.subcategoryId || undefined,
+                                    searchTerm: filterData.searchTerm || undefined,
+                                });
+                            }}
                         />
-                    </div>
+                    </CardContent>
+                </Card>
 
-                    <div className="lg:col-span-1 space-y-6">
-                        <BannerAd />
-                    </div>
-                </div>
-            </div>
+                <AnnouncementsList
+                    announcements={announcements}
+                    loading={loading}
+                    error={error}
+                    hasMore={hasMore}
+                    observerRef={observerRef}
+                />
+            </TenantContentLayout>
         </div>
     );
 }
