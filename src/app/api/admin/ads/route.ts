@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { getSupabaseServerClient } from '@/shared/lib/supabaseServer';
+import { getSupabaseClient } from '@/shared/lib/supabase';
 import { ok, fail, requireAuth } from '@/shared/lib/api';
 import type {
     AdCreateData,
@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
         const page = parseInt(searchParams.get('page') || '1');
         const pageSize = parseInt(searchParams.get('pageSize') || '10');
 
-        const supabase = getSupabaseServerClient();
+        const supabase = getSupabaseClient();
 
         // 기본 쿼리 구성 - placement 필터가 있을 때만 inner join 사용
         const hasPlacementFilter = placement !== null;
@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
         const data: AdCreateData = await request.json();
 
         // 필수 필드 검증
-        if (!data.title || !data.partner_name || !data.phone || !data.detail_image_url) {
+        if (!data.title || !data.partner_name || !data.phone) {
             return fail('VALIDATION_ERROR', '필수 필드가 누락되었습니다.', 400);
         }
 
@@ -134,23 +134,58 @@ export async function POST(request: NextRequest) {
             return fail('VALIDATION_ERROR', '최소 하나의 게재 위치를 선택해야 합니다.', 400);
         }
 
-        const supabase = getSupabaseServerClient();
+        // 디바이스별 이미지 및 활성화 검증
+        const hasDesktopEnabled = data.desktop_enabled !== false;
+        const hasMobileEnabled = data.mobile_enabled !== false;
+
+        if (!hasDesktopEnabled && !hasMobileEnabled) {
+            return fail('VALIDATION_ERROR', '적어도 하나의 디바이스가 활성화되어야 합니다.', 400);
+        }
+
+        if (hasDesktopEnabled && !data.desktop_image_url && !data.detail_image_url) {
+            return fail(
+                'VALIDATION_ERROR',
+                '데스크톱이 활성화된 경우 데스크톱 이미지 또는 기본 이미지가 필요합니다.',
+                400
+            );
+        }
+
+        if (hasMobileEnabled && !data.mobile_image_url && !data.detail_image_url) {
+            return fail('VALIDATION_ERROR', '모바일이 활성화된 경우 모바일 이미지 또는 기본 이미지가 필요합니다.', 400);
+        }
+
+        const supabase = getSupabaseClient();
 
         // 사이드 광고 10개 제한 검증 (활성화된 광고인 경우)
         if (data.is_active !== false && data.placements.includes('SIDE')) {
-            const { count: activeSideAdsCount, error: countError } = await supabase
-                .from('ads')
-                .select('id', { count: 'exact', head: true })
-                .eq('is_active', true)
-                .in('id', supabase.from('ad_placements').select('ad_id').eq('placement', 'SIDE'));
+            // 먼저 SIDE 배치를 가진 광고 ID들을 조회
+            const { data: sideAdIds, error: sideAdIdsError } = await supabase
+                .from('ad_placements')
+                .select('ad_id')
+                .eq('placement', 'SIDE');
 
-            if (countError) {
-                console.error('[ADS_API] Error counting active side ads:', countError);
-                return fail('DATABASE_ERROR', '활성 광고 개수 확인 중 오류가 발생했습니다.', 500);
+            if (sideAdIdsError) {
+                console.error('[ADS_API] Error fetching side ad IDs:', sideAdIdsError);
+                return fail('DATABASE_ERROR', '사이드 광고 ID 조회 중 오류가 발생했습니다.', 500);
             }
 
-            if ((activeSideAdsCount || 0) >= 10) {
-                return fail('VALIDATION_ERROR', '사이드 광고는 최대 10개까지만 활성화할 수 있습니다.', 400);
+            const sideAdIdArray = sideAdIds?.map((item) => item.ad_id) || [];
+
+            if (sideAdIdArray.length > 0) {
+                const { count: activeSideAdsCount, error: countError } = await supabase
+                    .from('ads')
+                    .select('id', { count: 'exact', head: true })
+                    .eq('is_active', true)
+                    .in('id', sideAdIdArray);
+
+                if (countError) {
+                    console.error('[ADS_API] Error counting active side ads:', countError);
+                    return fail('DATABASE_ERROR', '활성 광고 개수 확인 중 오류가 발생했습니다.', 500);
+                }
+
+                if ((activeSideAdsCount || 0) >= 10) {
+                    return fail('VALIDATION_ERROR', '사이드 광고는 최대 10개까지만 활성화할 수 있습니다.', 400);
+                }
             }
         }
 
@@ -163,7 +198,11 @@ export async function POST(request: NextRequest) {
                 partner_name: data.partner_name,
                 phone: data.phone,
                 thumbnail_url: data.thumbnail_url || null,
-                detail_image_url: data.detail_image_url,
+                detail_image_url: data.detail_image_url || null,
+                desktop_image_url: data.desktop_image_url || null,
+                mobile_image_url: data.mobile_image_url || null,
+                desktop_enabled: data.desktop_enabled ?? true,
+                mobile_enabled: data.mobile_enabled ?? true,
                 is_active: data.is_active ?? true,
             })
             .select()

@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseServerClient } from '@/shared/lib/supabaseServer';
+import { getSupabaseClient } from '@/shared/lib/supabase';
 
 // 특정 홈페이지(조합) 정보 조회
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
         const { id } = await params;
 
-        const supabase = getSupabaseServerClient();
+        const supabase = getSupabaseClient();
 
         const { data: union, error } = await supabase.from('unions').select('*').eq('id', id).single();
 
@@ -50,7 +50,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         const body = await request.json();
         const { associationName, address, phoneNumber, email, url, logoFile, contractEndDate, isExpired } = body;
 
-        const supabase = getSupabaseServerClient();
+        const supabase = getSupabaseClient();
 
         // 기존 조합 확인
         const { data: existingUnion, error: fetchError } = await supabase
@@ -134,7 +134,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     try {
         const { id } = await params;
 
-        const supabase = getSupabaseServerClient();
+        const supabase = getSupabaseClient();
 
         // 기존 조합 확인
         const { data: existingUnion, error: fetchError } = await supabase

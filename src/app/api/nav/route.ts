@@ -171,9 +171,6 @@ export async function GET(req: NextRequest) {
 
         const menuTree = buildMenuTree(filteredItems);
 
-        console.log('Nav API returning menu tree with', menuTree.length, 'items');
-        console.log('Menu tree sample:', JSON.stringify(menuTree.slice(0, 2), null, 2));
-
         const responseData = {
             items: menuTree,
             meta: {
@@ -182,8 +179,6 @@ export async function GET(req: NextRequest) {
                 totalItems: menuTree.length,
             },
         };
-
-        console.log('Nav API returning response data:', JSON.stringify(responseData, null, 2));
 
         return ok(responseData);
     } catch (error) {

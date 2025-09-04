@@ -5,7 +5,8 @@ export const advertisementApi = {
     // 배너 광고 조회 (사이드/홈 배너용)
     async fetchBannerAds(
         slug: string,
-        placement: 'SIDE' | 'HOME'
+        placement: 'SIDE' | 'HOME',
+        device: 'DESKTOP' | 'MOBILE'
     ): Promise<{
         items: Array<{
             id: string;
@@ -15,11 +16,13 @@ export const advertisementApi = {
             thumbnail_url: string | null;
             detail_image_url: string;
             placement: AdPlacement;
+            device?: 'DESKTOP' | 'MOBILE';
         }>;
         total: number;
         placement: AdPlacement;
+        device: 'DESKTOP' | 'MOBILE';
     }> {
-        const response = await fetch(`/api/tenant/${slug}/ads?placement=${placement}`);
+        const response = await fetch(`/api/tenant/${slug}/ads?placement=${placement}&device=${device}`);
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));

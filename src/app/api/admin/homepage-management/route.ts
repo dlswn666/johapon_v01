@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseServerClient } from '@/shared/lib/supabaseServer';
+import { getSupabaseClient } from '@/shared/lib/supabase';
 
 // 홈페이지(조합) 목록 조회
 export async function GET(request: NextRequest) {
@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
         const limit = parseInt(searchParams.get('limit') || '10');
         const offset = (page - 1) * limit;
 
-        const supabase = getSupabaseServerClient();
+        const supabase = getSupabaseClient();
 
         // 기본 쿼리 구성
         let query = supabase.from('unions').select('*').order('created_at', { ascending: false });
@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: '조합원 총 수는 0보다 큰 숫자여야 합니다.' }, { status: 400 });
         }
 
-        const supabase = getSupabaseServerClient();
+        const supabase = getSupabaseClient();
 
         // 중복 확인 (이름 또는 URL)
         const { data: existingUnion } = await supabase

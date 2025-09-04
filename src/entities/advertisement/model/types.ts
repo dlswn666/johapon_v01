@@ -18,7 +18,11 @@ export interface Ad {
     partner_name: string;
     phone: string;
     thumbnail_url: string | null;
-    detail_image_url: string;
+    detail_image_url: string | null;
+    desktop_image_url: string | null;
+    mobile_image_url: string | null;
+    desktop_enabled: boolean;
+    mobile_enabled: boolean;
     is_active: boolean;
     created_at: string;
     updated_at: string;
@@ -32,7 +36,11 @@ export interface AdCreateData {
     partner_name: string;
     phone: string;
     thumbnail_url?: string | null;
-    detail_image_url: string;
+    detail_image_url?: string | null;
+    desktop_image_url?: string | null;
+    mobile_image_url?: string | null;
+    desktop_enabled?: boolean;
+    mobile_enabled?: boolean;
     placements: AdPlacement[];
     is_active?: boolean;
 }
@@ -43,7 +51,11 @@ export interface AdUpdateData {
     partner_name?: string;
     phone?: string;
     thumbnail_url?: string | null;
-    detail_image_url?: string;
+    detail_image_url?: string | null;
+    desktop_image_url?: string | null;
+    mobile_image_url?: string | null;
+    desktop_enabled?: boolean;
+    mobile_enabled?: boolean;
     placements?: AdPlacement[];
     is_active?: boolean;
 }
@@ -222,7 +234,11 @@ export interface DbAd {
     partner_name: string;
     phone: string;
     thumbnail_url: string | null;
-    detail_image_url: string;
+    detail_image_url: string | null;
+    desktop_image_url: string | null;
+    mobile_image_url: string | null;
+    desktop_enabled: boolean;
+    mobile_enabled: boolean;
     is_active: boolean;
     created_at: string;
     updated_at: string;

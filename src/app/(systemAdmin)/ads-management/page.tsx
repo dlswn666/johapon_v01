@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useAdAdminStore } from '@/shared/store/adAdminStore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/ui/tabs';
 import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
+import AdFormModal from '@/components/admin/AdFormModal';
 import {
     TrendingUp,
     TrendingDown,
@@ -229,9 +230,190 @@ function DashboardTab() {
     );
 }
 
-// 임시 탭 컴포넌트들 (추후 구현)
+// 광고 관리 탭 컴포넌트
 function AdsTab() {
-    return <div className="text-center py-8 text-muted-foreground">광고 관리 탭 - 구현 예정</div>;
+    const {
+        ads,
+        loading,
+        error,
+        adsTotal,
+        adsHasMore,
+        adsFilters,
+        fetchAds,
+        setAdsFilters,
+        resetAdsState,
+        createAd,
+        updateAd,
+        deleteAd,
+        fetchAdDetail,
+        currentAd,
+        setCurrentAd,
+    } = useAdAdminStore();
+
+    const [showCreateModal, setShowCreateModal] = React.useState(false);
+    const [showEditModal, setShowEditModal] = React.useState(false);
+    const [editingAd, setEditingAd] = React.useState<any>(null);
+
+    React.useEffect(() => {
+        fetchAds(true);
+    }, [fetchAds, adsFilters]);
+
+    const handleCreateAd = () => {
+        setShowCreateModal(true);
+    };
+
+    const handleEditAd = async (ad: any) => {
+        await fetchAdDetail(ad.id);
+        setEditingAd(ad);
+        setShowEditModal(true);
+    };
+
+    const handleDeleteAd = async (ad: any) => {
+        if (confirm(`"${ad.title}" 광고를 삭제하시겠습니까?`)) {
+            const result = await deleteAd(ad.id);
+            if (result.success) {
+                fetchAds(true);
+            }
+        }
+    };
+
+    return (
+        <div className="space-y-6">
+            {/* 필터 및 액션 바 */}
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                    <select
+                        value={adsFilters.placement || ''}
+                        onChange={(e) => setAdsFilters({ placement: (e.target.value as any) || undefined })}
+                        className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+                    >
+                        <option value="">모든 게재위치</option>
+                        <option value="SIDE">사이드</option>
+                        <option value="HOME">홈</option>
+                        <option value="BOARD">게시판</option>
+                    </select>
+
+                    <select
+                        value={adsFilters.active === undefined ? '' : adsFilters.active.toString()}
+                        onChange={(e) =>
+                            setAdsFilters({ active: e.target.value === '' ? undefined : e.target.value === 'true' })
+                        }
+                        className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+                    >
+                        <option value="">모든 상태</option>
+                        <option value="true">활성</option>
+                        <option value="false">비활성</option>
+                    </select>
+
+                    <input
+                        type="text"
+                        placeholder="광고명, 업체명, 전화번호 검색..."
+                        value={adsFilters.search || ''}
+                        onChange={(e) => setAdsFilters({ search: e.target.value || undefined })}
+                        className="px-3 py-2 border border-gray-300 rounded-md text-sm w-64"
+                    />
+                </div>
+
+                <Button onClick={handleCreateAd}>광고 등록</Button>
+            </div>
+
+            {/* 광고 목록 */}
+            {loading && ads.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">로딩 중...</div>
+            ) : error ? (
+                <div className="text-center py-8 text-red-600">{error}</div>
+            ) : ads.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">등록된 광고가 없습니다.</div>
+            ) : (
+                <div className="grid gap-4">
+                    {ads.map((ad) => (
+                        <Card key={ad.id}>
+                            <CardContent className="p-4">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-4">
+                                        {ad.thumbnail_url && (
+                                            <img
+                                                src={ad.thumbnail_url}
+                                                alt={ad.title}
+                                                className="w-16 h-16 object-cover rounded"
+                                            />
+                                        )}
+                                        <div>
+                                            <h3 className="font-medium">{ad.title}</h3>
+                                            <p className="text-sm text-muted-foreground">{ad.partner_name}</p>
+                                            <p className="text-sm text-muted-foreground">{ad.phone}</p>
+                                            <div className="flex gap-1 mt-1">
+                                                {ad.placements.map((placement) => (
+                                                    <Badge key={placement} variant="outline" className="text-xs">
+                                                        {placement}
+                                                    </Badge>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-2">
+                                        <Badge variant={ad.is_active ? 'default' : 'secondary'}>
+                                            {ad.is_active ? '활성' : '비활성'}
+                                        </Badge>
+                                        <Button variant="outline" size="sm" onClick={() => handleEditAd(ad)}>
+                                            수정
+                                        </Button>
+                                        <Button variant="outline" size="sm" onClick={() => handleDeleteAd(ad)}>
+                                            삭제
+                                        </Button>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
+            )}
+
+            {/* 더보기 버튼 */}
+            {adsHasMore && (
+                <div className="text-center">
+                    <Button variant="outline" onClick={() => fetchAds(false)} disabled={loading}>
+                        {loading ? '로딩 중...' : '더보기'}
+                    </Button>
+                </div>
+            )}
+
+            {/* 광고 생성 모달 */}
+            <AdFormModal
+                isOpen={showCreateModal}
+                onClose={() => setShowCreateModal(false)}
+                onSubmit={async (data) => {
+                    const result = await createAd(data as any);
+                    if (result.success) {
+                        fetchAds(true);
+                    }
+                    return result;
+                }}
+                title="광고 등록"
+            />
+
+            {/* 광고 수정 모달 */}
+            <AdFormModal
+                isOpen={showEditModal}
+                onClose={() => {
+                    setShowEditModal(false);
+                    setEditingAd(null);
+                    setCurrentAd(null);
+                }}
+                onSubmit={async (data) => {
+                    if (!editingAd) return { success: false, message: '수정할 광고를 찾을 수 없습니다.' };
+                    const result = await updateAd(editingAd.id, data as any);
+                    if (result.success) {
+                        fetchAds(true);
+                    }
+                    return result;
+                }}
+                editingAd={currentAd}
+                title="광고 수정"
+            />
+        </div>
+    );
 }
 
 function ContractsTab() {

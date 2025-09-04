@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { getSupabaseServerClient } from '@/shared/lib/supabaseServer';
+import { getSupabaseClient } from '@/shared/lib/supabase';
 import { ok, fail, requireAuth } from '@/shared/lib/api';
 import type {
     AdContractCreateData,
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
         const page = parseInt(searchParams.get('page') || '1');
         const pageSize = parseInt(searchParams.get('pageSize') || '10');
 
-        const supabase = getSupabaseServerClient();
+        const supabase = getSupabaseClient();
 
         // 기본 쿼리 구성
         let query = supabase.from('ad_contracts').select(
@@ -128,7 +128,7 @@ export async function POST(request: NextRequest) {
             return fail('VALIDATION_ERROR', '계약 금액은 0보다 커야 합니다.', 400);
         }
 
-        const supabase = getSupabaseServerClient();
+        const supabase = getSupabaseClient();
 
         // 광고 존재 확인
         const { data: ad, error: adError } = await supabase

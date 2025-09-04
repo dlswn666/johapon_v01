@@ -15,6 +15,7 @@ const SYSTEM_PATHS = new Set([
     'homepage-management',
     'nav-management',
     'base-menu-management',
+    'ads-management',
     'health',
 ]);
 

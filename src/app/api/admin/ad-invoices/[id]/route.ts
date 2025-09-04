@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { getSupabaseServerClient } from '@/shared/lib/supabaseServer';
+import { getSupabaseClient } from '@/shared/lib/supabase';
 import { ok, fail, requireAuth } from '@/shared/lib/api';
 import type { AdInvoice, AdInvoiceUpdateData } from '@/entities/advertisement/model/types';
 
@@ -12,7 +12,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         }
 
         const { id } = await params;
-        const supabase = getSupabaseServerClient();
+        const supabase = getSupabaseClient();
 
         const { data: invoice, error } = await supabase
             .from('ad_invoices')
@@ -90,7 +90,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         const { id } = await params;
         const data: AdInvoiceUpdateData = await request.json();
 
-        const supabase = getSupabaseServerClient();
+        const supabase = getSupabaseClient();
 
         // 청구서 존재 확인
         const { data: existingInvoice, error: checkError } = await supabase

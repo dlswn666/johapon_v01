@@ -3,39 +3,32 @@ import { devtools } from 'zustand/middleware';
 import { advertisementApi } from '@/shared/api/advertisementApi';
 import type { AdPlacement } from '@/entities/advertisement/model/types';
 
+// 광고 아이템 타입
+interface AdItem {
+    id: string;
+    title: string;
+    partner_name: string;
+    phone: string;
+    thumbnail_url: string | null;
+    detail_image_url: string;
+    placement: AdPlacement;
+    device?: 'DESKTOP' | 'MOBILE';
+}
+
 // 테넌트용 광고 노출 Store
 interface AdState {
-    // ========== 배너 광고 상태 ==========
-    sideBannerAds: Array<{
-        id: string;
-        title: string;
-        partner_name: string;
-        phone: string;
-        thumbnail_url: string | null;
-        detail_image_url: string;
-        placement: AdPlacement;
-    }>;
-    homeBannerAds: Array<{
-        id: string;
-        title: string;
-        partner_name: string;
-        phone: string;
-        thumbnail_url: string | null;
-        detail_image_url: string;
-        placement: AdPlacement;
-    }>;
+    // ========== 배너 광고 상태 (디바이스별 캐시) ==========
+    sideBannerAds: {
+        desktop: AdItem[];
+        mobile: AdItem[];
+    };
+    homeBannerAds: {
+        desktop: AdItem[];
+        mobile: AdItem[];
+    };
 
     // ========== 광고 게시판 상태 ==========
-    boardAds: Array<{
-        id: string;
-        title: string;
-        partner_name: string;
-        phone: string;
-        thumbnail_url: string | null;
-        detail_image_url: string;
-        created_at: string;
-        placements: AdPlacement[];
-    }>;
+    boardAds: AdItem[];
     boardTotal: number;
     boardHasMore: boolean;
     boardPage: number;
@@ -49,10 +42,10 @@ interface AdState {
     // ========== 액션 ==========
     setLoading: (loading: boolean) => void;
     setError: (error: string | null) => void;
-    setSideBannerAds: (ads: AdState['sideBannerAds']) => void;
-    setHomeBannerAds: (ads: AdState['homeBannerAds']) => void;
-    setBoardAds: (ads: AdState['boardAds']) => void;
-    addBoardAds: (ads: AdState['boardAds']) => void;
+    setSideBannerAds: (device: 'DESKTOP' | 'MOBILE', ads: AdItem[]) => void;
+    setHomeBannerAds: (device: 'DESKTOP' | 'MOBILE', ads: AdItem[]) => void;
+    setBoardAds: (ads: AdItem[]) => void;
+    addBoardAds: (ads: AdItem[]) => void;
     setBoardTotal: (total: number) => void;
     setBoardHasMore: (hasMore: boolean) => void;
     setBoardPage: (page: number) => void;
@@ -60,8 +53,8 @@ interface AdState {
     resetBoardState: () => void;
 
     // ========== API 호출 액션 ==========
-    fetchSideBannerAds: (slug: string) => Promise<void>;
-    fetchHomeBannerAds: (slug: string) => Promise<void>;
+    fetchSideBannerAds: (slug: string, device: 'DESKTOP' | 'MOBILE') => Promise<void>;
+    fetchHomeBannerAds: (slug: string, device: 'DESKTOP' | 'MOBILE') => Promise<void>;
     fetchBoardAds: (slug: string, reset?: boolean) => Promise<void>;
 }
 
@@ -69,8 +62,14 @@ export const useAdStore = create<AdState>()(
     devtools(
         (set, get) => ({
             // ========== 초기 상태 ==========
-            sideBannerAds: [],
-            homeBannerAds: [],
+            sideBannerAds: {
+                desktop: [],
+                mobile: [],
+            },
+            homeBannerAds: {
+                desktop: [],
+                mobile: [],
+            },
             boardAds: [],
             boardTotal: 0,
             boardHasMore: false,
@@ -83,8 +82,20 @@ export const useAdStore = create<AdState>()(
             // ========== 기본 액션 ==========
             setLoading: (loading) => set({ loading }),
             setError: (error) => set({ error }),
-            setSideBannerAds: (ads) => set({ sideBannerAds: ads }),
-            setHomeBannerAds: (ads) => set({ homeBannerAds: ads }),
+            setSideBannerAds: (device, ads) =>
+                set((state) => ({
+                    sideBannerAds: {
+                        ...state.sideBannerAds,
+                        [device.toLowerCase()]: ads,
+                    },
+                })),
+            setHomeBannerAds: (device, ads) =>
+                set((state) => ({
+                    homeBannerAds: {
+                        ...state.homeBannerAds,
+                        [device.toLowerCase()]: ads,
+                    },
+                })),
             setBoardAds: (ads) => set({ boardAds: ads }),
             addBoardAds: (newAds) =>
                 set((state) => ({
@@ -104,12 +115,14 @@ export const useAdStore = create<AdState>()(
                 }),
 
             // ========== API 호출 액션 ==========
-            fetchSideBannerAds: async (slug: string) => {
+            fetchSideBannerAds: async (slug: string, device: 'DESKTOP' | 'MOBILE') => {
                 set({ loading: true, error: null });
 
                 try {
-                    const result = await advertisementApi.fetchBannerAds(slug, 'SIDE');
-                    set({ sideBannerAds: result.items, loading: false });
+                    const result = await advertisementApi.fetchBannerAds(slug, 'SIDE', device);
+                    console.log('[AD_STORE] fetchSideBannerAds result:', result);
+                    get().setSideBannerAds(device, result.items);
+                    set({ loading: false });
                 } catch (error) {
                     const errorMessage =
                         error instanceof Error ? error.message : '사이드 배너 광고 조회에 실패했습니다.';
@@ -118,12 +131,13 @@ export const useAdStore = create<AdState>()(
                 }
             },
 
-            fetchHomeBannerAds: async (slug: string) => {
+            fetchHomeBannerAds: async (slug: string, device: 'DESKTOP' | 'MOBILE') => {
                 set({ loading: true, error: null });
 
                 try {
-                    const result = await advertisementApi.fetchBannerAds(slug, 'HOME');
-                    set({ homeBannerAds: result.items, loading: false });
+                    const result = await advertisementApi.fetchBannerAds(slug, 'HOME', device);
+                    get().setHomeBannerAds(device, result.items);
+                    set({ loading: false });
                 } catch (error) {
                     const errorMessage = error instanceof Error ? error.message : '홈 배너 광고 조회에 실패했습니다.';
                     set({ loading: false, error: errorMessage });

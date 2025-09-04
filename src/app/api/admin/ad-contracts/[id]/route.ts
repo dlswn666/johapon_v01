@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { getSupabaseServerClient } from '@/shared/lib/supabaseServer';
+import { getSupabaseClient } from '@/shared/lib/supabase';
 import { ok, fail, requireAuth } from '@/shared/lib/api';
 import type { AdContract, AdContractUpdateData } from '@/entities/advertisement/model/types';
 
@@ -12,7 +12,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         }
 
         const { id } = await params;
-        const supabase = getSupabaseServerClient();
+        const supabase = getSupabaseClient();
 
         const { data: contract, error } = await supabase
             .from('ad_contracts')
@@ -76,7 +76,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         const { id } = await params;
         const data: AdContractUpdateData = await request.json();
 
-        const supabase = getSupabaseServerClient();
+        const supabase = getSupabaseClient();
 
         // 계약 존재 확인
         const { data: existingContract, error: checkError } = await supabase
@@ -180,7 +180,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
         }
 
         const { id } = await params;
-        const supabase = getSupabaseServerClient();
+        const supabase = getSupabaseClient();
 
         // 관련 청구서가 있는지 확인
         const { data: invoices, error: invoiceCheckError } = await supabase

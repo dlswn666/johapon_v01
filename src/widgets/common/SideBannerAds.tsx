@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { useAdStore } from '@/shared/store/adStore';
 import BannerAd from './BannerAd';
@@ -9,17 +9,36 @@ interface SideBannerAdsProps {
     className?: string;
 }
 
+// 디바이스 타입 감지 훅
+function useDeviceType() {
+    const [deviceType, setDeviceType] = useState<'DESKTOP' | 'MOBILE'>('DESKTOP');
+
+    useEffect(() => {
+        const checkDeviceType = () => {
+            const isMobile = window.innerWidth < 768; // Tailwind의 md 브레이크포인트
+            setDeviceType(isMobile ? 'MOBILE' : 'DESKTOP');
+        };
+
+        checkDeviceType();
+        window.addEventListener('resize', checkDeviceType);
+        return () => window.removeEventListener('resize', checkDeviceType);
+    }, []);
+
+    return deviceType;
+}
+
 export default function SideBannerAds({ className = '' }: SideBannerAdsProps) {
     const params = useParams();
     const slug = params?.homepage as string;
+    const deviceType = useDeviceType();
 
     const { sideBannerAds, loading, error, fetchSideBannerAds } = useAdStore();
 
     useEffect(() => {
-        if (slug) {
-            fetchSideBannerAds(slug);
+        if (slug && deviceType) {
+            fetchSideBannerAds(slug, deviceType);
         }
-    }, [slug, fetchSideBannerAds]);
+    }, [slug, deviceType, fetchSideBannerAds]);
 
     const handleAdClick = (ad: any) => {
         // 광고 클릭 시 상세 모달 또는 새 창으로 이동
@@ -29,16 +48,10 @@ export default function SideBannerAds({ className = '' }: SideBannerAdsProps) {
 
     if (loading) {
         return (
-            <div className={`space-y-4 ${className}`}>
-                {[...Array(2)].map((_, index) => (
-                    <div key={index} className="animate-pulse">
-                        <div className="bg-gray-200 rounded-lg aspect-video"></div>
-                        <div className="p-3 space-y-2">
-                            <div className="h-4 bg-gray-200 rounded"></div>
-                            <div className="h-3 bg-gray-200 rounded w-2/3"></div>
-                        </div>
-                    </div>
-                ))}
+            <div className={`${className}`}>
+                <div className="animate-pulse">
+                    <div className="bg-gray-200 rounded-lg h-48"></div>
+                </div>
             </div>
         );
     }
@@ -47,7 +60,10 @@ export default function SideBannerAds({ className = '' }: SideBannerAdsProps) {
         return <div className={`text-center py-4 text-red-500 text-sm ${className}`}>광고를 불러올 수 없습니다.</div>;
     }
 
-    if (sideBannerAds.length === 0) {
+    // 현재 디바이스에 맞는 광고 가져오기
+    const currentDeviceAds = sideBannerAds[deviceType.toLowerCase() as 'desktop' | 'mobile'] || [];
+
+    if (currentDeviceAds.length === 0) {
         return (
             <div className={`text-center py-8 text-gray-500 text-sm ${className}`}>
                 현재 게시된 사이드 배너 광고가 없습니다.
@@ -56,10 +72,8 @@ export default function SideBannerAds({ className = '' }: SideBannerAdsProps) {
     }
 
     return (
-        <div className={`space-y-4 ${className}`}>
-            {sideBannerAds.map((ad) => (
-                <BannerAd key={ad.id} ad={ad} onClick={handleAdClick} />
-            ))}
+        <div className={`${className}`}>
+            {currentDeviceAds.length > 0 && <BannerAd ad={currentDeviceAds[0]} onClick={handleAdClick} />}
         </div>
     );
 }

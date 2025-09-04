@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { getSupabaseServerClient } from '@/shared/lib/supabaseServer';
+import { getSupabaseClient } from '@/shared/lib/supabase';
 import { ok, fail } from '@/shared/lib/api';
 
 // GET /api/tenant/[slug]/ads/board - 테넌트별 광고 게시판 (모든 광고 열람)
@@ -11,7 +11,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         const pageSize = parseInt(searchParams.get('pageSize') || '12');
         const search = searchParams.get('search');
 
-        const supabase = getSupabaseServerClient();
+        const supabase = getSupabaseClient();
 
         // 조합 정보 조회
         const { data: union, error: unionError } = await supabase

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { useAdStore } from '@/shared/store/adStore';
 import BannerAd from './BannerAd';
@@ -9,17 +9,36 @@ interface HomeBannerAdsProps {
     className?: string;
 }
 
+// 디바이스 타입 감지 훅
+function useDeviceType() {
+    const [deviceType, setDeviceType] = useState<'DESKTOP' | 'MOBILE'>('DESKTOP');
+
+    useEffect(() => {
+        const checkDeviceType = () => {
+            const isMobile = window.innerWidth < 768; // Tailwind의 md 브레이크포인트
+            setDeviceType(isMobile ? 'MOBILE' : 'DESKTOP');
+        };
+
+        checkDeviceType();
+        window.addEventListener('resize', checkDeviceType);
+        return () => window.removeEventListener('resize', checkDeviceType);
+    }, []);
+
+    return deviceType;
+}
+
 export default function HomeBannerAds({ className = '' }: HomeBannerAdsProps) {
     const params = useParams();
     const slug = params?.homepage as string;
+    const deviceType = useDeviceType();
 
     const { homeBannerAds, loading, error, fetchHomeBannerAds } = useAdStore();
 
     useEffect(() => {
-        if (slug) {
-            fetchHomeBannerAds(slug);
+        if (slug && deviceType) {
+            fetchHomeBannerAds(slug, deviceType);
         }
-    }, [slug, fetchHomeBannerAds]);
+    }, [slug, deviceType, fetchHomeBannerAds]);
 
     const handleAdClick = (ad: any) => {
         // 광고 클릭 시 상세 모달 또는 새 창으로 이동
@@ -49,7 +68,10 @@ export default function HomeBannerAds({ className = '' }: HomeBannerAdsProps) {
         return <div className={`text-center py-4 text-red-500 text-sm ${className}`}>광고를 불러올 수 없습니다.</div>;
     }
 
-    if (homeBannerAds.length === 0) {
+    // 현재 디바이스에 맞는 광고 가져오기
+    const currentDeviceAds = homeBannerAds[deviceType.toLowerCase() as 'desktop' | 'mobile'] || [];
+
+    if (currentDeviceAds.length === 0) {
         return (
             <div className={`text-center py-8 text-gray-500 text-sm ${className}`}>
                 현재 게시된 홈 배너 광고가 없습니다.
@@ -60,7 +82,7 @@ export default function HomeBannerAds({ className = '' }: HomeBannerAdsProps) {
     return (
         <div className={`${className}`}>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {homeBannerAds.map((ad) => (
+                {currentDeviceAds.map((ad) => (
                     <BannerAd key={ad.id} ad={ad} onClick={handleAdClick} />
                 ))}
             </div>

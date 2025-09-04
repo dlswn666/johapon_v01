@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { getSupabaseServerClient } from '@/shared/lib/supabaseServer';
+import { getSupabaseClient } from '@/shared/lib/supabase';
 import { ok, fail, requireAuth } from '@/shared/lib/api';
 import type {
     AdInvoice,
@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
         const page = parseInt(searchParams.get('page') || '1');
         const pageSize = parseInt(searchParams.get('pageSize') || '10');
 
-        const supabase = getSupabaseServerClient();
+        const supabase = getSupabaseClient();
 
         // 기본 쿼리 구성
         let query = supabase.from('ad_invoices').select(
@@ -147,7 +147,7 @@ export async function POST(request: NextRequest) {
         // 청구 마감일 (다음달 말일)
         const dueDate = new Date(parseInt(year), parseInt(monthNum) + 1, 0).toISOString().split('T')[0];
 
-        const supabase = getSupabaseServerClient();
+        const supabase = getSupabaseClient();
 
         // 해당 월에 활성 상태인 계약 조회
         const { data: activeContracts, error: contractError } = await supabase
