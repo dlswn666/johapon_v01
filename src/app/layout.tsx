@@ -4,6 +4,7 @@ import './globals.css';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { TenantProvider } from '@/shared/providers/TenantProvider';
+import ErrorRedirectProvider from '@/shared/providers/ErrorRedirectProvider';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -26,7 +27,9 @@ export default function RootLayout({
     return (
         <html lang="ko">
             <body className={inter.className}>
-                <TenantProvider>{children}</TenantProvider>
+                <TenantProvider>
+                    <ErrorRedirectProvider>{children}</ErrorRedirectProvider>
+                </TenantProvider>
             </body>
         </html>
     );

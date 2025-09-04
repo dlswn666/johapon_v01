@@ -109,30 +109,13 @@ export default function TenantCommunityDetailPage() {
         alert('좋아요 기능은 추후 구현 예정입니다.');
     };
 
-    // 로딩 상태
-    if (isLoading) {
+    // 로딩 상태: 초기 렌더에서 데이터가 없을 때도 로딩 UI 표시하여 깜빡임 방지
+    if (isLoading || (!community && !error)) {
         return (
             <div className="min-h-screen bg-white flex items-center justify-center">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
                     <p className="text-gray-600">게시글을 불러오는 중...</p>
-                </div>
-            </div>
-        );
-    }
-
-    // 에러 상태 (로딩이 끝났지만 데이터가 없고 에러가 있는 경우만)
-    if (!isLoading && (error || !community)) {
-        return (
-            <div className="min-h-screen bg-white flex items-center justify-center">
-                <div className="text-center">
-                    <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-                    <h2 className="text-xl font-semibold text-gray-900 mb-2">게시글을 불러올 수 없습니다</h2>
-                    <p className="text-gray-600 mb-4">{error || '게시글을 찾을 수 없습니다.'}</p>
-                    <Button onClick={() => router.push('../community')} variant="outline">
-                        <ArrowLeft className="h-4 w-4 mr-2" />
-                        목록으로 돌아가기
-                    </Button>
                 </div>
             </div>
         );
