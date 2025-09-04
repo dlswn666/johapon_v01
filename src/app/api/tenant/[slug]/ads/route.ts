@@ -65,8 +65,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         let adsError: any = null;
 
         try {
-            // 더 안전한 쿼리 방식: 단계별로 조회 (디바이스별 필터링 포함)
-            const deviceEnabledField = device === 'DESKTOP' ? 'desktop_enabled' : 'mobile_enabled';
+            // 더 안전한 쿼리 방식: 단계별로 조회
             const result = await supabase
                 .from('ads')
                 .select(
@@ -76,11 +75,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
                     partner_name,
                     phone,
                     thumbnail_url,
-                    detail_image_url,
                     desktop_image_url,
                     mobile_image_url,
-                    desktop_enabled,
-                    mobile_enabled,
                     ad_placements(placement),
                     ad_contracts(
                         start_date,
@@ -90,7 +86,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
                 `
                 )
                 .eq('is_active', true)
-                .eq(deviceEnabledField, true)
                 .or(`union_id.is.null,union_id.eq.${unionId}`);
 
             ads = result.data || [];
@@ -127,8 +122,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
                 // 디바이스별 이미지 선택 (없으면 기본 이미지 사용)
                 const deviceImageUrl =
                     device === 'DESKTOP'
-                        ? ad.desktop_image_url || ad.detail_image_url || DEFAULT_AD_IMAGE
-                        : ad.mobile_image_url || ad.detail_image_url || DEFAULT_AD_IMAGE;
+                        ? ad.desktop_image_url || DEFAULT_AD_IMAGE
+                        : ad.mobile_image_url || DEFAULT_AD_IMAGE;
 
                 uniqueAds.set(ad.id, {
                     id: ad.id,

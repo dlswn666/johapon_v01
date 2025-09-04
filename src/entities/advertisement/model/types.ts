@@ -18,6 +18,7 @@ export interface Ad {
     partner_name: string;
     phone: string;
     thumbnail_url: string | null;
+    thumbnail_mobile_url?: string | null;
     detail_image_url: string | null;
     desktop_image_url: string | null;
     mobile_image_url: string | null;
@@ -36,6 +37,7 @@ export interface AdCreateData {
     partner_name: string;
     phone: string;
     thumbnail_url?: string | null;
+    thumbnail_mobile_url?: string | null;
     detail_image_url?: string | null;
     desktop_image_url?: string | null;
     mobile_image_url?: string | null;
@@ -51,6 +53,7 @@ export interface AdUpdateData {
     partner_name?: string;
     phone?: string;
     thumbnail_url?: string | null;
+    thumbnail_mobile_url?: string | null;
     detail_image_url?: string | null;
     desktop_image_url?: string | null;
     mobile_image_url?: string | null;
@@ -234,6 +237,7 @@ export interface DbAd {
     partner_name: string;
     phone: string;
     thumbnail_url: string | null;
+    thumbnail_mobile_url?: string | null;
     detail_image_url: string | null;
     desktop_image_url: string | null;
     mobile_image_url: string | null;

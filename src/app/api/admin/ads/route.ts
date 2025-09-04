@@ -134,24 +134,12 @@ export async function POST(request: NextRequest) {
             return fail('VALIDATION_ERROR', '최소 하나의 게재 위치를 선택해야 합니다.', 400);
         }
 
-        // 디바이스별 이미지 및 활성화 검증
-        const hasDesktopEnabled = data.desktop_enabled !== false;
-        const hasMobileEnabled = data.mobile_enabled !== false;
-
-        if (!hasDesktopEnabled && !hasMobileEnabled) {
-            return fail('VALIDATION_ERROR', '적어도 하나의 디바이스가 활성화되어야 합니다.', 400);
+        // 디바이스별 이미지 검증 (기본 이미지 제거됨)
+        if (!data.desktop_image_url) {
+            return fail('VALIDATION_ERROR', '데스크톱 이미지가 필요합니다.', 400);
         }
-
-        if (hasDesktopEnabled && !data.desktop_image_url && !data.detail_image_url) {
-            return fail(
-                'VALIDATION_ERROR',
-                '데스크톱이 활성화된 경우 데스크톱 이미지 또는 기본 이미지가 필요합니다.',
-                400
-            );
-        }
-
-        if (hasMobileEnabled && !data.mobile_image_url && !data.detail_image_url) {
-            return fail('VALIDATION_ERROR', '모바일이 활성화된 경우 모바일 이미지 또는 기본 이미지가 필요합니다.', 400);
+        if (!data.mobile_image_url) {
+            return fail('VALIDATION_ERROR', '모바일 이미지가 필요합니다.', 400);
         }
 
         const supabase = getSupabaseClient();
@@ -198,11 +186,8 @@ export async function POST(request: NextRequest) {
                 partner_name: data.partner_name,
                 phone: data.phone,
                 thumbnail_url: data.thumbnail_url || null,
-                detail_image_url: data.detail_image_url || null,
                 desktop_image_url: data.desktop_image_url || null,
                 mobile_image_url: data.mobile_image_url || null,
-                desktop_enabled: data.desktop_enabled ?? true,
-                mobile_enabled: data.mobile_enabled ?? true,
                 is_active: data.is_active ?? true,
             })
             .select()
