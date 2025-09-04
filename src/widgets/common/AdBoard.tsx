@@ -124,18 +124,13 @@ export default function AdBoard({ className = '' }: AdBoardProps) {
                                     />
                                     {/* 게재 위치 배지 */}
                                     <div className="absolute top-2 right-2 flex gap-1">
-                                        {ad.placements.map((placement) => (
-                                            <span
-                                                key={placement}
-                                                className="px-2 py-1 text-xs font-medium bg-black/70 text-white rounded"
-                                            >
-                                                {placement === 'SIDE'
-                                                    ? '사이드'
-                                                    : placement === 'HOME'
-                                                    ? '홈'
-                                                    : '게시판'}
-                                            </span>
-                                        ))}
+                                        <span className="px-2 py-1 text-xs font-medium bg-black/70 text-white rounded">
+                                            {ad.placement === 'SIDE'
+                                                ? '사이드'
+                                                : ad.placement === 'HOME'
+                                                ? '홈'
+                                                : '게시판'}
+                                        </span>
                                     </div>
                                 </div>
 
@@ -150,10 +145,7 @@ export default function AdBoard({ className = '' }: AdBoardProps) {
                                             <Phone className="w-3 h-3" />
                                             <span>{ad.phone}</span>
                                         </div>
-                                        <div className="flex items-center gap-2">
-                                            <Calendar className="w-3 h-3" />
-                                            <span>{new Date(ad.created_at).toLocaleDateString()}</span>
-                                        </div>
+                                        {/* 게시일 표시는 API/Store 스키마에 created_at이 없으므로 표시 생략 */}
                                     </div>
                                 </div>
                             </div>

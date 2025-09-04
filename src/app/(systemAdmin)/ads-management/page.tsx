@@ -1,12 +1,14 @@
 'use client';
 
 import React, { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAdAdminStore } from '@/shared/store/adAdminStore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/ui/tabs';
 import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
 import AdFormModal from '@/components/admin/AdFormModal';
+import NextImage from 'next/image';
 import {
     TrendingUp,
     TrendingDown,
@@ -232,6 +234,7 @@ function DashboardTab() {
 
 // 광고 관리 탭 컴포넌트
 function AdsTab() {
+    const router = useRouter();
     const {
         ads,
         loading,
@@ -314,7 +317,7 @@ function AdsTab() {
                     />
                 </div>
 
-                <Button onClick={handleCreateAd}>광고 등록</Button>
+                <Button onClick={() => router.push('/ads-management/new')}>광고 등록</Button>
             </div>
 
             {/* 광고 목록 */}
@@ -332,9 +335,11 @@ function AdsTab() {
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-4">
                                         {ad.thumbnail_url && (
-                                            <img
+                                            <NextImage
                                                 src={ad.thumbnail_url}
                                                 alt={ad.title}
+                                                width={64}
+                                                height={64}
                                                 className="w-16 h-16 object-cover rounded"
                                             />
                                         )}
@@ -426,6 +431,7 @@ function InvoicesTab() {
 
 // 메인 페이지 컴포넌트
 export default function AdsManagementPage() {
+    const router = useRouter();
     const { currentTab, setCurrentTab, selectedUnionId, setSelectedUnionId } = useAdAdminStore();
 
     return (

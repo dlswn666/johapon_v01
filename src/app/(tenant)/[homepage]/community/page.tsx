@@ -152,7 +152,7 @@ export default function TenantCommunityPage() {
             <div className="max-w-none mx-auto px-6 sm:px-10 lg:px-32 py-6 lg:py-12">
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
                     <div className="lg:col-span-1 space-y-6">
-                        <SideBannerAds />
+                        <SideBannerAds sticky />
                     </div>
 
                     <div className="lg:col-span-3 space-y-6">
@@ -192,7 +192,7 @@ export default function TenantCommunityPage() {
                     </div>
 
                     <div className="lg:col-span-1 space-y-6">
-                        <SideBannerAds />
+                        <SideBannerAds sticky />
                     </div>
                 </div>
             </div>

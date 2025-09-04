@@ -255,7 +255,7 @@ export default function TenantQnADetailPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
                     {/* 왼쪽 사이드바 - 배너 */}
                     <div className="lg:col-span-1 space-y-6">
-                        <SideBannerAds />
+                        <SideBannerAds sticky />
                     </div>
 
                     {/* 중앙 콘텐츠 */}
@@ -540,7 +540,7 @@ export default function TenantQnADetailPage() {
 
                     {/* 오른쪽 사이드바 - 배너 */}
                     <div className="lg:col-span-1 space-y-6">
-                        <SideBannerAds />
+                        <SideBannerAds sticky />
                     </div>
                 </div>
             </div>

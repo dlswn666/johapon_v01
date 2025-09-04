@@ -115,6 +115,10 @@ interface AdAdminState {
     fetchAds: (reset?: boolean) => Promise<void>;
     fetchAdDetail: (id: string) => Promise<void>;
     createAd: (data: AdCreateData) => Promise<{ success: boolean; id?: string; message: string }>;
+    createAdWithContract: (
+        adData: AdCreateData,
+        contractData: Omit<AdContractCreateData, 'ad_id'>
+    ) => Promise<{ success: boolean; adId?: string; contractId?: string; message: string }>;
     updateAd: (id: string, data: AdUpdateData) => Promise<{ success: boolean; message: string }>;
     deleteAd: (id: string) => Promise<{ success: boolean; message: string }>;
 
@@ -322,6 +326,47 @@ export const useAdAdminStore = create<AdAdminState>()(
                     return result;
                 } catch (error) {
                     const errorMessage = error instanceof Error ? error.message : '광고 생성에 실패했습니다.';
+                    set({ loading: false, error: errorMessage });
+                    return {
+                        success: false,
+                        message: errorMessage,
+                    };
+                }
+            },
+
+            // 광고와 계약을 연속으로 생성
+            createAdWithContract: async (adData: AdCreateData, contractData: Omit<AdContractCreateData, 'ad_id'>) => {
+                set({ loading: true, error: null });
+
+                try {
+                    // 1단계: 광고 생성
+                    const adResult = await advertisementAdminApi.createAd(adData);
+                    if (!adResult.success || !adResult.id) {
+                        throw new Error(adResult.message);
+                    }
+
+                    // 2단계: 계약 생성
+                    const contractResult = await advertisementAdminApi.createContract({
+                        ...contractData,
+                        ad_id: adResult.id,
+                    });
+
+                    if (!contractResult.success) {
+                        // 계약 생성 실패 시 광고는 이미 생성되었으므로 경고 메시지 포함
+                        throw new Error(
+                            `계약 생성 실패: ${contractResult.message}. 광고는 생성되었습니다 (ID: ${adResult.id})`
+                        );
+                    }
+
+                    set({ loading: false });
+                    return {
+                        success: true,
+                        adId: adResult.id,
+                        contractId: contractResult.id,
+                        message: '광고와 계약이 성공적으로 생성되었습니다.',
+                    };
+                } catch (error) {
+                    const errorMessage = error instanceof Error ? error.message : '광고 또는 계약 생성에 실패했습니다.';
                     set({ loading: false, error: errorMessage });
                     return {
                         success: false,

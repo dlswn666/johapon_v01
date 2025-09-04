@@ -8,6 +8,7 @@ import { Switch } from '@/shared/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
 import { Badge } from '@/shared/ui/badge';
 import { X, Upload, AlertCircle } from 'lucide-react';
+import NextImage from 'next/image';
 import type { AdCreateData, AdUpdateData, Ad, AdPlacement } from '@/entities/advertisement/model/types';
 
 interface AdFormModalProps {
@@ -125,11 +126,15 @@ function ImageUpload({
                         {value ? (
                             <div className="space-y-3">
                                 <div className="relative">
-                                    <img
-                                        src={value}
-                                        alt="미리보기"
-                                        className="max-w-full h-32 object-contain mx-auto"
-                                    />
+                                    <div className="relative w-full h-32">
+                                        <NextImage
+                                            src={value}
+                                            alt="미리보기"
+                                            fill
+                                            sizes="200px"
+                                            className="object-contain mx-auto"
+                                        />
+                                    </div>
                                     <Button
                                         type="button"
                                         variant="outline"

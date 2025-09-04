@@ -158,8 +158,19 @@ export const useAdStore = create<AdState>()(
                         search: boardSearch || undefined,
                     });
 
+                    // API 응답 데이터를 AdItem 형태로 변환
+                    const transformedItems: AdItem[] = result.items.map((item) => ({
+                        id: item.id,
+                        title: item.title,
+                        partner_name: item.partner_name,
+                        phone: item.phone,
+                        thumbnail_url: item.thumbnail_url,
+                        detail_image_url: item.detail_image_url,
+                        placement: item.placements[0] || 'BOARD', // placements 배열의 첫 번째 값 사용
+                    }));
+
                     set((state) => ({
-                        boardAds: reset ? result.items : [...state.boardAds, ...result.items],
+                        boardAds: reset ? transformedItems : [...state.boardAds, ...transformedItems],
                         boardTotal: result.total,
                         boardHasMore: result.hasMore,
                         boardPage: currentPage + 1,
