@@ -176,8 +176,8 @@ export default function Header({ userRole: propUserRole }: HeaderProps) {
         <>
             {/* Mobile Header */}
             {isMobile && (
-                <div className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
-                    <div className="flex justify-between items-center h-16 px-4">
+                <div className="bg-white sticky top-0 z-40" style={{ borderBottom: '1px solid var(--color-border)' }}>
+                    <div className="flex justify-between items-center h-[60px] px-4">
                         {/* Title */}
                         <Link href={prefixedHref('/')} className="flex items-center">
                             {tenantInfo?.logo_url ? (
@@ -191,7 +191,12 @@ export default function Header({ userRole: propUserRole }: HeaderProps) {
                             ) : (
                                 <Building2 className="h-6 w-6 text-green-600 mr-2" />
                             )}
-                            <span className="text-lg text-gray-900">{getTenantDisplayName()}</span>
+                            <span
+                                className="leading-[var(--lh)]"
+                                style={{ color: 'var(--color-text)', fontSize: 'var(--fs-nav)' }}
+                            >
+                                {getTenantDisplayName()}
+                            </span>
                         </Link>
 
                         {/* Hamburger Menu */}
@@ -202,7 +207,13 @@ export default function Header({ userRole: propUserRole }: HeaderProps) {
                                 </Button>
                             </SheetTrigger>
                             <SheetContent side="right" className="w-80 p-0">
-                                <SheetHeader className="p-6 bg-green-50 border-b">
+                                <SheetHeader
+                                    className="p-6"
+                                    style={{
+                                        backgroundColor: 'var(--bg-soft)',
+                                        borderBottom: '1px solid var(--color-border)',
+                                    }}
+                                >
                                     <SheetTitle className="text-left">
                                         <div className="flex items-center">
                                             {tenantInfo?.logo_url ? (
@@ -216,7 +227,12 @@ export default function Header({ userRole: propUserRole }: HeaderProps) {
                                             ) : (
                                                 <Building2 className="h-6 w-6 text-green-600 mr-2" />
                                             )}
-                                            <span className="text-gray-900">{getTenantDisplayName()}</span>
+                                            <span
+                                                className=""
+                                                style={{ color: 'var(--color-text)', fontSize: 'var(--fs-h2)' }}
+                                            >
+                                                {getTenantDisplayName()}
+                                            </span>
                                         </div>
                                     </SheetTitle>
                                 </SheetHeader>
@@ -233,7 +249,7 @@ export default function Header({ userRole: propUserRole }: HeaderProps) {
                                                     onOpenChange={() => toggleExpandedMenu(menuCategory.id)}
                                                 >
                                                     <CollapsibleTrigger asChild>
-                                                        <button className="w-full flex items-center justify-between px-4 py-3 text-left rounded-lg hover:bg-gray-100 transition-colors">
+                                                        <button className="w-full flex items-center justify-between px-4 py-3 text-left rounded-lg transition-colors hover:bg-[color:var(--bg-soft)]">
                                                             <div className="flex items-center">
                                                                 {menuCategory.id === 'association' && (
                                                                     <Building2 className="h-5 w-5 mr-3 text-green-600" />
@@ -247,7 +263,13 @@ export default function Header({ userRole: propUserRole }: HeaderProps) {
                                                                 {menuCategory.id === 'admin' && (
                                                                     <Settings className="h-5 w-5 mr-3 text-purple-600" />
                                                                 )}
-                                                                <span className="text-gray-900">
+                                                                <span
+                                                                    className=""
+                                                                    style={{
+                                                                        color: 'var(--color-text)',
+                                                                        fontSize: 'var(--fs-body)',
+                                                                    }}
+                                                                >
                                                                     {menuCategory.label}
                                                                 </span>
                                                             </div>
@@ -268,9 +290,15 @@ export default function Header({ userRole: propUserRole }: HeaderProps) {
                                                                         setMobileMenuOpen(false);
                                                                         handleMenuItemClick();
                                                                     }}
-                                                                    className="w-full flex items-center px-4 py-2 text-left rounded-md hover:bg-gray-50 transition-colors"
+                                                                    className="w-full flex items-center px-4 py-2 text-left rounded-md transition-colors hover:bg-[color:var(--bg-soft)]"
                                                                 >
-                                                                    <span className="text-sm text-gray-600">
+                                                                    <span
+                                                                        className=""
+                                                                        style={{
+                                                                            color: 'var(--color-muted)',
+                                                                            fontSize: 'var(--fs-small)',
+                                                                        }}
+                                                                    >
                                                                         {subItem.label}
                                                                     </span>
                                                                 </Link>
@@ -283,12 +311,9 @@ export default function Header({ userRole: propUserRole }: HeaderProps) {
                                     </div>
 
                                     {/* Mobile Logout Button */}
-                                    <div className="p-4 border-t border-gray-200">
+                                    <div className="p-4" style={{ borderTop: '1px solid var(--color-border)' }}>
                                         <div className="flex justify-center">
-                                            <Button
-                                                variant="ghost"
-                                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                            >
+                                            <Button variant="ghost" className="hover:bg-red-50">
                                                 <LogOut className="h-4 w-4 mr-2" />
                                                 로그아웃
                                             </Button>
@@ -303,9 +328,9 @@ export default function Header({ userRole: propUserRole }: HeaderProps) {
 
             {/* Desktop Navigation */}
             {!isMobile && (
-                <nav className="bg-white shadow-sm border-b border-gray-200 relative">
+                <nav className="bg-white relative" style={{ borderBottom: '1px solid var(--color-border)' }}>
                     <div className="max-w-none mx-auto px-32 sm:px-32 lg:px-32">
-                        <div className="flex justify-between items-center h-20">
+                        <div className="flex justify-between items-center h-[120px]">
                             <Link href={prefixedHref('/')} className="flex items-center">
                                 {tenantInfo?.logo_url ? (
                                     <Image
@@ -316,7 +341,10 @@ export default function Header({ userRole: propUserRole }: HeaderProps) {
                                         className="mr-3"
                                     />
                                 ) : null}
-                                <h1 className="text-xl text-gray-900 hover:text-green-600 transition-colors">
+                                <h1
+                                    className="transition-colors"
+                                    style={{ fontSize: 'var(--fs-nav)', color: 'var(--color-text)' }}
+                                >
                                     {getTenantDisplayName()}
                                 </h1>
                             </Link>
@@ -330,9 +358,12 @@ export default function Header({ userRole: propUserRole }: HeaderProps) {
                                     <button
                                         key={item.id}
                                         onMouseEnter={() => handleMenuItemHover(item.id)}
-                                        className={`text-lg text-gray-700 hover:text-green-600 transition-colors py-2 px-4 ${
-                                            activeMenuItem === item.id ? 'text-green-600' : ''
+                                        className={`transition-colors py-2 px-4 border-b-4 ${
+                                            activeMenuItem === item.id
+                                                ? 'border-[color:var(--color-accent-2)]'
+                                                : 'border-transparent'
                                         }`}
+                                        style={{ fontSize: 'var(--fs-nav)', color: 'var(--color-text)' }}
                                     >
                                         {item.label}
                                     </button>
@@ -340,7 +371,12 @@ export default function Header({ userRole: propUserRole }: HeaderProps) {
 
                                 <Button
                                     variant="outline"
-                                    className="flex items-center border-gray-300 text-gray-700 hover:bg-gray-50 text-lg py-2 px-4 h-auto"
+                                    className="flex items-center py-2 px-4 h-auto hover:bg-[color:var(--bg-soft)]"
+                                    style={{
+                                        borderColor: 'var(--color-border)',
+                                        color: 'var(--color-text)',
+                                        fontSize: 'var(--fs-nav)',
+                                    }}
                                 >
                                     <LogOut className="h-5 w-5 mr-2" />
                                     로그아웃
@@ -352,7 +388,8 @@ export default function Header({ userRole: propUserRole }: HeaderProps) {
                     {/* Mega Menu Dropdown */}
                     {isMenuHovered && (
                         <div
-                            className="absolute top-full left-0 w-full bg-white border-t border-gray-200 shadow-lg z-50"
+                            className="absolute top-full left-0 w-full bg-white z-50"
+                            style={{ borderTop: '1px solid var(--color-border)' }}
                             onMouseEnter={handleMenuEnter}
                             onMouseLeave={handleMenuLeave}
                         >
@@ -360,14 +397,23 @@ export default function Header({ userRole: propUserRole }: HeaderProps) {
                                 <div className="grid grid-cols-4 gap-8">
                                     {allMenuItems.map((item) => (
                                         <div key={item.id} className="space-y-4">
-                                            <h3 className="text-lg text-green-600 mb-4">{item.label}</h3>
+                                            <h3
+                                                className="mb-4"
+                                                style={{ fontSize: 'var(--fs-tab)', color: 'var(--color-accent)' }}
+                                            >
+                                                {item.label}
+                                            </h3>
                                             <div className="space-y-3">
                                                 {item.subItems?.map((subItem) => (
                                                     <Link
                                                         key={subItem.id}
                                                         href={prefixedHref(subItem.href)}
                                                         onClick={handleMenuItemClick}
-                                                        className="block w-full text-left text-base text-gray-700 hover:text-green-600 transition-colors py-2 px-3 rounded-md hover:bg-green-50"
+                                                        className="block w-full text-left transition-colors py-2 px-3 rounded-md hover:bg-[color:var(--bg-soft)]"
+                                                        style={{
+                                                            fontSize: 'var(--fs-body)',
+                                                            color: 'var(--color-text)',
+                                                        }}
                                                     >
                                                         {subItem.label}
                                                     </Link>

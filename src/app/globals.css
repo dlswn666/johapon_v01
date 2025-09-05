@@ -30,6 +30,31 @@
     --ring: 222.2 84% 4.9%;
 }
 
+/* Figma 기반 UI 토큰 */
+:root {
+    --color-text: #41505d;
+    --color-accent: #4db588;
+    --color-accent-2: #70dfaf;
+    --color-border: #c9cacc;
+    --color-muted: #8c8c8c;
+    --color-muted-2: #aaaaaa;
+    --bg-soft: #f9f9f9;
+    --bg-section: #f2f2f2;
+    --hero-overlay: rgba(35, 60, 34, 0.6);
+
+    --fs-hero: 36px;
+    --fs-nav: 28px;
+    --fs-h2: 20px;
+    --fs-tab: 18px;
+    --fs-body: 16px;
+    --fs-small: 14px;
+    --fs-tiny: 12px;
+    --lh: 1.4;
+
+    --radius-sm: 12px;
+    --radius-md: 15px;
+}
+
 @media (prefers-color-scheme: dark) {
     :root {
         --foreground-rgb: 255, 255, 255;
