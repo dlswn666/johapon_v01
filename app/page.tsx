@@ -53,7 +53,7 @@ export default function Home() {
                                 <button
                                     key={index}
                                     onClick={() => router.push(feature.href)}
-                                    className={`${feature.bgColor} rounded-2xl p-10 text-left shadow-xl border-4 border-white transition-all duration-200 hover:scale-105 active:scale-95`}
+                                    className={`${feature.bgColor} rounded-2xl p-10 text-left shadow-xl border-4 border-white transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer`}
                                 >
                                     {/* Content */}
                                     <div className="flex flex-col items-center gap-6">
