@@ -1,0 +1,831 @@
+# API 관련 컨벤션 문서
+
+이 문서는 프로젝트의 API 호출, 상태 관리, TanStack Query 사용에 대한 컨벤션을 정리한 문서입니다.
+
+## 📋 목차
+
+1. [전체 구조](#전체-구조)
+2. [핵심 패턴](#핵심-패턴)
+3. [파일 구조 및 네이밍 규칙](#파일-구조-및-네이밍-규칙)
+4. [데이터 흐름](#데이터-흐름)
+5. [에러 처리](#에러-처리)
+6. [쿼리 관리](#쿼리-관리)
+7. [Supabase 활용](#supabase-활용)
+8. [예제 코드](#예제-코드)
+
+---
+
+## 전체 구조
+
+프로젝트의 API 관련 구조는 다음과 같은 계층으로 구성됩니다:
+
+```
+Hook (useQuery/useMutation)
+  ↓
+Store (Zustand - 상태 관리)
+  ↓
+Supabase Client (직접 호출)
+  ↓
+Supabase Database
+```
+
+### 역할 분담
+
+-   **Hook**: TanStack Query의 `useQuery`/`useMutation`을 사용하여 쿼리 생성 및 관리
+-   **Store**: Zustand를 사용한 전역 상태 관리
+-   **Supabase Client**: Hook의 `queryFn`/`mutationFn`에서 Supabase로 직접 데이터 호출
+-   **Supabase Database**: PostgreSQL 기반 데이터베이스, Row Level Security(RLS) 적용
+
+---
+
+## 핵심 패턴
+
+### 1. Query 패턴 (데이터 조회)
+
+Hook에서 `useQuery`를 사용하여 데이터를 조회하고, 성공 시 Store에 상태를 저장합니다.
+
+**특징:**
+
+-   `queryKey`에 의존성 값들을 포함하여 캐싱 관리
+-   `queryFn`에서 Supabase Client로 직접 호출
+-   `useEffect`를 통해 성공 시 Store 상태 업데이트
+-   `enabled` 옵션으로 조건부 실행 제어
+
+**예제:**
+
+```typescript
+export const useUsers = (enabled: boolean = true) => {
+    const setUsers = useUserStore((state) => state.setUsers);
+
+    const queryResult = useQuery({
+        queryKey: ['users'],
+        queryFn: async () => {
+            const { data, error } = await supabase.from('users').select('*').order('created_at', { ascending: false });
+
+            if (error) {
+                throw error;
+            }
+
+            return data;
+        },
+        enabled,
+    });
+
+    useEffect(() => {
+        if (queryResult.data && queryResult.isSuccess) {
+            setUsers(queryResult.data);
+        }
+    }, [queryResult.data, queryResult.isSuccess, setUsers]);
+
+    return queryResult;
+};
+```
+
+### 2. Mutation 패턴 (데이터 변경)
+
+Hook에서 `useMutation`을 사용하여 데이터를 생성/수정/삭제합니다.
+
+**특징:**
+
+-   `mutationFn`에서 Supabase Client로 직접 호출
+-   `onSuccess`에서 Store 상태 업데이트 및 관련 쿼리 무효화
+-   `onError`에서 에러 처리
+
+**예제:**
+
+```typescript
+export const useAddUser = () => {
+    const addUser = useUserStore((state) => state.addUser);
+
+    return useMutation({
+        mutationFn: async (newUser: { name: string; email: string }) => {
+            const { data, error } = await supabase.from('users').insert([newUser]).select().single();
+
+            if (error) {
+                throw error;
+            }
+
+            return data;
+        },
+        onSuccess: (data) => {
+            addUser(data);
+            queryClient.invalidateQueries({ queryKey: ['users'] });
+            toast.success('사용자가 추가되었습니다.');
+        },
+        onError: (error: any) => {
+            toast.error('사용자 추가에 실패했습니다.');
+            console.error('Add user error:', error);
+        },
+    });
+};
+```
+
+### 3. Store 구조 (Zustand)
+
+Zustand를 사용하여 전역 상태를 관리합니다.
+
+**기본 패턴:**
+
+```typescript
+interface UserStore {
+    users: User[];
+    setUsers: (users: User[]) => void;
+    addUser: (user: User) => void;
+    updateUser: (id: string, user: Partial<User>) => void;
+    removeUser: (id: string) => void;
+    reset: () => void;
+}
+
+const initialState = {
+    users: [],
+};
+
+const useUserStore = create<UserStore>((set) => ({
+    ...initialState,
+    setUsers: (users: User[]) => set({ users }),
+    addUser: (user: User) =>
+        set((state) => ({
+            users: [...state.users, user],
+        })),
+    updateUser: (id: string, updatedUser: Partial<User>) =>
+        set((state) => ({
+            users: state.users.map((user) => (user.id === id ? { ...user, ...updatedUser } : user)),
+        })),
+    removeUser: (id: string) =>
+        set((state) => ({
+            users: state.users.filter((user) => user.id !== id),
+        })),
+    reset: () => set(initialState),
+}));
+```
+
+**주의사항:**
+
+-   Store는 주로 상태 저장 및 업데이트 함수를 제공합니다
+-   API 호출은 Hook에서 처리하고, Store는 상태 관리만 담당합니다
+
+### 4. TanStack Query 설정
+
+전역 QueryClient 설정은 `app/_lib/shared/tanstack/queryClient.ts`에서 관리합니다.
+
+**주요 설정:**
+
+-   `staleTime`: 5분 (데이터가 fresh 상태로 유지되는 시간)
+-   `gcTime`: 10분 (가비지 컬렉션 시간)
+-   `retry`: 4xx 에러는 재시도하지 않음, 최대 2번까지 재시도
+-   `refetchOnWindowFocus`: true (브라우저 포커스 시 자동 리페치)
+-   `refetchOnReconnect`: true (네트워크 재접속 시 자동 리페치)
+
+**에러 처리:**
+
+-   Query 에러: `QueryCache.onError`에서 전역 처리
+-   Mutation 에러: `MutationCache.onError`에서 전역 처리
+
+---
+
+## 파일 구조 및 네이밍 규칙
+
+### 디렉토리 구조
+
+```
+app/
+├── _lib/
+│   └── shared/
+│       ├── hooks/              # Hook 파일들
+│       │   ├── common/
+│       │   ├── user/
+│       │   └── product/
+│       ├── stores/             # Store 파일들
+│       │   ├── user/
+│       │   ├── product/
+│       │   └── common/
+│       ├── supabase/
+│       │   └── client.ts       # Supabase 클라이언트
+│       ├── tanstack/
+│       │   └── queryClient.ts  # TanStack Query 설정
+│       ├── type/
+│       │   └── database.types.ts # Supabase 타입 정의
+│       └── providers/
+│           └── QueryProvider.tsx # Query Provider
+```
+
+### 네이밍 규칙
+
+#### Hook 파일
+
+-   **경로**: `app/_lib/shared/hooks/{도메인}/{기능}Hook.ts`
+-   **예시**:
+    -   `useUserHook.ts`
+    -   `useProductHook.ts`
+    -   `usePostHook.ts`
+
+#### Hook 함수
+
+-   **Query**: `use{기능명}` (복수형)
+    -   예: `useUsers`, `useProducts`, `usePosts`
+-   **Mutation**: `use{동사}{기능명}`
+    -   예: `useAddUser`, `useUpdateUser`, `useDeleteUser`
+
+#### Store 파일
+
+-   **경로**: `app/_lib/shared/stores/{도메인}/use{기능}Store.ts`
+-   **예시**:
+    -   `useUserStore.ts`
+    -   `useProductStore.ts`
+    -   `usePostStore.ts`
+
+#### Store 변수명
+
+-   **Store Hook**: `use{기능}Store`
+    -   예: `useUserStore`, `useProductStore`
+
+#### Query Key
+
+-   **형식**: `['기능명', ...의존성값들]`
+-   **예시**:
+    -   `['users']`
+    -   `['users', userId]`
+    -   `['products', categoryId, page]`
+
+---
+
+## 데이터 흐름
+
+### Query 흐름 (데이터 조회)
+
+```
+1. 컴포넌트에서 Hook 호출
+   ↓
+2. Hook의 useQuery 실행
+   ↓
+3. queryFn에서 Supabase Client로 데이터 조회
+   ↓
+4. Supabase Database에서 데이터 반환
+   ↓
+5. useEffect에서 Store 상태 업데이트
+   ↓
+6. 컴포넌트에 데이터 반환
+```
+
+### Mutation 흐름 (데이터 변경)
+
+```
+1. 컴포넌트에서 Hook의 mutation 호출
+   ↓
+2. mutationFn에서 Supabase Client로 데이터 변경
+   ↓
+3. Supabase Database에서 처리 및 반환
+   ↓
+4. onSuccess 실행
+   ├─ Store 상태 업데이트
+   └─ 관련 쿼리 무효화 (invalidateQueries)
+   ↓
+5. 자동으로 관련 쿼리 리페치
+```
+
+---
+
+## 에러 처리
+
+### Query 에러 처리
+
+**Hook 레벨:**
+
+```typescript
+queryFn: async () => {
+    const { data, error } = await supabase.from('users').select('*');
+
+    if (error) {
+        throw error; // 에러를 그대로 throw
+    }
+
+    return data;
+};
+```
+
+**전역 레벨 (queryClient.ts):**
+
+```typescript
+queryCache: new QueryCache({
+    onError: (error: any, query) => {
+        console.error('Query Error:', {
+            error: error.message || error,
+            queryKey: query.queryKey,
+            timestamp: new Date().toISOString(),
+        });
+
+        if (!query.meta?.skipErrorToast) {
+            toast.error('데이터를 불러오는 중 오류가 발생했습니다.');
+        }
+    },
+});
+```
+
+### Mutation 에러 처리
+
+**Hook 레벨:**
+
+```typescript
+onError: (error: any) => {
+    toast.error('작업에 실패했습니다.');
+    console.error('Mutation error:', error);
+};
+```
+
+**전역 레벨 (queryClient.ts):**
+
+```typescript
+mutationCache: new MutationCache({
+    onError: (error: any, variables, context, mutation) => {
+        console.error('Mutation Error:', {
+            error: error.message || error,
+            mutationKey: mutation.options.mutationKey,
+            variables,
+            timestamp: new Date().toISOString(),
+        });
+
+        if (!mutation.meta?.skipErrorToast) {
+            toast.error('작업 중 오류가 발생했습니다.');
+        }
+    },
+});
+```
+
+**주의사항:**
+
+-   API 실패 시 대체 데이터로 변환하지 않고 에러를 그대로 전달합니다
+-   하드코딩된 대체 데이터는 사용하지 않습니다
+
+---
+
+## 쿼리 관리
+
+### 쿼리 무효화 (Invalidation)
+
+Mutation 성공 시 관련 쿼리를 무효화하여 자동으로 리페치합니다.
+
+```typescript
+onSuccess: (data) => {
+    addUser(data);
+    queryClient.invalidateQueries({ queryKey: ['users'] });
+};
+```
+
+### 쿼리 키 설계 원칙
+
+1. **의존성 포함**: 쿼리 결과에 영향을 주는 모든 값 포함
+
+    ```typescript
+    queryKey: ['products', categoryId, page, limit];
+    ```
+
+2. **계층 구조 활용**: 관련 쿼리들을 그룹화
+
+    ```typescript
+    queryKey: ['users']; // 모든 users 쿼리
+    queryKey: ['users', userId]; // 특정 user의 쿼리
+    ```
+
+3. **캐시 제어**: 특정 쿼리의 캐시 설정 변경
+    ```typescript
+    queryClient.setQueryDefaults(['users', 'realtime'], {
+        staleTime: 0,
+        gcTime: 0,
+    });
+    ```
+
+### Signal 사용 (요청 취소)
+
+AbortSignal을 사용하여 컴포넌트 언마운트 시 요청을 취소합니다.
+
+```typescript
+queryFn: async ({ signal }) => {
+    const { data, error } = await supabase.from('users').select('*').abortSignal(signal);
+
+    if (error) throw error;
+    return data;
+};
+```
+
+---
+
+## Supabase 활용
+
+### 1. 기본 CRUD 작업
+
+#### SELECT (조회)
+
+```typescript
+const { data, error } = await supabase
+    .from('users')
+    .select('*')
+    .eq('status', 'active')
+    .order('created_at', { ascending: false })
+    .limit(10);
+```
+
+#### INSERT (추가)
+
+```typescript
+const { data, error } = await supabase
+    .from('users')
+    .insert([{ name: 'John', email: 'john@example.com' }])
+    .select();
+```
+
+#### UPDATE (수정)
+
+```typescript
+const { data, error } = await supabase.from('users').update({ name: 'Jane' }).eq('id', userId).select();
+```
+
+#### DELETE (삭제)
+
+```typescript
+const { data, error } = await supabase.from('users').delete().eq('id', userId);
+```
+
+### 2. 관계형 쿼리
+
+```typescript
+const { data, error } = await supabase
+    .from('posts')
+    .select(
+        `
+        *,
+        author:users(id, name, email),
+        comments(id, content, created_at)
+    `
+    )
+    .eq('status', 'published');
+```
+
+### 3. RPC (Remote Procedure Call)
+
+복잡한 쿼리는 Supabase의 PostgreSQL 함수를 사용합니다.
+
+```typescript
+const { data, error } = await supabase.rpc('get_user_stats', {
+    user_id: userId,
+    start_date: '2024-01-01',
+});
+```
+
+### 4. Realtime 구독
+
+실시간 데이터 업데이트를 구독합니다.
+
+```typescript
+const channel = supabase
+    .channel('users-changes')
+    .on(
+        'postgres_changes',
+        {
+            event: '*',
+            schema: 'public',
+            table: 'users',
+        },
+        (payload) => {
+            console.log('Change received!', payload);
+            // Store 업데이트 또는 쿼리 무효화
+            queryClient.invalidateQueries({ queryKey: ['users'] });
+        }
+    )
+    .subscribe();
+
+// 구독 해제
+channel.unsubscribe();
+```
+
+### 5. Row Level Security (RLS)
+
+Supabase는 RLS를 통해 데이터 접근을 제어합니다.
+
+**정책 예시 (SQL):**
+
+```sql
+-- 사용자는 자신의 데이터만 조회 가능
+CREATE POLICY "Users can view own data"
+ON users FOR SELECT
+USING (auth.uid() = id);
+
+-- 사용자는 자신의 데이터만 수정 가능
+CREATE POLICY "Users can update own data"
+ON users FOR UPDATE
+USING (auth.uid() = id);
+```
+
+---
+
+## 예제 코드
+
+### 완전한 예제: User 관리
+
+#### 1. 타입 정의
+
+```typescript
+// app/_lib/shared/type/database.types.ts
+export interface Database {
+    public: {
+        Tables: {
+            users: {
+                Row: {
+                    id: string;
+                    name: string;
+                    email: string;
+                    created_at: string;
+                    updated_at: string;
+                };
+                Insert: {
+                    id?: string;
+                    name: string;
+                    email: string;
+                    created_at?: string;
+                    updated_at?: string;
+                };
+                Update: {
+                    id?: string;
+                    name?: string;
+                    email?: string;
+                    created_at?: string;
+                    updated_at?: string;
+                };
+            };
+        };
+    };
+}
+
+export type User = Database['public']['Tables']['users']['Row'];
+export type NewUser = Database['public']['Tables']['users']['Insert'];
+export type UpdateUser = Database['public']['Tables']['users']['Update'];
+```
+
+#### 2. Store 정의
+
+```typescript
+// app/_lib/shared/stores/user/useUserStore.ts
+import { create } from 'zustand';
+import { User } from '@/app/_lib/shared/type/database.types';
+
+interface UserStore {
+    users: User[];
+    setUsers: (users: User[]) => void;
+    addUser: (user: User) => void;
+    updateUser: (id: string, user: Partial<User>) => void;
+    removeUser: (id: string) => void;
+    reset: () => void;
+}
+
+const initialState = {
+    users: [],
+};
+
+const useUserStore = create<UserStore>((set) => ({
+    ...initialState,
+    setUsers: (users: User[]) => set({ users }),
+    addUser: (user: User) =>
+        set((state) => ({
+            users: [...state.users, user],
+        })),
+    updateUser: (id: string, updatedUser: Partial<User>) =>
+        set((state) => ({
+            users: state.users.map((user) => (user.id === id ? { ...user, ...updatedUser } : user)),
+        })),
+    removeUser: (id: string) =>
+        set((state) => ({
+            users: state.users.filter((user) => user.id !== id),
+        })),
+    reset: () => set(initialState),
+}));
+
+export default useUserStore;
+```
+
+#### 3. Hook 정의
+
+```typescript
+// app/_lib/shared/hooks/user/useUserHook.ts
+'use client';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { useEffect } from 'react';
+import toast from 'react-hot-toast';
+import { supabase } from '@/app/_lib/shared/supabase/client';
+import useUserStore from '@/app/_lib/shared/stores/user/useUserStore';
+import { queryClient } from '@/app/_lib/shared/tanstack/queryClient';
+import { User, NewUser, UpdateUser } from '@/app/_lib/shared/type/database.types';
+
+// Query: 사용자 목록 조회
+export const useUsers = (enabled: boolean = true) => {
+    const setUsers = useUserStore((state) => state.setUsers);
+
+    const queryResult = useQuery({
+        queryKey: ['users'],
+        queryFn: async () => {
+            const { data, error } = await supabase.from('users').select('*').order('created_at', { ascending: false });
+
+            if (error) {
+                throw error;
+            }
+
+            return data as User[];
+        },
+        enabled,
+    });
+
+    useEffect(() => {
+        if (queryResult.data && queryResult.isSuccess) {
+            setUsers(queryResult.data);
+        }
+    }, [queryResult.data, queryResult.isSuccess, setUsers]);
+
+    return queryResult;
+};
+
+// Query: 특정 사용자 조회
+export const useUser = (userId: string | undefined, enabled: boolean = true) => {
+    return useQuery({
+        queryKey: ['users', userId],
+        queryFn: async () => {
+            if (!userId) throw new Error('User ID is required');
+
+            const { data, error } = await supabase.from('users').select('*').eq('id', userId).single();
+
+            if (error) {
+                throw error;
+            }
+
+            return data as User;
+        },
+        enabled: !!userId && enabled,
+    });
+};
+
+// Mutation: 사용자 추가
+export const useAddUser = () => {
+    const addUser = useUserStore((state) => state.addUser);
+
+    return useMutation({
+        mutationFn: async (newUser: NewUser) => {
+            const { data, error } = await supabase.from('users').insert([newUser]).select().single();
+
+            if (error) {
+                throw error;
+            }
+
+            return data as User;
+        },
+        onSuccess: (data) => {
+            addUser(data);
+            queryClient.invalidateQueries({ queryKey: ['users'] });
+            toast.success('사용자가 추가되었습니다.');
+        },
+        onError: (error: any) => {
+            toast.error('사용자 추가에 실패했습니다.');
+            console.error('Add user error:', error);
+        },
+    });
+};
+
+// Mutation: 사용자 수정
+export const useUpdateUser = () => {
+    const updateUser = useUserStore((state) => state.updateUser);
+
+    return useMutation({
+        mutationFn: async ({ id, updates }: { id: string; updates: UpdateUser }) => {
+            const { data, error } = await supabase.from('users').update(updates).eq('id', id).select().single();
+
+            if (error) {
+                throw error;
+            }
+
+            return data as User;
+        },
+        onSuccess: (data) => {
+            updateUser(data.id, data);
+            queryClient.invalidateQueries({ queryKey: ['users'] });
+            queryClient.invalidateQueries({ queryKey: ['users', data.id] });
+            toast.success('사용자 정보가 수정되었습니다.');
+        },
+        onError: (error: any) => {
+            toast.error('사용자 수정에 실패했습니다.');
+            console.error('Update user error:', error);
+        },
+    });
+};
+
+// Mutation: 사용자 삭제
+export const useDeleteUser = () => {
+    const removeUser = useUserStore((state) => state.removeUser);
+
+    return useMutation({
+        mutationFn: async (userId: string) => {
+            const { error } = await supabase.from('users').delete().eq('id', userId);
+
+            if (error) {
+                throw error;
+            }
+
+            return userId;
+        },
+        onSuccess: (userId) => {
+            removeUser(userId);
+            queryClient.invalidateQueries({ queryKey: ['users'] });
+            toast.success('사용자가 삭제되었습니다.');
+        },
+        onError: (error: any) => {
+            toast.error('사용자 삭제에 실패했습니다.');
+            console.error('Delete user error:', error);
+        },
+    });
+};
+```
+
+#### 4. 컴포넌트에서 사용
+
+```typescript
+// 컴포넌트 예시
+'use client';
+import { useUsers, useAddUser, useUpdateUser, useDeleteUser } from '@/app/_lib/shared/hooks/user/useUserHook';
+
+export default function UserComponent() {
+    // Query 사용
+    const { data: users, isLoading, error } = useUsers();
+
+    // Mutation 사용
+    const addMutation = useAddUser();
+    const updateMutation = useUpdateUser();
+    const deleteMutation = useDeleteUser();
+
+    const handleAdd = () => {
+        addMutation.mutate({
+            name: 'John Doe',
+            email: 'john@example.com',
+        });
+    };
+
+    const handleUpdate = (userId: string) => {
+        updateMutation.mutate({
+            id: userId,
+            updates: { name: 'Jane Doe' },
+        });
+    };
+
+    const handleDelete = (userId: string) => {
+        deleteMutation.mutate(userId);
+    };
+
+    if (isLoading) return <div>Loading...</div>;
+    if (error) return <div>Error occurred</div>;
+
+    return (
+        <div>
+            <h1>Users</h1>
+            {users?.map((user) => (
+                <div key={user.id}>
+                    <p>
+                        {user.name} - {user.email}
+                    </p>
+                    <button onClick={() => handleUpdate(user.id)}>수정</button>
+                    <button onClick={() => handleDelete(user.id)}>삭제</button>
+                </div>
+            ))}
+            <button onClick={handleAdd}>추가</button>
+        </div>
+    );
+}
+```
+
+---
+
+## 주요 원칙 요약
+
+1. **API 실패 시 대체 데이터 사용 금지**: 에러가 발생하면 그대로 전달하고, 하드코딩된 대체 데이터를 사용하지 않습니다.
+
+2. **Store 패턴 준수**: 모든 API 호출과 상태 관리는 Store 패턴을 따릅니다.
+
+3. **중복 확인**: 새로운 Store 및 API 생성 시 같은 기능의 API 및 Store가 있는지 확인합니다.
+
+4. **Hook에서 쿼리 생성**: 모든 쿼리는 Hook에서 생성하고, TanStack Query로 관리합니다.
+
+5. **Store에서 상태 관리**: 화면 개발 시 모든 API 호출과 상태 관리는 Store에서 관리합니다.
+
+6. **에러 처리**: 에러는 적절한 레벨에서 처리하고, 사용자에게 명확한 피드백을 제공합니다.
+
+7. **Supabase 직접 호출**: API Route를 거치지 않고 Supabase로 직접 데이터를 조회/변경합니다.
+
+8. **RLS 활용**: Row Level Security를 활용하여 데이터 보안을 강화합니다.
+
+---
+
+## 참고 파일
+
+-   **Supabase 클라이언트**: `app/_lib/shared/supabase/client.ts`
+-   **TanStack Query 설정**: `app/_lib/shared/tanstack/queryClient.ts`
+-   **Query Provider**: `app/_lib/shared/providers/QueryProvider.tsx`
+-   **Hook 예시**: `app/_lib/shared/hooks/user/useUserHook.ts`
+-   **Store 예시**: `app/_lib/shared/stores/user/useUserStore.ts`
+-   **타입 정의**: `app/_lib/shared/type/database.types.ts`
+
+---
+
+**마지막 업데이트**: 2024년
