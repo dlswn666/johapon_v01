@@ -121,7 +121,7 @@ export const useAddNotice = () => {
                 router.push('/notice');
             }, 1500);
         },
-        onError: (error: any) => {
+        onError: (error: Error) => {
             console.error('Add notice error:', error);
             openAlertModal({
                 title: '등록 실패',
@@ -171,7 +171,7 @@ export const useUpdateNotice = () => {
                 router.push(`/notice/${data.id}`);
             }, 1500);
         },
-        onError: (error: any) => {
+        onError: (error: Error) => {
             console.error('Update notice error:', error);
             openAlertModal({
                 title: '수정 실패',
@@ -218,7 +218,7 @@ export const useDeleteNotice = () => {
                 router.push('/notice');
             }, 1500);
         },
-        onError: (error: any) => {
+        onError: (error: Error) => {
             console.error('Delete notice error:', error);
             openAlertModal({
                 title: '삭제 실패',
@@ -255,7 +255,7 @@ export const useIncrementNoticeViews = () => {
             queryClient.invalidateQueries({ queryKey: ['notices'] });
             queryClient.invalidateQueries({ queryKey: ['notices', noticeId] });
         },
-        onError: (error: any) => {
+        onError: (error: Error) => {
             console.error('Increment views error:', error);
         },
     });
