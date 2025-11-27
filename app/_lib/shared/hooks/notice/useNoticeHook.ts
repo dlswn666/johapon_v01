@@ -203,9 +203,11 @@ export const useDeleteNotice = () => {
 
             return noticeId;
         },
-        onSuccess: (noticeId) => {
+        onSuccess: async (noticeId) => {
             removeNotice(noticeId);
-            queryClient.invalidateQueries({ queryKey: ['notices'] });
+            
+            // 캐시 무효화를 기다림
+            await queryClient.invalidateQueries({ queryKey: ['notices'] });
 
             openAlertModal({
                 title: '삭제 완료',
