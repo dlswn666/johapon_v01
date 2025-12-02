@@ -33,6 +33,7 @@ export const EditorToolbar = ({ editor }: EditorToolbarProps) => {
             {/* Headings */}
             <div className="flex items-center gap-1 border-r pr-2 mr-1">
                 <Button
+                    type="button"
                     variant="ghost"
                     size="icon"
                     onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
@@ -45,6 +46,7 @@ export const EditorToolbar = ({ editor }: EditorToolbarProps) => {
                     <Heading1 className="h-4 w-4" />
                 </Button>
                 <Button
+                    type="button"
                     variant="ghost"
                     size="icon"
                     onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
@@ -57,6 +59,7 @@ export const EditorToolbar = ({ editor }: EditorToolbarProps) => {
                     <Heading2 className="h-4 w-4" />
                 </Button>
                 <Button
+                    type="button"
                     variant="ghost"
                     size="icon"
                     onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
@@ -73,6 +76,7 @@ export const EditorToolbar = ({ editor }: EditorToolbarProps) => {
             {/* Basic Formatting */}
             <div className="flex items-center gap-1 border-r pr-2 mr-1">
                 <Button
+                    type="button"
                     variant="ghost"
                     size="icon"
                     onClick={() => editor.chain().focus().toggleBold().run()}
@@ -86,6 +90,7 @@ export const EditorToolbar = ({ editor }: EditorToolbarProps) => {
                     <Bold className="h-4 w-4" />
                 </Button>
                 <Button
+                    type="button"
                     variant="ghost"
                     size="icon"
                     onClick={() => editor.chain().focus().toggleItalic().run()}
@@ -103,6 +108,7 @@ export const EditorToolbar = ({ editor }: EditorToolbarProps) => {
             {/* Lists & Quote */}
             <div className="flex items-center gap-1 border-r pr-2 mr-1">
                 <Button
+                    type="button"
                     variant="ghost"
                     size="icon"
                     onClick={() => editor.chain().focus().toggleBulletList().run()}
@@ -115,6 +121,7 @@ export const EditorToolbar = ({ editor }: EditorToolbarProps) => {
                     <List className="h-4 w-4" />
                 </Button>
                 <Button
+                    type="button"
                     variant="ghost"
                     size="icon"
                     onClick={() => editor.chain().focus().toggleOrderedList().run()}
@@ -127,6 +134,7 @@ export const EditorToolbar = ({ editor }: EditorToolbarProps) => {
                     <ListOrdered className="h-4 w-4" />
                 </Button>
                 <Button
+                    type="button"
                     variant="ghost"
                     size="icon"
                     onClick={() => editor.chain().focus().toggleBlockquote().run()}
@@ -143,6 +151,7 @@ export const EditorToolbar = ({ editor }: EditorToolbarProps) => {
             {/* Alignment */}
             <div className="flex items-center gap-1 border-r pr-2 mr-1">
                 <Button
+                    type="button"
                     variant="ghost"
                     size="icon"
                     onClick={() => editor.chain().focus().setTextAlign('left').run()}
@@ -155,6 +164,7 @@ export const EditorToolbar = ({ editor }: EditorToolbarProps) => {
                     <AlignLeft className="h-4 w-4" />
                 </Button>
                 <Button
+                    type="button"
                     variant="ghost"
                     size="icon"
                     onClick={() => editor.chain().focus().setTextAlign('center').run()}
@@ -167,6 +177,7 @@ export const EditorToolbar = ({ editor }: EditorToolbarProps) => {
                     <AlignCenter className="h-4 w-4" />
                 </Button>
                 <Button
+                    type="button"
                     variant="ghost"
                     size="icon"
                     onClick={() => editor.chain().focus().setTextAlign('right').run()}
@@ -183,6 +194,7 @@ export const EditorToolbar = ({ editor }: EditorToolbarProps) => {
             {/* Image */}
             <div className="flex items-center gap-1">
                 <Button
+                    type="button"
                     variant="ghost"
                     size="icon"
                     onClick={addImage}
