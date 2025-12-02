@@ -5,7 +5,6 @@ import { useFileStore } from '@/app/_lib/shared/stores/file/useFileStore';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Upload, X, File as FileIcon, Download, Trash2, CheckCircle, AlertCircle } from 'lucide-react';
-import { supabase } from '@/app/_lib/shared/supabase/client';
 import { cn } from '@/lib/utils';
 
 interface FileUploaderProps {

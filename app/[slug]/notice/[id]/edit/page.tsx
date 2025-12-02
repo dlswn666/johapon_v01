@@ -34,10 +34,10 @@ interface EditNoticePageProps {
 
 const EditNoticePage = ({ params }: EditNoticePageProps) => {
     const router = useRouter();
-    const { id } = use(params);
+    const { id, slug } = use(params);
     const noticeId = parseInt(id);
     const { isLoading: isUnionLoading } = useSlug();
-    
+
     const { data: notice, isLoading } = useNotice(noticeId);
     const { mutate: updateNotice, isPending } = useUpdateNotice();
 
@@ -100,7 +100,7 @@ const EditNoticePage = ({ params }: EditNoticePageProps) => {
 
                 <div className="max-w-2xl mx-auto">
                     <h1 className="text-2xl font-bold mb-6">공지사항 수정</h1>
-                    
+
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                             <FormField
@@ -139,11 +139,7 @@ const EditNoticePage = ({ params }: EditNoticePageProps) => {
                             <FormItem>
                                 <FormLabel>첨부파일</FormLabel>
                                 <FormControl>
-                                    <FileUploader
-                                        unionSlug={params.slug}
-                                        targetType="NOTICE"
-                                        targetId={String(noticeId)}
-                                    />
+                                    <FileUploader unionSlug={slug} targetType="NOTICE" targetId={String(noticeId)} />
                                 </FormControl>
                             </FormItem>
 
@@ -153,26 +149,17 @@ const EditNoticePage = ({ params }: EditNoticePageProps) => {
                                 render={({ field }) => (
                                     <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                                         <FormControl>
-                                            <Checkbox
-                                                checked={field.value}
-                                                onCheckedChange={field.onChange}
-                                            />
+                                            <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                                         </FormControl>
                                         <div className="space-y-1 leading-none">
-                                            <FormLabel>
-                                                팝업으로 표시
-                                            </FormLabel>
+                                            <FormLabel>팝업으로 표시</FormLabel>
                                         </div>
                                     </FormItem>
                                 )}
                             />
 
                             <div className="flex justify-end gap-2">
-                                <Button 
-                                    type="button" 
-                                    variant="outline" 
-                                    onClick={() => router.back()}
-                                >
+                                <Button type="button" variant="outline" onClick={() => router.back()}>
                                     취소
                                 </Button>
                                 <Button type="submit" disabled={isPending}>
@@ -190,4 +177,3 @@ const EditNoticePage = ({ params }: EditNoticePageProps) => {
 };
 
 export default EditNoticePage;
-
