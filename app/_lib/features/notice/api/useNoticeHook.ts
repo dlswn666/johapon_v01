@@ -4,10 +4,13 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/app/_lib/shared/supabase/client';
-import useNoticeStore from '@/app/_lib/shared/stores/notice/useNoticeStore';
+import useNoticeStore from '@/app/_lib/features/notice/model/useNoticeStore';
 import useModalStore from '@/app/_lib/shared/stores/modal/useModalStore';
+import { useFileStore } from '@/app/_lib/shared/stores/file/useFileStore';
 import { queryClient } from '@/app/_lib/shared/tanstack/queryClient';
 import { Notice, NewNotice, UpdateNotice } from '@/app/_lib/shared/type/database.types';
+import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
+import { getUnionPath } from '@/app/_lib/shared/lib/utils/slug';
 
 // ============================================
 // Query Hooks (조회)
@@ -18,13 +21,17 @@ import { Notice, NewNotice, UpdateNotice } from '@/app/_lib/shared/type/database
  */
 export const useNotices = (enabled: boolean = true) => {
     const setNotices = useNoticeStore((state) => state.setNotices);
+    const { union } = useSlug();
 
     const queryResult = useQuery({
-        queryKey: ['notices'],
+        queryKey: ['notices', union?.id],
         queryFn: async () => {
+            if (!union?.id) return [];
+
             const { data, error } = await supabase
                 .from('notices')
                 .select('*')
+                .eq('union_id', union.id) // 조합 ID로 필터링
                 .order('created_at', { ascending: false });
 
             if (error) {
@@ -33,7 +40,7 @@ export const useNotices = (enabled: boolean = true) => {
 
             return data as Notice[];
         },
-        enabled,
+        enabled: enabled && !!union?.id,
     });
 
     useEffect(() => {
@@ -50,16 +57,19 @@ export const useNotices = (enabled: boolean = true) => {
  */
 export const useNotice = (noticeId: number | undefined, enabled: boolean = true) => {
     const setSelectedNotice = useNoticeStore((state) => state.setSelectedNotice);
+    const { union } = useSlug();
 
     const queryResult = useQuery({
-        queryKey: ['notices', noticeId],
+        queryKey: ['notices', union?.id, noticeId],
         queryFn: async () => {
             if (!noticeId) throw new Error('Notice ID is required');
+            if (!union?.id) throw new Error('Union ID is required');
 
             const { data, error} = await supabase
                 .from('notices')
                 .select('*')
                 .eq('id', noticeId)
+                .eq('union_id', union.id) // 조합 ID로 필터링 (보안 강화)
                 .single();
 
             if (error) {
@@ -68,7 +78,7 @@ export const useNotice = (noticeId: number | undefined, enabled: boolean = true)
 
             return data as Notice;
         },
-        enabled: !!noticeId && enabled,
+        enabled: !!noticeId && !!union?.id && enabled,
     });
 
     useEffect(() => {
@@ -91,24 +101,46 @@ export const useAddNotice = () => {
     const router = useRouter();
     const addNotice = useNoticeStore((state) => state.addNotice);
     const openAlertModal = useModalStore((state) => state.openAlertModal);
+    const { confirmFiles, clearTempFiles } = useFileStore();
+    const { union, slug } = useSlug();
 
     return useMutation({
         mutationFn: async (newNotice: NewNotice) => {
+            if (!union?.id) throw new Error('Union context missing');
+
+            // union_id 자동 주입
+            const noticeWithUnion = {
+                ...newNotice,
+                union_id: union.id,
+            };
+
             const { data, error } = await supabase
                 .from('notices')
-                .insert([newNotice])
+                .insert([noticeWithUnion])
                 .select()
                 .single();
 
             if (error) {
                 throw error;
             }
+            
+            // 파일 이관 (임시 -> 영구)
+            // noticeId를 targetId로 사용하여 파일 정보 업데이트
+            await confirmFiles({
+                targetId: String(data.id),
+                targetType: 'NOTICE',
+                unionSlug: slug,
+                uploaderId: newNotice.author_id, // 작성자 ID
+            });
 
             return data as Notice;
         },
         onSuccess: (data) => {
             addNotice(data);
-            queryClient.invalidateQueries({ queryKey: ['notices'] });
+            queryClient.invalidateQueries({ queryKey: ['notices', union?.id] });
+            
+            // 임시 파일 목록 정리
+            clearTempFiles();
             
             openAlertModal({
                 title: '등록 완료',
@@ -118,7 +150,8 @@ export const useAddNotice = () => {
 
             // 성공 모달 닫힌 후 목록으로 이동
             setTimeout(() => {
-                router.push('/notice');
+                const path = getUnionPath(slug, '/notice');
+                router.push(path);
             }, 1500);
         },
         onError: (error: Error) => {
@@ -139,6 +172,7 @@ export const useUpdateNotice = () => {
     const router = useRouter();
     const updateNotice = useNoticeStore((state) => state.updateNotice);
     const openAlertModal = useModalStore((state) => state.openAlertModal);
+    const { union, slug } = useSlug();
 
     return useMutation({
         mutationFn: async ({ id, updates }: { id: number; updates: UpdateNotice }) => {
@@ -157,8 +191,8 @@ export const useUpdateNotice = () => {
         },
         onSuccess: (data) => {
             updateNotice(data.id, data);
-            queryClient.invalidateQueries({ queryKey: ['notices'] });
-            queryClient.invalidateQueries({ queryKey: ['notices', data.id] });
+            queryClient.invalidateQueries({ queryKey: ['notices', union?.id] });
+            queryClient.invalidateQueries({ queryKey: ['notices', union?.id, data.id] });
 
             openAlertModal({
                 title: '수정 완료',
@@ -168,7 +202,8 @@ export const useUpdateNotice = () => {
 
             // 성공 모달 닫힌 후 상세 페이지로 이동
             setTimeout(() => {
-                router.push(`/notice/${data.id}`);
+                const path = getUnionPath(slug, `/notice/${data.id}`);
+                router.push(path);
             }, 1500);
         },
         onError: (error: Error) => {
@@ -189,6 +224,7 @@ export const useDeleteNotice = () => {
     const router = useRouter();
     const removeNotice = useNoticeStore((state) => state.removeNotice);
     const openAlertModal = useModalStore((state) => state.openAlertModal);
+    const { union, slug } = useSlug();
 
     return useMutation({
         mutationFn: async (noticeId: number) => {
@@ -207,7 +243,7 @@ export const useDeleteNotice = () => {
             removeNotice(noticeId);
             
             // 캐시 무효화를 기다림
-            await queryClient.invalidateQueries({ queryKey: ['notices'] });
+            await queryClient.invalidateQueries({ queryKey: ['notices', union?.id] });
 
             openAlertModal({
                 title: '삭제 완료',
@@ -217,7 +253,8 @@ export const useDeleteNotice = () => {
 
             // 성공 모달 닫힌 후 목록으로 이동
             setTimeout(() => {
-                router.push('/notice');
+                const path = getUnionPath(slug, '/notice');
+                router.push(path);
             }, 1500);
         },
         onError: (error: Error) => {
@@ -236,6 +273,7 @@ export const useDeleteNotice = () => {
  */
 export const useIncrementNoticeViews = () => {
     const incrementViews = useNoticeStore((state) => state.incrementViews);
+    const { union } = useSlug();
 
     return useMutation({
         mutationFn: async (noticeId: number) => {
@@ -254,8 +292,8 @@ export const useIncrementNoticeViews = () => {
             incrementViews(noticeId);
             
             // 쿼리 캐시 무효화 (목록 페이지에 반영)
-            queryClient.invalidateQueries({ queryKey: ['notices'] });
-            queryClient.invalidateQueries({ queryKey: ['notices', noticeId] });
+            queryClient.invalidateQueries({ queryKey: ['notices', union?.id] });
+            queryClient.invalidateQueries({ queryKey: ['notices', union?.id, noticeId] });
         },
         onError: (error: Error) => {
             console.error('Increment views error:', error);

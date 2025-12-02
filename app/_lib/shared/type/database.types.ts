@@ -1,169 +1,392 @@
-/**
- * Supabase Database Types
- *
- * 이 파일은 Supabase 데이터베이스의 타입 정의를 포함합니다.
- *
- * Supabase CLI를 사용하여 자동 생성할 수 있습니다:
- * npx supabase gen types typescript --project-id <project-id> > app/_lib/shared/type/database.types.ts
- *
- * 또는 Supabase 대시보드에서 타입을 복사할 수 있습니다:
- * Project Settings > API > TypeScript Types
- */
-
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
-/**
- * Database 인터페이스
- *
- * Supabase 데이터베이스의 전체 스키마를 정의합니다.
- */
-export interface Database {
+export type Database = {
+    // Allows to automatically instantiate createClient with right options
+    // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+    __InternalSupabase: {
+        PostgrestVersion: '13.0.5';
+    };
     public: {
         Tables: {
-            // 예시: users 테이블
-            users: {
+            alimtalk_logs: {
                 Row: {
-                    id: string;
-                    name: string;
-                    email: string;
-                    created_at: string;
-                    updated_at: string;
+                    content: string | null;
+                    cost_per_msg: number;
+                    fail_count: number;
+                    id: number;
+                    notice_id: number | null;
+                    recipient_count: number;
+                    sender_id: string;
+                    sent_at: string;
+                    success_count: number;
+                    title: string;
                 };
                 Insert: {
-                    id?: string;
-                    name: string;
-                    email: string;
-                    created_at?: string;
-                    updated_at?: string;
+                    content?: string | null;
+                    cost_per_msg?: number;
+                    fail_count?: number;
+                    id?: number;
+                    notice_id?: number | null;
+                    recipient_count?: number;
+                    sender_id: string;
+                    sent_at?: string;
+                    success_count?: number;
+                    title: string;
                 };
                 Update: {
-                    id?: string;
-                    name?: string;
-                    email?: string;
-                    created_at?: string;
-                    updated_at?: string;
-                };
-                Relationships: [];
-            };
-            // 예시: posts 테이블
-            posts: {
-                Row: {
-                    id: string;
-                    user_id: string;
-                    title: string;
-                    content: string;
-                    status: 'draft' | 'published' | 'archived';
-                    created_at: string;
-                    updated_at: string;
-                };
-                Insert: {
-                    id?: string;
-                    user_id: string;
-                    title: string;
-                    content: string;
-                    status?: 'draft' | 'published' | 'archived';
-                    created_at?: string;
-                    updated_at?: string;
-                };
-                Update: {
-                    id?: string;
-                    user_id?: string;
+                    content?: string | null;
+                    cost_per_msg?: number;
+                    fail_count?: number;
+                    id?: number;
+                    notice_id?: number | null;
+                    recipient_count?: number;
+                    sender_id?: string;
+                    sent_at?: string;
+                    success_count?: number;
                     title?: string;
-                    content?: string;
-                    status?: 'draft' | 'published' | 'archived';
-                    created_at?: string;
-                    updated_at?: string;
                 };
                 Relationships: [
                     {
-                        foreignKeyName: 'posts_user_id_fkey';
-                        columns: ['user_id'];
+                        foreignKeyName: 'alimtalk_logs_notice_id_fkey';
+                        columns: ['notice_id'];
+                        isOneToOne: false;
+                        referencedRelation: 'notices';
+                        referencedColumns: ['id'];
+                    },
+                    {
+                        foreignKeyName: 'alimtalk_logs_sender_id_fkey';
+                        columns: ['sender_id'];
+                        isOneToOne: false;
                         referencedRelation: 'users';
                         referencedColumns: ['id'];
                     }
                 ];
             };
-            // notices 테이블
-            notices: {
+            files: {
                 Row: {
-                    id: number;
-                    title: string;
-                    content: string;
-                    author_id: string;
-                    is_popup: boolean;
-                    end_date: string | null;
-                    views: number;
+                    bucket_id: string;
                     created_at: string;
+                    id: string;
+                    name: string;
+                    notice_id: number | null;
+                    path: string;
+                    size: number;
+                    type: string;
+                    union_id: string | null;
                     updated_at: string;
+                    uploader_id: string | null;
                 };
                 Insert: {
-                    id?: number;
-                    title: string;
-                    content: string;
-                    author_id: string;
-                    is_popup?: boolean;
-                    end_date?: string | null;
-                    views?: number;
+                    bucket_id: string;
                     created_at?: string;
+                    id?: string;
+                    name: string;
+                    notice_id?: number | null;
+                    path: string;
+                    size: number;
+                    type: string;
+                    union_id?: string | null;
                     updated_at?: string;
+                    uploader_id?: string | null;
                 };
                 Update: {
-                    title?: string;
-                    content?: string;
-                    author_id?: string;
-                    is_popup?: boolean;
-                    end_date?: string | null;
-                    views?: number;
+                    bucket_id?: string;
+                    created_at?: string;
+                    id?: string;
+                    name?: string;
+                    notice_id?: number | null;
+                    path?: string;
+                    size?: number;
+                    type?: string;
+                    union_id?: string | null;
                     updated_at?: string;
+                    uploader_id?: string | null;
+                };
+                Relationships: [
+                    {
+                        foreignKeyName: 'files_notice_id_fkey';
+                        columns: ['notice_id'];
+                        isOneToOne: false;
+                        referencedRelation: 'notices';
+                        referencedColumns: ['id'];
+                    },
+                    {
+                        foreignKeyName: 'files_union_id_fkey';
+                        columns: ['union_id'];
+                        isOneToOne: false;
+                        referencedRelation: 'unions';
+                        referencedColumns: ['id'];
+                    },
+                    {
+                        foreignKeyName: 'files_uploader_id_fkey';
+                        columns: ['uploader_id'];
+                        isOneToOne: false;
+                        referencedRelation: 'users';
+                        referencedColumns: ['id'];
+                    }
+                ];
+            };
+            notices: {
+                Row: {
+                    author_id: string;
+                    content: string;
+                    created_at: string;
+                    end_date: string | null;
+                    id: number;
+                    is_popup: boolean;
+                    title: string;
+                    union_id: string | null;
+                    updated_at: string;
+                    views: number;
+                };
+                Insert: {
+                    author_id: string;
+                    content: string;
+                    created_at?: string;
+                    end_date?: string | null;
+                    id?: number;
+                    is_popup?: boolean;
+                    title: string;
+                    union_id?: string | null;
+                    updated_at?: string;
+                    views?: number;
+                };
+                Update: {
+                    author_id?: string;
+                    content?: string;
+                    created_at?: string;
+                    end_date?: string | null;
+                    id?: number;
+                    is_popup?: boolean;
+                    title?: string;
+                    union_id?: string | null;
+                    updated_at?: string;
+                    views?: number;
                 };
                 Relationships: [
                     {
                         foreignKeyName: 'notices_author_id_fkey';
                         columns: ['author_id'];
+                        isOneToOne: false;
                         referencedRelation: 'users';
+                        referencedColumns: ['id'];
+                    },
+                    {
+                        foreignKeyName: 'notices_union_id_fkey';
+                        columns: ['union_id'];
+                        isOneToOne: false;
+                        referencedRelation: 'unions';
+                        referencedColumns: ['id'];
+                    }
+                ];
+            };
+            unions: {
+                Row: {
+                    created_at: string;
+                    id: string;
+                    name: string;
+                    slug: string;
+                    updated_at: string;
+                };
+                Insert: {
+                    created_at?: string;
+                    id?: string;
+                    name: string;
+                    slug: string;
+                    updated_at?: string;
+                };
+                Update: {
+                    created_at?: string;
+                    id?: string;
+                    name?: string;
+                    slug?: string;
+                    updated_at?: string;
+                };
+                Relationships: [];
+            };
+            users: {
+                Row: {
+                    created_at: string;
+                    email: string;
+                    id: string;
+                    name: string;
+                    phone_number: string;
+                    role: string;
+                    union_id: string | null;
+                };
+                Insert: {
+                    created_at?: string;
+                    email: string;
+                    id: string;
+                    name: string;
+                    phone_number: string;
+                    role: string;
+                    union_id?: string | null;
+                };
+                Update: {
+                    created_at?: string;
+                    email?: string;
+                    id?: string;
+                    name?: string;
+                    phone_number?: string;
+                    role?: string;
+                    union_id?: string | null;
+                };
+                Relationships: [
+                    {
+                        foreignKeyName: 'users_union_id_fkey';
+                        columns: ['union_id'];
+                        isOneToOne: false;
+                        referencedRelation: 'unions';
                         referencedColumns: ['id'];
                     }
                 ];
             };
         };
-        Views: Record<string, never>;
-        Functions: Record<string, never>;
-        Enums: {
-            // 열거형이 있는 경우 여기에 정의
-            post_status: 'draft' | 'published' | 'archived';
+        Views: {
+            [_ in never]: never;
         };
-        CompositeTypes: Record<string, never>;
+        Functions: {
+            increment_notice_views: {
+                Args: { notice_id: number };
+                Returns: undefined;
+            };
+        };
+        Enums: {
+            user_role: 'systemAdmin' | 'admin' | 'user';
+        };
+        CompositeTypes: {
+            [_ in never]: never;
+        };
     };
+};
+
+type DatabaseWithoutInternals = Omit<Database, '__InternalSupabase'>;
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, 'public'>];
+
+export type Tables<
+    DefaultSchemaTableNameOrOptions extends
+        | keyof (DefaultSchema['Tables'] & DefaultSchema['Views'])
+        | { schema: keyof DatabaseWithoutInternals },
+    TableName extends DefaultSchemaTableNameOrOptions extends {
+        schema: keyof DatabaseWithoutInternals;
+    }
+        ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'] &
+              DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Views'])
+        : never = never
+> = DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals;
 }
+    ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'] &
+          DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Views'])[TableName] extends {
+          Row: infer R;
+      }
+        ? R
+        : never
+    : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema['Tables'] & DefaultSchema['Views'])
+    ? (DefaultSchema['Tables'] & DefaultSchema['Views'])[DefaultSchemaTableNameOrOptions] extends {
+          Row: infer R;
+      }
+        ? R
+        : never
+    : never;
 
-/**
- * 테이블별 타입 유틸리티
- */
+export type TablesInsert<
+    DefaultSchemaTableNameOrOptions extends keyof DefaultSchema['Tables'] | { schema: keyof DatabaseWithoutInternals },
+    TableName extends DefaultSchemaTableNameOrOptions extends {
+        schema: keyof DatabaseWithoutInternals;
+    }
+        ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables']
+        : never = never
+> = DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals;
+}
+    ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'][TableName] extends {
+          Insert: infer I;
+      }
+        ? I
+        : never
+    : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema['Tables']
+    ? DefaultSchema['Tables'][DefaultSchemaTableNameOrOptions] extends {
+          Insert: infer I;
+      }
+        ? I
+        : never
+    : never;
 
-// Users 타입
-export type User = Database['public']['Tables']['users']['Row'];
-export type NewUser = Database['public']['Tables']['users']['Insert'];
-export type UpdateUser = Database['public']['Tables']['users']['Update'];
+export type TablesUpdate<
+    DefaultSchemaTableNameOrOptions extends keyof DefaultSchema['Tables'] | { schema: keyof DatabaseWithoutInternals },
+    TableName extends DefaultSchemaTableNameOrOptions extends {
+        schema: keyof DatabaseWithoutInternals;
+    }
+        ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables']
+        : never = never
+> = DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals;
+}
+    ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'][TableName] extends {
+          Update: infer U;
+      }
+        ? U
+        : never
+    : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema['Tables']
+    ? DefaultSchema['Tables'][DefaultSchemaTableNameOrOptions] extends {
+          Update: infer U;
+      }
+        ? U
+        : never
+    : never;
 
-// Posts 타입
-export type Post = Database['public']['Tables']['posts']['Row'];
-export type NewPost = Database['public']['Tables']['posts']['Insert'];
-export type UpdatePost = Database['public']['Tables']['posts']['Update'];
+export type Enums<
+    DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema['Enums'] | { schema: keyof DatabaseWithoutInternals },
+    EnumName extends DefaultSchemaEnumNameOrOptions extends {
+        schema: keyof DatabaseWithoutInternals;
+    }
+        ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions['schema']]['Enums']
+        : never = never
+> = DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals;
+}
+    ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions['schema']]['Enums'][EnumName]
+    : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema['Enums']
+    ? DefaultSchema['Enums'][DefaultSchemaEnumNameOrOptions]
+    : never;
 
-// Notices 타입
+export type CompositeTypes<
+    PublicCompositeTypeNameOrOptions extends
+        | keyof DefaultSchema['CompositeTypes']
+        | { schema: keyof DatabaseWithoutInternals },
+    CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+        schema: keyof DatabaseWithoutInternals;
+    }
+        ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions['schema']]['CompositeTypes']
+        : never = never
+> = PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals;
+}
+    ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions['schema']]['CompositeTypes'][CompositeTypeName]
+    : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema['CompositeTypes']
+    ? DefaultSchema['CompositeTypes'][PublicCompositeTypeNameOrOptions]
+    : never;
+
+export const Constants = {
+    public: {
+        Enums: {
+            user_role: ['systemAdmin', 'admin', 'user'],
+        },
+    },
+} as const;
+
+// --- Type Exports ---
 export type Notice = Database['public']['Tables']['notices']['Row'];
 export type NewNotice = Database['public']['Tables']['notices']['Insert'];
 export type UpdateNotice = Database['public']['Tables']['notices']['Update'];
 
-// Enums
-export type PostStatus = Database['public']['Enums']['post_status'];
+export type Union = Database['public']['Tables']['unions']['Row'];
+export type NewUnion = Database['public']['Tables']['unions']['Insert'];
+export type UpdateUnion = Database['public']['Tables']['unions']['Update'];
 
-/**
- * Supabase Client 타입
- *
- * 타입이 지정된 Supabase 클라이언트를 사용할 때:
- * import { createClient } from '@supabase/supabase-js';
- * import { Database } from '@/app/_lib/shared/type/database.types';
- *
- * const supabase = createClient<Database>(url, key);
- */
+export type User = Database['public']['Tables']['users']['Row'];
+export type NewUser = Database['public']['Tables']['users']['Insert'];
+export type UpdateUser = Database['public']['Tables']['users']['Update'];

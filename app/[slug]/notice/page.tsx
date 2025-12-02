@@ -6,15 +6,19 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { cn } from '@/lib/utils';
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { useNotices } from '@/app/_lib/shared/hooks/notice/useNoticeHook';
+import { useNotices } from '@/app/_lib/features/notice/api/useNoticeHook';
+import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import ConfirmModal from '@/app/_lib/widgets/modal/ConfirmModal';
 import AlertModal from '@/app/_lib/widgets/modal/AlertModal';
+import UnionNavigation from '@/app/_lib/widgets/union/navigation/Navigation';
+import UnionHeader from '@/app/_lib/widgets/union/header/UnionHeader';
 
-const Notice = () => {
+const NoticePage = () => {
     const router = useRouter();
+    const { slug, isLoading: isUnionLoading } = useSlug();
     const { data: notices, isLoading, error } = useNotices();
 
-    if (isLoading) {
+    if (isUnionLoading || isLoading) {
         return (
             <div className={cn('container mx-auto p-6')}>
                 <div className="flex justify-center items-center h-64">
@@ -37,16 +41,21 @@ const Notice = () => {
     return (
         <>
             <div className={cn('container mx-auto p-6')}>
-                <div className={cn('flex justify-between items-center mb-6')}>
-                    <h1 className={cn('text-3xl font-bold')}>공지사항</h1>
+                <div className="flex flex-col gap-6 mb-8">
+                    <div className="flex justify-between items-center">
+                        <UnionHeader />
+                        <UnionNavigation />
+                    </div>
+                    <Separator />
                 </div>
 
-                <Separator className="mb-6" />
-                <div className={cn('flex justify-end p-4')}>
-                    <Button variant="outline" onClick={() => router.push('/notice/new')}>
+                <div className={cn('flex justify-between items-center mb-6')}>
+                    <h1 className={cn('text-3xl font-bold')}>공지사항</h1>
+                    <Button variant="outline" onClick={() => router.push(`/${slug}/notice/new`)}>
                         글쓰기
                     </Button>
                 </div>
+
                 <div className={cn('border rounded-lg')}>
                     <Table>
                         <TableHeader>
@@ -64,7 +73,7 @@ const Notice = () => {
                                     <TableRow
                                         key={notice.id}
                                         className="cursor-pointer hover:bg-muted/50 h-12"
-                                        onClick={() => router.push(`/notice/${notice.id}`)}
+                                        onClick={() => router.push(`/${slug}/notice/${notice.id}`)}
                                     >
                                         <TableCell className="text-center">{notice.id}</TableCell>
                                         <TableCell className="font-medium">{notice.title}</TableCell>
@@ -94,4 +103,5 @@ const Notice = () => {
     );
 };
 
-export default Notice;
+export default NoticePage;
+

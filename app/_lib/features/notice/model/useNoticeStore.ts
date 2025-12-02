@@ -54,3 +54,4 @@ const useNoticeStore = create<NoticeStore>((set) => ({
 }));
 
 export default useNoticeStore;
+
