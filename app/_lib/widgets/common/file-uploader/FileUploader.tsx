@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useId } from 'react';
 import { useFileStore } from '@/app/_lib/shared/stores/file/useFileStore';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Upload, X, File as FileIcon, Download, Trash2, CheckCircle, AlertCircle } from 'lucide-react';
 import { supabase } from '@/app/_lib/shared/supabase/client';
+import { cn } from '@/lib/utils';
 
 interface FileUploaderProps {
     /**
@@ -54,6 +55,9 @@ export function FileUploader({
     } = useFileStore();
 
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const [isDragging, setIsDragging] = useState(false);
+    const uniqueId = useId();
+    const inputId = `file-upload-input-${uniqueId}`;
     // const [currentUser, setCurrentUser] = useState<string | null>(null);
 
     // 초기 로드: targetId가 있으면 기존 파일 조회, 없으면(작성중) 임시 파일 초기화
@@ -124,15 +128,12 @@ export function FileUploader({
     };
 
     const handleDownload = async (path: string, fileName: string) => {
-        // fileName kept for future use or removed if strictly unused
         try {
-            const url = await getDownloadUrl(path);
+            // 원본 파일명을 전달하여 다운로드 시 원본 파일명으로 저장되도록 함
+            const url = await getDownloadUrl(path, fileName);
             const link = document.createElement('a');
             link.href = url;
-            // download 속성은 same-origin이 아니면 동작 안할 수 있음 -> 새 탭 권장
-            link.target = '_blank';
-            link.rel = 'noopener noreferrer';
-            // link.download = fileName;
+            link.download = fileName; // 원본 파일명으로 다운로드
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -164,10 +165,46 @@ export function FileUploader({
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     };
 
-    const handleButtonClick = (e: React.MouseEvent) => {
-        e.preventDefault(); // 기본 폼 제출 방지
-        e.stopPropagation(); // 이벤트 전파 방지
-        fileInputRef.current?.click();
+    // 드래그앤드랍 이벤트 핸들러
+    const handleDragOver = (e: React.DragEvent<HTMLLabelElement>) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!readOnly) {
+            setIsDragging(true);
+        }
+    };
+
+    const handleDragLeave = (e: React.DragEvent<HTMLLabelElement>) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(false);
+    };
+
+    const handleDrop = async (e: React.DragEvent<HTMLLabelElement>) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(false);
+
+        if (readOnly || isUploading) return;
+
+        const droppedFiles = e.dataTransfer.files;
+        if (droppedFiles.length === 0) return;
+
+        // 첫 번째 파일만 처리 (단일 파일 업로드)
+        const file = droppedFiles[0];
+
+        // 10MB 제한
+        if (file.size > 10 * 1024 * 1024) {
+            alert('파일 크기는 10MB를 초과할 수 없습니다.');
+            return;
+        }
+
+        try {
+            await uploadTempFile(file);
+        } catch (error) {
+            console.error('Upload failed', error);
+            alert('파일 업로드에 실패했습니다.');
+        }
     };
 
     return (
@@ -183,15 +220,15 @@ export function FileUploader({
                             type="file"
                             ref={fileInputRef}
                             onChange={handleFileChange}
-                            className="hidden"
-                            id="file-upload-input"
+                            style={{ display: 'none' }}
+                            id={inputId}
                         />
-                        <Button
-                            type="button"
-                            disabled={isUploading}
-                            onClick={handleButtonClick}
-                            size="sm"
-                            variant="outline"
+                        <label
+                            htmlFor={inputId}
+                            className={cn(
+                                buttonVariants({ variant: 'outline', size: 'sm' }),
+                                isUploading && 'opacity-50 pointer-events-none cursor-not-allowed'
+                            )}
                         >
                             {isUploading ? (
                                 <>
@@ -204,7 +241,7 @@ export function FileUploader({
                                     파일 추가
                                 </>
                             )}
-                        </Button>
+                        </label>
                     </div>
                 )}
             </CardHeader>
@@ -232,6 +269,7 @@ export function FileUploader({
                                 </div>
                                 <div className="flex items-center gap-1">
                                     <Button
+                                        type="button"
                                         variant="ghost"
                                         size="icon"
                                         className="h-8 w-8"
@@ -243,6 +281,7 @@ export function FileUploader({
 
                                     {!readOnly && (
                                         <Button
+                                            type="button"
                                             variant="ghost"
                                             size="icon"
                                             className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
@@ -297,6 +336,7 @@ export function FileUploader({
                                 </div>
                                 <div className="flex items-center">
                                     <Button
+                                        type="button"
                                         variant="ghost"
                                         size="icon"
                                         className="h-8 w-8 text-gray-400 hover:text-gray-600"
@@ -311,12 +351,33 @@ export function FileUploader({
                     </div>
                 )}
 
-                {/* Empty State */}
+                {/* Empty State (파일이 없을 때만 표시) */}
                 {files.length === 0 && tempFiles.length === 0 && !isLoading && (
                     <div className="text-center py-6 text-gray-500 bg-gray-50 rounded-lg border border-dashed">
                         <p className="text-sm">첨부된 파일이 없습니다.</p>
-                        {!readOnly && <p className="text-xs mt-1 text-gray-400">파일을 추가하여 업로드하세요.</p>}
                     </div>
+                )}
+
+                {/* 드래그앤드랍 영역 (readOnly가 아닐 때 항상 표시) */}
+                {!readOnly && (
+                    <label
+                        htmlFor={inputId}
+                        className={`mt-4 block text-center py-6 rounded-lg border-2 border-dashed transition-colors cursor-pointer ${
+                            isDragging
+                                ? 'border-blue-500 bg-blue-50 text-blue-600'
+                                : 'border-gray-300 bg-gray-50 text-gray-500 hover:border-gray-400 hover:bg-gray-100'
+                        }`}
+                        onDragOver={handleDragOver}
+                        onDragLeave={handleDragLeave}
+                        onDrop={handleDrop}
+                    >
+                        <Upload className={`h-8 w-8 mx-auto mb-2 ${isDragging ? 'text-blue-500' : 'text-gray-400'}`} />
+                        {isDragging ? (
+                            <p className="text-sm font-medium">파일을 여기에 놓으세요</p>
+                        ) : (
+                            <p className="text-xs mt-1 text-gray-400">클릭하거나 파일을 드래그하여 업로드하세요.</p>
+                        )}
+                    </label>
                 )}
 
                 {isLoading && files.length === 0 && (

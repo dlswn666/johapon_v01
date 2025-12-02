@@ -7,6 +7,27 @@ export type NewFileRecord = Database['public']['Tables']['files']['Insert'];
 const BUCKET_NAME = 'files';
 
 /**
+ * 파일 확장자 추출
+ */
+const getFileExtension = (filename: string): string => {
+    const lastDot = filename.lastIndexOf('.');
+    if (lastDot === -1) return '';
+    return filename.substring(lastDot + 1).toLowerCase();
+};
+
+/**
+ * 안전한 Storage용 파일명 생성
+ * 형식: {timestamp}_{randomNumber}.{extension}
+ * 한글 등 특수문자 문제를 피하기 위해 영문/숫자만 사용
+ */
+const generateSafeFileName = (originalFileName: string): string => {
+    const extension = getFileExtension(originalFileName);
+    const timestamp = Date.now();
+    const randomNum = Math.floor(Math.random() * 100000);
+    return extension ? `${timestamp}_${randomNum}.${extension}` : `${timestamp}_${randomNum}`;
+};
+
+/**
  * File API
  *
  * 파일 업로드, 조회, 삭제 기능을 제공합니다.
@@ -17,16 +38,19 @@ export const fileApi = {
     /**
      * 임시 파일 업로드
      *
-     * files 버킷의 temp/{tempId}/{fileName} 경로에 업로드합니다.
-     * DB에는 저장하지 않습니다.
+     * files 버킷의 temp/{tempId}/{safeFileName} 경로에 업로드합니다.
+     * 한글 파일명 인코딩 문제를 피하기 위해 Storage에는 안전한 파일명 사용,
+     * 원본 파일명은 name 필드로 반환하여 DB에 저장됩니다.
      */
     uploadTempFile: async (
         file: File,
         tempId: string
-    ): Promise<{ path: string; name: string; size: number; type: string }> => {
-        // 임시 경로 생성: temp/사용자식별가능ID(여기선 tempId)/파일명
-        // 한글 파일명 등 특수문자 처리를 위해 encodeURI 사용 권장되나, supabase js가 처리해줌
-        const path = `temp/${tempId}/${file.name}`;
+    ): Promise<{ path: string; name: string; size: number; type: string; storageName: string }> => {
+        // 안전한 파일명 생성 (영문/숫자만 사용)
+        const safeFileName = generateSafeFileName(file.name);
+        
+        // 임시 경로 생성: temp/{tempId}/{safeFileName}
+        const path = `temp/${tempId}/${safeFileName}`;
 
         const { data, error } = await supabase.storage.from(BUCKET_NAME).upload(path, file, {
             cacheControl: '3600',
@@ -38,10 +62,11 @@ export const fileApi = {
         }
 
         return {
-            path: data.path, // storage path
-            name: file.name,
+            path: data.path, // storage path (안전한 파일명 사용)
+            name: file.name, // 원본 파일명 (한글 포함)
             size: file.size,
             type: file.type,
+            storageName: safeFileName, // Storage에 저장된 파일명
         };
     },
 
@@ -49,6 +74,7 @@ export const fileApi = {
      * 파일 확정 (임시 -> 영구 이동 및 DB 저장)
      *
      * Storage의 temp 경로에 있는 파일을 실제 경로(unions/...)로 이동하고 DB에 기록합니다.
+     * Storage에는 안전한 파일명(영문/숫자)을 사용하고, DB에는 원본 파일명(한글 포함)을 저장합니다.
      */
     confirmFiles: async ({
         files,
@@ -65,14 +91,16 @@ export const fileApi = {
     }): Promise<void> => {
         for (const file of files) {
             // 1. Storage Move
-            // Destination Path: unions/{unionSlug}/notices/{noticeId}/{fileName}
-            // or unions/{unionSlug}/files/{fileName} (General files)
-
+            // 원본 경로에서 파일명 추출 (이미 안전한 파일명 사용 중)
+            const currentFileName = file.path.split('/').pop() || generateSafeFileName(file.name);
+            
+            // Destination Path: unions/{unionSlug}/notices/{noticeId}/{safeFileName}
+            // or unions/{unionSlug}/files/{safeFileName} (General files)
             let destPath = '';
             if (targetType === 'NOTICE') {
-                destPath = `unions/${unionSlug}/notices/${targetId}/${file.name}`;
+                destPath = `unions/${unionSlug}/notices/${targetId}/${currentFileName}`;
             } else {
-                destPath = `unions/${unionSlug}/files/${file.name}`;
+                destPath = `unions/${unionSlug}/files/${currentFileName}`;
             }
 
             const { error: moveError } = await supabase.storage.from(BUCKET_NAME).move(file.path, destPath);
@@ -83,10 +111,10 @@ export const fileApi = {
                 continue;
             }
 
-            // 2. DB Insert
+            // 2. DB Insert - 원본 파일명(한글 포함)을 name에 저장
             const newFile: NewFileRecord = {
-                name: file.name,
-                path: destPath,
+                name: file.name, // 원본 파일명 (한글 포함)
+                path: destPath, // Storage 경로 (안전한 파일명 사용)
                 size: file.size,
                 type: file.type,
                 bucket_id: BUCKET_NAME,
@@ -191,9 +219,20 @@ export const fileApi = {
 
     /**
      * 다운로드 URL 생성
+     * @param path - Storage 경로
+     * @param originalFileName - 다운로드 시 사용할 원본 파일명 (한글 포함 가능)
      */
-    getDownloadUrl: async (path: string): Promise<string> => {
-        const { data } = await supabase.storage.from(BUCKET_NAME).createSignedUrl(path, 60 * 60);
+    getDownloadUrl: async (path: string, originalFileName?: string): Promise<string> => {
+        const options: { download?: string | boolean } = {};
+        
+        // 원본 파일명이 제공되면 다운로드 시 해당 파일명 사용
+        if (originalFileName) {
+            options.download = originalFileName;
+        }
+
+        const { data } = await supabase.storage
+            .from(BUCKET_NAME)
+            .createSignedUrl(path, 60 * 60, options);
 
         if (!data?.signedUrl) {
             throw new Error('Failed to create signed URL');

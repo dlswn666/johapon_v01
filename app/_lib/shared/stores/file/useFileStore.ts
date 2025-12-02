@@ -30,7 +30,7 @@ interface FileState {
     uploadFile: (params: { file: File; unionSlug: string; unionId: string; uploaderId?: string }) => Promise<void>;
 
     deleteFile: (fileId: string, filePath: string) => Promise<void>;
-    getDownloadUrl: (path: string) => Promise<string>;
+    getDownloadUrl: (path: string, originalFileName?: string) => Promise<string>;
 
     // New Actions
     uploadTempFile: (file: File) => Promise<void>;
@@ -93,8 +93,8 @@ export const useFileStore = create<FileState>((set, get) => ({
         }
     },
 
-    getDownloadUrl: async (path: string) => {
-        return await fileApi.getDownloadUrl(path);
+    getDownloadUrl: async (path: string, originalFileName?: string) => {
+        return await fileApi.getDownloadUrl(path, originalFileName);
     },
 
     // --- New Logic ---

@@ -4,9 +4,6 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/app/_lib/shared/supabase/client';
 import { Database } from '@/app/_lib/shared/type/database.types';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
 
 type Union = Database['public']['Tables']['unions']['Row'];
 
@@ -15,20 +12,11 @@ export default function MarketingPage() {
     const [unions, setUnions] = useState<Union[]>([]);
     const [selectedSlug, setSelectedSlug] = useState<string>('');
     const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchUnions = async () => {
             try {
-                // 5초 타임아웃 설정
-                const timeoutId = setTimeout(() => {
-                    setIsLoading(false);
-                    setError('응답 시간이 초과되었습니다. 네트워크 상태를 확인해주세요.');
-                }, 5000);
-
                 const { data, error } = await supabase.from('unions').select('*').order('name');
-
-                clearTimeout(timeoutId);
 
                 if (error) throw error;
 
@@ -38,7 +26,6 @@ export default function MarketingPage() {
                 }
             } catch (error) {
                 console.error('Error fetching unions:', error);
-                setError('조합 목록을 불러오는데 실패했습니다.');
             } finally {
                 setIsLoading(false);
             }
@@ -54,7 +41,7 @@ export default function MarketingPage() {
     };
 
     return (
-        <div className="flex flex-col items-center justify-center py-20 bg-linear-to-b from-white to-gray-50 min-h-screen">
+        <div className="flex flex-col items-center justify-center py-20 bg-gradient-to-b from-white to-gray-50">
             <div className="text-center space-y-8 max-w-4xl px-4">
                 <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-gray-900">
                     재개발/재건축 조합을 위한
@@ -83,60 +70,37 @@ export default function MarketingPage() {
             </div>
 
             {/* 임시 조합 바로가기 (테스트용) */}
-            <div className="mt-20 p-8 border rounded-2xl bg-white shadow-lg max-w-md w-full mx-4 relative overflow-hidden">
-                <div className="absolute top-0 left-0 w-full h-1 bg-linear-to-r from-blue-500 to-indigo-600" />
-                <h3 className="text-lg font-bold mb-6 flex items-center gap-2">🛠️ 테스트용 조합 바로가기</h3>
-
+            <div className="mt-20 p-8 border rounded-2xl bg-white shadow-sm max-w-md w-full mx-4">
+                <h3 className="text-lg font-bold mb-4">테스트용 조합 바로가기</h3>
                 <div className="space-y-4">
                     {isLoading ? (
-                        <div className="flex flex-col items-center justify-center py-8 space-y-2 text-gray-500">
-                            <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-                            <p className="text-sm">조합 목록을 불러오는 중...</p>
-                        </div>
-                    ) : error ? (
-                        <div className="text-center py-6 text-red-500 bg-red-50 rounded-lg">
-                            <p className="text-sm font-medium">{error}</p>
-                            <Button
-                                variant="link"
-                                className="mt-2 h-auto p-0 text-red-600"
-                                onClick={() => window.location.reload()}
-                            >
-                                다시 시도
-                            </Button>
-                        </div>
+                        <div className="text-center py-4 text-gray-500">목록을 불러오는 중...</div>
                     ) : (
                         <>
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-700">이동할 조합 선택</label>
-                                <Select value={selectedSlug} onValueChange={setSelectedSlug}>
-                                    <SelectTrigger className="w-full">
-                                        <SelectValue placeholder="조합을 선택해주세요" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {unions.map((union) => (
-                                            <SelectItem key={union.id} value={union.slug}>
-                                                {union.name}{' '}
-                                                <span className="text-gray-400 text-xs ml-1">(/{union.slug})</span>
-                                            </SelectItem>
-                                        ))}
-                                        {unions.length === 0 && (
-                                            <div className="p-2 text-sm text-center text-gray-500">
-                                                등록된 조합이 없습니다.
-                                            </div>
-                                        )}
-                                    </SelectContent>
-                                </Select>
+                            <div className="relative">
+                                <select
+                                    value={selectedSlug}
+                                    onChange={(e) => setSelectedSlug(e.target.value)}
+                                    className="block w-full pl-3 pr-10 py-3 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md border"
+                                >
+                                    {unions.map((union) => (
+                                        <option key={union.id} value={union.slug}>
+                                            {union.name} (/{union.slug})
+                                        </option>
+                                    ))}
+                                </select>
                             </div>
-
-                            <Button onClick={handleNavigate} disabled={!selectedSlug} className="w-full h-11 text-base">
+                            <button
+                                onClick={handleNavigate}
+                                disabled={!selectedSlug}
+                                className="w-full bg-gray-900 text-white px-4 py-3 rounded-md hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                            >
                                 해당 조합 페이지로 이동
-                            </Button>
+                            </button>
                         </>
                     )}
                 </div>
-                <p className="mt-6 text-xs text-gray-400 text-center bg-gray-50 p-2 rounded">
-                    * 이 기능은 개발 및 테스트 목적으로만 제공됩니다.
-                </p>
+                <p className="mt-4 text-xs text-gray-500 text-center">* 개발 및 테스트 목적으로 제공되는 기능입니다.</p>
             </div>
         </div>
     );
