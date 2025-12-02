@@ -10,7 +10,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+// import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useAddNotice } from '@/app/_lib/features/notice/api/useNoticeHook';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
@@ -18,6 +18,7 @@ import AlertModal from '@/app/_lib/widgets/modal/AlertModal';
 import UnionNavigation from '@/app/_lib/widgets/union/navigation/Navigation';
 import UnionHeader from '@/app/_lib/widgets/union/header/UnionHeader';
 import { FileUploader } from '@/app/_lib/widgets/common/file-uploader/FileUploader';
+import { TextEditor } from '@/app/_lib/widgets/common/text-editor';
 
 const formSchema = z.object({
     title: z.string().min(1, '제목을 입력해주세요.'),
@@ -62,7 +63,7 @@ const NewNoticePage = () => {
 
                 <div className="max-w-2xl mx-auto">
                     <h1 className="text-2xl font-bold mb-6">공지사항 작성</h1>
-                    
+
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                             <FormField
@@ -86,10 +87,10 @@ const NewNoticePage = () => {
                                     <FormItem>
                                         <FormLabel>내용</FormLabel>
                                         <FormControl>
-                                            <Textarea 
-                                                placeholder="내용을 입력해주세요" 
-                                                className="min-h-[300px]"
-                                                {...field} 
+                                            <TextEditor
+                                                content={field.value}
+                                                onChange={field.onChange}
+                                                placeholder="내용을 입력해주세요"
                                             />
                                         </FormControl>
                                         <FormMessage />
@@ -101,7 +102,7 @@ const NewNoticePage = () => {
                             <FormItem>
                                 <FormLabel>첨부파일</FormLabel>
                                 <FormControl>
-                                    <FileUploader 
+                                    <FileUploader
                                         unionSlug={slug}
                                         targetType="NOTICE"
                                         // targetId가 없으면 '작성 중' 모드 (임시 파일 관리)
@@ -115,26 +116,17 @@ const NewNoticePage = () => {
                                 render={({ field }) => (
                                     <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                                         <FormControl>
-                                            <Checkbox
-                                                checked={field.value}
-                                                onCheckedChange={field.onChange}
-                                            />
+                                            <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                                         </FormControl>
                                         <div className="space-y-1 leading-none">
-                                            <FormLabel>
-                                                팝업으로 표시
-                                            </FormLabel>
+                                            <FormLabel>팝업으로 표시</FormLabel>
                                         </div>
                                     </FormItem>
                                 )}
                             />
 
                             <div className="flex justify-end gap-2">
-                                <Button 
-                                    type="button" 
-                                    variant="outline" 
-                                    onClick={() => router.push(`/${slug}/notice`)}
-                                >
+                                <Button type="button" variant="outline" onClick={() => router.push(`/${slug}/notice`)}>
                                     취소
                                 </Button>
                                 <Button type="submit" disabled={isPending}>

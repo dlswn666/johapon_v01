@@ -100,9 +100,7 @@ const NoticeDetailPage = ({ params }: NoticeDetailPageProps) => {
                         <span>조회수: {notice.views}</span>
                     </div>
 
-                    <div className="min-h-[300px] whitespace-pre-wrap py-4">
-                        {notice.content}
-                    </div>
+                    <div className="min-h-[300px] whitespace-pre-wrap py-4 prose prose-sm sm:prose-base dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: notice.content }} />
 
                     {/* 첨부파일 영역 */}
                     <div className="mt-8 border-t pt-6">

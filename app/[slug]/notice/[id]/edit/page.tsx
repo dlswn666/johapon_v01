@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import { useNotice, useUpdateNotice } from '@/app/_lib/features/notice/api/useNoticeHook';
@@ -17,6 +16,8 @@ import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import AlertModal from '@/app/_lib/widgets/modal/AlertModal';
 import UnionNavigation from '@/app/_lib/widgets/union/navigation/Navigation';
 import UnionHeader from '@/app/_lib/widgets/union/header/UnionHeader';
+import { TextEditor } from '@/app/_lib/widgets/common/text-editor';
+import { FileUploader } from '@/app/_lib/widgets/common/file-uploader/FileUploader';
 
 const formSchema = z.object({
     title: z.string().min(1, '제목을 입력해주세요.'),
@@ -123,16 +124,28 @@ const EditNoticePage = ({ params }: EditNoticePageProps) => {
                                     <FormItem>
                                         <FormLabel>내용</FormLabel>
                                         <FormControl>
-                                            <Textarea 
-                                                placeholder="내용을 입력해주세요" 
-                                                className="min-h-[300px]"
-                                                {...field} 
+                                            <TextEditor
+                                                content={field.value}
+                                                onChange={field.onChange}
+                                                placeholder="내용을 입력해주세요"
                                             />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
                                 )}
                             />
+
+                            {/* 파일 업로드 위젯 추가 */}
+                            <FormItem>
+                                <FormLabel>첨부파일</FormLabel>
+                                <FormControl>
+                                    <FileUploader
+                                        unionSlug={params.slug}
+                                        targetType="NOTICE"
+                                        targetId={String(noticeId)}
+                                    />
+                                </FormControl>
+                            </FormItem>
 
                             <FormField
                                 control={form.control}

@@ -33,7 +33,9 @@ interface FileState {
     getDownloadUrl: (path: string, originalFileName?: string) => Promise<string>;
 
     // New Actions
-    uploadTempFile: (file: File) => Promise<void>;
+    uploadTempFile: (
+        file: File
+    ) => Promise<{ path: string; name: string; size: number; type: string; storageName: string } | undefined>;
     removeTempFile: (tempId: string) => void; // UI에서 취소 시
     confirmFiles: (params: {
         targetId: string;
@@ -127,6 +129,8 @@ export const useFileStore = create<FileState>((set, get) => ({
                 ),
                 isUploading: false,
             }));
+
+            return result;
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
             set((state) => ({
@@ -134,6 +138,7 @@ export const useFileStore = create<FileState>((set, get) => ({
                 error: errorMessage,
                 isUploading: false,
             }));
+            throw error;
         }
     },
 
