@@ -62,6 +62,64 @@ export type Database = {
                     }
                 ];
             };
+            comments: {
+                Row: {
+                    id: number;
+                    entity_type: string;
+                    entity_id: number;
+                    parent_id: number | null;
+                    author_id: string;
+                    content: string;
+                    union_id: string | null;
+                    created_at: string;
+                    updated_at: string;
+                };
+                Insert: {
+                    id?: number;
+                    entity_type: string;
+                    entity_id: number;
+                    parent_id?: number | null;
+                    author_id: string;
+                    content: string;
+                    union_id?: string | null;
+                    created_at?: string;
+                    updated_at?: string;
+                };
+                Update: {
+                    id?: number;
+                    entity_type?: string;
+                    entity_id?: number;
+                    parent_id?: number | null;
+                    author_id?: string;
+                    content?: string;
+                    union_id?: string | null;
+                    created_at?: string;
+                    updated_at?: string;
+                };
+                Relationships: [
+                    {
+                        foreignKeyName: 'comments_parent_id_fkey';
+                        columns: ['parent_id'];
+                        isOneToOne: false;
+                        referencedRelation: 'comments';
+                        referencedColumns: ['id'];
+                    },
+                    {
+                        foreignKeyName: 'comments_author_id_fkey';
+                        columns: ['author_id'];
+                        isOneToOne: false;
+                        referencedRelation: 'users';
+                        referencedColumns: ['id'];
+                    },
+                    {
+                        foreignKeyName: 'comments_union_id_fkey';
+                        columns: ['union_id'];
+                        isOneToOne: false;
+                        referencedRelation: 'unions';
+                        referencedColumns: ['id'];
+                    }
+                ];
+            };
             files: {
                 Row: {
                     bucket_id: string;
@@ -390,3 +448,7 @@ export type UpdateUnion = Database['public']['Tables']['unions']['Update'];
 export type User = Database['public']['Tables']['users']['Row'];
 export type NewUser = Database['public']['Tables']['users']['Insert'];
 export type UpdateUser = Database['public']['Tables']['users']['Update'];
+
+export type Comment = Database['public']['Tables']['comments']['Row'];
+export type NewComment = Database['public']['Tables']['comments']['Insert'];
+export type UpdateComment = Database['public']['Tables']['comments']['Update'];

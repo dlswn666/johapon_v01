@@ -15,6 +15,7 @@ interface AlertModalConfig {
     title: string;
     message: string;
     type: 'success' | 'error' | 'info';
+    onOk?: () => void;
 }
 
 interface ModalStore {
@@ -35,6 +36,7 @@ interface ModalStore {
         title: string;
         message: string;
         type: 'success' | 'error' | 'info';
+        onOk?: () => void;
     };
 
     // Confirm Modal Actions
@@ -64,6 +66,7 @@ const initialState = {
         title: '',
         message: '',
         type: 'info' as const,
+        onOk: undefined,
     },
 };
 
@@ -95,6 +98,7 @@ const useModalStore = create<ModalStore>((set) => ({
                 title: config.title,
                 message: config.message,
                 type: config.type,
+                onOk: config.onOk,
             },
         }),
 

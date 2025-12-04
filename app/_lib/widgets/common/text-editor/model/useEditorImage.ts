@@ -1,11 +1,10 @@
 import { useCallback } from 'react';
-import { useFileStore } from '@/app/_lib/shared/stores/file/useFileStore';
-import { fileApi } from '@/app/_lib/shared/hooks/file/fileApi';
+import useNoticeStore from '@/app/_lib/features/notice/model/useNoticeStore';
 import { Editor } from '@tiptap/react';
 import toast from 'react-hot-toast';
 
 export const useEditorImage = (editor: Editor | null) => {
-    const { uploadTempFile } = useFileStore();
+    const addEditorImage = useNoticeStore((state) => state.addEditorImage);
 
     const addImage = useCallback(() => {
         if (!editor) return;
@@ -14,33 +13,27 @@ export const useEditorImage = (editor: Editor | null) => {
         input.type = 'file';
         input.accept = 'image/*';
 
-        input.onchange = async (event) => {
+        input.onchange = (event) => {
             const file = (event.target as HTMLInputElement).files?.[0];
             if (file) {
-                const toastId = toast.loading('이미지 업로드 중...');
                 try {
-                    // 1. 임시 파일 업로드
-                    const result = await uploadTempFile(file);
+                    // 1. Create Blob URL for local preview
+                    const blobUrl = URL.createObjectURL(file);
 
-                    if (result) {
-                        // 2. 다운로드 URL 생성 (Signed URL)
-                        // 주의: Private Bucket인 경우 URL 만료 가능성 있음
-                        const url = await fileApi.getDownloadUrl(result.path);
+                    // 2. Store file in NoticeStore for later upload
+                    addEditorImage(blobUrl, file);
 
-                        // 3. 에디터에 이미지 삽입
-                        editor.chain().focus().setImage({ src: url }).run();
-                        toast.success('이미지가 삽입되었습니다.', { id: toastId });
-                    }
+                    // 3. Insert blob URL into editor
+                    editor.chain().focus().setImage({ src: blobUrl }).run();
                 } catch (error) {
-                    console.error('Image upload failed:', error);
-                    toast.error('이미지 업로드에 실패했습니다.', { id: toastId });
+                    console.error('Image processing failed:', error);
+                    toast.error('이미지 삽입에 실패했습니다.');
                 }
             }
         };
 
         input.click();
-    }, [editor, uploadTempFile]);
+    }, [editor, addEditorImage]);
 
     return { addImage };
 };
-

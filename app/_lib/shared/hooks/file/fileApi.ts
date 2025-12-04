@@ -48,7 +48,7 @@ export const fileApi = {
     ): Promise<{ path: string; name: string; size: number; type: string; storageName: string }> => {
         // 안전한 파일명 생성 (영문/숫자만 사용)
         const safeFileName = generateSafeFileName(file.name);
-        
+
         // 임시 경로 생성: temp/{tempId}/{safeFileName}
         const path = `temp/${tempId}/${safeFileName}`;
 
@@ -93,9 +93,9 @@ export const fileApi = {
             // 1. Storage Move
             // 원본 경로에서 파일명 추출 (이미 안전한 파일명 사용 중)
             const currentFileName = file.path.split('/').pop() || generateSafeFileName(file.name);
-            
-            // Destination Path: unions/{unionSlug}/notices/{noticeId}/{safeFileName}
-            // or unions/{unionSlug}/files/{safeFileName} (General files)
+
+            // Destination Path: unions/{unionSlug}/notices/{noticeId}/{currentFileName}
+            // or unions/{unionSlug}/files/{currentFileName} (General files)
             let destPath = '';
             if (targetType === 'NOTICE') {
                 destPath = `unions/${unionSlug}/notices/${targetId}/${currentFileName}`;
@@ -129,6 +129,59 @@ export const fileApi = {
                 console.error(`DB insert failed: ${file.name}`, dbError);
                 // 롤백 로직 (파일 삭제 등) 필요할 수 있음
             }
+        }
+    },
+
+    /**
+     * 에디터 이미지 업로드 (DB 저장 X)
+     * unions/{slug}/notices/{noticeId}/{safeFileName} 경로에 업로드
+     */
+    uploadImage: async (
+        file: File,
+        unionSlug: string,
+        noticeId: string
+    ): Promise<{ path: string; publicUrl: string }> => {
+        const safeFileName = generateSafeFileName(file.name);
+        const path = `unions/${unionSlug}/notices/${noticeId}/${safeFileName}`;
+
+        const { data, error } = await supabase.storage.from(BUCKET_NAME).upload(path, file, {
+            cacheControl: '3600',
+            upsert: true,
+        });
+
+        if (error) {
+            throw new Error(`Image upload failed: ${error.message}`);
+        }
+
+        const { data: publicUrlData } = supabase.storage.from(BUCKET_NAME).getPublicUrl(path);
+
+        return {
+            path: data.path,
+            publicUrl: publicUrlData.publicUrl,
+        };
+    },
+
+    /**
+     * 폴더(경로) 하위 모든 파일 삭제
+     * 예: unions/{slug}/notices/{noticeId}/
+     */
+    deleteFolder: async (folderPath: string): Promise<void> => {
+        // 1. List files in folder
+        const { data: list, error: listError } = await supabase.storage.from(BUCKET_NAME).list(folderPath);
+
+        if (listError) {
+            console.warn(`Folder list failed (might be empty): ${folderPath}`, listError);
+            return;
+        }
+
+        if (!list || list.length === 0) return;
+
+        // 2. Remove files
+        const filesToRemove = list.map((x) => `${folderPath}/${x.name}`);
+        const { error: removeError } = await supabase.storage.from(BUCKET_NAME).remove(filesToRemove);
+
+        if (removeError) {
+            throw new Error(`Folder delete failed: ${removeError.message}`);
         }
     },
 
@@ -224,15 +277,13 @@ export const fileApi = {
      */
     getDownloadUrl: async (path: string, originalFileName?: string): Promise<string> => {
         const options: { download?: string | boolean } = {};
-        
+
         // 원본 파일명이 제공되면 다운로드 시 해당 파일명 사용
         if (originalFileName) {
             options.download = originalFileName;
         }
 
-        const { data } = await supabase.storage
-            .from(BUCKET_NAME)
-            .createSignedUrl(path, 60 * 60, options);
+        const { data } = await supabase.storage.from(BUCKET_NAME).createSignedUrl(path, 60 * 60, options);
 
         if (!data?.signedUrl) {
             throw new Error('Failed to create signed URL');

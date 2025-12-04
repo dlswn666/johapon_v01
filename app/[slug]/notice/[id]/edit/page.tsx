@@ -18,12 +18,16 @@ import UnionNavigation from '@/app/_lib/widgets/union/navigation/Navigation';
 import UnionHeader from '@/app/_lib/widgets/union/header/UnionHeader';
 import { TextEditor } from '@/app/_lib/widgets/common/text-editor';
 import { FileUploader } from '@/app/_lib/widgets/common/file-uploader/FileUploader';
+import useNoticeStore from '@/app/_lib/features/notice/model/useNoticeStore';
+import { useFileStore } from '@/app/_lib/shared/stores/file/useFileStore';
 
 const formSchema = z.object({
     title: z.string().min(1, '제목을 입력해주세요.'),
     content: z.string().min(1, '내용을 입력해주세요.'),
     is_popup: z.boolean(),
+    send_alimtalk: z.boolean().default(false),
 });
+
 
 interface EditNoticePageProps {
     params: Promise<{
@@ -40,13 +44,31 @@ const EditNoticePage = ({ params }: EditNoticePageProps) => {
 
     const { data: notice, isLoading } = useNotice(noticeId);
     const { mutate: updateNotice, isPending } = useUpdateNotice();
+    
+    // Store cleanup actions
+    const clearEditorImages = useNoticeStore((state) => state.clearEditorImages);
+    const clearTempFiles = useFileStore((state) => state.clearTempFiles);
 
-    const form = useForm<z.infer<typeof formSchema>>({
+    // Mount/Unmount cleanup
+    useEffect(() => {
+        // 진입 시 초기화 (이전 작업 잔여물 제거)
+        clearEditorImages();
+        clearTempFiles();
+
+        return () => {
+            // 이탈 시 초기화
+            clearEditorImages();
+            clearTempFiles();
+        };
+    }, [clearEditorImages, clearTempFiles]);
+
+    const form = useForm({
         resolver: zodResolver(formSchema),
         defaultValues: {
             title: '',
             content: '',
             is_popup: false,
+            send_alimtalk: false,
         },
     });
 
@@ -56,6 +78,7 @@ const EditNoticePage = ({ params }: EditNoticePageProps) => {
                 title: notice.title,
                 content: notice.content,
                 is_popup: notice.is_popup,
+                send_alimtalk: false, // 수정 시 기본값은 false
             });
         }
     }, [notice, form]);
@@ -117,6 +140,46 @@ const EditNoticePage = ({ params }: EditNoticePageProps) => {
                                 )}
                             />
 
+                            <div className="flex gap-4">
+                                <FormField
+                                    control={form.control}
+                                    name="is_popup"
+                                    render={({ field }) => (
+                                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 flex-1">
+                                            <FormControl>
+                                                <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                                            </FormControl>
+                                            <div className="space-y-1 leading-none">
+                                                <FormLabel>팝업으로 표시</FormLabel>
+                                            </div>
+                                        </FormItem>
+                                    )}
+                                />
+
+                                <FormField
+                                    control={form.control}
+                                    name="send_alimtalk"
+                                    render={({ field }) => (
+                                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 flex-1">
+                                            <FormControl>
+                                                <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                                            </FormControl>
+                                            <div className="space-y-1 leading-none">
+                                                <FormLabel>알림톡 발송</FormLabel>
+                                            </div>
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+
+                            {/* 파일 업로드 위젯 추가 */}
+                            <FormItem>
+                                <FormLabel>첨부파일</FormLabel>
+                                <FormControl>
+                                    <FileUploader unionSlug={slug} targetType="NOTICE" targetId={String(noticeId)} />
+                                </FormControl>
+                            </FormItem>
+
                             <FormField
                                 control={form.control}
                                 name="content"
@@ -131,29 +194,6 @@ const EditNoticePage = ({ params }: EditNoticePageProps) => {
                                             />
                                         </FormControl>
                                         <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-
-                            {/* 파일 업로드 위젯 추가 */}
-                            <FormItem>
-                                <FormLabel>첨부파일</FormLabel>
-                                <FormControl>
-                                    <FileUploader unionSlug={slug} targetType="NOTICE" targetId={String(noticeId)} />
-                                </FormControl>
-                            </FormItem>
-
-                            <FormField
-                                control={form.control}
-                                name="is_popup"
-                                render={({ field }) => (
-                                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                                        <FormControl>
-                                            <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                                        </FormControl>
-                                        <div className="space-y-1 leading-none">
-                                            <FormLabel>팝업으로 표시</FormLabel>
-                                        </div>
                                     </FormItem>
                                 )}
                             />

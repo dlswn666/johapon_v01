@@ -11,6 +11,8 @@ import { queryClient } from '@/app/_lib/shared/tanstack/queryClient';
 import { Notice, NewNotice, UpdateNotice } from '@/app/_lib/shared/type/database.types';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import { getUnionPath } from '@/app/_lib/shared/lib/utils/slug';
+import { fileApi } from '@/app/_lib/shared/hooks/file/fileApi';
+import { sendAlimTalk } from '@/app/_lib/features/alimtalk/actions/sendAlimTalk';
 
 // ============================================
 // Query Hooks (조회)
@@ -30,7 +32,7 @@ export const useNotices = (enabled: boolean = true) => {
 
             const { data, error } = await supabase
                 .from('notices')
-                .select('*')
+                .select('*, files(count), alimtalk_logs(count)')
                 .eq('union_id', union.id) // 조합 ID로 필터링
                 .order('created_at', { ascending: false });
 
@@ -38,14 +40,25 @@ export const useNotices = (enabled: boolean = true) => {
                 throw error;
             }
 
-            return data as Notice[];
+            return data as (Notice & { 
+                files: { count: number }[], 
+                alimtalk_logs: { count: number }[] 
+            })[];
         },
         enabled: enabled && !!union?.id,
     });
 
     useEffect(() => {
         if (queryResult.data && queryResult.isSuccess) {
-            setNotices(queryResult.data);
+            // Store expects Notice[], but we have extra data. 
+            // If the store just stores whatever is passed, it might be fine, 
+            // but if it strictly types Notice[], we might have issues.
+            // Let's check the store definition next.
+            // For now, cast it to any or compatible type if needed, 
+            // but ideally we should update the store type too if we want to use this data in the store.
+            // However, the list page uses the data returned from this hook directly (queryResult.data).
+            // The setNotices call might be for other purposes or global state.
+            setNotices(queryResult.data as unknown as Notice[]);
         }
     }, [queryResult.data, queryResult.isSuccess, setNotices]);
 
@@ -79,6 +92,10 @@ export const useNotice = (noticeId: number | undefined, enabled: boolean = true)
             return data as Notice;
         },
         enabled: !!noticeId && !!union?.id && enabled,
+        retry: false, // 상세 조회는 재시도하지 않음 (삭제된 데이터 조회 방지)
+        meta: {
+            skipErrorToast: true, // 상세 조회 실패 시 전역 토스트 방지
+        },
     });
 
     useEffect(() => {
@@ -94,65 +111,121 @@ export const useNotice = (noticeId: number | undefined, enabled: boolean = true)
 // Mutation Hooks (변경)
 // ============================================
 
+// Helper: 에디터 이미지 업로드 및 본문 치환
+const processEditorImages = async (
+    content: string, 
+    editorImages: Record<string, File>, 
+    unionSlug: string, 
+    noticeId: number
+) => {
+    let processedContent = content;
+
+    // editorImages keys are blob URLs
+    for (const [blobUrl, file] of Object.entries(editorImages)) {
+        if (processedContent.includes(blobUrl)) {
+             try {
+                const { publicUrl } = await fileApi.uploadImage(file, unionSlug, String(noticeId));
+                // Blob URL을 Public URL로 치환 (모든 발생 부분)
+                processedContent = processedContent.replace(new RegExp(blobUrl, 'g'), publicUrl);
+             } catch (e) {
+                console.error(`Failed to upload editor image: ${file.name}`, e);
+             }
+        }
+    }
+    return processedContent;
+};
+
+/**
+ * 공지사항 등록
+ */
 /**
  * 공지사항 등록
  */
 export const useAddNotice = () => {
     const router = useRouter();
     const addNotice = useNoticeStore((state) => state.addNotice);
+    const editorImages = useNoticeStore((state) => state.editorImages);
+    const clearEditorImages = useNoticeStore((state) => state.clearEditorImages);
     const openAlertModal = useModalStore((state) => state.openAlertModal);
     const { confirmFiles, clearTempFiles } = useFileStore();
     const { union, slug } = useSlug();
 
     return useMutation({
-        mutationFn: async (newNotice: NewNotice) => {
+        mutationFn: async (newNotice: NewNotice & { send_alimtalk?: boolean }) => {
             if (!union?.id) throw new Error('Union context missing');
 
-            // union_id 자동 주입
+            const { send_alimtalk, ...noticeDataToInsert } = newNotice;
+
+            // 1. 공지사항 우선 생성 (ID 확보)
             const noticeWithUnion = {
-                ...newNotice,
+                ...noticeDataToInsert,
                 union_id: union.id,
             };
 
-            const { data, error } = await supabase
+            const { data: noticeData, error: noticeError } = await supabase
                 .from('notices')
                 .insert([noticeWithUnion])
                 .select()
                 .single();
 
-            if (error) {
-                throw error;
-            }
+            if (noticeError) throw noticeError;
             
-            // 파일 이관 (임시 -> 영구)
-            // noticeId를 targetId로 사용하여 파일 정보 업데이트
+            // 2. 에디터 이미지 업로드 및 본문 URL 치환
+            const finalContent = await processEditorImages(newNotice.content || '', editorImages, slug, noticeData.id);
+
+            // 3. 본문 업데이트 (이미지 URL 치환된 경우)
+            if (finalContent !== newNotice.content) {
+                const { error: updateError } = await supabase
+                    .from('notices')
+                    .update({ content: finalContent })
+                    .eq('id', noticeData.id);
+                
+                if (updateError) console.error('Failed to update content with images', updateError);
+                else noticeData.content = finalContent; // 로컬 데이터 갱신
+            }
+
+            // 4. 첨부 파일 이관 (임시 -> 영구)
             await confirmFiles({
-                targetId: String(data.id),
+                targetId: String(noticeData.id),
                 targetType: 'NOTICE',
                 unionSlug: slug,
-                uploaderId: newNotice.author_id, // 작성자 ID
+                uploaderId: newNotice.author_id,
             });
 
-            return data as Notice;
+
+
+
+
+            // 5. 알림톡 발송 로직
+            if (send_alimtalk) {
+                // Server Action 호출
+                await sendAlimTalk({
+                    noticeId: noticeData.id,
+                    title: noticeData.title,
+                    content: noticeData.content,
+                });
+                console.log('AlimTalk sending requested for notice:', noticeData.id);
+            }
+
+            return noticeData as Notice;
         },
         onSuccess: (data) => {
             addNotice(data);
             queryClient.invalidateQueries({ queryKey: ['notices', union?.id] });
             
-            // 임시 파일 목록 정리
+            // 상태 초기화
             clearTempFiles();
+            clearEditorImages();
             
             openAlertModal({
                 title: '등록 완료',
                 message: '공지사항이 성공적으로 등록되었습니다.',
                 type: 'success',
+                onOk: () => {
+                    const path = getUnionPath(slug, '/notice');
+                    router.push(path);
+                }
             });
-
-            // 성공 모달 닫힌 후 목록으로 이동
-            setTimeout(() => {
-                const path = getUnionPath(slug, '/notice');
-                router.push(path);
-            }, 1500);
         },
         onError: (error: Error) => {
             console.error('Add notice error:', error);
@@ -168,23 +241,49 @@ export const useAddNotice = () => {
 /**
  * 공지사항 수정
  */
+/**
+ * 공지사항 수정
+ */
 export const useUpdateNotice = () => {
     const router = useRouter();
     const updateNotice = useNoticeStore((state) => state.updateNotice);
+    const editorImages = useNoticeStore((state) => state.editorImages);
+    const clearEditorImages = useNoticeStore((state) => state.clearEditorImages);
     const openAlertModal = useModalStore((state) => state.openAlertModal);
+    const { confirmFiles, clearTempFiles } = useFileStore();
     const { union, slug } = useSlug();
 
     return useMutation({
-        mutationFn: async ({ id, updates }: { id: number; updates: UpdateNotice }) => {
+        mutationFn: async ({ id, updates }: { id: number; updates: UpdateNotice & { send_alimtalk?: boolean } }) => {
+            
+            const { send_alimtalk, ...noticeUpdates } = updates;
+            const finalUpdates = { ...noticeUpdates };
+
+            // 1. 에디터 이미지 업로드 및 본문 URL 치환
+            if (noticeUpdates.content) {
+                finalUpdates.content = await processEditorImages(noticeUpdates.content, editorImages, slug, id);
+            }
+
+            // 2. 공지사항 업데이트
             const { data, error } = await supabase
                 .from('notices')
-                .update(updates)
+                .update(finalUpdates)
                 .eq('id', id)
                 .select()
                 .single();
 
-            if (error) {
-                throw error;
+            if (error) throw error;
+
+            // 3. 신규 첨부 파일이 있다면 이관
+            await confirmFiles({
+                targetId: String(id),
+                targetType: 'NOTICE',
+                unionSlug: slug,
+            });
+
+            // 4. 알림톡 발송 로직 (Placeholder) - 수정 시에도 발송할지 여부는 기획에 따라 다름 (보통 수정 시엔 안 보냄, 하지만 체크박스가 있다면 보냄)
+            if (send_alimtalk) {
+                console.log('TODO: Send AlimTalk for updated notice', id);
             }
 
             return data as Notice;
@@ -194,17 +293,18 @@ export const useUpdateNotice = () => {
             queryClient.invalidateQueries({ queryKey: ['notices', union?.id] });
             queryClient.invalidateQueries({ queryKey: ['notices', union?.id, data.id] });
 
+            clearTempFiles();
+            clearEditorImages();
+
             openAlertModal({
                 title: '수정 완료',
                 message: '공지사항이 성공적으로 수정되었습니다.',
                 type: 'success',
+                onOk: () => {
+                    const path = getUnionPath(slug, `/notice/${data.id}`);
+                    router.push(path);
+                }
             });
-
-            // 성공 모달 닫힌 후 상세 페이지로 이동
-            setTimeout(() => {
-                const path = getUnionPath(slug, `/notice/${data.id}`);
-                router.push(path);
-            }, 1500);
         },
         onError: (error: Error) => {
             console.error('Update notice error:', error);
@@ -228,6 +328,27 @@ export const useDeleteNotice = () => {
 
     return useMutation({
         mutationFn: async (noticeId: number) => {
+            // 0. 삭제 전 관련 쿼리 취소 (진행 중인 쿼리가 있다면 중단)
+            await queryClient.cancelQueries({ queryKey: ['notices', union?.id, noticeId] });
+            await queryClient.cancelQueries({ queryKey: ['notices', union?.id] });
+
+            // 1. 폴더 및 하위 파일 전체 삭제 (Storage)
+            const folderPath = `unions/${slug}/notices/${noticeId}`;
+            await fileApi.deleteFolder(folderPath);
+
+            // 2. DB 파일 레코드 삭제
+            // (CASCADE 설정이 없다면 명시적 삭제 필요)
+            const { error: fileError } = await supabase
+                .from('files')
+                .delete()
+                .eq('notice_id', noticeId);
+            
+            if (fileError) {
+                console.error('Failed to delete file records', fileError);
+                // 진행은 계속함 (게시물 삭제 시도)
+            }
+
+            // 3. 게시물 삭제
             const { error } = await supabase
                 .from('notices')
                 .delete()
@@ -239,23 +360,24 @@ export const useDeleteNotice = () => {
 
             return noticeId;
         },
-        onSuccess: async (noticeId) => {
+        onSuccess: (noticeId) => {
             removeNotice(noticeId);
             
-            // 캐시 무효화를 기다림
-            await queryClient.invalidateQueries({ queryKey: ['notices', union?.id] });
+            // 삭제된 공지사항의 상세 쿼리를 캐시에서 완전히 제거 (재조회 시도 방지)
+            queryClient.removeQueries({ queryKey: ['notices', union?.id, noticeId] });
+            
+            // 목록 캐시도 제거 (목록 페이지에서 마운트 시 자동 재조회됨)
+            queryClient.removeQueries({ queryKey: ['notices', union?.id] });
+            
+            // 목록으로 먼저 이동
+            const path = getUnionPath(slug, '/notice');
+            router.push(path);
 
             openAlertModal({
                 title: '삭제 완료',
                 message: '공지사항이 성공적으로 삭제되었습니다.',
                 type: 'success',
             });
-
-            // 성공 모달 닫힌 후 목록으로 이동
-            setTimeout(() => {
-                const path = getUnionPath(slug, '/notice');
-                router.push(path);
-            }, 1500);
         },
         onError: (error: Error) => {
             console.error('Delete notice error:', error);

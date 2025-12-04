@@ -74,8 +74,31 @@ export const queryClient = new QueryClient({
         onError: (error: Error, query) => {
             // 전역 Query 에러 처리
             const errorWithResponse = error as Error & { response?: { status?: number } };
+            
+            // 에러 메시지가 없거나 빈 에러 객체인 경우 (삭제 후 타이밍 이슈 등) 경고로 처리
+            const errorMessage = error?.message || '';
+            if (!errorMessage || Object.keys(error).length === 0) {
+                console.warn('Query Warning (non-critical):', {
+                    queryKey: query.queryKey,
+                    timestamp: new Date().toISOString(),
+                });
+                return; // 토스트 알림 건너뛰기
+            }
+
+            // 삭제된 데이터 조회 시도 에러 (PGRST116 - single row expected but 0 rows found)
+            // 이 에러는 데이터가 삭제된 후 페이지 이동 중에 발생할 수 있음
+            if (errorMessage.includes('Cannot coerce the result') || 
+                errorMessage.includes('PGRST116') ||
+                errorMessage.includes('0 rows')) {
+                console.warn('Query Warning (data not found - possibly deleted):', {
+                    queryKey: query.queryKey,
+                    timestamp: new Date().toISOString(),
+                });
+                return; // 토스트 알림 건너뛰기
+            }
+
             console.error('Query Error:', {
-                error: error?.message || error,
+                error: errorMessage,
                 queryKey: query.queryKey,
                 status: errorWithResponse?.response?.status,
                 timestamp: new Date().toISOString(),

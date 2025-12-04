@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
+import { Paperclip, Layers, MessageCircle } from 'lucide-react';
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { useNotices } from '@/app/_lib/features/notice/api/useNoticeHook';
@@ -16,7 +17,7 @@ import UnionHeader from '@/app/_lib/widgets/union/header/UnionHeader';
 const NoticePage = () => {
     const router = useRouter();
     const { slug, isLoading: isUnionLoading } = useSlug();
-    const { data: notices, isLoading, error } = useNotices();
+    const { data: notices, isLoading, error } = useNotices(!isUnionLoading);
 
     if (isUnionLoading || isLoading) {
         return (
@@ -76,7 +77,22 @@ const NoticePage = () => {
                                         onClick={() => router.push(`/${slug}/notice/${notice.id}`)}
                                     >
                                         <TableCell className="text-center">{notice.id}</TableCell>
-                                        <TableCell className="font-medium">{notice.title}</TableCell>
+                                        <TableCell className="font-medium">
+                                            <div className="flex items-center gap-2">
+                                                <span className="truncate">{notice.title}</span>
+                                                <div className="flex items-center gap-1 shrink-0">
+                                                    {notice.files && notice.files[0]?.count > 0 && (
+                                                        <Paperclip className="h-4 w-4 text-muted-foreground" />
+                                                    )}
+                                                    {notice.is_popup && (
+                                                        <Layers className="h-4 w-4 text-blue-500" />
+                                                    )}
+                                                    {notice.alimtalk_logs && notice.alimtalk_logs[0]?.count > 0 && (
+                                                        <MessageCircle className="h-4 w-4 text-yellow-500" />
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </TableCell>
                                         <TableCell className="text-center">{notice.author_id}</TableCell>
                                         <TableCell className="text-center">
                                             {new Date(notice.created_at).toLocaleDateString('ko-KR')}

@@ -13,6 +13,7 @@ import useModalStore from '@/app/_lib/shared/stores/modal/useModalStore';
 import UnionNavigation from '@/app/_lib/widgets/union/navigation/Navigation';
 import UnionHeader from '@/app/_lib/widgets/union/header/UnionHeader';
 import { FileUploader } from '@/app/_lib/widgets/common/file-uploader/FileUploader';
+import { CommentSection } from '@/app/_lib/widgets/common/comment';
 
 interface NoticeDetailPageProps {
     params: Promise<{
@@ -109,6 +110,14 @@ const NoticeDetailPage = ({ params }: NoticeDetailPageProps) => {
                             targetId={String(noticeId)}
                             targetType="NOTICE"
                             readOnly={true} // 상세 페이지는 읽기 전용 (수정 페이지에서 관리)
+                        />
+                    </div>
+
+                    {/* 댓글 영역 */}
+                    <div className="mt-8">
+                        <CommentSection
+                            entityType="notice"
+                            entityId={noticeId}
                         />
                     </div>
 

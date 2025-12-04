@@ -56,13 +56,13 @@ export default function MarketingPage() {
                 <div className="flex gap-4 justify-center pt-8">
                     <button
                         onClick={() => router.push('/contact')}
-                        className="px-8 py-4 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200"
+                        className="px-8 py-4 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200 cursor-pointer"
                     >
                         도입 문의하기
                     </button>
                     <button
                         onClick={() => router.push('/features')}
-                        className="px-8 py-4 bg-white text-gray-700 border border-gray-200 rounded-lg font-semibold hover:bg-gray-50 transition-colors"
+                        className="px-8 py-4 bg-white text-gray-700 border border-gray-200 rounded-lg font-semibold hover:bg-gray-50 transition-colors cursor-pointer"
                     >
                         기능 더보기
                     </button>
@@ -93,7 +93,7 @@ export default function MarketingPage() {
                             <button
                                 onClick={handleNavigate}
                                 disabled={!selectedSlug}
-                                className="w-full bg-gray-900 text-white px-4 py-3 rounded-md hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                                className="w-full bg-gray-900 text-white px-4 py-3 rounded-md hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium cursor-pointer"
                             >
                                 해당 조합 페이지로 이동
                             </button>

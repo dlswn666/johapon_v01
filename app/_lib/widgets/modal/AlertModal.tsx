@@ -39,7 +39,10 @@ export default function AlertModal() {
                     <DialogDescription>{alertModal.message}</DialogDescription>
                 </DialogHeader>
                 <DialogFooter>
-                    <Button onClick={closeAlertModal}>확인</Button>
+                    <Button onClick={() => {
+                        closeAlertModal();
+                        if (alertModal.onOk) alertModal.onOk();
+                    }}>확인</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
