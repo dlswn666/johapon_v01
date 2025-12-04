@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Edit, Trash2, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Card, CardHeader } from '@/components/ui/card';
 import { UnionForm, UnionDeleteModal } from '@/app/_lib/features/union-management/ui';
 import { useUnion, useDeleteUnion } from '@/app/_lib/features/union-management/api/useUnionManagementHook';
 

@@ -58,7 +58,7 @@ export default function UnionEditPage({ params }: UnionEditPageProps) {
             toast.success('조합 정보가 수정되었습니다.');
             setIsConfirmModalOpen(false);
             router.push(`/admin/unions/${id}`);
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Update union error:', error);
             toast.error('조합 수정에 실패했습니다.');
             setIsConfirmModalOpen(false);

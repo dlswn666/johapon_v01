@@ -68,16 +68,16 @@ interface AuthProviderProps {
 }
 
 export default function AuthProvider({ children }: AuthProviderProps) {
-    const [user, setUser] = useState<User | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
+    // 개발 환경에서는 항상 시스템 관리자로 시작 (개발 편의)
+    const [user, setUser] = useState<User | null>(MOCK_USERS[0]);
+    const isLoading = false; // Mock 인증에서는 로딩 상태 불필요
 
     useEffect(() => {
-        // 개발 환경에서는 항상 시스템 관리자로 시작 (개발 편의)
-        // 사용자 전환 기능은 DEV 드롭다운에서 사용 가능
-        setUser(MOCK_USERS[0]); // SYSTEM_ADMIN
-        localStorage.setItem('mock_user_id', MOCK_USERS[0].id);
-        setIsLoading(false);
-    }, []);
+        // localStorage에 사용자 ID 저장
+        if (user) {
+            localStorage.setItem('mock_user_id', user.id);
+        }
+    }, [user]);
 
     const login = (email: string) => {
         const foundUser = MOCK_USERS.find((u) => u.email === email);

@@ -3,14 +3,14 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Building2, Home, Users, Settings, LogOut } from 'lucide-react';
+import { Building2, Home, Users } from 'lucide-react';
 import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function AdminHeader() {
     const pathname = usePathname();
-    const { user, isSystemAdmin, switchUser, mockUsers, logout } = useAuth();
+    const { user, switchUser, mockUsers } = useAuth();
 
     const navItems = [{ href: '/admin/unions', label: '조합 관리', icon: Building2 }];
 

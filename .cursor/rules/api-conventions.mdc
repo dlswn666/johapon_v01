@@ -1,41 +1,5 @@
-# API 관련 컨벤션 문서
-
-이 문서는 프로젝트의 API 호출, 상태 관리, TanStack Query 사용에 대한 컨벤션을 정리한 문서입니다.
-
-## 📋 목차
-
-1. [전체 구조](#전체-구조)
-2. [핵심 패턴](#핵심-패턴)
-3. [파일 구조 및 네이밍 규칙](#파일-구조-및-네이밍-규칙)
-4. [데이터 흐름](#데이터-흐름)
-5. [에러 처리](#에러-처리)
-6. [쿼리 관리](#쿼리-관리)
-7. [Supabase 활용](#supabase-활용)
-8. [예제 코드](#예제-코드)
-
 ---
-
-## 전체 구조
-
-프로젝트의 API 관련 구조는 다음과 같은 계층으로 구성됩니다:
-
-```
-Hook (useQuery/useMutation)
-  ↓
-Store (Zustand - 상태 관리)
-  ↓
-Supabase Client (직접 호출)
-  ↓
-Supabase Database
-```
-
-### 역할 분담
-
--   **Hook**: TanStack Query의 `useQuery`/`useMutation`을 사용하여 쿼리 생성 및 관리
--   **Store**: Zustand를 사용한 전역 상태 관리
--   **Supabase Client**: Hook의 `queryFn`/`mutationFn`에서 Supabase로 직접 데이터 호출
--   **Supabase Database**: PostgreSQL 기반 데이터베이스, Row Level Security(RLS) 적용
-
+alwaysApply: true
 ---
 
 ## 핵심 패턴
@@ -51,36 +15,6 @@ Hook에서 `useQuery`를 사용하여 데이터를 조회하고, 성공 시 Stor
 -   `useEffect`를 통해 성공 시 Store 상태 업데이트
 -   `enabled` 옵션으로 조건부 실행 제어
 
-**예제:**
-
-```typescript
-export const useUsers = (enabled: boolean = true) => {
-    const setUsers = useUserStore((state) => state.setUsers);
-
-    const queryResult = useQuery({
-        queryKey: ['users'],
-        queryFn: async () => {
-            const { data, error } = await supabase.from('users').select('*').order('created_at', { ascending: false });
-
-            if (error) {
-                throw error;
-            }
-
-            return data;
-        },
-        enabled,
-    });
-
-    useEffect(() => {
-        if (queryResult.data && queryResult.isSuccess) {
-            setUsers(queryResult.data);
-        }
-    }, [queryResult.data, queryResult.isSuccess, setUsers]);
-
-    return queryResult;
-};
-```
-
 ### 2. Mutation 패턴 (데이터 변경)
 
 Hook에서 `useMutation`을 사용하여 데이터를 생성/수정/삭제합니다.
@@ -90,35 +24,6 @@ Hook에서 `useMutation`을 사용하여 데이터를 생성/수정/삭제합니
 -   `mutationFn`에서 Supabase Client로 직접 호출
 -   `onSuccess`에서 Store 상태 업데이트 및 관련 쿼리 무효화
 -   `onError`에서 에러 처리
-
-**예제:**
-
-```typescript
-export const useAddUser = () => {
-    const addUser = useUserStore((state) => state.addUser);
-
-    return useMutation({
-        mutationFn: async (newUser: { name: string; email: string }) => {
-            const { data, error } = await supabase.from('users').insert([newUser]).select().single();
-
-            if (error) {
-                throw error;
-            }
-
-            return data;
-        },
-        onSuccess: (data) => {
-            addUser(data);
-            queryClient.invalidateQueries({ queryKey: ['users'] });
-            toast.success('사용자가 추가되었습니다.');
-        },
-        onError: (error: any) => {
-            toast.error('사용자 추가에 실패했습니다.');
-            console.error('Add user error:', error);
-        },
-    });
-};
-```
 
 ### 3. Store 구조 (Zustand)
 

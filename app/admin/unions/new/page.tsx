@@ -35,9 +35,10 @@ export default function NewUnionPage() {
 
             toast.success('조합이 등록되었습니다.');
             router.push(`/admin/unions/${result.id}`);
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Create union error:', error);
-            if (error?.code === '23505') {
+            const pgError = error as { code?: string };
+            if (pgError?.code === '23505') {
                 toast.error('이미 존재하는 Slug입니다. 다른 값을 입력해주세요.');
             } else {
                 toast.error('조합 등록에 실패했습니다.');

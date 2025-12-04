@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/app/_lib/shared/supabase/client';
-import { Comment, NewComment, UpdateComment } from '@/app/_lib/shared/type/database.types';
+import { Comment, NewComment } from '@/app/_lib/shared/type/database.types';
 import { queryClient } from '@/app/_lib/shared/tanstack/queryClient';
 import useModalStore from '@/app/_lib/shared/stores/modal/useModalStore';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';

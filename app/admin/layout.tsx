@@ -8,7 +8,7 @@ import { AdminHeader } from '@/app/_lib/widgets/admin-header';
 
 function AdminLayoutContent({ children }: { children: React.ReactNode }) {
     const router = useRouter();
-    const { isLoading, isSystemAdmin, user } = useAuth();
+    const { isLoading, isSystemAdmin } = useAuth();
 
     useEffect(() => {
         if (!isLoading && !isSystemAdmin) {
