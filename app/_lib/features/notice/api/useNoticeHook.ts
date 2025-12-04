@@ -19,7 +19,7 @@ import { sendAlimTalk } from '@/app/_lib/features/alimtalk/actions/sendAlimTalk'
 // ============================================
 
 /**
- * 전체 공지사항 목록 조회
+ * 전체 공지사항 목록 조회 (댓글 수 포함)
  */
 export const useNotices = (enabled: boolean = true) => {
     const setNotices = useNoticeStore((state) => state.setNotices);
@@ -30,19 +30,52 @@ export const useNotices = (enabled: boolean = true) => {
         queryFn: async () => {
             if (!union?.id) return [];
 
-            const { data, error } = await supabase
+            // 1. 공지사항 목록 조회
+            const { data: noticesData, error: noticesError } = await supabase
                 .from('notices')
                 .select('*, files(count), alimtalk_logs(count)')
-                .eq('union_id', union.id) // 조합 ID로 필터링
+                .eq('union_id', union.id)
                 .order('created_at', { ascending: false });
 
-            if (error) {
-                throw error;
+            if (noticesError) {
+                throw noticesError;
             }
 
-            return data as (Notice & { 
+            if (!noticesData || noticesData.length === 0) {
+                return [];
+            }
+
+            // 2. 해당 공지사항들의 댓글 수 조회
+            const noticeIds = noticesData.map((n) => n.id);
+            const { data: commentCounts, error: commentsError } = await supabase
+                .from('comments')
+                .select('entity_id')
+                .eq('entity_type', 'notice')
+                .in('entity_id', noticeIds);
+
+            if (commentsError) {
+                console.error('Failed to fetch comment counts:', commentsError);
+                // 댓글 수 조회 실패해도 공지사항 목록은 반환
+            }
+
+            // 3. 댓글 수 집계 (entity_id별 count)
+            const commentCountMap: Record<number, number> = {};
+            if (commentCounts) {
+                commentCounts.forEach((c) => {
+                    commentCountMap[c.entity_id] = (commentCountMap[c.entity_id] || 0) + 1;
+                });
+            }
+
+            // 4. 공지사항 데이터에 댓글 수 병합
+            const noticesWithCommentCount = noticesData.map((notice) => ({
+                ...notice,
+                comment_count: commentCountMap[notice.id] || 0,
+            }));
+
+            return noticesWithCommentCount as (Notice & { 
                 files: { count: number }[], 
-                alimtalk_logs: { count: number }[] 
+                alimtalk_logs: { count: number }[],
+                comment_count: number 
             })[];
         },
         enabled: enabled && !!union?.id,
@@ -50,14 +83,6 @@ export const useNotices = (enabled: boolean = true) => {
 
     useEffect(() => {
         if (queryResult.data && queryResult.isSuccess) {
-            // Store expects Notice[], but we have extra data. 
-            // If the store just stores whatever is passed, it might be fine, 
-            // but if it strictly types Notice[], we might have issues.
-            // Let's check the store definition next.
-            // For now, cast it to any or compatible type if needed, 
-            // but ideally we should update the store type too if we want to use this data in the store.
-            // However, the list page uses the data returned from this hook directly (queryResult.data).
-            // The setNotices call might be for other purposes or global state.
             setNotices(queryResult.data as unknown as Notice[]);
         }
     }, [queryResult.data, queryResult.isSuccess, setNotices]);

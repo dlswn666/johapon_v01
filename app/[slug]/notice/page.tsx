@@ -80,6 +80,11 @@ const NoticePage = () => {
                                         <TableCell className="font-medium">
                                             <div className="flex items-center gap-2">
                                                 <span className="truncate">{notice.title}</span>
+                                                {notice.comment_count > 0 && (
+                                                    <span className="text-xs text-gray-400 shrink-0">
+                                                        [{notice.comment_count}]
+                                                    </span>
+                                                )}
                                                 <div className="flex items-center gap-1 shrink-0">
                                                     {notice.files && notice.files[0]?.count > 0 && (
                                                         <Paperclip className="h-4 w-4 text-muted-foreground" />

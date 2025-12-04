@@ -245,6 +245,12 @@ export type Database = {
                     name: string;
                     slug: string;
                     updated_at: string;
+                    phone: string | null;
+                    address: string | null;
+                    email: string | null;
+                    business_hours: string | null;
+                    logo_url: string | null;
+                    description: string | null;
                 };
                 Insert: {
                     created_at?: string;
@@ -252,6 +258,12 @@ export type Database = {
                     name: string;
                     slug: string;
                     updated_at?: string;
+                    phone?: string | null;
+                    address?: string | null;
+                    email?: string | null;
+                    business_hours?: string | null;
+                    logo_url?: string | null;
+                    description?: string | null;
                 };
                 Update: {
                     created_at?: string;
@@ -259,8 +271,55 @@ export type Database = {
                     name?: string;
                     slug?: string;
                     updated_at?: string;
+                    phone?: string | null;
+                    address?: string | null;
+                    email?: string | null;
+                    business_hours?: string | null;
+                    logo_url?: string | null;
+                    description?: string | null;
                 };
                 Relationships: [];
+            };
+            hero_slides: {
+                Row: {
+                    id: string;
+                    union_id: string;
+                    image_url: string;
+                    link_url: string | null;
+                    display_order: number;
+                    is_active: boolean;
+                    created_at: string;
+                    updated_at: string;
+                };
+                Insert: {
+                    id?: string;
+                    union_id: string;
+                    image_url: string;
+                    link_url?: string | null;
+                    display_order?: number;
+                    is_active?: boolean;
+                    created_at?: string;
+                    updated_at?: string;
+                };
+                Update: {
+                    id?: string;
+                    union_id?: string;
+                    image_url?: string;
+                    link_url?: string | null;
+                    display_order?: number;
+                    is_active?: boolean;
+                    created_at?: string;
+                    updated_at?: string;
+                };
+                Relationships: [
+                    {
+                        foreignKeyName: 'hero_slides_union_id_fkey';
+                        columns: ['union_id'];
+                        isOneToOne: false;
+                        referencedRelation: 'unions';
+                        referencedColumns: ['id'];
+                    }
+                ];
             };
             users: {
                 Row: {
@@ -452,3 +511,7 @@ export type UpdateUser = Database['public']['Tables']['users']['Update'];
 export type Comment = Database['public']['Tables']['comments']['Row'];
 export type NewComment = Database['public']['Tables']['comments']['Insert'];
 export type UpdateComment = Database['public']['Tables']['comments']['Update'];
+
+export type HeroSlide = Database['public']['Tables']['hero_slides']['Row'];
+export type NewHeroSlide = Database['public']['Tables']['hero_slides']['Insert'];
+export type UpdateHeroSlide = Database['public']['Tables']['hero_slides']['Update'];
