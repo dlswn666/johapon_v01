@@ -251,6 +251,7 @@ export type Database = {
                     business_hours: string | null;
                     logo_url: string | null;
                     description: string | null;
+                    is_active: boolean;
                 };
                 Insert: {
                     created_at?: string;
@@ -264,6 +265,7 @@ export type Database = {
                     business_hours?: string | null;
                     logo_url?: string | null;
                     description?: string | null;
+                    is_active?: boolean;
                 };
                 Update: {
                     created_at?: string;
@@ -277,6 +279,7 @@ export type Database = {
                     business_hours?: string | null;
                     logo_url?: string | null;
                     description?: string | null;
+                    is_active?: boolean;
                 };
                 Relationships: [];
             };

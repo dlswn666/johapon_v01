@@ -1,5 +1,7 @@
 import React from 'react';
 import SlugProvider from '@/app/_lib/app/providers/SlugProvider';
+import AuthProvider from '@/app/_lib/app/providers/AuthProvider';
+import UnionLayoutContent from './UnionLayoutContent';
 
 interface SlugLayoutProps {
     children: React.ReactNode;
@@ -8,18 +10,14 @@ interface SlugLayoutProps {
     }>;
 }
 
-export default async function SlugLayout({
-    children,
-    params,
-}: SlugLayoutProps) {
+export default async function SlugLayout({ children, params }: SlugLayoutProps) {
     const { slug } = await params;
 
     return (
-        <SlugProvider slug={slug}>
-            <div className="min-h-screen bg-gray-50">
-                {children}
-            </div>
-        </SlugProvider>
+        <AuthProvider>
+            <SlugProvider slug={slug}>
+                <UnionLayoutContent>{children}</UnionLayoutContent>
+            </SlugProvider>
+        </AuthProvider>
     );
 }
-
