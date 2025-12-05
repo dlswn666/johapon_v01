@@ -145,12 +145,12 @@ const EditNoticePage = ({ params }: EditNoticePageProps) => {
                                     control={form.control}
                                     name="is_popup"
                                     render={({ field }) => (
-                                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-[12px] border border-[#CCCCCC] bg-[#F5F5F5] p-6 flex-1">
+                                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-[12px] border border-[#CCCCCC] bg-[#F5F5F5] p-6 flex-1 cursor-pointer">
                                             <FormControl>
-                                                <Checkbox checked={field.value} onCheckedChange={field.onChange} className="data-[state=checked]:bg-[#4E8C6D] border-[#AFAFAF]" />
+                                                <Checkbox checked={field.value} onCheckedChange={field.onChange} className="data-[state=checked]:bg-[#4E8C6D] border-[#AFAFAF] cursor-pointer" />
                                             </FormControl>
                                             <div className="space-y-1 leading-none">
-                                                <FormLabel className="text-[16px] text-gray-700 font-medium">팝업으로 표시</FormLabel>
+                                                <FormLabel className="text-[16px] text-gray-700 font-medium cursor-pointer">팝업으로 표시</FormLabel>
                                             </div>
                                         </FormItem>
                                     )}
@@ -160,12 +160,12 @@ const EditNoticePage = ({ params }: EditNoticePageProps) => {
                                     control={form.control}
                                     name="send_alimtalk"
                                     render={({ field }) => (
-                                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-[12px] border border-[#CCCCCC] bg-[#F5F5F5] p-6 flex-1">
+                                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-[12px] border border-[#CCCCCC] bg-[#F5F5F5] p-6 flex-1 cursor-pointer">
                                             <FormControl>
-                                                <Checkbox checked={field.value} onCheckedChange={field.onChange} className="data-[state=checked]:bg-[#4E8C6D] border-[#AFAFAF]" />
+                                                <Checkbox checked={field.value} onCheckedChange={field.onChange} className="data-[state=checked]:bg-[#4E8C6D] border-[#AFAFAF] cursor-pointer" />
                                             </FormControl>
                                             <div className="space-y-1 leading-none">
-                                                <FormLabel className="text-[16px] text-gray-700 font-medium">알림톡 발송</FormLabel>
+                                                <FormLabel className="text-[16px] text-gray-700 font-medium cursor-pointer">알림톡 발송</FormLabel>
                                             </div>
                                         </FormItem>
                                     )}
@@ -203,14 +203,14 @@ const EditNoticePage = ({ params }: EditNoticePageProps) => {
                                     type="button" 
                                     variant="outline" 
                                     onClick={() => router.back()}
-                                    className="h-[48px] px-8 text-[16px] border-[#CCCCCC] text-gray-600 hover:bg-gray-50"
+                                    className="h-[48px] px-8 text-[16px] border-[#CCCCCC] text-gray-600 hover:bg-gray-50 cursor-pointer"
                                 >
                                     취소
                                 </Button>
                                 <Button 
                                     type="submit" 
                                     disabled={isPending}
-                                    className="h-[48px] px-8 text-[16px] bg-[#4E8C6D] hover:bg-[#5FA37C] text-white"
+                                    className="h-[48px] px-8 text-[16px] bg-[#4E8C6D] hover:bg-[#5FA37C] text-white cursor-pointer"
                                 >
                                     {isPending ? '수정 중...' : '수정'}
                                 </Button>

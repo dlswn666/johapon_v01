@@ -123,7 +123,7 @@ export function UnionNewsSection({ unionId }: UnionNewsSectionProps) {
                     <button
                         onClick={() => setActiveTab('notice')}
                         className={cn(
-                            'h-[52.375px] px-[27px] pb-[22px] pt-0 rounded-tl-[13.5px] rounded-tr-[13.5px] transition-colors',
+                            'h-[52.375px] px-[27px] pb-[22px] pt-0 rounded-tl-[13.5px] rounded-tr-[13.5px] transition-colors cursor-pointer',
                             activeTab === 'notice'
                                 ? 'bg-[#4e8c6d] text-white font-bold'
                                 : 'text-[#4a5565] font-medium hover:text-[#4e8c6d]'
@@ -135,7 +135,7 @@ export function UnionNewsSection({ unionId }: UnionNewsSectionProps) {
                     <button
                         onClick={() => setActiveTab('general')}
                         className={cn(
-                            'h-[52.375px] px-[27px] pb-[22px] pt-0 transition-colors',
+                            'h-[52.375px] px-[27px] pb-[22px] pt-0 transition-colors cursor-pointer',
                             activeTab === 'general'
                                 ? 'bg-[#4e8c6d] text-white font-bold rounded-tl-[13.5px] rounded-tr-[13.5px]'
                                 : 'text-[#4a5565] font-medium hover:text-[#4e8c6d]'
@@ -147,7 +147,7 @@ export function UnionNewsSection({ unionId }: UnionNewsSectionProps) {
                     <button
                         onClick={() => setActiveTab('question')}
                         className={cn(
-                            'h-[52.375px] px-[27px] pb-[22px] pt-0 transition-colors',
+                            'h-[52.375px] px-[27px] pb-[22px] pt-0 transition-colors cursor-pointer',
                             activeTab === 'question'
                                 ? 'bg-[#4e8c6d] text-white font-bold rounded-tl-[13.5px] rounded-tr-[13.5px]'
                                 : 'text-[#4a5565] font-medium hover:text-[#4e8c6d]'

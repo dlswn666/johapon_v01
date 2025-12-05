@@ -79,6 +79,7 @@ export function CommentForm({
                         size="sm"
                         onClick={onCancel}
                         disabled={isSubmitting}
+                        className="cursor-pointer"
                     >
                         취소
                     </Button>
@@ -87,6 +88,7 @@ export function CommentForm({
                     type="submit"
                     size="sm"
                     disabled={!content.trim() || isSubmitting}
+                    className="cursor-pointer"
                 >
                     {isSubmitting ? (
                         <>

@@ -53,7 +53,7 @@ const NoticePage = () => {
                 <div className={cn('flex justify-between items-center mb-6')}>
                     <h2 className={cn('text-[32px] font-bold text-[#5FA37C]')}>공지사항</h2>
                     <Button 
-                        className="bg-[#4E8C6D] hover:bg-[#5FA37C] text-white text-[16px] px-6 py-2 rounded-[8px]" 
+                        className="bg-[#4E8C6D] hover:bg-[#5FA37C] text-white text-[16px] px-6 py-2 rounded-[8px] cursor-pointer" 
                         onClick={() => router.push(`/${slug}/notice/new`)}
                     >
                         글쓰기

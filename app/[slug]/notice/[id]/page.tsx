@@ -84,19 +84,19 @@ const NoticeDetailPage = ({ params }: NoticeDetailPageProps) => {
                         <h2 className="text-[32px] font-bold text-[#5FA37C]">{notice.title}</h2>
                         <div className="flex gap-2">
                             <Button 
-                                className="bg-white border border-[#4E8C6D] text-[#4E8C6D] hover:bg-[#F5F5F5]" 
+                                className="bg-white border border-[#4E8C6D] text-[#4E8C6D] hover:bg-[#F5F5F5] cursor-pointer" 
                                 onClick={() => router.push(`/${slug}/notice/${id}/edit`)}
                             >
                                 수정
                             </Button>
                             <Button 
-                                className="bg-[#D9534F] text-white hover:bg-[#D9534F]/90" 
+                                className="bg-[#D9534F] text-white hover:bg-[#D9534F]/90 cursor-pointer" 
                                 onClick={handleDelete}
                             >
                                 삭제
                             </Button>
                             <Button 
-                                className="bg-[#E6E6E6] text-[#5FA37C] hover:bg-[#E6E6E6]/80" 
+                                className="bg-[#E6E6E6] text-[#5FA37C] hover:bg-[#E6E6E6]/80 cursor-pointer" 
                                 onClick={() => router.push(`/${slug}/notice`)}
                             >
                                 목록

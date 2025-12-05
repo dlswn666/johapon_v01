@@ -226,7 +226,7 @@ export function FileUploader({
                             htmlFor={inputId}
                             className={cn(
                                 buttonVariants({ variant: 'outline', size: 'sm' }),
-                                isUploading && 'opacity-50 pointer-events-none cursor-not-allowed'
+                                isUploading ? 'opacity-50 pointer-events-none cursor-not-allowed' : 'cursor-pointer'
                             )}
                         >
                             {isUploading ? (
@@ -271,7 +271,7 @@ export function FileUploader({
                                         type="button"
                                         variant="ghost"
                                         size="icon"
-                                        className="h-8 w-8"
+                                        className="h-8 w-8 cursor-pointer"
                                         onClick={() => handleDownload(file.path, file.name)}
                                         title="다운로드"
                                     >
@@ -283,7 +283,7 @@ export function FileUploader({
                                             type="button"
                                             variant="ghost"
                                             size="icon"
-                                            className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                            className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50 cursor-pointer"
                                             onClick={() => handleDelete(file.id, file.path)}
                                             title="삭제"
                                         >
@@ -338,7 +338,7 @@ export function FileUploader({
                                         type="button"
                                         variant="ghost"
                                         size="icon"
-                                        className="h-8 w-8 text-gray-400 hover:text-gray-600"
+                                        className="h-8 w-8 text-gray-400 hover:text-gray-600 cursor-pointer"
                                         onClick={() => handleRemoveTemp(file.id)}
                                         title="취소"
                                     >

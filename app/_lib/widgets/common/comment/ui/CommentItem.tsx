@@ -119,6 +119,7 @@ export function CommentItem({
                             size="icon-sm"
                             onClick={() => setIsEditing(true)}
                             disabled={isDeleting}
+                            className="cursor-pointer"
                         >
                             <Pencil className="size-3.5" />
                         </Button>
@@ -127,6 +128,7 @@ export function CommentItem({
                             size="icon-sm"
                             onClick={handleDelete}
                             disabled={isDeleting}
+                            className="cursor-pointer"
                         >
                             {isDeleting ? (
                                 <Loader2 className="size-3.5 animate-spin" />
@@ -156,6 +158,7 @@ export function CommentItem({
                                 setEditContent(comment.content);
                             }}
                             disabled={isUpdating}
+                            className="cursor-pointer"
                         >
                             취소
                         </Button>
@@ -163,6 +166,7 @@ export function CommentItem({
                             size="sm"
                             onClick={handleUpdate}
                             disabled={!editContent.trim() || isUpdating}
+                            className="cursor-pointer"
                         >
                             {isUpdating ? (
                                 <>
@@ -185,7 +189,7 @@ export function CommentItem({
                     <Button
                         variant="ghost"
                         size="sm"
-                        className="text-xs text-muted-foreground h-auto py-1 px-2"
+                        className="text-xs text-muted-foreground h-auto py-1 px-2 cursor-pointer"
                         onClick={() => setShowReplyForm(!showReplyForm)}
                     >
                         <MessageSquare className="size-3 mr-1" />
