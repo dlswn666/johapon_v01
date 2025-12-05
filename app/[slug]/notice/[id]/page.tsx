@@ -50,9 +50,9 @@ const NoticeDetailPage = ({ params }: NoticeDetailPageProps) => {
 
     if (isUnionLoading || isLoading) {
         return (
-            <div className={cn('container mx-auto p-6')}>
+            <div className={cn('container mx-auto max-w-[1280px] px-4 py-8')}>
                 <div className="flex justify-center items-center h-64">
-                    <p className="text-lg text-muted-foreground">로딩 중...</p>
+                    <p className="text-[18px] text-gray-400">로딩 중...</p>
                 </div>
             </div>
         );
@@ -60,9 +60,9 @@ const NoticeDetailPage = ({ params }: NoticeDetailPageProps) => {
 
     if (error || !notice) {
         return (
-            <div className={cn('container mx-auto p-6')}>
+            <div className={cn('container mx-auto max-w-[1280px] px-4 py-8')}>
                 <div className="flex justify-center items-center h-64">
-                    <p className="text-lg text-red-600">공지사항을 찾을 수 없습니다.</p>
+                    <p className="text-[18px] text-[#D9534F]">공지사항을 찾을 수 없습니다.</p>
                 </div>
             </div>
         );
@@ -70,41 +70,50 @@ const NoticeDetailPage = ({ params }: NoticeDetailPageProps) => {
 
     return (
         <>
-            <div className={cn('container mx-auto p-6')}>
-                <div className="flex flex-col gap-6 mb-8">
+            <div className={cn('container mx-auto max-w-[1280px] px-4 py-8')}>
+                <div className="flex flex-col gap-6 mb-[80px]">
                     <div className="flex justify-between items-center">
                         <UnionHeader />
                         <UnionNavigation />
                     </div>
-                    <Separator />
+                    <Separator className="bg-[#CCCCCC]" />
                 </div>
 
-                <div className="space-y-6">
-                    <div className="flex justify-between items-start">
-                        <h1 className="text-2xl font-bold">{notice.title}</h1>
+                <div className="space-y-8">
+                    <div className="flex justify-between items-start border-b border-[#CCCCCC] pb-6">
+                        <h2 className="text-[32px] font-bold text-[#5FA37C]">{notice.title}</h2>
                         <div className="flex gap-2">
-                            <Button variant="outline" onClick={() => router.push(`/${slug}/notice/${id}/edit`)}>
+                            <Button 
+                                className="bg-white border border-[#4E8C6D] text-[#4E8C6D] hover:bg-[#F5F5F5]" 
+                                onClick={() => router.push(`/${slug}/notice/${id}/edit`)}
+                            >
                                 수정
                             </Button>
-                            <Button variant="destructive" onClick={handleDelete}>
+                            <Button 
+                                className="bg-[#D9534F] text-white hover:bg-[#D9534F]/90" 
+                                onClick={handleDelete}
+                            >
                                 삭제
                             </Button>
-                            <Button variant="secondary" onClick={() => router.push(`/${slug}/notice`)}>
+                            <Button 
+                                className="bg-[#E6E6E6] text-[#5FA37C] hover:bg-[#E6E6E6]/80" 
+                                onClick={() => router.push(`/${slug}/notice`)}
+                            >
                                 목록
                             </Button>
                         </div>
                     </div>
 
-                    <div className="flex gap-4 text-sm text-gray-500 border-b pb-4">
+                    <div className="flex gap-6 text-[14px] text-[#AFAFAF] pb-4">
                         <span>작성자: {notice.author_id}</span>
                         <span>작성일: {new Date(notice.created_at).toLocaleDateString('ko-KR')}</span>
                         <span>조회수: {notice.views}</span>
                     </div>
 
-                    <div className="min-h-[300px] whitespace-pre-wrap py-4 prose prose-sm sm:prose-base dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: notice.content }} />
+                    <div className="min-h-[300px] whitespace-pre-wrap py-4 prose prose-lg max-w-none text-[18px] leading-relaxed text-gray-800" dangerouslySetInnerHTML={{ __html: notice.content }} />
 
                     {/* 첨부파일 영역 */}
-                    <div className="mt-8 border-t pt-6">
+                    <div className="mt-8 border-t border-[#CCCCCC] pt-6">
                          <FileUploader
                             unionSlug={slug}
                             targetId={String(noticeId)}
@@ -114,7 +123,7 @@ const NoticeDetailPage = ({ params }: NoticeDetailPageProps) => {
                     </div>
 
                     {/* 댓글 영역 */}
-                    <div className="mt-8">
+                    <div className="mt-8 bg-[#F5F5F5] rounded-[12px] p-6">
                         <CommentSection
                             entityType="notice"
                             entityId={noticeId}

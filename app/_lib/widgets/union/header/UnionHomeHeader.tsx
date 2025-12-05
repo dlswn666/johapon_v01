@@ -1,11 +1,21 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Home, User, ChevronDown, LogOut, UserCircle } from 'lucide-react';
+import { Home, User, ChevronDown, LogOut, UserCircle, PanelLeft } from 'lucide-react';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
+import {
+    NavigationMenu,
+    NavigationMenuContent,
+    NavigationMenuItem,
+    NavigationMenuLink,
+    NavigationMenuList,
+    NavigationMenuTrigger,
+} from '@/components/ui/navigation-menu';
+import { cn } from '@/lib/utils';
+import UnionMobileSidebar from './UnionMobileSidebar';
 
 export default function UnionHomeHeader() {
     const { union } = useSlug();
@@ -14,12 +24,12 @@ export default function UnionHomeHeader() {
     const pathname = usePathname();
 
     // 드롭다운 상태 관리
-    const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+    // 모바일 사이드바 상태 관리
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     // 외부 클릭 감지를 위한 ref
     const userMenuRef = useRef<HTMLDivElement>(null);
-    const navigationRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
     // 외부 클릭 시 사용자 메뉴 닫기
     useEffect(() => {
@@ -76,13 +86,9 @@ export default function UnionHomeHeader() {
         });
     }
 
-    // 드롭다운 열기/닫기
-    const handleMouseEnter = (menuId: string) => {
-        setActiveDropdown(menuId);
-    };
-
-    const handleMouseLeave = () => {
-        setActiveDropdown(null);
+    // 현재 경로가 메뉴 항목과 일치하는지 확인
+    const isActiveRoute = (href: string) => {
+        return pathname === href || pathname.startsWith(href + '/');
     };
 
     // 사용자 메뉴 토글
@@ -97,121 +103,174 @@ export default function UnionHomeHeader() {
         router.push('/');
     };
 
+    // 사이드바 토글
+    const toggleSidebar = () => {
+        setIsSidebarOpen(!isSidebarOpen);
+    };
+
     if (!union) return null;
 
     return (
-        <header className="bg-white border-b border-gray-200 shadow-[0px_1px_3px_0px_rgba(0,0,0,0.1),0px_1px_2px_-1px_rgba(0,0,0,0.1)]">
-            <div className="h-[90px] relative">
-                <div className="container mx-auto px-4 h-full flex items-center justify-between">
-                    {/* 왼쪽: 로고 영역 */}
-                    <div className="flex items-center gap-[13.5px]">
-                        <div className="bg-[#4e8c6d] rounded-full size-[54px] flex items-center justify-center shrink-0">
-                            {union.logo_url ? (
-                                <img
-                                    src={union.logo_url}
-                                    alt={`${union.name} 로고`}
-                                    className="size-[54px] rounded-full object-cover"
-                                />
-                            ) : (
-                                <Home className="size-[27px] text-white" />
-                            )}
-                        </div>
-                        <div className="flex flex-col">
-                            <p className="text-[15.75px] leading-[22.5px] text-[#4a5565]">서울 신동아</p>
-                            <p className="text-[18px] leading-[27px] font-bold text-[#4e8c6d]">{union.name}</p>
-                        </div>
-                    </div>
-
-                    {/* 중앙: 네비게이션 */}
-                    <nav className="flex items-center gap-[9px]">
-                        {navigationItems.map((item) => (
-                            <div
-                                key={item.id}
-                                ref={(el) => {
-                                    navigationRefs.current[item.id] = el;
-                                }}
-                                className="relative"
-                                onMouseEnter={() => item.subItems.length > 0 && handleMouseEnter(item.id)}
-                                onMouseLeave={handleMouseLeave}
-                            >
-                                <Link
-                                    href={item.href}
-                                    className={`h-[54px] px-[27px] py-[13.5px] rounded-[13.5px] flex items-center text-[18px] leading-[27px] text-neutral-950 transition-colors ${
-                                        pathname === item.href || pathname.startsWith(item.href + '/')
-                                            ? 'bg-gray-100'
-                                            : 'hover:bg-gray-50'
-                                    }`}
-                                >
-                                    {item.label}
-                                </Link>
-
-                                {/* 2depth 드롭다운 메뉴 */}
-                                {item.subItems.length > 0 && activeDropdown === item.id && (
-                                    <div
-                                        className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-[180px]"
-                                        onMouseEnter={() => handleMouseEnter(item.id)}
-                                        onMouseLeave={handleMouseLeave}
-                                    >
-                                        {item.subItems.map((subItem) => (
-                                            <Link
-                                                key={subItem.href}
-                                                href={subItem.href}
-                                                className={`block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors first:rounded-t-lg last:rounded-b-lg ${
-                                                    pathname === subItem.href ? 'bg-gray-50 font-medium' : ''
-                                                }`}
-                                                onClick={() => setActiveDropdown(null)}
-                                            >
-                                                {subItem.label}
-                                            </Link>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        ))}
-                    </nav>
-
-                    {/* 오른쪽: 사용자 아이콘 영역 */}
-                    <div className="relative" ref={userMenuRef} onMouseLeave={() => setIsUserMenuOpen(false)}>
+        <>
+            <header className="bg-white border-b border-gray-200 shadow-[0px_1px_3px_0px_rgba(0,0,0,0.1),0px_1px_2px_-1px_rgba(0,0,0,0.1)]">
+                {/* 모바일 헤더 (md 미만) */}
+                <div className="h-[60px] md:hidden relative">
+                    <div className="container mx-auto px-4 h-full flex items-center justify-between">
+                        {/* 왼쪽: 사이드바 토글 버튼 */}
                         <button
-                            onClick={toggleUserMenu}
-                            className="h-[45px] px-[18px] py-0 rounded-[13.5px] flex items-center gap-[9px] hover:bg-gray-50 transition-colors"
+                            onClick={toggleSidebar}
+                            className="size-[40px] flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                            aria-label="메뉴 열기"
                         >
-                            <div className="size-[27px] flex items-center justify-center">
-                                {user ? (
-                                    <UserCircle className="size-[27px] text-[#4e8c6d]" />
-                                ) : (
-                                    <User className="size-[27px] text-[#4e8c6d]" />
-                                )}
-                            </div>
-                            <ChevronDown className="size-[18px] text-[#4e8c6d]" />
+                            <PanelLeft className="size-[24px] text-[#4e8c6d]" />
                         </button>
 
-                        {/* 사용자 메뉴 드롭다운 */}
-                        {isUserMenuOpen && (
-                            <div
-                                className="absolute top-full right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-[160px]"
-                                onMouseEnter={() => setIsUserMenuOpen(true)}
-                                onMouseLeave={() => setIsUserMenuOpen(false)}
-                            >
-                                <Link
-                                    href="/profile"
-                                    className="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors rounded-t-lg"
-                                    onClick={() => setIsUserMenuOpen(false)}
-                                >
-                                    내정보
-                                </Link>
-                                <button
-                                    onClick={handleLogout}
-                                    className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors rounded-b-lg flex items-center gap-2"
-                                >
-                                    <LogOut className="size-4" />
-                                    로그아웃
-                                </button>
+                        {/* 중앙: 조합 로고 + 조합명 */}
+                        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-2">
+                            <div className="bg-[#4e8c6d] rounded-full size-[36px] flex items-center justify-center shrink-0">
+                                {union.logo_url ? (
+                                    <img
+                                        src={union.logo_url}
+                                        alt={`${union.name} 로고`}
+                                        className="size-[36px] rounded-full object-cover"
+                                    />
+                                ) : (
+                                    <Home className="size-[18px] text-white" />
+                                )}
                             </div>
-                        )}
+                            <p className="text-[14px] font-bold text-[#4e8c6d] max-w-[120px] truncate">{union.name}</p>
+                        </div>
+
+                        {/* 오른쪽: 빈 공간 (균형을 위해) */}
+                        <div className="size-[40px]" />
                     </div>
                 </div>
-            </div>
-        </header>
+
+                {/* 데스크탑 헤더 (md 이상) */}
+                <div className="h-[90px] hidden md:block relative">
+                    <div className="container mx-auto px-4 h-full flex items-center justify-between">
+                        {/* 왼쪽: 로고 영역 */}
+                        <div className="flex items-center gap-[13.5px]">
+                            <div className="bg-[#4e8c6d] rounded-full size-[54px] flex items-center justify-center shrink-0">
+                                {union.logo_url ? (
+                                    <img
+                                        src={union.logo_url}
+                                        alt={`${union.name} 로고`}
+                                        className="size-[54px] rounded-full object-cover"
+                                    />
+                                ) : (
+                                    <Home className="size-[27px] text-white" />
+                                )}
+                            </div>
+                            <div className="flex flex-col">
+                                <p className="text-[15.75px] leading-[22.5px] text-[#4a5565]">서울 신동아</p>
+                                <p className="text-[18px] leading-[27px] font-bold text-[#4e8c6d]">{union.name}</p>
+                            </div>
+                        </div>
+
+                        {/* 중앙: 네비게이션 - shadcn NavigationMenu 적용 */}
+                        <NavigationMenu viewport={false} className="flex items-center">
+                            <NavigationMenuList className="gap-[9px]">
+                                {navigationItems.map((item) => (
+                                    <NavigationMenuItem key={item.id}>
+                                        {item.subItems.length > 0 ? (
+                                            // 하위 메뉴가 있는 경우 - Trigger 사용
+                                            <>
+                                                <NavigationMenuTrigger
+                                                    className={cn(
+                                                        'h-[54px] px-[27px] py-[13.5px] rounded-[13.5px] text-[18px] leading-[27px] text-neutral-950 font-normal bg-transparent',
+                                                        'hover:bg-gray-50 focus:bg-gray-50 data-[state=open]:bg-gray-100',
+                                                        isActiveRoute(item.href) && 'bg-gray-100'
+                                                    )}
+                                                >
+                                                    {item.label}
+                                                </NavigationMenuTrigger>
+                                                <NavigationMenuContent className="min-w-[180px]">
+                                                    <ul className="p-0">
+                                                        {item.subItems.map((subItem) => (
+                                                            <li key={subItem.href}>
+                                                                <NavigationMenuLink asChild>
+                                                                    <Link
+                                                                        href={subItem.href}
+                                                                        className={cn(
+                                                                            'block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors first:rounded-t-lg last:rounded-b-lg cursor-pointer',
+                                                                            pathname === subItem.href &&
+                                                                                'bg-gray-50 font-medium'
+                                                                        )}
+                                                                    >
+                                                                        {subItem.label}
+                                                                    </Link>
+                                                                </NavigationMenuLink>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </NavigationMenuContent>
+                                            </>
+                                        ) : (
+                                            // 하위 메뉴가 없는 경우 - 직접 링크
+                                            <NavigationMenuLink asChild>
+                                                <Link
+                                                    href={item.href}
+                                                    className={cn(
+                                                        'h-[54px] px-[27px] py-[13.5px] rounded-[13.5px] flex items-center text-[18px] leading-[27px] text-neutral-950 transition-colors cursor-pointer',
+                                                        isActiveRoute(item.href) ? 'bg-gray-100' : 'hover:bg-gray-50'
+                                                    )}
+                                                >
+                                                    {item.label}
+                                                </Link>
+                                            </NavigationMenuLink>
+                                        )}
+                                    </NavigationMenuItem>
+                                ))}
+                            </NavigationMenuList>
+                        </NavigationMenu>
+
+                        {/* 오른쪽: 사용자 아이콘 영역 */}
+                        <div className="relative" ref={userMenuRef} onMouseLeave={() => setIsUserMenuOpen(false)}>
+                            <button
+                                onClick={toggleUserMenu}
+                                className="h-[45px] px-[18px] py-0 rounded-[13.5px] flex items-center gap-[9px] hover:bg-gray-50 transition-colors cursor-pointer"
+                            >
+                                <div className="size-[27px] flex items-center justify-center">
+                                    {user ? (
+                                        <UserCircle className="size-[27px] text-[#4e8c6d]" />
+                                    ) : (
+                                        <User className="size-[27px] text-[#4e8c6d]" />
+                                    )}
+                                </div>
+                                <ChevronDown className="size-[18px] text-[#4e8c6d]" />
+                            </button>
+
+                            {/* 사용자 메뉴 드롭다운 */}
+                            {isUserMenuOpen && (
+                                <div
+                                    className="absolute top-full right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-[160px]"
+                                    onMouseEnter={() => setIsUserMenuOpen(true)}
+                                    onMouseLeave={() => setIsUserMenuOpen(false)}
+                                >
+                                    <Link
+                                        href="/profile"
+                                        className="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors rounded-t-lg cursor-pointer"
+                                        onClick={() => setIsUserMenuOpen(false)}
+                                    >
+                                        내정보
+                                    </Link>
+                                    <button
+                                        onClick={handleLogout}
+                                        className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors rounded-b-lg flex items-center gap-2 cursor-pointer"
+                                    >
+                                        <LogOut className="size-4" />
+                                        로그아웃
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            {/* 모바일 사이드바 */}
+            <UnionMobileSidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+        </>
     );
 }

@@ -9,23 +9,34 @@ function MarketingHeader() {
     const { isSystemAdmin, isLoading } = useAuth();
 
     return (
-        <header className="border-b bg-white">
-            <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-                <div className="font-bold text-xl">조합온</div>
-                <nav className="hidden md:flex items-center gap-6">
-                    <Link href="/features" className="text-sm font-medium hover:text-blue-600">
+        <header className="border-b border-[#CCCCCC] bg-white sticky top-0 z-50">
+            <div className="container mx-auto max-w-[1280px] px-4 h-[56px] flex items-center justify-between">
+                <Link href="/" className="font-bold text-[22px] text-[#5FA37C] cursor-pointer">
+                    조합온
+                </Link>
+                <nav className="hidden md:flex items-center gap-8">
+                    <Link
+                        href="/features"
+                        className="text-[16px] font-medium text-gray-600 hover:text-[#4E8C6D] transition-colors cursor-pointer"
+                    >
                         기능 소개
                     </Link>
-                    <Link href="/pricing" className="text-sm font-medium hover:text-blue-600">
+                    <Link
+                        href="/pricing"
+                        className="text-[16px] font-medium text-gray-600 hover:text-[#4E8C6D] transition-colors cursor-pointer"
+                    >
                         요금 안내
                     </Link>
-                    <Link href="/contact" className="text-sm font-medium hover:text-blue-600">
+                    <Link
+                        href="/contact"
+                        className="text-[16px] font-medium text-gray-600 hover:text-[#4E8C6D] transition-colors cursor-pointer"
+                    >
                         문의하기
                     </Link>
                     {!isLoading && isSystemAdmin && (
                         <Link
                             href="/admin/unions"
-                            className="flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:text-blue-700 px-3 py-1.5 bg-blue-50 rounded-lg"
+                            className="flex items-center gap-1.5 text-[14px] font-medium text-[#4E8C6D] hover:text-[#4E8C6D]/80 px-4 py-2 bg-[#F5F5F5] hover:bg-[#E6E6E6] rounded-lg transition-colors cursor-pointer"
                         >
                             <Settings className="w-4 h-4" />
                             조합 관리
@@ -37,16 +48,14 @@ function MarketingHeader() {
     );
 }
 
+import MarketingFooter from '@/app/_lib/widgets/marketing/footer/MarketingFooter';
+
 function MarketingLayoutContent({ children }: { children: React.ReactNode }) {
     return (
         <div className="flex flex-col min-h-screen">
             <MarketingHeader />
             <main className="flex-1">{children}</main>
-            <footer className="bg-gray-50 border-t py-12">
-                <div className="container mx-auto px-4 text-center text-gray-500 text-sm">
-                    © 2024 조합온. All rights reserved.
-                </div>
-            </footer>
+            <MarketingFooter />
         </div>
     );
 }

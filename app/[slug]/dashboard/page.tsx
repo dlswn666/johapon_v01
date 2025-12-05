@@ -8,19 +8,19 @@ import UnionHeader from '@/app/_lib/widgets/union/header/UnionHeader';
 
 export default function DashboardPage() {
     return (
-        <div className={cn('container mx-auto p-6')}>
-            <div className="flex flex-col gap-6 mb-8">
+        <div className={cn('container mx-auto max-w-[1280px] px-4 py-8')}>
+            <div className="flex flex-col gap-6 mb-[80px]">
                 <div className="flex justify-between items-center">
                     <UnionHeader />
                     <UnionNavigation />
                 </div>
-                <Separator />
+                <Separator className="bg-[#CCCCCC]" />
             </div>
 
             <div className="space-y-6">
-                <h1 className="text-3xl font-bold">알림톡 관리</h1>
-                <div className="p-12 border-2 border-dashed rounded-lg text-center text-gray-400">
-                    <p>알림톡 관리 기능 준비 중입니다.</p>
+                <h2 className="text-[32px] font-bold text-[#5FA37C]">알림톡 관리</h2>
+                <div className="p-8 bg-[#E6E6E6] rounded-[12px] text-center text-[#4E8C6D]">
+                    <p className="text-[16px]">알림톡 관리 기능 준비 중입니다.</p>
                 </div>
             </div>
         </div>

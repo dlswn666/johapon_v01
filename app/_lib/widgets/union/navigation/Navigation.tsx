@@ -17,7 +17,7 @@ export default function UnionNavigation() {
     ];
 
     return (
-        <nav className="flex items-center space-x-6">
+        <nav className="flex items-center space-x-8">
             {navItems.map((item) => {
                 const isActive = pathname === item.href;
                 return (
@@ -25,8 +25,10 @@ export default function UnionNavigation() {
                         key={item.href}
                         href={item.href}
                         className={cn(
-                            'text-sm font-medium transition-colors hover:text-blue-600',
-                            isActive ? 'text-blue-600 font-bold' : 'text-gray-600'
+                            'h-[56px] flex items-center px-2 text-[16px] font-medium transition-colors border-b-4',
+                            isActive 
+                                ? 'text-[#4E8C6D] border-[#4E8C6D] font-bold' 
+                                : 'text-[#CCCCCC] border-transparent hover:text-[#4E8C6D]'
                         )}
                     >
                         {item.label}

@@ -2,17 +2,20 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { AlertCircle } from 'lucide-react';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
+import UnionInfoFooter from '@/app/_lib/widgets/union-info-footer/UnionInfoFooter';
 
 interface UnionLayoutContentProps {
     children: React.ReactNode;
 }
 
 export default function UnionLayoutContent({ children }: UnionLayoutContentProps) {
-    const { union, isLoading: isUnionLoading } = useSlug();
+    const { union, slug, isLoading: isUnionLoading } = useSlug();
     const { isLoading: isAuthLoading } = useAuth();
+    const pathname = usePathname();
 
     // 로딩 중
     if (isUnionLoading || isAuthLoading) {
@@ -48,8 +51,10 @@ export default function UnionLayoutContent({ children }: UnionLayoutContentProps
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            {children}
+        <div className="min-h-screen bg-gray-50 flex flex-col">
+            <div className="flex-1">{children}</div>
+            {/* 대시보드가 아닐 때만 Footer 표시 */}
+            {union && <UnionInfoFooter union={union} />}
         </div>
     );
 }

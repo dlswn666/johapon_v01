@@ -112,28 +112,28 @@ const EditNoticePage = ({ params }: EditNoticePageProps) => {
 
     return (
         <>
-            <div className={cn('container mx-auto p-6')}>
-                <div className="flex flex-col gap-6 mb-8">
+            <div className={cn('container mx-auto max-w-[1280px] px-4 py-8')}>
+                <div className="flex flex-col gap-6 mb-[80px]">
                     <div className="flex justify-between items-center">
                         <UnionHeader />
                         <UnionNavigation />
                     </div>
-                    <Separator />
+                    <Separator className="bg-[#CCCCCC]" />
                 </div>
 
-                <div className="max-w-2xl mx-auto">
-                    <h1 className="text-2xl font-bold mb-6">공지사항 수정</h1>
+                <div className="max-w-4xl mx-auto">
+                    <h2 className="text-[32px] font-bold text-[#5FA37C] mb-8">공지사항 수정</h2>
 
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
                             <FormField
                                 control={form.control}
                                 name="title"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>제목</FormLabel>
+                                        <FormLabel className="text-[16px] font-bold text-[#5FA37C]">제목</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="제목을 입력해주세요" {...field} />
+                                            <Input placeholder="제목을 입력해주세요" {...field} className="h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]" />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -145,12 +145,12 @@ const EditNoticePage = ({ params }: EditNoticePageProps) => {
                                     control={form.control}
                                     name="is_popup"
                                     render={({ field }) => (
-                                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 flex-1">
+                                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-[12px] border border-[#CCCCCC] bg-[#F5F5F5] p-6 flex-1">
                                             <FormControl>
-                                                <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                                                <Checkbox checked={field.value} onCheckedChange={field.onChange} className="data-[state=checked]:bg-[#4E8C6D] border-[#AFAFAF]" />
                                             </FormControl>
                                             <div className="space-y-1 leading-none">
-                                                <FormLabel>팝업으로 표시</FormLabel>
+                                                <FormLabel className="text-[16px] text-gray-700 font-medium">팝업으로 표시</FormLabel>
                                             </div>
                                         </FormItem>
                                     )}
@@ -160,12 +160,12 @@ const EditNoticePage = ({ params }: EditNoticePageProps) => {
                                     control={form.control}
                                     name="send_alimtalk"
                                     render={({ field }) => (
-                                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 flex-1">
+                                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-[12px] border border-[#CCCCCC] bg-[#F5F5F5] p-6 flex-1">
                                             <FormControl>
-                                                <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                                                <Checkbox checked={field.value} onCheckedChange={field.onChange} className="data-[state=checked]:bg-[#4E8C6D] border-[#AFAFAF]" />
                                             </FormControl>
                                             <div className="space-y-1 leading-none">
-                                                <FormLabel>알림톡 발송</FormLabel>
+                                                <FormLabel className="text-[16px] text-gray-700 font-medium">알림톡 발송</FormLabel>
                                             </div>
                                         </FormItem>
                                     )}
@@ -174,7 +174,7 @@ const EditNoticePage = ({ params }: EditNoticePageProps) => {
 
                             {/* 파일 업로드 위젯 추가 */}
                             <FormItem>
-                                <FormLabel>첨부파일</FormLabel>
+                                <FormLabel className="text-[16px] font-bold text-[#5FA37C]">첨부파일</FormLabel>
                                 <FormControl>
                                     <FileUploader unionSlug={slug} targetType="NOTICE" targetId={String(noticeId)} />
                                 </FormControl>
@@ -185,7 +185,7 @@ const EditNoticePage = ({ params }: EditNoticePageProps) => {
                                 name="content"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>내용</FormLabel>
+                                        <FormLabel className="text-[16px] font-bold text-[#5FA37C]">내용</FormLabel>
                                         <FormControl>
                                             <TextEditor
                                                 content={field.value}
@@ -198,11 +198,20 @@ const EditNoticePage = ({ params }: EditNoticePageProps) => {
                                 )}
                             />
 
-                            <div className="flex justify-end gap-2">
-                                <Button type="button" variant="outline" onClick={() => router.back()}>
+                            <div className="flex justify-end gap-3 pt-6 border-t border-[#CCCCCC]">
+                                <Button 
+                                    type="button" 
+                                    variant="outline" 
+                                    onClick={() => router.back()}
+                                    className="h-[48px] px-8 text-[16px] border-[#CCCCCC] text-gray-600 hover:bg-gray-50"
+                                >
                                     취소
                                 </Button>
-                                <Button type="submit" disabled={isPending}>
+                                <Button 
+                                    type="submit" 
+                                    disabled={isPending}
+                                    className="h-[48px] px-8 text-[16px] bg-[#4E8C6D] hover:bg-[#5FA37C] text-white"
+                                >
                                     {isPending ? '수정 중...' : '수정'}
                                 </Button>
                             </div>

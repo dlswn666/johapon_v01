@@ -5,7 +5,6 @@ import { Loader2 } from 'lucide-react';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import { useHeroSlides } from '@/app/_lib/features/hero-slides/api/useHeroSlidesHook';
 import { HeroSlider } from '@/app/_lib/widgets/hero-slider';
-import { UnionInfoFooter } from '@/app/_lib/widgets/union-info-footer';
 import { UnionNewsSection } from '@/app/_lib/widgets/union-news-section';
 import UnionHomeHeader from '@/app/_lib/widgets/union/header/UnionHomeHeader';
 
@@ -35,7 +34,6 @@ export default function UnionHomePage() {
         );
     }
 
-
     return (
         <div className="min-h-screen flex flex-col bg-gray-50">
             {/* Header */}
@@ -62,9 +60,6 @@ export default function UnionHomePage() {
 
             {/* Spacer */}
             <div className="flex-grow" />
-
-            {/* Footer - 조합 정보 */}
-            <UnionInfoFooter union={union} />
         </div>
     );
 }
