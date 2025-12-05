@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Settings, AlertCircle } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 
@@ -12,7 +12,7 @@ interface UnionLayoutContentProps {
 
 export default function UnionLayoutContent({ children }: UnionLayoutContentProps) {
     const { union, isLoading: isUnionLoading } = useSlug();
-    const { isSystemAdmin, isLoading: isAuthLoading } = useAuth();
+    const { isLoading: isAuthLoading } = useAuth();
 
     // 로딩 중
     if (isUnionLoading || isAuthLoading) {
@@ -49,21 +49,6 @@ export default function UnionLayoutContent({ children }: UnionLayoutContentProps
 
     return (
         <div className="min-h-screen bg-gray-50">
-            {/* 시스템 관리자용 상단 바 */}
-            {isSystemAdmin && (
-                <div className="bg-blue-600 text-white">
-                    <div className="container mx-auto px-4 py-2 flex items-center justify-between">
-                        <span className="text-sm">시스템 관리자로 접속 중입니다</span>
-                        <Link
-                            href="/admin/unions"
-                            className="flex items-center gap-1.5 text-sm font-medium hover:text-blue-100 px-3 py-1 bg-blue-700 rounded"
-                        >
-                            <Settings className="w-4 h-4" />
-                            조합 관리
-                        </Link>
-                    </div>
-                </div>
-            )}
             {children}
         </div>
     );

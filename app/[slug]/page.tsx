@@ -7,6 +7,7 @@ import { useHeroSlides } from '@/app/_lib/features/hero-slides/api/useHeroSlides
 import { HeroSlider } from '@/app/_lib/widgets/hero-slider';
 import { UnionInfoFooter } from '@/app/_lib/widgets/union-info-footer';
 import { UnionNewsSection } from '@/app/_lib/widgets/union-news-section';
+import UnionHomeHeader from '@/app/_lib/widgets/union/header/UnionHomeHeader';
 
 export default function UnionHomePage() {
     const { union, isLoading: isUnionLoading } = useSlug();
@@ -37,6 +38,9 @@ export default function UnionHomePage() {
 
     return (
         <div className="min-h-screen flex flex-col bg-gray-50">
+            {/* Header */}
+            <UnionHomeHeader />
+
             {/* Hero Section - 슬라이드 */}
             <section className="relative">
                 {isSlidesLoading ? (

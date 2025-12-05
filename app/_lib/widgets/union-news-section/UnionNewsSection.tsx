@@ -70,10 +70,39 @@ export function UnionNewsSection({ unionId }: UnionNewsSectionProps) {
         }
     };
 
-    // 공지사항 내용 요약 (최대 150자)
-    const truncateContent = (content: string, maxLength: number = 150) => {
-        if (content.length <= maxLength) return content;
-        return content.substring(0, maxLength) + '...';
+    // HTML 태그 제거 함수
+    const stripHtmlTags = (html: string): string => {
+        if (!html) return '';
+        
+        // HTML 요소 제거 (모든 태그 제거)
+        let text = html.replace(/<[^>]*>/g, '');
+        
+        // HTML 엔티티 디코딩
+        text = text
+            .replace(/&nbsp;/g, ' ')
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&amp;/g, '&')
+            .replace(/&quot;/g, '"')
+            .replace(/&#39;/g, "'")
+            .replace(/&apos;/g, "'");
+        
+        // 연속된 공백을 하나로 정리
+        text = text.replace(/\s+/g, ' ').trim();
+        
+        return text;
+    };
+
+    // 공지사항 내용 요약 (HTML 제거 후 최대 100자)
+    const truncateContent = (content: string, maxLength: number = 100) => {
+        if (!content) return '';
+        
+        // HTML 태그 제거
+        const plainText = stripHtmlTags(content);
+        
+        // 길이 제한 적용
+        if (plainText.length <= maxLength) return plainText;
+        return plainText.substring(0, maxLength) + '...';
     };
 
     // 공지사항 작성자 이름 가져오기
