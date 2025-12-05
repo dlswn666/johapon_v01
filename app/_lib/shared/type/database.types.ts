@@ -362,6 +362,73 @@ export type Database = {
                     }
                 ];
             };
+            questions: {
+                Row: {
+                    id: number;
+                    title: string;
+                    content: string;
+                    author_id: string;
+                    union_id: string | null;
+                    is_secret: boolean;
+                    answer_content: string | null;
+                    answer_author_id: string | null;
+                    answered_at: string | null;
+                    views: number;
+                    created_at: string;
+                    updated_at: string;
+                };
+                Insert: {
+                    id?: number;
+                    title: string;
+                    content: string;
+                    author_id: string;
+                    union_id?: string | null;
+                    is_secret?: boolean;
+                    answer_content?: string | null;
+                    answer_author_id?: string | null;
+                    answered_at?: string | null;
+                    views?: number;
+                    created_at?: string;
+                    updated_at?: string;
+                };
+                Update: {
+                    id?: number;
+                    title?: string;
+                    content?: string;
+                    author_id?: string;
+                    union_id?: string | null;
+                    is_secret?: boolean;
+                    answer_content?: string | null;
+                    answer_author_id?: string | null;
+                    answered_at?: string | null;
+                    views?: number;
+                    created_at?: string;
+                    updated_at?: string;
+                };
+                Relationships: [
+                    {
+                        foreignKeyName: 'questions_author_id_fkey';
+                        columns: ['author_id'];
+                        isOneToOne: false;
+                        referencedRelation: 'users';
+                        referencedColumns: ['id'];
+                    },
+                    {
+                        foreignKeyName: 'questions_union_id_fkey';
+                        columns: ['union_id'];
+                        isOneToOne: false;
+                        referencedRelation: 'unions';
+                        referencedColumns: ['id'];
+                    },
+                    {
+                        foreignKeyName: 'questions_answer_author_id_fkey';
+                        columns: ['answer_author_id'];
+                        isOneToOne: false;
+                        referencedRelation: 'users';
+                        referencedColumns: ['id'];
+                    }
+                ];
+            };
         };
         Views: {
             [_ in never]: never;
@@ -369,6 +436,10 @@ export type Database = {
         Functions: {
             increment_notice_views: {
                 Args: { notice_id: number };
+                Returns: undefined;
+            };
+            increment_question_views: {
+                Args: { question_id: number };
                 Returns: undefined;
             };
         };
@@ -518,3 +589,7 @@ export type UpdateComment = Database['public']['Tables']['comments']['Update'];
 export type HeroSlide = Database['public']['Tables']['hero_slides']['Row'];
 export type NewHeroSlide = Database['public']['Tables']['hero_slides']['Insert'];
 export type UpdateHeroSlide = Database['public']['Tables']['hero_slides']['Update'];
+
+export type Question = Database['public']['Tables']['questions']['Row'];
+export type NewQuestion = Database['public']['Tables']['questions']['Insert'];
+export type UpdateQuestion = Database['public']['Tables']['questions']['Update'];

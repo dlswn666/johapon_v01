@@ -2,15 +2,16 @@
 
 import React, { useState, useMemo } from 'react';
 import { useNotices } from '@/app/_lib/features/notice/api/useNoticeHook';
-import { Notice } from '@/app/_lib/shared/type/database.types';
-import { mockGeneralPosts, mockQuestions } from './mockData';
+import { Notice, Question } from '@/app/_lib/shared/type/database.types';
+import { mockGeneralPosts } from './mockData';
 import { NewsTabType } from './types';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { Loader2, AlertCircle, RefreshCw } from 'lucide-react';
+import { Loader2, AlertCircle, RefreshCw, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/app/_lib/shared/supabase/client';
 import { useQuery } from '@tanstack/react-query';
+import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 
 interface UnionNewsSectionProps {
     unionId: string;
@@ -22,7 +23,28 @@ export function UnionNewsSection({ unionId }: UnionNewsSectionProps) {
     unionId;
     
     const [activeTab, setActiveTab] = useState<NewsTabType>('notice');
+    const { union } = useSlug();
     const { data: notices, isLoading, error, refetch } = useNotices();
+    
+    // 질문 목록 조회 (공개 질문만, 최신순)
+    const { data: questions, isLoading: isQuestionsLoading, error: questionsError, refetch: refetchQuestions } = useQuery({
+        queryKey: ['questions-home', union?.id],
+        queryFn: async () => {
+            if (!union?.id) return [];
+            
+            const { data, error } = await supabase
+                .from('questions')
+                .select('*, author:users!questions_author_id_fkey(id, name)')
+                .eq('union_id', union.id)
+                .eq('is_secret', false) // 공개 질문만
+                .order('created_at', { ascending: false })
+                .limit(4);
+            
+            if (error) throw error;
+            return data as (Question & { author: { id: string; name: string } | null })[];
+        },
+        enabled: !!union?.id,
+    });
 
     // 공지사항 작성자 ID 목록 추출
     const authorIds = useMemo(() => {
@@ -288,53 +310,93 @@ export function UnionNewsSection({ unionId }: UnionNewsSectionProps) {
                     )}
 
                     {activeTab === 'question' && (
-                        <div className="space-y-[27px]">
-                            {mockQuestions.length > 0 && (
-                                <>
+                        <>
+                            {isQuestionsLoading ? (
+                                <div className="flex items-center justify-center py-20">
+                                    <Loader2 className="w-10 h-10 animate-spin text-[#4e8c6d]" />
+                                </div>
+                            ) : questionsError ? (
+                                <div className="flex flex-col items-center justify-center py-20 space-y-4">
+                                    <AlertCircle className="w-12 h-12 text-red-500" />
+                                    <p className="text-lg text-gray-600">질문을 불러오는 중 오류가 발생했습니다.</p>
+                                    <button
+                                        onClick={() => refetchQuestions()}
+                                        className="flex items-center gap-2 px-4 py-2 bg-[#4e8c6d] text-white rounded-lg hover:bg-[#3d7a5c] transition-colors"
+                                    >
+                                        <RefreshCw className="w-4 h-4" />
+                                        다시 시도
+                                    </button>
+                                </div>
+                            ) : questions && questions.length > 0 ? (
+                                <div className="space-y-[27px]">
                                     {/* 주요 질문 카드 */}
-                                    <div className="bg-white border-l-4 border-[#5fa37c] border-r border-t border-b rounded-[17.5px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] pl-[40px] pr-px py-[37px]">
-                                        <div className="space-y-[18px]">
-                                            <h3 className="text-[33.75px] font-bold text-[#333333] leading-[47.25px]">
-                                                {mockQuestions[0].title}
-                                            </h3>
-                                            <div className="flex items-center gap-[18px]">
-                                                <span className="text-[18px] text-[#6a7282] leading-[27px]">
-                                                    작성자: {mockQuestions[0].author}
-                                                </span>
-                                                <span className="text-[18px] text-[#6a7282] leading-[27px]">•</span>
-                                                <span className="text-[18px] text-[#6a7282] leading-[27px]">
-                                                    {mockQuestions[0].date}
-                                                </span>
+                                    {questions[0] && (
+                                        <div className="bg-white border-l-4 border-[#5fa37c] border-r border-t border-b rounded-[17.5px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] pl-[40px] pr-px py-[37px]">
+                                            <div className="space-y-[18px]">
+                                                <div className="flex items-center gap-[12px]">
+                                                    <h3 className="text-[33.75px] font-bold text-[#333333] leading-[47.25px]">
+                                                        {questions[0].title}
+                                                    </h3>
+                                                    {questions[0].answered_at && (
+                                                        <span className="inline-flex items-center gap-1 px-3 py-1 bg-[#4e8c6d] text-white text-[14px] rounded-full">
+                                                            <CheckCircle className="h-4 w-4" />
+                                                            답변완료
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className="flex items-center gap-[18px]">
+                                                    <span className="text-[18px] text-[#6a7282] leading-[27px]">
+                                                        작성자: {questions[0].author?.name || '익명'}
+                                                    </span>
+                                                    <span className="text-[18px] text-[#6a7282] leading-[27px]">•</span>
+                                                    <span className="text-[18px] text-[#6a7282] leading-[27px]">
+                                                        {formatDate(questions[0].created_at)}
+                                                    </span>
+                                                </div>
+                                                <p className="text-[20.25px] text-[#364153] leading-[34.425px]">
+                                                    {truncateContent(questions[0].content)}
+                                                </p>
                                             </div>
                                         </div>
-                                    </div>
+                                    )}
 
                                     {/* 하단 3개 카드 그리드 */}
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-[18px]">
-                                        {mockQuestions.slice(1).map((question) => (
-                                            <div
-                                                key={question.id}
-                                                className="bg-white border border-gray-200 rounded-[13.5px] shadow-[0px_1px_3px_0px_rgba(0,0,0,0.1),0px_1px_2px_-1px_rgba(0,0,0,0.1)] pl-[28px] pr-px py-[28px]"
-                                            >
-                                                <div className="space-y-[13.5px]">
-                                                    <h4 className="text-[20.25px] font-bold text-[#333333] leading-[30.375px] line-clamp-2">
-                                                        {question.title}
-                                                    </h4>
-                                                    <div className="space-y-[4.5px]">
-                                                        <p className="text-[15.75px] text-[#6a7282] leading-[23.625px]">
-                                                            작성자: {question.author}
-                                                        </p>
-                                                        <p className="text-[15.75px] text-[#6a7282] leading-[23.625px]">
-                                                            {question.date}
-                                                        </p>
+                                    {questions.length > 1 && (
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-[18px]">
+                                            {questions.slice(1, 4).map((question) => (
+                                                <div
+                                                    key={question.id}
+                                                    className="bg-white border border-gray-200 rounded-[13.5px] shadow-[0px_1px_3px_0px_rgba(0,0,0,0.1),0px_1px_2px_-1px_rgba(0,0,0,0.1)] pl-[28px] pr-px py-[28px]"
+                                                >
+                                                    <div className="space-y-[13.5px]">
+                                                        <div className="flex items-center gap-[8px]">
+                                                            <h4 className="text-[20.25px] font-bold text-[#333333] leading-[30.375px] line-clamp-2">
+                                                                {question.title}
+                                                            </h4>
+                                                            {question.answered_at && (
+                                                                <CheckCircle className="h-5 w-5 text-[#4e8c6d] shrink-0" />
+                                                            )}
+                                                        </div>
+                                                        <div className="space-y-[4.5px]">
+                                                            <p className="text-[15.75px] text-[#6a7282] leading-[23.625px]">
+                                                                작성자: {question.author?.name || '익명'}
+                                                            </p>
+                                                            <p className="text-[15.75px] text-[#6a7282] leading-[23.625px]">
+                                                                {formatDate(question.created_at)}
+                                                            </p>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="flex items-center justify-center py-20">
+                                    <p className="text-lg text-gray-500">등록된 질문이 없습니다.</p>
+                                </div>
                             )}
-                        </div>
+                        </>
                     )}
                 </div>
             </div>

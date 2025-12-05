@@ -6,10 +6,10 @@ import { User } from '@/app/_lib/shared/type/database.types';
 // 사용자 역할 타입
 export type UserRole = 'SYSTEM_ADMIN' | 'ADMIN' | 'USER';
 
-// Mock 사용자 데이터 (개발용)
+// Mock 사용자 데이터 (개발용 - 실제 DB의 users 테이블과 ID 일치)
 const MOCK_USERS: User[] = [
     {
-        id: 'mock-system-admin-1',
+        id: 'systemAdmin',
         name: '시스템 관리자',
         email: 'admin@johapon.com',
         phone_number: '010-1234-5678',
@@ -18,22 +18,22 @@ const MOCK_USERS: User[] = [
         union_id: null,
     },
     {
-        id: 'mock-admin-1',
+        id: 'admin',
         name: '조합 관리자',
         email: 'union-admin@example.com',
         phone_number: '010-2345-6789',
         role: 'ADMIN',
         created_at: new Date().toISOString(),
-        union_id: 'some-union-id',
+        union_id: null,
     },
     {
-        id: 'mock-user-1',
+        id: 'user',
         name: '일반 사용자',
         email: 'user@example.com',
         phone_number: '010-3456-7890',
         role: 'USER',
         created_at: new Date().toISOString(),
-        union_id: 'some-union-id',
+        union_id: null,
     },
 ];
 
