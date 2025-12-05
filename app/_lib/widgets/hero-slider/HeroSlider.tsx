@@ -10,6 +10,8 @@ interface HeroSliderProps {
     slides: HeroSlide[];
     autoPlayInterval?: number; // 자동 슬라이드 간격 (ms), 기본 4000ms
     className?: string;
+    title?: string; // 중앙 타이틀 (선택)
+    description?: string; // 중앙 설명 (선택)
 }
 
 /**
@@ -22,6 +24,8 @@ export function HeroSlider({
     slides,
     autoPlayInterval = 4000,
     className,
+    title,
+    description,
 }: HeroSliderProps) {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isTransitioning, setIsTransitioning] = useState(false);
@@ -178,23 +182,43 @@ export function HeroSlider({
                             draggable={false}
                             priority={index === 0}
                         />
+                        {/* 어두운 오버레이 */}
+                        <div className="absolute inset-0 bg-[rgba(0,0,0,0.4)]" />
                     </div>
                 ))}
             </div>
+
+            {/* 중앙 텍스트 오버레이 */}
+            {(title || description) && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center z-10 pointer-events-none px-6">
+                    <div className="text-center space-y-6 max-w-6xl">
+                        {title && (
+                            <h1 className="text-[81px] font-bold text-white leading-[97.2px] tracking-[-2.025px]">
+                                {title}
+                            </h1>
+                        )}
+                        {description && (
+                            <p className="text-[27px] font-normal text-[rgba(255,255,255,0.9)] leading-[43.2px]">
+                                {description}
+                            </p>
+                        )}
+                    </div>
+                </div>
+            )}
 
             {/* 이전/다음 버튼 (슬라이드가 2개 이상일 때만) */}
             {hasMultipleSlides && (
                 <>
                     <button
                         onClick={goToPrev}
-                        className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white p-2 rounded-full transition-colors"
+                        className="absolute left-[36px] top-1/2 -translate-y-1/2 bg-[rgba(255,255,255,0.3)] hover:bg-[rgba(255,255,255,0.4)] text-white rounded-full transition-colors z-20 w-[63px] h-[63px] flex items-center justify-center"
                         aria-label="이전 슬라이드"
                     >
                         <ChevronLeft className="w-6 h-6" />
                     </button>
                     <button
                         onClick={goToNext}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white p-2 rounded-full transition-colors"
+                        className="absolute right-[36px] top-1/2 -translate-y-1/2 bg-[rgba(255,255,255,0.3)] hover:bg-[rgba(255,255,255,0.4)] text-white rounded-full transition-colors z-20 w-[63px] h-[63px] flex items-center justify-center"
                         aria-label="다음 슬라이드"
                     >
                         <ChevronRight className="w-6 h-6" />
@@ -204,22 +228,24 @@ export function HeroSlider({
 
             {/* 인디케이터 (슬라이드가 2개 이상일 때만) */}
             {hasMultipleSlides && (
-                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
-                    {slides.map((_, index) => (
-                        <button
-                            key={index}
-                            onClick={() => goToSlide(index)}
-                            className={cn(
-                                'w-3 h-3 rounded-full transition-all duration-300',
-                                currentIndex === index ||
-                                    (currentIndex >= slides.length && index === 0) ||
-                                    (currentIndex < 0 && index === slides.length - 1)
-                                    ? 'bg-white scale-110'
-                                    : 'bg-white/50 hover:bg-white/70'
-                            )}
-                            aria-label={`슬라이드 ${index + 1}로 이동`}
-                        />
-                    ))}
+                <div className="absolute bottom-[50px] left-1/2 -translate-x-1/2 flex gap-[13.5px] z-20">
+                    {slides.map((_, index) => {
+                        const isActive =
+                            currentIndex === index ||
+                            (currentIndex >= slides.length && index === 0) ||
+                            (currentIndex < 0 && index === slides.length - 1);
+                        return (
+                            <button
+                                key={index}
+                                onClick={() => goToSlide(index)}
+                                className={cn(
+                                    'rounded-full transition-all duration-300',
+                                    isActive ? 'bg-white w-[13.5px] h-[13.5px]' : 'bg-[rgba(255,255,255,0.5)] w-[13.5px] h-[13.5px] hover:bg-[rgba(255,255,255,0.7)]'
+                                )}
+                                aria-label={`슬라이드 ${index + 1}로 이동`}
+                            />
+                        );
+                    })}
                 </div>
             )}
         </div>
