@@ -7,6 +7,8 @@ import { AlertCircle } from 'lucide-react';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import UnionInfoFooter from '@/app/_lib/widgets/union-info-footer/UnionInfoFooter';
+import UnionHomeHeader from '@/app/_lib/widgets/union/header/UnionHomeHeader';
+import UnionBreadcrumb from '@/app/_lib/widgets/union/breadcrumb/UnionBreadcrumb';
 
 interface UnionLayoutContentProps {
     children: React.ReactNode;
@@ -16,6 +18,9 @@ export default function UnionLayoutContent({ children }: UnionLayoutContentProps
     const { union, slug, isLoading: isUnionLoading } = useSlug();
     const { isLoading: isAuthLoading } = useAuth();
     const pathname = usePathname();
+
+    // 홈 페이지 여부 확인 (홈은 자체적으로 Header를 렌더링)
+    const isHomePage = pathname === `/${slug}`;
 
     // 로딩 중
     if (isUnionLoading || isAuthLoading) {
@@ -52,8 +57,15 @@ export default function UnionLayoutContent({ children }: UnionLayoutContentProps
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col">
+            {/* 홈 페이지가 아닐 때만 Header + Breadcrumb 렌더링 (홈은 자체적으로 렌더링) */}
+            {!isHomePage && (
+                <>
+                    <UnionHomeHeader />
+                    <UnionBreadcrumb />
+                </>
+            )}
             <div className="flex-1">{children}</div>
-            {/* 대시보드가 아닐 때만 Footer 표시 */}
+            {/* Footer 표시 */}
             {union && <UnionInfoFooter union={union} />}
         </div>
     );

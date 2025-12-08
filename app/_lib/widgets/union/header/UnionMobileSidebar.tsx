@@ -44,10 +44,10 @@ export default function UnionMobileSidebar({ isOpen, onClose }: UnionMobileSideb
         {
             id: 'news',
             label: '조합 소식',
-            href: `/${union?.slug || ''}`,
+            href: `/${union?.slug || ''}/news`,
             subItems: [
-                { label: '공지사항', href: `/${union?.slug || ''}/notice` },
-                { label: '질문 게시판', href: `/${union?.slug || ''}/qna` },
+                { label: '공지사항', href: `/${union?.slug || ''}/news/notice` },
+                { label: '질문 게시판', href: `/${union?.slug || ''}/news/qna` },
             ],
         },
         {
@@ -55,8 +55,8 @@ export default function UnionMobileSidebar({ isOpen, onClose }: UnionMobileSideb
             label: '소통방',
             href: `/${union?.slug || ''}/communication`,
             subItems: [
-                { label: '조합 정보 공유', href: `/${union?.slug || ''}/communication/share` },
-                { label: '자유 게시판', href: `/${union?.slug || ''}/communication/free` },
+                { label: '조합 정보 공유', href: `/${union?.slug || ''}/communication/union-info` },
+                { label: '자유 게시판', href: `/${union?.slug || ''}/communication/free-board` },
             ],
         },
         {
@@ -116,7 +116,13 @@ export default function UnionMobileSidebar({ isOpen, onClose }: UnionMobileSideb
 
                 {/* 사이드바 헤더 - 조합 정보 */}
                 <div className="p-4 border-b border-gray-200">
-                    <div className="flex items-center gap-3">
+                    <div
+                        onClick={() => {
+                            router.push(`/${union.slug}`);
+                            onClose();
+                        }}
+                        className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
+                    >
                         <div className="bg-[#4e8c6d] rounded-full size-[44px] flex items-center justify-center shrink-0">
                             {union.logo_url ? (
                                 <img

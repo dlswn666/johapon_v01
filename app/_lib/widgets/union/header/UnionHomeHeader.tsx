@@ -53,10 +53,10 @@ export default function UnionHomeHeader() {
         {
             id: 'news',
             label: '조합 소식',
-            href: `/${union?.slug || ''}`,
+            href: `/${union?.slug || ''}/news`,
             subItems: [
-                { label: '공지사항', href: `/${union?.slug || ''}/notice` },
-                { label: '질문 게시판', href: `/${union?.slug || ''}/qna` },
+                { label: '공지사항', href: `/${union?.slug || ''}/news/notice` },
+                { label: '질문 게시판', href: `/${union?.slug || ''}/news/qna` },
             ],
         },
         {
@@ -64,8 +64,8 @@ export default function UnionHomeHeader() {
             label: '소통방',
             href: `/${union?.slug || ''}/communication`,
             subItems: [
-                { label: '조합 정보 공유', href: `/${union?.slug || ''}/communication/share` },
-                { label: '자유 게시판', href: `/${union?.slug || ''}/communication/free` },
+                { label: '조합 정보 공유', href: `/${union?.slug || ''}/communication/union-info` },
+                { label: '자유 게시판', href: `/${union?.slug || ''}/communication/free-board` },
             ],
         },
         {
@@ -126,7 +126,10 @@ export default function UnionHomeHeader() {
                         </button>
 
                         {/* 중앙: 조합 로고 + 조합명 */}
-                        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-2">
+                        <div
+                            onClick={() => router.push(`/${union.slug}`)}
+                            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
+                        >
                             <div className="bg-[#4e8c6d] rounded-full size-[36px] flex items-center justify-center shrink-0">
                                 {union.logo_url ? (
                                     <img
@@ -150,7 +153,10 @@ export default function UnionHomeHeader() {
                 <div className="h-[90px] hidden md:block relative">
                     <div className="container mx-auto px-4 h-full flex items-center justify-between">
                         {/* 왼쪽: 로고 영역 */}
-                        <div className="flex items-center gap-[13.5px]">
+                        <div
+                            onClick={() => router.push(`/${union.slug}`)}
+                            className="flex items-center gap-[13.5px] cursor-pointer hover:opacity-80 transition-opacity"
+                        >
                             <div className="bg-[#4e8c6d] rounded-full size-[54px] flex items-center justify-center shrink-0">
                                 {union.logo_url ? (
                                     <img
