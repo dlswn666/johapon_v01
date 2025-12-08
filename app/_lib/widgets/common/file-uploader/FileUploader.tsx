@@ -13,7 +13,7 @@ interface FileUploaderProps {
      * 작성 중(New)일 때는 undefined 일 수 있음
      */
     targetId?: string;
-    targetType?: 'NOTICE' | 'UNION' | 'UNION_INFO';
+    targetType?: 'NOTICE' | 'UNION' | 'UNION_INFO' | 'FREE_BOARD';
 
     /**
      * 파일 업로드 경로에 사용될 Union Slug

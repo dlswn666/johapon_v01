@@ -13,6 +13,7 @@ export default function UnionNavigation() {
     const navItems = [
         { href: `/${slug}`, label: '홈' },
         { href: `/${slug}/notice`, label: '공지사항' },
+        { href: `/${slug}/free-board`, label: '자유 게시판' },
         { href: `/${slug}/dashboard`, label: '알림톡 관리' },
     ];
 

@@ -78,14 +78,14 @@ export const fileApi = {
      */
     confirmFiles: async ({
         files,
-        targetId, // noticeId or unionId or unionInfoId
-        targetType, // 'NOTICE' | 'UNION' | 'UNION_INFO'
+        targetId, // noticeId or unionId or unionInfoId or freeBoardId
+        targetType, // 'NOTICE' | 'UNION' | 'UNION_INFO' | 'FREE_BOARD'
         unionSlug,
         uploaderId,
     }: {
         files: { path: string; name: string; size: number; type: string }[];
         targetId: string;
-        targetType: 'NOTICE' | 'UNION' | 'UNION_INFO';
+        targetType: 'NOTICE' | 'UNION' | 'UNION_INFO' | 'FREE_BOARD';
         unionSlug: string;
         uploaderId?: string;
     }): Promise<void> => {
@@ -96,12 +96,15 @@ export const fileApi = {
 
             // Destination Path: unions/{unionSlug}/notices/{noticeId}/{currentFileName}
             // or unions/{unionSlug}/union_info/{unionInfoId}/{currentFileName}
+            // or unions/{unionSlug}/free-boards/{freeBoardId}/{currentFileName}
             // or unions/{unionSlug}/files/{currentFileName} (General files)
             let destPath = '';
             if (targetType === 'NOTICE') {
                 destPath = `unions/${unionSlug}/notices/${targetId}/${currentFileName}`;
             } else if (targetType === 'UNION_INFO') {
                 destPath = `unions/${unionSlug}/union_info/${targetId}/${currentFileName}`;
+            } else if (targetType === 'FREE_BOARD') {
+                destPath = `unions/${unionSlug}/free-boards/${targetId}/${currentFileName}`;
             } else {
                 destPath = `unions/${unionSlug}/files/${currentFileName}`;
             }

@@ -39,7 +39,7 @@ interface FileState {
     removeTempFile: (tempId: string) => void; // UI에서 취소 시
     confirmFiles: (params: {
         targetId: string;
-        targetType: 'NOTICE' | 'UNION' | 'UNION_INFO';
+        targetType: 'NOTICE' | 'UNION' | 'UNION_INFO' | 'FREE_BOARD';
         unionSlug: string;
         uploaderId?: string;
         unionId?: string;

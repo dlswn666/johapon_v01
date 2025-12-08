@@ -479,6 +479,54 @@ export type Database = {
                     }
                 ];
             };
+            free_boards: {
+                Row: {
+                    id: number;
+                    title: string;
+                    content: string;
+                    author_id: string;
+                    union_id: string | null;
+                    views: number;
+                    created_at: string;
+                    updated_at: string;
+                };
+                Insert: {
+                    id?: number;
+                    title: string;
+                    content: string;
+                    author_id: string;
+                    union_id?: string | null;
+                    views?: number;
+                    created_at?: string;
+                    updated_at?: string;
+                };
+                Update: {
+                    id?: number;
+                    title?: string;
+                    content?: string;
+                    author_id?: string;
+                    union_id?: string | null;
+                    views?: number;
+                    created_at?: string;
+                    updated_at?: string;
+                };
+                Relationships: [
+                    {
+                        foreignKeyName: 'free_boards_author_id_fkey';
+                        columns: ['author_id'];
+                        isOneToOne: false;
+                        referencedRelation: 'users';
+                        referencedColumns: ['id'];
+                    },
+                    {
+                        foreignKeyName: 'free_boards_union_id_fkey';
+                        columns: ['union_id'];
+                        isOneToOne: false;
+                        referencedRelation: 'unions';
+                        referencedColumns: ['id'];
+                    }
+                ];
+            };
         };
         Views: {
             [_ in never]: never;
@@ -494,6 +542,10 @@ export type Database = {
             };
             increment_union_info_views: {
                 Args: { p_union_info_id: number };
+                Returns: undefined;
+            };
+            increment_free_board_views: {
+                Args: { free_board_id: number };
                 Returns: undefined;
             };
         };
@@ -656,6 +708,11 @@ export type FileMeta = Database['public']['Tables']['files']['Row'];
 export type NewFileMeta = Database['public']['Tables']['files']['Insert'];
 export type UpdateFileMeta = Database['public']['Tables']['files']['Update'];
 
+export type FreeBoard = Database['public']['Tables']['free_boards']['Row'];
+export type NewFreeBoard = Database['public']['Tables']['free_boards']['Insert'];
+export type UpdateFreeBoard = Database['public']['Tables']['free_boards']['Update'];
+
 // 조합 타입
 export type UnionInfoWithFiles = UnionInfo & { files: FileMeta[] };
 export type UnionInfoWithAuthor = UnionInfo & { author: { id: string; name: string } | null };
+export type FreeBoardWithAuthor = FreeBoard & { author: { id: string; name: string } | null };
