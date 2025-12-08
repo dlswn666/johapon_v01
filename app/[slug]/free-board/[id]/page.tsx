@@ -5,7 +5,11 @@ import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import React, { use } from 'react';
 import { useRouter } from 'next/navigation';
-import { useFreeBoard, useIncrementFreeBoardViews, useDeleteFreeBoard } from '@/app/_lib/features/free-board/api/useFreeBoardHook';
+import {
+    useFreeBoard,
+    useIncrementFreeBoardViews,
+    useDeleteFreeBoard,
+} from '@/app/_lib/features/free-board/api/useFreeBoardHook';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import ConfirmModal from '@/app/_lib/widgets/modal/ConfirmModal';
@@ -29,7 +33,7 @@ const FreeBoardDetailPage = ({ params }: FreeBoardDetailPageProps) => {
     const freeBoardId = parseInt(id);
     const { isLoading: isUnionLoading } = useSlug();
     const { user } = useAuth();
-    
+
     const { data: freeBoard, isLoading, error } = useFreeBoard(freeBoardId);
     const { mutate: incrementViews } = useIncrementFreeBoardViews();
     const { mutate: deleteFreeBoard } = useDeleteFreeBoard();
@@ -91,22 +95,22 @@ const FreeBoardDetailPage = ({ params }: FreeBoardDetailPageProps) => {
                         <div className="flex gap-2">
                             {isMine && (
                                 <>
-                                    <Button 
-                                        className="bg-white border border-[#4E8C6D] text-[#4E8C6D] hover:bg-[#F5F5F5] cursor-pointer" 
+                                    <Button
+                                        className="bg-white border border-[#4E8C6D] text-[#4E8C6D] hover:bg-[#F5F5F5] cursor-pointer"
                                         onClick={() => router.push(`/${slug}/free-board/${id}/edit`)}
                                     >
                                         수정
                                     </Button>
-                                    <Button 
-                                        className="bg-[#D9534F] text-white hover:bg-[#D9534F]/90 cursor-pointer" 
+                                    <Button
+                                        className="bg-[#D9534F] text-white hover:bg-[#D9534F]/90 cursor-pointer"
                                         onClick={handleDelete}
                                     >
                                         삭제
                                     </Button>
                                 </>
                             )}
-                            <Button 
-                                className="bg-[#E6E6E6] text-[#5FA37C] hover:bg-[#E6E6E6]/80 cursor-pointer" 
+                            <Button
+                                className="bg-[#E6E6E6] text-[#5FA37C] hover:bg-[#E6E6E6]/80 cursor-pointer"
                                 onClick={() => router.push(`/${slug}/free-board`)}
                             >
                                 목록
@@ -120,9 +124,9 @@ const FreeBoardDetailPage = ({ params }: FreeBoardDetailPageProps) => {
                         <span>조회수: {freeBoard.views}</span>
                     </div>
 
-                    <div 
-                        className="min-h-[300px] whitespace-pre-wrap py-4 prose prose-lg max-w-none text-[18px] leading-relaxed text-gray-800" 
-                        dangerouslySetInnerHTML={{ __html: freeBoard.content }} 
+                    <div
+                        className="min-h-[300px] whitespace-pre-wrap py-4 prose prose-lg max-w-none text-[18px] leading-relaxed text-gray-800"
+                        dangerouslySetInnerHTML={{ __html: freeBoard.content }}
                     />
 
                     {/* 첨부파일 영역 */}
@@ -137,10 +141,7 @@ const FreeBoardDetailPage = ({ params }: FreeBoardDetailPageProps) => {
 
                     {/* 댓글 영역 */}
                     <div className="mt-8 bg-[#F5F5F5] rounded-[12px] p-6">
-                        <CommentSection
-                            entityType="free_board"
-                            entityId={freeBoardId}
-                        />
+                        <CommentSection entityType="free_board" entityId={freeBoardId} />
                     </div>
                 </div>
             </div>
@@ -152,4 +153,3 @@ const FreeBoardDetailPage = ({ params }: FreeBoardDetailPageProps) => {
 };
 
 export default FreeBoardDetailPage;
-
