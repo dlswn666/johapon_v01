@@ -78,14 +78,14 @@ export const fileApi = {
      */
     confirmFiles: async ({
         files,
-        targetId, // noticeId or unionId
-        targetType, // 'NOTICE' | 'UNION'
+        targetId, // noticeId or unionId or unionInfoId
+        targetType, // 'NOTICE' | 'UNION' | 'UNION_INFO'
         unionSlug,
         uploaderId,
     }: {
         files: { path: string; name: string; size: number; type: string }[];
         targetId: string;
-        targetType: 'NOTICE' | 'UNION'; // 현재는 Notice 위주지만 확장성 고려
+        targetType: 'NOTICE' | 'UNION' | 'UNION_INFO';
         unionSlug: string;
         uploaderId?: string;
     }): Promise<void> => {
@@ -95,10 +95,13 @@ export const fileApi = {
             const currentFileName = file.path.split('/').pop() || generateSafeFileName(file.name);
 
             // Destination Path: unions/{unionSlug}/notices/{noticeId}/{currentFileName}
+            // or unions/{unionSlug}/union_info/{unionInfoId}/{currentFileName}
             // or unions/{unionSlug}/files/{currentFileName} (General files)
             let destPath = '';
             if (targetType === 'NOTICE') {
                 destPath = `unions/${unionSlug}/notices/${targetId}/${currentFileName}`;
+            } else if (targetType === 'UNION_INFO') {
+                destPath = `unions/${unionSlug}/union_info/${targetId}/${currentFileName}`;
             } else {
                 destPath = `unions/${unionSlug}/files/${currentFileName}`;
             }
@@ -112,6 +115,8 @@ export const fileApi = {
             }
 
             // 2. DB Insert - 원본 파일명(한글 포함)을 name에 저장
+            // attachable_type 매핑: NOTICE -> notice, UNION_INFO -> union_info, UNION -> union
+            const attachableType = targetType.toLowerCase().replace('_', '_');
             const newFile: NewFileRecord = {
                 name: file.name, // 원본 파일명 (한글 포함)
                 path: destPath, // Storage 경로 (안전한 파일명 사용)
@@ -120,7 +125,8 @@ export const fileApi = {
                 bucket_id: BUCKET_NAME,
                 uploader_id: uploaderId || null,
                 union_id: null,
-                notice_id: targetType === 'NOTICE' ? Number(targetId) : null,
+                attachable_type: attachableType,
+                attachable_id: Number(targetId),
             };
 
             const { error: dbError } = await supabase.from('files').insert(newFile);
@@ -205,16 +211,15 @@ export const fileApi = {
     },
 
     /**
-     * 파일 목록 조회
-     * unionId 또는 noticeId로 조회
+     * 파일 목록 조회 (다형성 연관 관계)
+     * attachableType: 'notice' | 'union_info' | 'union' 등
+     * attachableId: 게시판 ID
      */
-    getFiles: async ({ unionId, noticeId }: { unionId?: string; noticeId?: string }): Promise<FileRecord[]> => {
+    getFiles: async ({ attachableType, attachableId }: { attachableType?: string; attachableId?: string | number }): Promise<FileRecord[]> => {
         let query = supabase.from('files').select('*').order('created_at', { ascending: false });
 
-        if (noticeId) {
-            query = query.eq('notice_id', noticeId);
-        } else if (unionId) {
-            query = query.eq('union_id', unionId);
+        if (attachableType && attachableId) {
+            query = query.eq('attachable_type', attachableType).eq('attachable_id', Number(attachableId));
         } else {
             return [];
         }
@@ -228,9 +233,9 @@ export const fileApi = {
         return data;
     },
 
-    // 기존 호환성 유지 (unionId 기준)
+    // 기존 호환성 유지 (unionId 기준) - deprecated
     getFilesByUnion: async (unionId: string): Promise<FileRecord[]> => {
-        return fileApi.getFiles({ unionId });
+        return fileApi.getFiles({ attachableType: 'union', attachableId: unionId });
     },
 
     /**

@@ -126,7 +126,8 @@ export type Database = {
                     created_at: string;
                     id: string;
                     name: string;
-                    notice_id: number | null;
+                    attachable_type: string | null;
+                    attachable_id: number | null;
                     path: string;
                     size: number;
                     type: string;
@@ -139,7 +140,8 @@ export type Database = {
                     created_at?: string;
                     id?: string;
                     name: string;
-                    notice_id?: number | null;
+                    attachable_type?: string | null;
+                    attachable_id?: number | null;
                     path: string;
                     size: number;
                     type: string;
@@ -152,7 +154,8 @@ export type Database = {
                     created_at?: string;
                     id?: string;
                     name?: string;
-                    notice_id?: number | null;
+                    attachable_type?: string | null;
+                    attachable_id?: number | null;
                     path?: string;
                     size?: number;
                     type?: string;
@@ -161,13 +164,6 @@ export type Database = {
                     uploader_id?: string | null;
                 };
                 Relationships: [
-                    {
-                        foreignKeyName: 'files_notice_id_fkey';
-                        columns: ['notice_id'];
-                        isOneToOne: false;
-                        referencedRelation: 'notices';
-                        referencedColumns: ['id'];
-                    },
                     {
                         foreignKeyName: 'files_union_id_fkey';
                         columns: ['union_id'];
@@ -429,6 +425,60 @@ export type Database = {
                     }
                 ];
             };
+            union_info: {
+                Row: {
+                    id: number;
+                    title: string;
+                    content: string;
+                    author_id: string;
+                    union_id: string | null;
+                    thumbnail_url: string | null;
+                    has_attachments: boolean;
+                    views: number;
+                    created_at: string;
+                    updated_at: string;
+                };
+                Insert: {
+                    id?: number;
+                    title: string;
+                    content: string;
+                    author_id: string;
+                    union_id?: string | null;
+                    thumbnail_url?: string | null;
+                    has_attachments?: boolean;
+                    views?: number;
+                    created_at?: string;
+                    updated_at?: string;
+                };
+                Update: {
+                    id?: number;
+                    title?: string;
+                    content?: string;
+                    author_id?: string;
+                    union_id?: string | null;
+                    thumbnail_url?: string | null;
+                    has_attachments?: boolean;
+                    views?: number;
+                    created_at?: string;
+                    updated_at?: string;
+                };
+                Relationships: [
+                    {
+                        foreignKeyName: 'union_info_author_id_fkey';
+                        columns: ['author_id'];
+                        isOneToOne: false;
+                        referencedRelation: 'users';
+                        referencedColumns: ['id'];
+                    },
+                    {
+                        foreignKeyName: 'union_info_union_id_fkey';
+                        columns: ['union_id'];
+                        isOneToOne: false;
+                        referencedRelation: 'unions';
+                        referencedColumns: ['id'];
+                    }
+                ];
+            };
         };
         Views: {
             [_ in never]: never;
@@ -440,6 +490,10 @@ export type Database = {
             };
             increment_question_views: {
                 Args: { question_id: number };
+                Returns: undefined;
+            };
+            increment_union_info_views: {
+                Args: { p_union_info_id: number };
                 Returns: undefined;
             };
         };
@@ -593,3 +647,15 @@ export type UpdateHeroSlide = Database['public']['Tables']['hero_slides']['Updat
 export type Question = Database['public']['Tables']['questions']['Row'];
 export type NewQuestion = Database['public']['Tables']['questions']['Insert'];
 export type UpdateQuestion = Database['public']['Tables']['questions']['Update'];
+
+export type UnionInfo = Database['public']['Tables']['union_info']['Row'];
+export type NewUnionInfo = Database['public']['Tables']['union_info']['Insert'];
+export type UpdateUnionInfo = Database['public']['Tables']['union_info']['Update'];
+
+export type FileMeta = Database['public']['Tables']['files']['Row'];
+export type NewFileMeta = Database['public']['Tables']['files']['Insert'];
+export type UpdateFileMeta = Database['public']['Tables']['files']['Update'];
+
+// 조합 타입
+export type UnionInfoWithFiles = UnionInfo & { files: FileMeta[] };
+export type UnionInfoWithAuthor = UnionInfo & { author: { id: string; name: string } | null };

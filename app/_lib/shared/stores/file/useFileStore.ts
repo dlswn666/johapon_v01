@@ -24,7 +24,7 @@ interface FileState {
     error: string | null;
 
     // Actions
-    fetchFiles: (params: { unionId?: string; noticeId?: string }) => Promise<void>;
+    fetchFiles: (params: { attachableType?: string; attachableId?: string | number }) => Promise<void>;
 
     // 구버전 호환 (삭제 예정)
     uploadFile: (params: { file: File; unionSlug: string; unionId: string; uploaderId?: string }) => Promise<void>;
@@ -39,7 +39,7 @@ interface FileState {
     removeTempFile: (tempId: string) => void; // UI에서 취소 시
     confirmFiles: (params: {
         targetId: string;
-        targetType: 'NOTICE' | 'UNION';
+        targetType: 'NOTICE' | 'UNION' | 'UNION_INFO';
         unionSlug: string;
         uploaderId?: string;
         unionId?: string;

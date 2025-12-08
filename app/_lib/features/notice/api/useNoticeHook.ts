@@ -30,10 +30,10 @@ export const useNotices = (enabled: boolean = true) => {
         queryFn: async () => {
             if (!union?.id) return [];
 
-            // 1. 공지사항 목록 조회
+            // 1. 공지사항 목록 조회 (다형성 패턴으로 인해 files 관계 쿼리 제거)
             const { data: noticesData, error: noticesError } = await supabase
                 .from('notices')
-                .select('*, files(count), alimtalk_logs(count)')
+                .select('*, alimtalk_logs(count)')
                 .eq('union_id', union.id)
                 .order('created_at', { ascending: false });
 
@@ -45,8 +45,30 @@ export const useNotices = (enabled: boolean = true) => {
                 return [];
             }
 
-            // 2. 해당 공지사항들의 댓글 수 조회
             const noticeIds = noticesData.map((n) => n.id);
+
+            // 2. 파일 수 조회 (다형성 연관 관계)
+            const { data: fileCounts, error: filesError } = await supabase
+                .from('files')
+                .select('attachable_id')
+                .eq('attachable_type', 'notice')
+                .in('attachable_id', noticeIds);
+
+            if (filesError) {
+                console.error('Failed to fetch file counts:', filesError);
+            }
+
+            // 파일 수 집계
+            const fileCountMap: Record<number, number> = {};
+            if (fileCounts) {
+                fileCounts.forEach((f) => {
+                    if (f.attachable_id) {
+                        fileCountMap[f.attachable_id] = (fileCountMap[f.attachable_id] || 0) + 1;
+                    }
+                });
+            }
+
+            // 3. 댓글 수 조회
             const { data: commentCounts, error: commentsError } = await supabase
                 .from('comments')
                 .select('entity_id')
@@ -55,10 +77,9 @@ export const useNotices = (enabled: boolean = true) => {
 
             if (commentsError) {
                 console.error('Failed to fetch comment counts:', commentsError);
-                // 댓글 수 조회 실패해도 공지사항 목록은 반환
             }
 
-            // 3. 댓글 수 집계 (entity_id별 count)
+            // 댓글 수 집계
             const commentCountMap: Record<number, number> = {};
             if (commentCounts) {
                 commentCounts.forEach((c) => {
@@ -66,16 +87,17 @@ export const useNotices = (enabled: boolean = true) => {
                 });
             }
 
-            // 4. 공지사항 데이터에 댓글 수 병합
-            const noticesWithCommentCount = noticesData.map((notice) => ({
+            // 4. 공지사항 데이터에 파일 수, 댓글 수 병합
+            const noticesWithCounts = noticesData.map((notice) => ({
                 ...notice,
+                file_count: fileCountMap[notice.id] || 0,
                 comment_count: commentCountMap[notice.id] || 0,
             }));
 
-            return noticesWithCommentCount as (Notice & { 
-                files: { count: number }[], 
-                alimtalk_logs: { count: number }[],
-                comment_count: number 
+            return noticesWithCounts as (Notice & {
+                alimtalk_logs: { count: number }[];
+                file_count: number;
+                comment_count: number;
             })[];
         },
         enabled: enabled && !!union?.id,
@@ -103,7 +125,7 @@ export const useNotice = (noticeId: number | undefined, enabled: boolean = true)
             if (!noticeId) throw new Error('Notice ID is required');
             if (!union?.id) throw new Error('Union ID is required');
 
-            const { data, error} = await supabase
+            const { data, error } = await supabase
                 .from('notices')
                 .select('*')
                 .eq('id', noticeId)
@@ -138,9 +160,9 @@ export const useNotice = (noticeId: number | undefined, enabled: boolean = true)
 
 // Helper: 에디터 이미지 업로드 및 본문 치환
 const processEditorImages = async (
-    content: string, 
-    editorImages: Record<string, File>, 
-    unionSlug: string, 
+    content: string,
+    editorImages: Record<string, File>,
+    unionSlug: string,
     noticeId: number
 ) => {
     let processedContent = content;
@@ -148,13 +170,13 @@ const processEditorImages = async (
     // editorImages keys are blob URLs
     for (const [blobUrl, file] of Object.entries(editorImages)) {
         if (processedContent.includes(blobUrl)) {
-             try {
+            try {
                 const { publicUrl } = await fileApi.uploadImage(file, unionSlug, String(noticeId));
                 // Blob URL을 Public URL로 치환 (모든 발생 부분)
                 processedContent = processedContent.replace(new RegExp(blobUrl, 'g'), publicUrl);
-             } catch (e) {
+            } catch (e) {
                 console.error(`Failed to upload editor image: ${file.name}`, e);
-             }
+            }
         }
     }
     return processedContent;
@@ -194,7 +216,7 @@ export const useAddNotice = () => {
                 .single();
 
             if (noticeError) throw noticeError;
-            
+
             // 2. 에디터 이미지 업로드 및 본문 URL 치환
             const finalContent = await processEditorImages(newNotice.content || '', editorImages, slug, noticeData.id);
 
@@ -204,7 +226,7 @@ export const useAddNotice = () => {
                     .from('notices')
                     .update({ content: finalContent })
                     .eq('id', noticeData.id);
-                
+
                 if (updateError) console.error('Failed to update content with images', updateError);
                 else noticeData.content = finalContent; // 로컬 데이터 갱신
             }
@@ -216,10 +238,6 @@ export const useAddNotice = () => {
                 unionSlug: slug,
                 uploaderId: newNotice.author_id,
             });
-
-
-
-
 
             // 5. 알림톡 발송 로직
             if (send_alimtalk) {
@@ -237,11 +255,11 @@ export const useAddNotice = () => {
         onSuccess: (data) => {
             addNotice(data);
             queryClient.invalidateQueries({ queryKey: ['notices', union?.id] });
-            
+
             // 상태 초기화
             clearTempFiles();
             clearEditorImages();
-            
+
             openAlertModal({
                 title: '등록 완료',
                 message: '공지사항이 성공적으로 등록되었습니다.',
@@ -249,7 +267,7 @@ export const useAddNotice = () => {
                 onOk: () => {
                     const path = getUnionPath(slug, '/notice');
                     router.push(path);
-                }
+                },
             });
         },
         onError: (error: Error) => {
@@ -280,7 +298,6 @@ export const useUpdateNotice = () => {
 
     return useMutation({
         mutationFn: async ({ id, updates }: { id: number; updates: UpdateNotice & { send_alimtalk?: boolean } }) => {
-            
             const { send_alimtalk, ...noticeUpdates } = updates;
             const finalUpdates = { ...noticeUpdates };
 
@@ -290,12 +307,7 @@ export const useUpdateNotice = () => {
             }
 
             // 2. 공지사항 업데이트
-            const { data, error } = await supabase
-                .from('notices')
-                .update(finalUpdates)
-                .eq('id', id)
-                .select()
-                .single();
+            const { data, error } = await supabase.from('notices').update(finalUpdates).eq('id', id).select().single();
 
             if (error) throw error;
 
@@ -328,7 +340,7 @@ export const useUpdateNotice = () => {
                 onOk: () => {
                     const path = getUnionPath(slug, `/notice/${data.id}`);
                     router.push(path);
-                }
+                },
             });
         },
         onError: (error: Error) => {
@@ -361,23 +373,20 @@ export const useDeleteNotice = () => {
             const folderPath = `unions/${slug}/notices/${noticeId}`;
             await fileApi.deleteFolder(folderPath);
 
-            // 2. DB 파일 레코드 삭제
-            // (CASCADE 설정이 없다면 명시적 삭제 필요)
+            // 2. DB 파일 레코드 삭제 (다형성 연관 관계)
             const { error: fileError } = await supabase
                 .from('files')
                 .delete()
-                .eq('notice_id', noticeId);
-            
+                .eq('attachable_type', 'notice')
+                .eq('attachable_id', noticeId);
+
             if (fileError) {
                 console.error('Failed to delete file records', fileError);
                 // 진행은 계속함 (게시물 삭제 시도)
             }
 
             // 3. 게시물 삭제
-            const { error } = await supabase
-                .from('notices')
-                .delete()
-                .eq('id', noticeId);
+            const { error } = await supabase.from('notices').delete().eq('id', noticeId);
 
             if (error) {
                 throw error;
@@ -387,13 +396,13 @@ export const useDeleteNotice = () => {
         },
         onSuccess: (noticeId) => {
             removeNotice(noticeId);
-            
+
             // 삭제된 공지사항의 상세 쿼리를 캐시에서 완전히 제거 (재조회 시도 방지)
             queryClient.removeQueries({ queryKey: ['notices', union?.id, noticeId] });
-            
+
             // 목록 캐시도 제거 (목록 페이지에서 마운트 시 자동 재조회됨)
             queryClient.removeQueries({ queryKey: ['notices', union?.id] });
-            
+
             // 목록으로 먼저 이동
             const path = getUnionPath(slug, '/notice');
             router.push(path);
@@ -437,7 +446,7 @@ export const useIncrementNoticeViews = () => {
         onSuccess: (noticeId) => {
             // 낙관적 업데이트 (Store)
             incrementViews(noticeId);
-            
+
             // 쿼리 캐시 무효화 (목록 페이지에 반영)
             queryClient.invalidateQueries({ queryKey: ['notices', union?.id] });
             queryClient.invalidateQueries({ queryKey: ['notices', union?.id, noticeId] });

@@ -89,7 +89,7 @@ const NoticePage = () => {
                                                     </span>
                                                 )}
                                                 <div className="flex items-center gap-1 shrink-0">
-                                                    {notice.files && notice.files[0]?.count > 0 && (
+                                                    {notice.file_count > 0 && (
                                                         <Paperclip className="h-4 w-4 text-gray-400" />
                                                     )}
                                                     {notice.is_popup && (

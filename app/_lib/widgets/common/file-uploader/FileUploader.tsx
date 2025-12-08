@@ -9,11 +9,11 @@ import { cn } from '@/lib/utils';
 
 interface FileUploaderProps {
     /**
-     * 영구 저장된 파일을 조회할 대상 ID (Notice ID or Union ID)
+     * 영구 저장된 파일을 조회할 대상 ID (Notice ID or Union ID or UnionInfo ID)
      * 작성 중(New)일 때는 undefined 일 수 있음
      */
     targetId?: string;
-    targetType?: 'NOTICE' | 'UNION';
+    targetType?: 'NOTICE' | 'UNION' | 'UNION_INFO';
 
     /**
      * 파일 업로드 경로에 사용될 Union Slug
@@ -61,21 +61,10 @@ export function FileUploader({
 
     // 초기 로드: targetId가 있으면 기존 파일 조회, 없으면(작성중) 임시 파일 초기화
     useEffect(() => {
-        // const checkUser = async () => {
-        //   const { data: { user } } = await supabase.auth.getUser();
-        //   setCurrentUser(user?.id || null);
-        // };
-        // checkUser();
-
         if (targetId) {
-            if (targetType === 'NOTICE') {
-                fetchFiles({ noticeId: targetId });
-            } else {
-                fetchFiles({ unionId: targetId });
-            }
-        } else {
-            // 작성 모드 진입 시 임시 파일 초기화 (필요시)
-            // clearTempFiles(); // 페이지 언마운트 시 하는게 나을 수 있음
+            // targetType을 attachableType으로 변환 (NOTICE -> notice, UNION_INFO -> union_info)
+            const attachableType = targetType.toLowerCase();
+            fetchFiles({ attachableType, attachableId: targetId });
         }
 
         return () => {
