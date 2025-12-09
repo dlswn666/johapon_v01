@@ -456,3 +456,36 @@ export const useIncrementNoticeViews = () => {
         },
     });
 };
+
+/**
+ * 팝업 공지사항 조회 (현재 기간 내)
+ * - is_popup이 true이고
+ * - start_date <= 현재 시간 <= end_date인 공지사항만 조회
+ */
+export const usePopupNotices = (unionId: string | undefined, enabled: boolean = true) => {
+    return useQuery({
+        queryKey: ['notices', unionId, 'popup'],
+        queryFn: async () => {
+            if (!unionId) return [];
+
+            const now = new Date().toISOString();
+
+            const { data, error } = await supabase
+                .from('notices')
+                .select('id, title, content')
+                .eq('union_id', unionId)
+                .eq('is_popup', true)
+                .lte('start_date', now)
+                .gte('end_date', now)
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                throw error;
+            }
+
+            return data as Pick<Notice, 'id' | 'title' | 'content'>[];
+        },
+        enabled: enabled && !!unionId,
+        staleTime: 1000 * 60 * 5, // 5분간 캐시 유지
+    });
+};

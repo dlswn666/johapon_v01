@@ -1,0 +1,2 @@
+export { NoticePopup } from './NoticePopup';
+

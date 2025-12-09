@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { ArrowLeft, Upload, X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -173,17 +174,18 @@ export default function UnionForm({ mode, initialData, onSubmit, isSubmitting = 
                         <Label>로고</Label>
                         <div className="flex items-center gap-4">
                             {logoPreview ? (
-                                <div className="relative">
-                                    <img
+                                <div className="relative w-24 h-24">
+                                    <Image
                                         src={logoPreview}
                                         alt="로고 미리보기"
-                                        className="w-24 h-24 rounded-lg object-cover border"
+                                        fill
+                                        className="rounded-lg object-cover border"
                                     />
                                     {!isReadOnly && (
                                         <button
                                             type="button"
                                             onClick={handleRemoveLogo}
-                                            className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+                                            className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 z-10"
                                         >
                                             <X className="w-4 h-4" />
                                         </button>

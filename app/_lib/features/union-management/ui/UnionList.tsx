@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { Search, Plus, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -134,11 +135,14 @@ export default function UnionList({
                                         <TableCell className="font-medium">
                                             <div className="flex items-center gap-2">
                                                 {union.logo_url && (
-                                                    <img
-                                                        src={union.logo_url}
-                                                        alt={union.name}
-                                                        className="w-8 h-8 rounded-full object-cover"
-                                                    />
+                                                    <div className="relative w-8 h-8">
+                                                        <Image
+                                                            src={union.logo_url}
+                                                            alt={union.name}
+                                                            fill
+                                                            className="rounded-full object-cover"
+                                                        />
+                                                    </div>
                                                 )}
                                                 {union.name}
                                             </div>

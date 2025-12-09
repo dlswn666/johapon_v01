@@ -2,6 +2,7 @@
 
 import React, { useRef, useEffect, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { Home, User, ChevronDown, LogOut, UserCircle, PanelLeft } from 'lucide-react';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
@@ -130,12 +131,13 @@ export default function UnionHomeHeader() {
                             onClick={() => router.push(`/${union.slug}`)}
                             className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
                         >
-                            <div className="bg-[#4e8c6d] rounded-full size-[36px] flex items-center justify-center shrink-0">
+                            <div className="bg-[#4e8c6d] rounded-full size-[36px] flex items-center justify-center shrink-0 relative overflow-hidden">
                                 {union.logo_url ? (
-                                    <img
+                                    <Image
                                         src={union.logo_url}
                                         alt={`${union.name} 로고`}
-                                        className="size-[36px] rounded-full object-cover"
+                                        fill
+                                        className="rounded-full object-cover"
                                     />
                                 ) : (
                                     <Home className="size-[18px] text-white" />
@@ -157,12 +159,13 @@ export default function UnionHomeHeader() {
                             onClick={() => router.push(`/${union.slug}`)}
                             className="flex items-center gap-[13.5px] cursor-pointer hover:opacity-80 transition-opacity"
                         >
-                            <div className="bg-[#4e8c6d] rounded-full size-[54px] flex items-center justify-center shrink-0">
+                            <div className="bg-[#4e8c6d] rounded-full size-[54px] flex items-center justify-center shrink-0 relative overflow-hidden">
                                 {union.logo_url ? (
-                                    <img
+                                    <Image
                                         src={union.logo_url}
                                         alt={`${union.name} 로고`}
-                                        className="size-[54px] rounded-full object-cover"
+                                        fill
+                                        className="rounded-full object-cover"
                                     />
                                 ) : (
                                     <Home className="size-[27px] text-white" />

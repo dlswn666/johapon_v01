@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { Search, Paperclip, Image as ImageIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { useUnionInfos } from '@/app/_lib/features/union-info/api/useUnionInfoHook';
 import useUnionInfoStore from '@/app/_lib/features/union-info/model/useUnionInfoStore';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
@@ -133,11 +134,12 @@ const UnionInfoListPage = () => {
                                             <TableCell className="text-center text-[16px] text-gray-600">{rowNumber}</TableCell>
                                             <TableCell className="text-center">
                                                 {post.thumbnail_url ? (
-                                                    <div className="w-[50px] h-[50px] mx-auto rounded-[8px] overflow-hidden bg-[#E6E6E6]">
-                                                        <img 
+                                                    <div className="w-[50px] h-[50px] mx-auto rounded-[8px] overflow-hidden bg-[#E6E6E6] relative">
+                                                        <Image 
                                                             src={post.thumbnail_url} 
                                                             alt="썸네일" 
-                                                            className="w-full h-full object-cover"
+                                                            fill
+                                                            className="object-cover"
                                                         />
                                                     </div>
                                                 ) : (

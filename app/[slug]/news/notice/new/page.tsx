@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -18,12 +18,15 @@ import { FileUploader } from '@/app/_lib/widgets/common/file-uploader/FileUpload
 import { TextEditor } from '@/app/_lib/widgets/common/text-editor';
 import useNoticeStore from '@/app/_lib/features/notice/model/useNoticeStore';
 import { useFileStore } from '@/app/_lib/shared/stores/file/useFileStore';
+import { StartEndPicker } from '@/app/_lib/widgets/common/date-picker';
 
 const formSchema = z.object({
     title: z.string().min(1, '제목을 입력해주세요.'),
     content: z.string().min(1, '내용을 입력해주세요.'),
     is_popup: z.boolean(),
     send_alimtalk: z.boolean().default(false),
+    start_date: z.date().nullable().optional(),
+    end_date: z.date().nullable().optional(),
 });
 
 
@@ -56,14 +59,26 @@ const NewNoticePage = () => {
             content: '',
             is_popup: false,
             send_alimtalk: false,
+            start_date: null,
+            end_date: null,
         },
     });
+
+    // 팝업 체크 상태 감지
+    const isPopup = useWatch({ control: form.control, name: 'is_popup' });
+    const startDate = useWatch({ control: form.control, name: 'start_date' });
+    const endDate = useWatch({ control: form.control, name: 'end_date' });
 
     function onSubmit(values: z.infer<typeof formSchema>) {
         if (!union) return;
 
         addNotice({
-            ...values,
+            title: values.title,
+            content: values.content,
+            is_popup: values.is_popup,
+            send_alimtalk: values.send_alimtalk,
+            start_date: values.start_date ? values.start_date.toISOString() : null,
+            end_date: values.end_date ? values.end_date.toISOString() : null,
             author_id: 'systemAdmin', // TODO: 실제 로그인 유저 ID로 변경
             views: 0,
         });
@@ -121,6 +136,26 @@ const NewNoticePage = () => {
                                         </FormItem>
                                     )}
                                 />
+                            </div>
+
+                            {/* 팝업 기간 선택 - 애니메이션 적용 */}
+                            <div
+                                className={cn(
+                                    'overflow-hidden transition-all duration-300 ease-out',
+                                    isPopup
+                                        ? 'max-h-[200px] opacity-100'
+                                        : 'max-h-0 opacity-0'
+                                )}
+                            >
+                                <div className="rounded-[12px] border border-[#CCCCCC] bg-[#F9F9F9] p-6">
+                                    <h4 className="text-[14px] font-bold text-[#5FA37C] mb-4">팝업 표시 기간</h4>
+                                    <StartEndPicker
+                                        startDate={startDate ?? undefined}
+                                        endDate={endDate ?? undefined}
+                                        onStartDateChange={(date) => form.setValue('start_date', date ?? null)}
+                                        onEndDateChange={(date) => form.setValue('end_date', date ?? null)}
+                                    />
+                                </div>
                             </div>
 
                             {/* 파일 업로드 위젯 추가 */}

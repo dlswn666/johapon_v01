@@ -4,13 +4,16 @@ import React from 'react';
 import { Loader2 } from 'lucide-react';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import { useHeroSlides } from '@/app/_lib/features/hero-slides/api/useHeroSlidesHook';
+import { usePopupNotices } from '@/app/_lib/features/notice/api/useNoticeHook';
 import { HeroSlider } from '@/app/_lib/widgets/hero-slider';
 import { UnionNewsSection } from '@/app/_lib/widgets/union-news-section';
+import { NoticePopup } from '@/app/_lib/widgets/notice-popup';
 import UnionHomeHeader from '@/app/_lib/widgets/union/header/UnionHomeHeader';
 
 export default function UnionHomePage() {
     const { union, isLoading: isUnionLoading } = useSlug();
     const { data: heroSlides, isLoading: isSlidesLoading } = useHeroSlides(union?.id);
+    const { data: popupNotices } = usePopupNotices(union?.id);
 
     if (isUnionLoading) {
         return (
@@ -35,31 +38,43 @@ export default function UnionHomePage() {
     }
 
     return (
-        <div className="min-h-screen flex flex-col bg-gray-50">
-            {/* Header */}
-            <UnionHomeHeader />
+        <>
+            <div className="min-h-screen flex flex-col bg-gray-50">
+                {/* Header */}
+                <UnionHomeHeader />
 
-            {/* Hero Section - 슬라이드 */}
-            <section className="relative">
-                {isSlidesLoading ? (
-                    <div className="w-full h-[400px] md:h-[500px] lg:h-[600px] bg-gray-200 flex items-center justify-center">
-                        <Loader2 className="h-10 w-10 animate-spin text-gray-400" />
-                    </div>
-                ) : (
-                    <HeroSlider
-                        slides={heroSlides || []}
-                        autoPlayInterval={4000}
-                        title={union.name}
-                        description="우리 조합의 모든 정보, 이제는 한 곳에서 간편하게 확인하세요."
-                    />
-                )}
-            </section>
+                {/* Hero Section - 슬라이드 */}
+                <section className="relative">
+                    {isSlidesLoading ? (
+                        <div className="w-full h-[400px] md:h-[500px] lg:h-[600px] bg-gray-200 flex items-center justify-center">
+                            <Loader2 className="h-10 w-10 animate-spin text-gray-400" />
+                        </div>
+                    ) : (
+                        <HeroSlider
+                            slides={heroSlides || []}
+                            autoPlayInterval={4000}
+                            title={union.name}
+                            description="우리 조합의 모든 정보, 이제는 한 곳에서 간편하게 확인하세요."
+                        />
+                    )}
+                </section>
 
-            {/* 조합 소식 섹션 */}
-            {union.id && <UnionNewsSection unionId={union.id} />}
+                {/* 조합 소식 섹션 */}
+                {union.id && <UnionNewsSection unionId={union.id} />}
 
-            {/* Spacer */}
-            <div className="flex-grow" />
-        </div>
+                {/* Spacer */}
+                <div className="flex-grow" />
+            </div>
+
+            {/* 팝업 공지사항 */}
+            {popupNotices?.map((notice, index) => (
+                <NoticePopup
+                    key={notice.id}
+                    notice={notice}
+                    unionName={union.name}
+                    offsetIndex={index}
+                />
+            ))}
+        </>
     );
 }

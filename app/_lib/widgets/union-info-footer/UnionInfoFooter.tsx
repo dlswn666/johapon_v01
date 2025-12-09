@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
 import { Union } from '@/app/_lib/shared/type/database.types';
 import { cn } from '@/lib/utils';
 
@@ -26,11 +27,14 @@ export function UnionInfoFooter({ union, className }: UnionInfoFooterProps) {
                     <div className="flex flex-col gap-[18px]">
                         <div className="flex items-center gap-3">
                             {union.logo_url && (
-                                <img
-                                    src={union.logo_url}
-                                    alt={`${union.name} 로고`}
-                                    className="h-8 w-auto object-contain brightness-0 invert"
-                                />
+                                <div className="relative h-8 w-8">
+                                    <Image
+                                        src={union.logo_url}
+                                        alt={`${union.name} 로고`}
+                                        fill
+                                        className="object-contain brightness-0 invert"
+                                    />
+                                </div>
                             )}
                             <h3 className="text-[22.5px] font-bold leading-[33.75px]">{union.name}</h3>
                         </div>

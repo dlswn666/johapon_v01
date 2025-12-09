@@ -2,7 +2,7 @@
 
 import React, { useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
@@ -17,14 +17,16 @@ import { TextEditor } from '@/app/_lib/widgets/common/text-editor';
 import { FileUploader } from '@/app/_lib/widgets/common/file-uploader/FileUploader';
 import useNoticeStore from '@/app/_lib/features/notice/model/useNoticeStore';
 import { useFileStore } from '@/app/_lib/shared/stores/file/useFileStore';
+import { StartEndPicker } from '@/app/_lib/widgets/common/date-picker';
 
 const formSchema = z.object({
     title: z.string().min(1, '제목을 입력해주세요.'),
     content: z.string().min(1, '내용을 입력해주세요.'),
     is_popup: z.boolean(),
     send_alimtalk: z.boolean().default(false),
+    start_date: z.date().nullable().optional(),
+    end_date: z.date().nullable().optional(),
 });
-
 
 interface EditNoticePageProps {
     params: Promise<{
@@ -41,7 +43,7 @@ const EditNoticePage = ({ params }: EditNoticePageProps) => {
 
     const { data: notice, isLoading } = useNotice(noticeId);
     const { mutate: updateNotice, isPending } = useUpdateNotice();
-    
+
     // Store cleanup actions
     const clearEditorImages = useNoticeStore((state) => state.clearEditorImages);
     const clearTempFiles = useFileStore((state) => state.clearTempFiles);
@@ -66,8 +68,15 @@ const EditNoticePage = ({ params }: EditNoticePageProps) => {
             content: '',
             is_popup: false,
             send_alimtalk: false,
+            start_date: null,
+            end_date: null,
         },
     });
+
+    // 팝업 체크 상태 감지
+    const isPopup = useWatch({ control: form.control, name: 'is_popup' });
+    const startDate = useWatch({ control: form.control, name: 'start_date' });
+    const endDate = useWatch({ control: form.control, name: 'end_date' });
 
     useEffect(() => {
         if (notice) {
@@ -76,6 +85,8 @@ const EditNoticePage = ({ params }: EditNoticePageProps) => {
                 content: notice.content,
                 is_popup: notice.is_popup,
                 send_alimtalk: false, // 수정 시 기본값은 false
+                start_date: notice.start_date ? new Date(notice.start_date) : null,
+                end_date: notice.end_date ? new Date(notice.end_date) : null,
             });
         }
     }, [notice, form]);
@@ -83,7 +94,14 @@ const EditNoticePage = ({ params }: EditNoticePageProps) => {
     function onSubmit(values: z.infer<typeof formSchema>) {
         updateNotice({
             id: noticeId,
-            updates: values,
+            updates: {
+                title: values.title,
+                content: values.content,
+                is_popup: values.is_popup,
+                send_alimtalk: values.send_alimtalk,
+                start_date: values.start_date ? values.start_date.toISOString() : null,
+                end_date: values.end_date ? values.end_date.toISOString() : null,
+            },
         });
     }
 
@@ -122,7 +140,11 @@ const EditNoticePage = ({ params }: EditNoticePageProps) => {
                                     <FormItem>
                                         <FormLabel className="text-[16px] font-bold text-[#5FA37C]">제목</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="제목을 입력해주세요" {...field} className="h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]" />
+                                            <Input
+                                                placeholder="제목을 입력해주세요"
+                                                {...field}
+                                                className="h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]"
+                                            />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -136,10 +158,16 @@ const EditNoticePage = ({ params }: EditNoticePageProps) => {
                                     render={({ field }) => (
                                         <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-[12px] border border-[#CCCCCC] bg-[#F5F5F5] p-6 flex-1 cursor-pointer">
                                             <FormControl>
-                                                <Checkbox checked={field.value} onCheckedChange={field.onChange} className="data-[state=checked]:bg-[#4E8C6D] border-[#AFAFAF] cursor-pointer" />
+                                                <Checkbox
+                                                    checked={field.value}
+                                                    onCheckedChange={field.onChange}
+                                                    className="data-[state=checked]:bg-[#4E8C6D] border-[#AFAFAF] cursor-pointer"
+                                                />
                                             </FormControl>
                                             <div className="space-y-1 leading-none">
-                                                <FormLabel className="text-[16px] text-gray-700 font-medium cursor-pointer">팝업으로 표시</FormLabel>
+                                                <FormLabel className="text-[16px] text-gray-700 font-medium cursor-pointer">
+                                                    팝업으로 표시
+                                                </FormLabel>
                                             </div>
                                         </FormItem>
                                     )}
@@ -151,14 +179,38 @@ const EditNoticePage = ({ params }: EditNoticePageProps) => {
                                     render={({ field }) => (
                                         <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-[12px] border border-[#CCCCCC] bg-[#F5F5F5] p-6 flex-1 cursor-pointer">
                                             <FormControl>
-                                                <Checkbox checked={field.value} onCheckedChange={field.onChange} className="data-[state=checked]:bg-[#4E8C6D] border-[#AFAFAF] cursor-pointer" />
+                                                <Checkbox
+                                                    checked={field.value}
+                                                    onCheckedChange={field.onChange}
+                                                    className="data-[state=checked]:bg-[#4E8C6D] border-[#AFAFAF] cursor-pointer"
+                                                />
                                             </FormControl>
                                             <div className="space-y-1 leading-none">
-                                                <FormLabel className="text-[16px] text-gray-700 font-medium cursor-pointer">알림톡 발송</FormLabel>
+                                                <FormLabel className="text-[16px] text-gray-700 font-medium cursor-pointer">
+                                                    알림톡 발송
+                                                </FormLabel>
                                             </div>
                                         </FormItem>
                                     )}
                                 />
+                            </div>
+
+                            {/* 팝업 기간 선택 - 애니메이션 적용 */}
+                            <div
+                                className={cn(
+                                    'overflow-hidden transition-all duration-300 ease-out',
+                                    isPopup ? 'max-h-[200px] opacity-100' : 'max-h-0 opacity-0'
+                                )}
+                            >
+                                <div className="rounded-[12px] border border-[#CCCCCC] bg-[#F9F9F9] p-6">
+                                    <h4 className="text-[14px] font-bold text-[#5FA37C] mb-4">팝업 표시 기간</h4>
+                                    <StartEndPicker
+                                        startDate={startDate ?? undefined}
+                                        endDate={endDate ?? undefined}
+                                        onStartDateChange={(date) => form.setValue('start_date', date ?? null)}
+                                        onEndDateChange={(date) => form.setValue('end_date', date ?? null)}
+                                    />
+                                </div>
                             </div>
 
                             {/* 파일 업로드 위젯 추가 */}
@@ -188,16 +240,16 @@ const EditNoticePage = ({ params }: EditNoticePageProps) => {
                             />
 
                             <div className="flex justify-end gap-3 pt-6 border-t border-[#CCCCCC]">
-                                <Button 
-                                    type="button" 
-                                    variant="outline" 
+                                <Button
+                                    type="button"
+                                    variant="outline"
                                     onClick={() => router.back()}
                                     className="h-[48px] px-8 text-[16px] border-[#CCCCCC] text-gray-600 hover:bg-gray-50 cursor-pointer"
                                 >
                                     취소
                                 </Button>
-                                <Button 
-                                    type="submit" 
+                                <Button
+                                    type="submit"
                                     disabled={isPending}
                                     className="h-[48px] px-8 text-[16px] bg-[#4E8C6D] hover:bg-[#5FA37C] text-white cursor-pointer"
                                 >
@@ -215,4 +267,3 @@ const EditNoticePage = ({ params }: EditNoticePageProps) => {
 };
 
 export default EditNoticePage;
-

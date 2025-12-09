@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { supabase } from '@/app/_lib/shared/supabase/client';
 import { Database } from '@/app/_lib/shared/type/database.types';
 import {
@@ -88,7 +89,7 @@ export default function MarketingPage() {
             <section className="relative h-[600px] overflow-hidden">
                 {/* Background Image */}
                 <div className="absolute inset-0">
-                    <img src={heroBackgroundImage} alt="Hero Background" className="w-full h-full object-cover" />
+                    <Image src={heroBackgroundImage} alt="Hero Background" fill className="object-cover" priority />
                     {/* Gradient Overlay */}
                     <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-black/30" />
                 </div>

@@ -186,6 +186,7 @@ export type Database = {
                     content: string;
                     created_at: string;
                     end_date: string | null;
+                    start_date: string | null;
                     id: number;
                     is_popup: boolean;
                     title: string;
@@ -198,6 +199,7 @@ export type Database = {
                     content: string;
                     created_at?: string;
                     end_date?: string | null;
+                    start_date?: string | null;
                     id?: number;
                     is_popup?: boolean;
                     title: string;
@@ -210,6 +212,7 @@ export type Database = {
                     content?: string;
                     created_at?: string;
                     end_date?: string | null;
+                    start_date?: string | null;
                     id?: number;
                     is_popup?: boolean;
                     title?: string;
