@@ -73,7 +73,9 @@ export default function UnionHomeHeader() {
             id: 'admin',
             label: '관리자',
             href: `/${union?.slug || ''}/admin`,
-            subItems: [],
+            subItems: [
+                { label: '슬라이드 관리', href: `/${union?.slug || ''}/admin/slides` },
+            ],
         },
     ];
 
@@ -187,10 +189,12 @@ export default function UnionHomeHeader() {
                                             <>
                                                 <NavigationMenuTrigger
                                                     className={cn(
-                                                        'h-[54px] px-[27px] py-[13.5px] rounded-[13.5px] text-[18px] leading-[27px] text-neutral-950 font-normal bg-transparent',
+                                                        'cursor-pointer h-[54px] px-[27px] py-[13.5px] rounded-[13.5px] text-[18px] leading-[27px] text-neutral-950 font-normal bg-transparent',
                                                         'hover:bg-gray-50 focus:bg-gray-50 data-[state=open]:bg-gray-100',
                                                         isActiveRoute(item.href) && 'bg-gray-100'
                                                     )}
+                                                    onClick={(e) => e.preventDefault()}
+                                                    onPointerDown={(e) => e.preventDefault()}
                                                 >
                                                     {item.label}
                                                 </NavigationMenuTrigger>

@@ -22,6 +22,7 @@ interface StartEndPickerProps {
  * 시작일/종료일 선택 위젯
  * - 시작일은 종료일 이후가 될 수 없음
  * - 종료일은 시작일 이전이 될 수 없음
+ * - 모바일/데스크톱 모두 좌우 배치 유지
  */
 export function StartEndPicker({
     startDate,
@@ -51,11 +52,17 @@ export function StartEndPicker({
         setEndOpen(false);
     };
 
+    // 날짜 포맷 함수 - 모바일에서는 간결하게 표시
+    const formatDate = (date: Date) => {
+        // 화면 너비에 따라 포맷 변경 (SSR 호환을 위해 CSS로 처리)
+        return format(date, 'yy.MM.dd', { locale: ko });
+    };
+
     return (
-        <div className={cn('flex flex-col sm:flex-row gap-4', className)}>
+        <div className={cn('flex flex-row items-end gap-2 sm:gap-4', className)}>
             {/* 시작일 선택 */}
-            <div className="flex-1">
-                <label className="block text-[14px] font-medium text-gray-700 mb-2">
+            <div className="flex-1 min-w-0">
+                <label className="block text-[12px] sm:text-[14px] font-medium text-gray-700 mb-1 sm:mb-2">
                     시작일
                 </label>
                 <Popover open={startOpen} onOpenChange={setStartOpen}>
@@ -64,16 +71,14 @@ export function StartEndPicker({
                             variant="outline"
                             disabled={disabled}
                             className={cn(
-                                'w-full h-[48px] justify-start text-left font-normal rounded-[12px] border-[#CCCCCC]',
+                                'w-full h-[40px] sm:h-[48px] justify-start text-left font-normal rounded-[8px] sm:rounded-[12px] border-[#CCCCCC] px-2 sm:px-4',
                                 !startDate && 'text-muted-foreground'
                             )}
                         >
-                            <CalendarIcon className="mr-2 h-4 w-4 text-[#5FA37C]" />
-                            {startDate ? (
-                                format(startDate, 'yyyy년 MM월 dd일', { locale: ko })
-                            ) : (
-                                <span>시작일 선택</span>
-                            )}
+                            <CalendarIcon className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4 text-[#5FA37C] shrink-0" />
+                            <span className="text-[12px] sm:text-[14px] truncate">
+                                {startDate ? formatDate(startDate) : '시작일'}
+                            </span>
                         </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
@@ -93,14 +98,14 @@ export function StartEndPicker({
                 </Popover>
             </div>
 
-            {/* 구분선 */}
-            <div className="hidden sm:flex items-end pb-3">
-                <span className="text-gray-400">~</span>
+            {/* 구분선 - 모바일/데스크톱 모두 표시 */}
+            <div className="flex items-center pb-1 sm:pb-3">
+                <span className="text-gray-400 text-[12px] sm:text-[14px]">~</span>
             </div>
 
             {/* 종료일 선택 */}
-            <div className="flex-1">
-                <label className="block text-[14px] font-medium text-gray-700 mb-2">
+            <div className="flex-1 min-w-0">
+                <label className="block text-[12px] sm:text-[14px] font-medium text-gray-700 mb-1 sm:mb-2">
                     종료일
                 </label>
                 <Popover open={endOpen} onOpenChange={setEndOpen}>
@@ -109,19 +114,17 @@ export function StartEndPicker({
                             variant="outline"
                             disabled={disabled}
                             className={cn(
-                                'w-full h-[48px] justify-start text-left font-normal rounded-[12px] border-[#CCCCCC]',
+                                'w-full h-[40px] sm:h-[48px] justify-start text-left font-normal rounded-[8px] sm:rounded-[12px] border-[#CCCCCC] px-2 sm:px-4',
                                 !endDate && 'text-muted-foreground'
                             )}
                         >
-                            <CalendarIcon className="mr-2 h-4 w-4 text-[#5FA37C]" />
-                            {endDate ? (
-                                format(endDate, 'yyyy년 MM월 dd일', { locale: ko })
-                            ) : (
-                                <span>종료일 선택</span>
-                            )}
+                            <CalendarIcon className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4 text-[#5FA37C] shrink-0" />
+                            <span className="text-[12px] sm:text-[14px] truncate">
+                                {endDate ? formatDate(endDate) : '종료일'}
+                            </span>
                         </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
+                    <PopoverContent className="w-auto p-0" align="end">
                         <Calendar
                             mode="single"
                             selected={endDate}

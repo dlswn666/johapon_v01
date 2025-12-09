@@ -64,7 +64,9 @@ export default function UnionMobileSidebar({ isOpen, onClose }: UnionMobileSideb
             id: 'admin',
             label: '관리자',
             href: `/${union?.slug || ''}/admin`,
-            subItems: [],
+            subItems: [
+                { label: '슬라이드 관리', href: `/${union?.slug || ''}/admin/slides` },
+            ],
         },
     ];
 
