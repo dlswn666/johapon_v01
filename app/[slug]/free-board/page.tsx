@@ -246,3 +246,4 @@ const FreeBoardPage = () => {
 export default FreeBoardPage;
 
 
+

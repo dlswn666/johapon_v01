@@ -1,30 +1,38 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
+import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import { useHeroSlides } from '@/app/_lib/features/hero-slides/api/useHeroSlidesHook';
 import { usePopupNotices } from '@/app/_lib/features/notice/api/useNoticeHook';
 import { HeroSlider } from '@/app/_lib/widgets/hero-slider';
 import { UnionNewsSection } from '@/app/_lib/widgets/union-news-section';
 import { NoticePopup } from '@/app/_lib/widgets/notice-popup';
+import { LandingPage } from '@/app/_lib/widgets/landing';
 
 export default function UnionHomePage() {
     const { union, isLoading: isUnionLoading } = useSlug();
+    const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
     const { data: heroSlides, isLoading: isSlidesLoading } = useHeroSlides(union?.id);
     const { data: popupNotices } = usePopupNotices(union?.id);
+    
+    // 로그인 성공 후 홈페이지로 전환하기 위한 상태
+    const [forceShowHome, setForceShowHome] = useState(false);
 
-    if (isUnionLoading) {
+    // 로딩 중
+    if (isUnionLoading || isAuthLoading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-50">
                 <div className="flex flex-col items-center gap-3">
-                    <Loader2 className="h-10 w-10 animate-spin text-blue-600" />
+                    <Loader2 className="h-10 w-10 animate-spin text-[#4E8C6D]" />
                     <p className="text-lg text-gray-600">로딩 중...</p>
                 </div>
             </div>
         );
     }
 
+    // 조합 정보 없음
     if (!union) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -36,6 +44,17 @@ export default function UnionHomePage() {
         );
     }
 
+    // 비로그인 상태: 랜딩 페이지 표시
+    if (!isAuthenticated && !forceShowHome) {
+        return (
+            <LandingPage
+                unionName={union.name}
+                onLoginSuccess={() => setForceShowHome(true)}
+            />
+        );
+    }
+
+    // 로그인 상태 또는 테스트 로그인 후: 기존 홈페이지 표시
     return (
         <>
             {/* Hero Section - 슬라이드 */}

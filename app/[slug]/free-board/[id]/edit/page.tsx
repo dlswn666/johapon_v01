@@ -195,3 +195,4 @@ const EditFreeBoardPage = ({ params }: EditFreeBoardPageProps) => {
 export default EditFreeBoardPage;
 
 
+

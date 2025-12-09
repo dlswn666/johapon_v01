@@ -68,6 +68,27 @@
   --leading-body-lg: 1.7;
   --leading-body-md: 1.5;
   --leading-body-sm: 1.5;
+  
+  /* 마케팅 페이지 타이포그래피 - 모바일 기본값 */
+  --text-marketing-hero: 28px;
+  --text-marketing-subtitle: 17px;
+  --text-marketing-section-title: 26px;
+  --text-marketing-section-subtitle: 17px;
+  --text-marketing-card-title: 18px;
+  --text-marketing-card-body: 16px;
+  --text-marketing-button: 16px;
+  --text-marketing-nav: 15px;
+  --text-marketing-footer-title: 18px;
+  --text-marketing-footer-body: 15px;
+  --text-marketing-faq-question: 17px;
+  --text-marketing-faq-answer: 16px;
+  
+  /* 마케팅 line-height - 모바일 */
+  --leading-marketing-hero: 1.3;
+  --leading-marketing-subtitle: 1.5;
+  --leading-marketing-section-title: 1.3;
+  --leading-marketing-card-title: 1.4;
+  --leading-marketing-card-body: 1.6;
   --foreground: #333333;
   --card: #ffffff;
   --card-foreground: #333333;
@@ -156,6 +177,27 @@
     --leading-body-lg: 1.7;
     --leading-body-md: 1.5;
     --leading-body-sm: 1.5;
+    
+    /* 마케팅 페이지 타이포그래피 - 데스크톱 */
+    --text-marketing-hero: 60px;
+    --text-marketing-subtitle: 24px;
+    --text-marketing-section-title: 48px;
+    --text-marketing-section-subtitle: 24px;
+    --text-marketing-card-title: 24px;
+    --text-marketing-card-body: 18px;
+    --text-marketing-button: 18px;
+    --text-marketing-nav: 16px;
+    --text-marketing-footer-title: 22.5px;
+    --text-marketing-footer-body: 18px;
+    --text-marketing-faq-question: 20px;
+    --text-marketing-faq-answer: 18px;
+    
+    /* 마케팅 line-height - 데스크톱 */
+    --leading-marketing-hero: 1.2;
+    --leading-marketing-subtitle: 1.5;
+    --leading-marketing-section-title: 1.2;
+    --leading-marketing-card-title: 1.4;
+    --leading-marketing-card-body: 1.6;
   }
 }
 
