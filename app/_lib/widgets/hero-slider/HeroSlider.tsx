@@ -20,13 +20,7 @@ interface HeroSliderProps {
  * - 이미지가 없으면 "점검중..." 표시
  * - link_url이 있으면 클릭 가능 (cursor: pointer)
  */
-export function HeroSlider({
-    slides,
-    autoPlayInterval = 4000,
-    className,
-    title,
-    description,
-}: HeroSliderProps) {
+export function HeroSlider({ slides, autoPlayInterval = 4000, className, title, description }: HeroSliderProps) {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isTransitioning, setIsTransitioning] = useState(false);
     const sliderRef = useRef<HTMLDivElement>(null);
@@ -182,41 +176,9 @@ export function HeroSlider({
                             draggable={false}
                             priority={index === 0}
                         />
-                        {/* 어두운 오버레이 */}
-                        <div className="absolute inset-0 bg-[rgba(0,0,0,0.4)]" />
                     </div>
                 ))}
             </div>
-
-            {/* 중앙 텍스트 오버레이 */}
-            {(title || description) && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center z-10 pointer-events-none px-4 md:px-6">
-                    <div className="text-center space-y-3 md:space-y-6 max-w-6xl">
-                        {title && (
-                            <h1 
-                                className="font-bold text-white tracking-tight md:tracking-[-2.025px]"
-                                style={{ 
-                                    fontSize: 'var(--text-hero-title)', 
-                                    lineHeight: 'var(--leading-hero-title)' 
-                                }}
-                            >
-                                {title}
-                            </h1>
-                        )}
-                        {description && (
-                            <p 
-                                className="font-normal text-[rgba(255,255,255,0.9)]"
-                                style={{ 
-                                    fontSize: 'var(--text-hero-description)', 
-                                    lineHeight: 'var(--leading-hero-description)' 
-                                }}
-                            >
-                                {description}
-                            </p>
-                        )}
-                    </div>
-                </div>
-            )}
 
             {/* 이전/다음 버튼 (슬라이드가 2개 이상일 때만) */}
             {hasMultipleSlides && (
@@ -252,7 +214,9 @@ export function HeroSlider({
                                 onClick={() => goToSlide(index)}
                                 className={cn(
                                     'rounded-full transition-all duration-300',
-                                    isActive ? 'bg-white w-[13.5px] h-[13.5px]' : 'bg-[rgba(255,255,255,0.5)] w-[13.5px] h-[13.5px] hover:bg-[rgba(255,255,255,0.7)]'
+                                    isActive
+                                        ? 'bg-white w-[13.5px] h-[13.5px]'
+                                        : 'bg-[rgba(255,255,255,0.5)] w-[13.5px] h-[13.5px] hover:bg-[rgba(255,255,255,0.7)]'
                                 )}
                                 aria-label={`슬라이드 ${index + 1}로 이동`}
                             />

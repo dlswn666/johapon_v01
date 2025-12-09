@@ -19,7 +19,7 @@ export default function UnionLayoutContent({ children }: UnionLayoutContentProps
     const { isLoading: isAuthLoading } = useAuth();
     const pathname = usePathname();
 
-    // 홈 페이지 여부 확인 (홈은 자체적으로 Header를 렌더링)
+    // 홈 페이지 여부 확인 (Breadcrumb만 홈에서 숨김)
     const isHomePage = pathname === `/${slug}`;
 
     // 로딩 중
@@ -57,14 +57,33 @@ export default function UnionLayoutContent({ children }: UnionLayoutContentProps
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col">
-            {/* 홈 페이지가 아닐 때만 Header + Breadcrumb 렌더링 (홈은 자체적으로 렌더링) */}
-            {!isHomePage && (
-                <>
-                    <UnionHomeHeader />
-                    <UnionBreadcrumb />
-                </>
-            )}
-            <div className="flex-1">{children}</div>
+            {/* Header - 모든 페이지에서 공통 렌더링 */}
+            <UnionHomeHeader />
+
+            {/* Breadcrumb - 홈 페이지가 아닐 때만 렌더링 */}
+            {!isHomePage && <UnionBreadcrumb />}
+
+            {/* ABC 3분할 레이아웃 */}
+            {/* Desktop: 가로 배치 (20% / 60% / 20%), Mobile: 세로 쌓기 (A → B → C) */}
+            <div className="flex-1 flex flex-col md:flex-row">
+                {/* A 영역 - 왼쪽 광고 */}
+                <aside className="w-full md:w-[20%] bg-gray-100 p-4 order-1">
+                    <div className="h-full min-h-[100px] md:min-h-0 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center text-gray-400">
+                        광고 영역 A
+                    </div>
+                </aside>
+
+                {/* B 영역 - 메인 콘텐츠 */}
+                <main className="w-full md:w-[60%] order-2">{children}</main>
+
+                {/* C 영역 - 오른쪽 광고 */}
+                <aside className="w-full md:w-[20%] bg-gray-100 p-4 order-3">
+                    <div className="h-full min-h-[100px] md:min-h-0 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center text-gray-400">
+                        광고 영역 C
+                    </div>
+                </aside>
+            </div>
+
             {/* Footer 표시 */}
             {union && <UnionInfoFooter union={union} />}
         </div>
