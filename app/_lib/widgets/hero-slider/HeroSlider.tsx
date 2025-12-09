@@ -190,15 +190,27 @@ export function HeroSlider({
 
             {/* 중앙 텍스트 오버레이 */}
             {(title || description) && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center z-10 pointer-events-none px-6">
-                    <div className="text-center space-y-6 max-w-6xl">
+                <div className="absolute inset-0 flex flex-col items-center justify-center z-10 pointer-events-none px-4 md:px-6">
+                    <div className="text-center space-y-3 md:space-y-6 max-w-6xl">
                         {title && (
-                            <h1 className="text-[81px] font-bold text-white leading-[97.2px] tracking-[-2.025px]">
+                            <h1 
+                                className="font-bold text-white tracking-tight md:tracking-[-2.025px]"
+                                style={{ 
+                                    fontSize: 'var(--text-hero-title)', 
+                                    lineHeight: 'var(--leading-hero-title)' 
+                                }}
+                            >
                                 {title}
                             </h1>
                         )}
                         {description && (
-                            <p className="text-[27px] font-normal text-[rgba(255,255,255,0.9)] leading-[43.2px]">
+                            <p 
+                                className="font-normal text-[rgba(255,255,255,0.9)]"
+                                style={{ 
+                                    fontSize: 'var(--text-hero-description)', 
+                                    lineHeight: 'var(--leading-hero-description)' 
+                                }}
+                            >
                                 {description}
                             </p>
                         )}

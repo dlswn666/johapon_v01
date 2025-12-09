@@ -133,55 +133,61 @@ export function UnionNewsSection({ unionId }: UnionNewsSectionProps) {
     };
 
     return (
-        <section className="bg-gray-50 py-[54px] px-4">
+        <section className="bg-gray-50 py-8 md:py-[54px] px-4">
             <div className="container mx-auto max-w-[1296px]">
                 {/* 섹션 제목 */}
-                <h2 className="text-[54px] font-bold text-[#4e8c6d] leading-[70.2px] mb-[54px]">
+                <h2 
+                    className="font-bold text-[#4e8c6d] mb-6 md:mb-[54px]"
+                    style={{ 
+                        fontSize: 'var(--text-section-title)', 
+                        lineHeight: 'var(--leading-section-title)' 
+                    }}
+                >
                     조합 소식
                 </h2>
 
                 {/* 탭 메뉴 */}
-                <div className="flex gap-[18px] border-b-2 border-gray-200 pb-[2px]">
+                <div className="flex gap-2 md:gap-[18px] border-b-2 border-gray-200 pb-[2px] overflow-x-auto">
                     <button
                         onClick={() => setActiveTab('notice')}
                         className={cn(
-                            'h-[52.375px] px-[27px] pb-[22px] pt-0 rounded-tl-[13.5px] rounded-tr-[13.5px] transition-colors cursor-pointer',
+                            'h-auto md:h-[52.375px] px-3 md:px-[27px] py-2 md:pb-[22px] md:pt-0 rounded-tl-[8px] md:rounded-tl-[13.5px] rounded-tr-[8px] md:rounded-tr-[13.5px] transition-colors cursor-pointer whitespace-nowrap',
                             activeTab === 'notice'
                                 ? 'bg-[#4e8c6d] text-white font-bold'
                                 : 'text-[#4a5565] font-medium hover:text-[#4e8c6d]'
                         )}
                         aria-label="공지사항 탭"
                     >
-                        <span className="text-[20.25px] leading-[30.375px]">공지사항</span>
+                        <span style={{ fontSize: 'var(--text-tab)' }}>공지사항</span>
                     </button>
                     <button
                         onClick={() => setActiveTab('general')}
                         className={cn(
-                            'h-[52.375px] px-[27px] pb-[22px] pt-0 transition-colors cursor-pointer',
+                            'h-auto md:h-[52.375px] px-3 md:px-[27px] py-2 md:pb-[22px] md:pt-0 transition-colors cursor-pointer whitespace-nowrap',
                             activeTab === 'general'
-                                ? 'bg-[#4e8c6d] text-white font-bold rounded-tl-[13.5px] rounded-tr-[13.5px]'
+                                ? 'bg-[#4e8c6d] text-white font-bold rounded-tl-[8px] md:rounded-tl-[13.5px] rounded-tr-[8px] md:rounded-tr-[13.5px]'
                                 : 'text-[#4a5565] font-medium hover:text-[#4e8c6d]'
                         )}
                         aria-label="일반 게시물 탭"
                     >
-                        <span className="text-[20.25px] leading-[30.375px]">일반 게시물</span>
+                        <span style={{ fontSize: 'var(--text-tab)' }}>일반 게시물</span>
                     </button>
                     <button
                         onClick={() => setActiveTab('question')}
                         className={cn(
-                            'h-[52.375px] px-[27px] pb-[22px] pt-0 transition-colors cursor-pointer',
+                            'h-auto md:h-[52.375px] px-3 md:px-[27px] py-2 md:pb-[22px] md:pt-0 transition-colors cursor-pointer whitespace-nowrap',
                             activeTab === 'question'
-                                ? 'bg-[#4e8c6d] text-white font-bold rounded-tl-[13.5px] rounded-tr-[13.5px]'
+                                ? 'bg-[#4e8c6d] text-white font-bold rounded-tl-[8px] md:rounded-tl-[13.5px] rounded-tr-[8px] md:rounded-tr-[13.5px]'
                                 : 'text-[#4a5565] font-medium hover:text-[#4e8c6d]'
                         )}
                         aria-label="질문 탭"
                     >
-                        <span className="text-[20.25px] leading-[30.375px]">질문</span>
+                        <span style={{ fontSize: 'var(--text-tab)' }}>질문</span>
                     </button>
                 </div>
 
                 {/* 콘텐츠 영역 */}
-                <div className="mt-[27px] space-y-[27px]">
+                <div className="mt-4 md:mt-[27px] space-y-4 md:space-y-[27px]">
                     {activeTab === 'notice' && (
                         <>
                             {isLoading ? (
@@ -204,21 +210,36 @@ export function UnionNewsSection({ unionId }: UnionNewsSectionProps) {
                                 <>
                                     {/* 주요 공지 카드 */}
                                     {notices[0] && (
-                                        <div className="bg-white border-l-4 border-[#5fa37c] border-r border-t border-b rounded-[17.5px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] pl-[40px] pr-px py-[37px]">
-                                            <div className="space-y-[18px]">
-                                                <h3 className="text-[33.75px] font-bold text-[#333333] leading-[47.25px]">
+                                        <div className="bg-white border-l-4 border-[#5fa37c] border-r border-t border-b rounded-[12px] md:rounded-[17.5px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] pl-4 md:pl-[40px] pr-4 md:pr-px py-5 md:py-[37px]">
+                                            <div className="space-y-3 md:space-y-[18px]">
+                                                <h3 
+                                                    className="font-bold text-[#333333]"
+                                                    style={{ 
+                                                        fontSize: 'var(--text-card-title-lg)', 
+                                                        lineHeight: 'var(--leading-card-title-lg)' 
+                                                    }}
+                                                >
                                                     {notices[0].title}
                                                 </h3>
-                                                <div className="flex items-center gap-[18px]">
-                                                    <span className="text-[18px] text-[#6a7282] leading-[27px]">
+                                                <div className="flex flex-wrap items-center gap-2 md:gap-[18px]">
+                                                    <span 
+                                                        className="text-[#6a7282]"
+                                                        style={{ fontSize: 'var(--text-body-md)', lineHeight: 'var(--leading-body-md)' }}
+                                                    >
                                                         작성자: {getAuthorName(notices[0])}
                                                     </span>
-                                                    <span className="text-[18px] text-[#6a7282] leading-[27px]">•</span>
-                                                    <span className="text-[18px] text-[#6a7282] leading-[27px]">
+                                                    <span className="text-[#6a7282] hidden md:inline" style={{ fontSize: 'var(--text-body-md)' }}>•</span>
+                                                    <span 
+                                                        className="text-[#6a7282]"
+                                                        style={{ fontSize: 'var(--text-body-md)', lineHeight: 'var(--leading-body-md)' }}
+                                                    >
                                                         {formatDate(notices[0].created_at)}
                                                     </span>
                                                 </div>
-                                                <p className="text-[20.25px] text-[#364153] leading-[34.425px]">
+                                                <p 
+                                                    className="text-[#364153]"
+                                                    style={{ fontSize: 'var(--text-body-lg)', lineHeight: 'var(--leading-body-lg)' }}
+                                                >
                                                     {truncateContent(notices[0].content)}
                                                 </p>
                                             </div>
@@ -227,21 +248,33 @@ export function UnionNewsSection({ unionId }: UnionNewsSectionProps) {
 
                                     {/* 하단 3개 카드 그리드 */}
                                     {notices.length > 1 && (
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-[18px]">
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-[18px]">
                                             {notices.slice(1, 4).map((notice) => (
                                                 <div
                                                     key={notice.id}
-                                                    className="bg-white border border-gray-200 rounded-[13.5px] shadow-[0px_1px_3px_0px_rgba(0,0,0,0.1),0px_1px_2px_-1px_rgba(0,0,0,0.1)] pl-[28px] pr-px py-[28px]"
+                                                    className="bg-white border border-gray-200 rounded-[10px] md:rounded-[13.5px] shadow-[0px_1px_3px_0px_rgba(0,0,0,0.1),0px_1px_2px_-1px_rgba(0,0,0,0.1)] pl-4 md:pl-[28px] pr-4 md:pr-px py-4 md:py-[28px]"
                                                 >
-                                                    <div className="space-y-[13.5px]">
-                                                        <h4 className="text-[20.25px] font-bold text-[#333333] leading-[30.375px] line-clamp-2">
+                                                    <div className="space-y-2 md:space-y-[13.5px]">
+                                                        <h4 
+                                                            className="font-bold text-[#333333] line-clamp-2"
+                                                            style={{ 
+                                                                fontSize: 'var(--text-card-title-md)', 
+                                                                lineHeight: 'var(--leading-card-title-md)' 
+                                                            }}
+                                                        >
                                                             {notice.title}
                                                         </h4>
-                                                        <div className="space-y-[4.5px]">
-                                                            <p className="text-[15.75px] text-[#6a7282] leading-[23.625px]">
+                                                        <div className="space-y-1 md:space-y-[4.5px]">
+                                                            <p 
+                                                                className="text-[#6a7282]"
+                                                                style={{ fontSize: 'var(--text-body-sm)', lineHeight: 'var(--leading-body-sm)' }}
+                                                            >
                                                                 작성자: {getAuthorName(notice)}
                                                             </p>
-                                                            <p className="text-[15.75px] text-[#6a7282] leading-[23.625px]">
+                                                            <p 
+                                                                className="text-[#6a7282]"
+                                                                style={{ fontSize: 'var(--text-body-sm)', lineHeight: 'var(--leading-body-sm)' }}
+                                                            >
                                                                 {formatDate(notice.created_at)}
                                                             </p>
                                                         </div>
@@ -260,21 +293,33 @@ export function UnionNewsSection({ unionId }: UnionNewsSectionProps) {
                     )}
 
                     {activeTab === 'general' && (
-                        <div className="space-y-[27px]">
+                        <div className="space-y-4 md:space-y-[27px]">
                             {mockGeneralPosts.length > 0 && (
                                 <>
                                     {/* 주요 게시물 카드 */}
-                                    <div className="bg-white border-l-4 border-[#5fa37c] border-r border-t border-b rounded-[17.5px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] pl-[40px] pr-px py-[37px]">
-                                        <div className="space-y-[18px]">
-                                            <h3 className="text-[33.75px] font-bold text-[#333333] leading-[47.25px]">
+                                    <div className="bg-white border-l-4 border-[#5fa37c] border-r border-t border-b rounded-[12px] md:rounded-[17.5px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] pl-4 md:pl-[40px] pr-4 md:pr-px py-5 md:py-[37px]">
+                                        <div className="space-y-3 md:space-y-[18px]">
+                                            <h3 
+                                                className="font-bold text-[#333333]"
+                                                style={{ 
+                                                    fontSize: 'var(--text-card-title-lg)', 
+                                                    lineHeight: 'var(--leading-card-title-lg)' 
+                                                }}
+                                            >
                                                 {mockGeneralPosts[0].title}
                                             </h3>
-                                            <div className="flex items-center gap-[18px]">
-                                                <span className="text-[18px] text-[#6a7282] leading-[27px]">
+                                            <div className="flex flex-wrap items-center gap-2 md:gap-[18px]">
+                                                <span 
+                                                    className="text-[#6a7282]"
+                                                    style={{ fontSize: 'var(--text-body-md)', lineHeight: 'var(--leading-body-md)' }}
+                                                >
                                                     작성자: {mockGeneralPosts[0].author}
                                                 </span>
-                                                <span className="text-[18px] text-[#6a7282] leading-[27px]">•</span>
-                                                <span className="text-[18px] text-[#6a7282] leading-[27px]">
+                                                <span className="text-[#6a7282] hidden md:inline" style={{ fontSize: 'var(--text-body-md)' }}>•</span>
+                                                <span 
+                                                    className="text-[#6a7282]"
+                                                    style={{ fontSize: 'var(--text-body-md)', lineHeight: 'var(--leading-body-md)' }}
+                                                >
                                                     {mockGeneralPosts[0].date}
                                                 </span>
                                             </div>
@@ -282,21 +327,33 @@ export function UnionNewsSection({ unionId }: UnionNewsSectionProps) {
                                     </div>
 
                                     {/* 하단 3개 카드 그리드 */}
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-[18px]">
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-[18px]">
                                         {mockGeneralPosts.slice(1).map((post) => (
                                             <div
                                                 key={post.id}
-                                                className="bg-white border border-gray-200 rounded-[13.5px] shadow-[0px_1px_3px_0px_rgba(0,0,0,0.1),0px_1px_2px_-1px_rgba(0,0,0,0.1)] pl-[28px] pr-px py-[28px]"
+                                                className="bg-white border border-gray-200 rounded-[10px] md:rounded-[13.5px] shadow-[0px_1px_3px_0px_rgba(0,0,0,0.1),0px_1px_2px_-1px_rgba(0,0,0,0.1)] pl-4 md:pl-[28px] pr-4 md:pr-px py-4 md:py-[28px]"
                                             >
-                                                <div className="space-y-[13.5px]">
-                                                    <h4 className="text-[20.25px] font-bold text-[#333333] leading-[30.375px] line-clamp-2">
+                                                <div className="space-y-2 md:space-y-[13.5px]">
+                                                    <h4 
+                                                        className="font-bold text-[#333333] line-clamp-2"
+                                                        style={{ 
+                                                            fontSize: 'var(--text-card-title-md)', 
+                                                            lineHeight: 'var(--leading-card-title-md)' 
+                                                        }}
+                                                    >
                                                         {post.title}
                                                     </h4>
-                                                    <div className="space-y-[4.5px]">
-                                                        <p className="text-[15.75px] text-[#6a7282] leading-[23.625px]">
+                                                    <div className="space-y-1 md:space-y-[4.5px]">
+                                                        <p 
+                                                            className="text-[#6a7282]"
+                                                            style={{ fontSize: 'var(--text-body-sm)', lineHeight: 'var(--leading-body-sm)' }}
+                                                        >
                                                             작성자: {post.author}
                                                         </p>
-                                                        <p className="text-[15.75px] text-[#6a7282] leading-[23.625px]">
+                                                        <p 
+                                                            className="text-[#6a7282]"
+                                                            style={{ fontSize: 'var(--text-body-sm)', lineHeight: 'var(--leading-body-sm)' }}
+                                                        >
                                                             {post.date}
                                                         </p>
                                                     </div>
@@ -328,32 +385,47 @@ export function UnionNewsSection({ unionId }: UnionNewsSectionProps) {
                                     </button>
                                 </div>
                             ) : questions && questions.length > 0 ? (
-                                <div className="space-y-[27px]">
+                                <div className="space-y-4 md:space-y-[27px]">
                                     {/* 주요 질문 카드 */}
                                     {questions[0] && (
-                                        <div className="bg-white border-l-4 border-[#5fa37c] border-r border-t border-b rounded-[17.5px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] pl-[40px] pr-px py-[37px]">
-                                            <div className="space-y-[18px]">
-                                                <div className="flex items-center gap-[12px]">
-                                                    <h3 className="text-[33.75px] font-bold text-[#333333] leading-[47.25px]">
+                                        <div className="bg-white border-l-4 border-[#5fa37c] border-r border-t border-b rounded-[12px] md:rounded-[17.5px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] pl-4 md:pl-[40px] pr-4 md:pr-px py-5 md:py-[37px]">
+                                            <div className="space-y-3 md:space-y-[18px]">
+                                                <div className="flex flex-wrap items-center gap-2 md:gap-[12px]">
+                                                    <h3 
+                                                        className="font-bold text-[#333333]"
+                                                        style={{ 
+                                                            fontSize: 'var(--text-card-title-lg)', 
+                                                            lineHeight: 'var(--leading-card-title-lg)' 
+                                                        }}
+                                                    >
                                                         {questions[0].title}
                                                     </h3>
                                                     {questions[0].answered_at && (
-                                                        <span className="inline-flex items-center gap-1 px-3 py-1 bg-[#4e8c6d] text-white text-[14px] rounded-full">
-                                                            <CheckCircle className="h-4 w-4" />
+                                                        <span className="inline-flex items-center gap-1 px-2 md:px-3 py-1 bg-[#4e8c6d] text-white text-[12px] md:text-[14px] rounded-full">
+                                                            <CheckCircle className="h-3 w-3 md:h-4 md:w-4" />
                                                             답변완료
                                                         </span>
                                                     )}
                                                 </div>
-                                                <div className="flex items-center gap-[18px]">
-                                                    <span className="text-[18px] text-[#6a7282] leading-[27px]">
+                                                <div className="flex flex-wrap items-center gap-2 md:gap-[18px]">
+                                                    <span 
+                                                        className="text-[#6a7282]"
+                                                        style={{ fontSize: 'var(--text-body-md)', lineHeight: 'var(--leading-body-md)' }}
+                                                    >
                                                         작성자: {questions[0].author?.name || '익명'}
                                                     </span>
-                                                    <span className="text-[18px] text-[#6a7282] leading-[27px]">•</span>
-                                                    <span className="text-[18px] text-[#6a7282] leading-[27px]">
+                                                    <span className="text-[#6a7282] hidden md:inline" style={{ fontSize: 'var(--text-body-md)' }}>•</span>
+                                                    <span 
+                                                        className="text-[#6a7282]"
+                                                        style={{ fontSize: 'var(--text-body-md)', lineHeight: 'var(--leading-body-md)' }}
+                                                    >
                                                         {formatDate(questions[0].created_at)}
                                                     </span>
                                                 </div>
-                                                <p className="text-[20.25px] text-[#364153] leading-[34.425px]">
+                                                <p 
+                                                    className="text-[#364153]"
+                                                    style={{ fontSize: 'var(--text-body-lg)', lineHeight: 'var(--leading-body-lg)' }}
+                                                >
                                                     {truncateContent(questions[0].content)}
                                                 </p>
                                             </div>
@@ -362,26 +434,38 @@ export function UnionNewsSection({ unionId }: UnionNewsSectionProps) {
 
                                     {/* 하단 3개 카드 그리드 */}
                                     {questions.length > 1 && (
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-[18px]">
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-[18px]">
                                             {questions.slice(1, 4).map((question) => (
                                                 <div
                                                     key={question.id}
-                                                    className="bg-white border border-gray-200 rounded-[13.5px] shadow-[0px_1px_3px_0px_rgba(0,0,0,0.1),0px_1px_2px_-1px_rgba(0,0,0,0.1)] pl-[28px] pr-px py-[28px]"
+                                                    className="bg-white border border-gray-200 rounded-[10px] md:rounded-[13.5px] shadow-[0px_1px_3px_0px_rgba(0,0,0,0.1),0px_1px_2px_-1px_rgba(0,0,0,0.1)] pl-4 md:pl-[28px] pr-4 md:pr-px py-4 md:py-[28px]"
                                                 >
-                                                    <div className="space-y-[13.5px]">
-                                                        <div className="flex items-center gap-[8px]">
-                                                            <h4 className="text-[20.25px] font-bold text-[#333333] leading-[30.375px] line-clamp-2">
+                                                    <div className="space-y-2 md:space-y-[13.5px]">
+                                                        <div className="flex items-center gap-2 md:gap-[8px]">
+                                                            <h4 
+                                                                className="font-bold text-[#333333] line-clamp-2"
+                                                                style={{ 
+                                                                    fontSize: 'var(--text-card-title-md)', 
+                                                                    lineHeight: 'var(--leading-card-title-md)' 
+                                                                }}
+                                                            >
                                                                 {question.title}
                                                             </h4>
                                                             {question.answered_at && (
-                                                                <CheckCircle className="h-5 w-5 text-[#4e8c6d] shrink-0" />
+                                                                <CheckCircle className="h-4 w-4 md:h-5 md:w-5 text-[#4e8c6d] shrink-0" />
                                                             )}
                                                         </div>
-                                                        <div className="space-y-[4.5px]">
-                                                            <p className="text-[15.75px] text-[#6a7282] leading-[23.625px]">
+                                                        <div className="space-y-1 md:space-y-[4.5px]">
+                                                            <p 
+                                                                className="text-[#6a7282]"
+                                                                style={{ fontSize: 'var(--text-body-sm)', lineHeight: 'var(--leading-body-sm)' }}
+                                                            >
                                                                 작성자: {question.author?.name || '익명'}
                                                             </p>
-                                                            <p className="text-[15.75px] text-[#6a7282] leading-[23.625px]">
+                                                            <p 
+                                                                className="text-[#6a7282]"
+                                                                style={{ fontSize: 'var(--text-body-sm)', lineHeight: 'var(--leading-body-sm)' }}
+                                                            >
                                                                 {formatDate(question.created_at)}
                                                             </p>
                                                         </div>

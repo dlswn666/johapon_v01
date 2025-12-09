@@ -47,6 +47,27 @@
 :root {
   --radius: 0.625rem;
   --background: #f9fafb;
+  
+  /* 반응형 타이포그래피 - 모바일 기본값 (어르신 가독성 고려) */
+  --text-hero-title: 32px;
+  --text-hero-description: 18px;
+  --text-section-title: 28px;
+  --text-card-title-lg: 22px;
+  --text-card-title-md: 18px;
+  --text-body-lg: 17px;
+  --text-body-md: 16px;
+  --text-body-sm: 15px;
+  --text-tab: 16px;
+  
+  /* line-height - 모바일 */
+  --leading-hero-title: 1.2;
+  --leading-hero-description: 1.6;
+  --leading-section-title: 1.3;
+  --leading-card-title-lg: 1.4;
+  --leading-card-title-md: 1.5;
+  --leading-body-lg: 1.7;
+  --leading-body-md: 1.5;
+  --leading-body-sm: 1.5;
   --foreground: #333333;
   --card: #ffffff;
   --card-foreground: #333333;
@@ -111,6 +132,31 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+}
+
+/* 반응형 타이포그래피 - 데스크톱 (768px 이상) */
+@media (min-width: 768px) {
+  :root {
+    --text-hero-title: 81px;
+    --text-hero-description: 27px;
+    --text-section-title: 54px;
+    --text-card-title-lg: 33.75px;
+    --text-card-title-md: 20.25px;
+    --text-body-lg: 20.25px;
+    --text-body-md: 18px;
+    --text-body-sm: 15.75px;
+    --text-tab: 20.25px;
+    
+    /* line-height - 데스크톱 */
+    --leading-hero-title: 1.2;
+    --leading-hero-description: 1.6;
+    --leading-section-title: 1.3;
+    --leading-card-title-lg: 1.4;
+    --leading-card-title-md: 1.5;
+    --leading-body-lg: 1.7;
+    --leading-body-md: 1.5;
+    --leading-body-sm: 1.5;
+  }
 }
 
 @layer base {
