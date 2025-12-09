@@ -31,7 +31,7 @@ const UnionInfoDetailPage = ({ params }: UnionInfoDetailPageProps) => {
     const { mutate: incrementViews } = useIncrementUnionInfoViews();
     const { mutate: deletePost } = useDeleteUnionInfo();
     const { mutate: deleteFile } = useDeleteUnionInfoFile();
-    const openConfirmModal = useModalStore((state) => state.openConfirmModal);
+    const { openConfirmModal, openAlertModal } = useModalStore();
 
     // 조회수 증가 (컴포넌트 마운트 시 1회)
     useEffect(() => {
@@ -59,7 +59,11 @@ const UnionInfoDetailPage = ({ params }: UnionInfoDetailPageProps) => {
             document.body.removeChild(link);
         } catch (err) {
             console.error('Download failed', err);
-            alert('파일 다운로드에 실패했습니다.');
+            openAlertModal({
+                title: '다운로드 실패',
+                message: '파일 다운로드에 실패했습니다.',
+                type: 'error',
+            });
         }
     };
 

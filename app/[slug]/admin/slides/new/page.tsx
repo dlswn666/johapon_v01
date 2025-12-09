@@ -1,18 +1,28 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import { useCreateHeroSlide } from '@/app/_lib/features/hero-slides/api/useHeroSlidesHook';
 import { HeroSlideForm } from '@/app/_lib/features/hero-slides/ui';
+import useModalStore from '@/app/_lib/shared/stores/modal/useModalStore';
+
+interface FormData {
+    image_url: string;
+    link_url: string;
+    display_order: number;
+    is_active: boolean;
+}
 
 export default function NewSlidePage() {
     const router = useRouter();
     const { union, slug, isLoading: isUnionLoading } = useSlug();
     const { isAdmin, isLoading: isAuthLoading } = useAuth();
     const createMutation = useCreateHeroSlide();
+    const { openConfirmModal, openAlertModal } = useModalStore();
+    const [pendingData, setPendingData] = useState<FormData | null>(null);
 
     // 권한 체크
     useEffect(() => {
@@ -21,14 +31,26 @@ export default function NewSlidePage() {
         }
     }, [isAuthLoading, isAdmin, router, slug]);
 
-    const handleSubmit = async (data: {
-        image_url: string;
-        link_url: string;
-        display_order: number;
-        is_active: boolean;
-    }) => {
+    const handleSubmit = async (data: FormData) => {
+        setPendingData(data);
+        openConfirmModal({
+            title: '슬라이드 등록',
+            message: '새로운 슬라이드를 등록하시겠습니까?',
+            confirmText: '등록',
+            cancelText: '취소',
+            variant: 'default',
+            onConfirm: () => handleConfirmCreate(data),
+        });
+    };
+
+    const handleConfirmCreate = async (data: FormData) => {
         if (!union?.id) {
-            throw new Error('조합 정보를 찾을 수 없습니다.');
+            openAlertModal({
+                title: '오류',
+                message: '조합 정보를 찾을 수 없습니다.',
+                type: 'error',
+            });
+            return;
         }
 
         try {
@@ -40,10 +62,19 @@ export default function NewSlidePage() {
                 is_active: data.is_active,
             });
 
-            router.push(`/${slug}/admin/slides/${result.id}`);
+            openAlertModal({
+                title: '등록 완료',
+                message: '슬라이드가 성공적으로 등록되었습니다.',
+                type: 'success',
+                onOk: () => router.push(`/${slug}/admin/slides/${result.id}`),
+            });
         } catch (error) {
             console.error('Create slide error:', error);
-            throw error;
+            openAlertModal({
+                title: '등록 실패',
+                message: '슬라이드 등록 중 오류가 발생했습니다.',
+                type: 'error',
+            });
         }
     };
 

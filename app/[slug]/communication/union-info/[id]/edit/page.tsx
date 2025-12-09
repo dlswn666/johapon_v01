@@ -42,6 +42,7 @@ const EditUnionInfoPage = ({ params }: EditUnionInfoPageProps) => {
     const openConfirmModal = useModalStore((state) => state.openConfirmModal);
     
     const { data: post, isLoading, error } = useUnionInfo(postId);
+    const { openAlertModal } = useModalStore();
     
     // Store cleanup actions
     const clearEditorImages = useUnionInfoStore((state) => state.clearEditorImages);
@@ -93,7 +94,11 @@ const EditUnionInfoPage = ({ params }: EditUnionInfoPageProps) => {
             document.body.removeChild(link);
         } catch (err) {
             console.error('Download failed', err);
-            alert('파일 다운로드에 실패했습니다.');
+            openAlertModal({
+                title: '다운로드 실패',
+                message: '파일 다운로드에 실패했습니다.',
+                type: 'error',
+            });
         }
     };
 

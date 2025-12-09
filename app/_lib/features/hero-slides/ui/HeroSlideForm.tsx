@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { HeroSlide } from '@/app/_lib/shared/type/database.types';
 import { supabase } from '@/app/_lib/shared/supabase/client';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
+import useModalStore from '@/app/_lib/shared/stores/modal/useModalStore';
 
 interface HeroSlideFormData {
     image_url: string;
@@ -27,14 +28,10 @@ interface HeroSlideFormProps {
     isSubmitting?: boolean;
 }
 
-export default function HeroSlideForm({
-    mode,
-    initialData,
-    onSubmit,
-    isSubmitting = false,
-}: HeroSlideFormProps) {
+export default function HeroSlideForm({ mode, initialData, onSubmit, isSubmitting = false }: HeroSlideFormProps) {
     const router = useRouter();
     const { slug } = useSlug();
+    const { openAlertModal } = useModalStore();
     const [formData, setFormData] = useState<HeroSlideFormData>({
         image_url: '',
         link_url: '',
@@ -73,9 +70,13 @@ export default function HeroSlideForm({
         const file = e.target.files?.[0];
         if (!file) return;
 
-        // 파일 크기 제한 (5MB)
-        if (file.size > 5 * 1024 * 1024) {
-            alert('이미지 크기는 5MB를 초과할 수 없습니다.');
+        // 파일 크기 제한 (15MB)
+        if (file.size > 15 * 1024 * 1024) {
+            openAlertModal({
+                title: '파일 크기 초과',
+                message: '이미지 크기는 15MB를 초과할 수 없습니다.',
+                type: 'error',
+            });
             return;
         }
 
@@ -100,11 +101,9 @@ export default function HeroSlideForm({
         setIsUploading(true);
         try {
             const fileExt = imageFile.name.split('.').pop();
-            const fileName = `hero-slides/${slug}-${Date.now()}.${fileExt}`;
+            const fileName = `unions/${slug}/hero-slides/${Date.now()}.${fileExt}`;
 
-            const { error: uploadError } = await supabase.storage
-                .from('files')
-                .upload(fileName, imageFile);
+            const { error: uploadError } = await supabase.storage.from('files').upload(fileName, imageFile);
 
             if (uploadError) throw uploadError;
 
@@ -127,7 +126,11 @@ export default function HeroSlideForm({
 
         // 이미지 필수 검증
         if (!imagePreview && !formData.image_url) {
-            alert('슬라이드 이미지를 등록해주세요.');
+            openAlertModal({
+                title: '입력 오류',
+                message: '슬라이드 이미지를 등록해주세요.',
+                type: 'error',
+            });
             return;
         }
 
@@ -158,12 +161,7 @@ export default function HeroSlideForm({
         <Card className="shadow-lg max-w-3xl mx-auto">
             <CardHeader className="border-b bg-gray-50/50">
                 <div className="flex items-center gap-4">
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => router.back()}
-                        className="hover:bg-gray-200"
-                    >
+                    <Button variant="ghost" size="icon" onClick={() => router.back()} className="hover:bg-gray-200">
                         <ArrowLeft className="w-5 h-5" />
                     </Button>
                     <CardTitle className="text-xl font-semibold">{getTitle()}</CardTitle>
@@ -259,9 +257,7 @@ export default function HeroSlideForm({
                             disabled={isReadOnly}
                             className="w-32"
                         />
-                        <p className="text-xs text-gray-500">
-                            숫자가 작을수록 먼저 표시됩니다. (0이 가장 먼저)
-                        </p>
+                        <p className="text-xs text-gray-500">숫자가 작을수록 먼저 표시됩니다. (0이 가장 먼저)</p>
                     </div>
 
                     {/* 활성화 상태 */}
@@ -270,16 +266,12 @@ export default function HeroSlideForm({
                             <Label htmlFor="is_active" className="text-base font-medium">
                                 슬라이드 활성화
                             </Label>
-                            <p className="text-sm text-gray-500">
-                                비활성화하면 홈페이지에 표시되지 않습니다
-                            </p>
+                            <p className="text-sm text-gray-500">비활성화하면 홈페이지에 표시되지 않습니다</p>
                         </div>
                         {isReadOnly ? (
                             <div
                                 className={`px-3 py-1 rounded-full text-sm font-medium ${
-                                    formData.is_active
-                                        ? 'bg-emerald-100 text-emerald-700'
-                                        : 'bg-gray-200 text-gray-600'
+                                    formData.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-600'
                                 }`}
                             >
                                 {formData.is_active ? '활성' : '비활성'}
@@ -288,9 +280,7 @@ export default function HeroSlideForm({
                             <Switch
                                 id="is_active"
                                 checked={formData.is_active}
-                                onCheckedChange={(checked) =>
-                                    setFormData((prev) => ({ ...prev, is_active: checked }))
-                                }
+                                onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, is_active: checked }))}
                             />
                         )}
                     </div>
@@ -306,9 +296,7 @@ export default function HeroSlideForm({
                                 disabled={isSubmitting || isUploading}
                                 className="bg-[#4E8C6D] hover:bg-[#3d7359]"
                             >
-                                {(isSubmitting || isUploading) && (
-                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                )}
+                                {(isSubmitting || isUploading) && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                                 {mode === 'create' ? '등록' : '수정 완료'}
                             </Button>
                         </div>
@@ -318,4 +306,3 @@ export default function HeroSlideForm({
         </Card>
     );
 }
-

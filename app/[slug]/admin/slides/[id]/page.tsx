@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, use, useEffect } from 'react';
+import React, { use, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Edit, Trash2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -8,7 +8,8 @@ import { Card, CardHeader } from '@/components/ui/card';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import { useHeroSlide, useDeleteHeroSlide } from '@/app/_lib/features/hero-slides/api/useHeroSlidesHook';
-import { HeroSlideForm, HeroSlideDeleteModal } from '@/app/_lib/features/hero-slides/ui';
+import { HeroSlideForm } from '@/app/_lib/features/hero-slides/ui';
+import useModalStore from '@/app/_lib/shared/stores/modal/useModalStore';
 
 interface SlideDetailPageProps {
     params: Promise<{ slug: string; id: string }>;
@@ -21,7 +22,7 @@ export default function SlideDetailPage({ params }: SlideDetailPageProps) {
     const { isAdmin, isLoading: isAuthLoading } = useAuth();
     const { data: slide, isLoading, error } = useHeroSlide(id);
     const deleteMutation = useDeleteHeroSlide();
-    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const { openConfirmModal, openAlertModal } = useModalStore();
 
     // 권한 체크
     useEffect(() => {
@@ -34,12 +35,33 @@ export default function SlideDetailPage({ params }: SlideDetailPageProps) {
         router.push(`/${slug}/admin/slides/${id}/edit`);
     };
 
-    const handleDelete = async () => {
+    const handleDeleteClick = () => {
+        openConfirmModal({
+            title: '슬라이드 삭제',
+            message: '이 슬라이드를 삭제하시겠습니까?\n삭제된 슬라이드는 복구할 수 없습니다.',
+            confirmText: '삭제',
+            cancelText: '취소',
+            variant: 'danger',
+            onConfirm: handleConfirmDelete,
+        });
+    };
+
+    const handleConfirmDelete = async () => {
         try {
             await deleteMutation.mutateAsync(id);
-            router.push(`/${slug}/admin/slides`);
+            openAlertModal({
+                title: '삭제 완료',
+                message: '슬라이드가 성공적으로 삭제되었습니다.',
+                type: 'success',
+                onOk: () => router.push(`/${slug}/admin/slides`),
+            });
         } catch (error) {
             console.error('Delete slide error:', error);
+            openAlertModal({
+                title: '삭제 실패',
+                message: '슬라이드 삭제 중 오류가 발생했습니다.',
+                type: 'error',
+            });
         }
     };
 
@@ -99,7 +121,7 @@ export default function SlideDetailPage({ params }: SlideDetailPageProps) {
                             </Button>
                             <Button
                                 variant="destructive"
-                                onClick={() => setIsDeleteModalOpen(true)}
+                                onClick={handleDeleteClick}
                                 className="gap-2"
                             >
                                 <Trash2 className="w-4 h-4" />
@@ -112,14 +134,6 @@ export default function SlideDetailPage({ params }: SlideDetailPageProps) {
 
             {/* 슬라이드 정보 폼 (읽기 전용) */}
             <HeroSlideForm mode="view" initialData={slide} />
-
-            {/* 삭제 확인 모달 */}
-            <HeroSlideDeleteModal
-                isOpen={isDeleteModalOpen}
-                onClose={() => setIsDeleteModalOpen(false)}
-                onConfirm={handleDelete}
-                isDeleting={deleteMutation.isPending}
-            />
         </div>
     );
 }

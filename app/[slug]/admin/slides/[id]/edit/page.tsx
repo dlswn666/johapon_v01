@@ -4,18 +4,11 @@ import React, { useState, use, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import { useHeroSlide, useUpdateHeroSlide } from '@/app/_lib/features/hero-slides/api/useHeroSlidesHook';
 import { HeroSlideForm } from '@/app/_lib/features/hero-slides/ui';
+import useModalStore from '@/app/_lib/shared/stores/modal/useModalStore';
 
 interface SlideEditPageProps {
     params: Promise<{ slug: string; id: string }>;
@@ -35,7 +28,7 @@ export default function SlideEditPage({ params }: SlideEditPageProps) {
     const { isAdmin, isLoading: isAuthLoading } = useAuth();
     const { data: slide, isLoading, error } = useHeroSlide(id);
     const updateMutation = useUpdateHeroSlide();
-    const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+    const { openConfirmModal, openAlertModal } = useModalStore();
     const [pendingData, setPendingData] = useState<FormData | null>(null);
 
     // 권한 체크
@@ -47,28 +40,41 @@ export default function SlideEditPage({ params }: SlideEditPageProps) {
 
     const handleSubmit = async (data: FormData) => {
         setPendingData(data);
-        setIsConfirmModalOpen(true);
+        openConfirmModal({
+            title: '슬라이드 수정',
+            message: '슬라이드 정보를 수정하시겠습니까?',
+            confirmText: '수정',
+            cancelText: '취소',
+            variant: 'default',
+            onConfirm: () => handleConfirmUpdate(data),
+        });
     };
 
-    const handleConfirmUpdate = async () => {
-        if (!pendingData) return;
-
+    const handleConfirmUpdate = async (data: FormData) => {
         try {
             await updateMutation.mutateAsync({
                 id,
                 updates: {
-                    image_url: pendingData.image_url,
-                    link_url: pendingData.link_url || null,
-                    display_order: pendingData.display_order,
-                    is_active: pendingData.is_active,
+                    image_url: data.image_url,
+                    link_url: data.link_url || null,
+                    display_order: data.display_order,
+                    is_active: data.is_active,
                 },
             });
 
-            setIsConfirmModalOpen(false);
-            router.push(`/${slug}/admin/slides/${id}`);
+            openAlertModal({
+                title: '수정 완료',
+                message: '슬라이드가 성공적으로 수정되었습니다.',
+                type: 'success',
+                onOk: () => router.push(`/${slug}/admin/slides/${id}`),
+            });
         } catch (error) {
             console.error('Update slide error:', error);
-            setIsConfirmModalOpen(false);
+            openAlertModal({
+                title: '수정 실패',
+                message: '슬라이드 수정 중 오류가 발생했습니다.',
+                type: 'error',
+            });
         }
     };
 
@@ -117,37 +123,6 @@ export default function SlideEditPage({ params }: SlideEditPageProps) {
                 onSubmit={handleSubmit}
                 isSubmitting={updateMutation.isPending}
             />
-
-            {/* 수정 확인 모달 */}
-            <Dialog open={isConfirmModalOpen} onOpenChange={setIsConfirmModalOpen}>
-                <DialogContent className="sm:max-w-[425px]">
-                    <DialogHeader>
-                        <DialogTitle>슬라이드 수정 확인</DialogTitle>
-                        <DialogDescription>
-                            슬라이드 정보를 수정하시겠습니까?
-                        </DialogDescription>
-                    </DialogHeader>
-                    <DialogFooter className="gap-2 sm:gap-0">
-                        <Button
-                            variant="outline"
-                            onClick={() => setIsConfirmModalOpen(false)}
-                            disabled={updateMutation.isPending}
-                        >
-                            취소
-                        </Button>
-                        <Button
-                            onClick={handleConfirmUpdate}
-                            disabled={updateMutation.isPending}
-                            className="bg-[#4E8C6D] hover:bg-[#3d7359]"
-                        >
-                            {updateMutation.isPending && (
-                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            )}
-                            수정
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
         </div>
     );
 }

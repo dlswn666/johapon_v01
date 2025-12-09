@@ -1,19 +1,20 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import { useAllHeroSlides, useDeleteHeroSlide } from '@/app/_lib/features/hero-slides/api/useHeroSlidesHook';
-import { HeroSlideList, HeroSlideDeleteModal } from '@/app/_lib/features/hero-slides/ui';
+import { HeroSlideList } from '@/app/_lib/features/hero-slides/ui';
 import { HeroSlide } from '@/app/_lib/shared/type/database.types';
+import useModalStore from '@/app/_lib/shared/stores/modal/useModalStore';
 
 export default function SlidesPage() {
     const router = useRouter();
     const { union, slug, isLoading: isUnionLoading } = useSlug();
     const { isAdmin, isLoading: isAuthLoading } = useAuth();
-    const [slideToDelete, setSlideToDelete] = useState<HeroSlide | null>(null);
+    const { openConfirmModal, openAlertModal } = useModalStore();
 
     const { data: slides, isLoading: isSlidesLoading } = useAllHeroSlides(union?.id);
     const deleteMutation = useDeleteHeroSlide();
@@ -26,17 +27,31 @@ export default function SlidesPage() {
     }, [isAuthLoading, isAdmin, router, slug]);
 
     const handleDelete = (slide: HeroSlide) => {
-        setSlideToDelete(slide);
+        openConfirmModal({
+            title: '슬라이드 삭제',
+            message: '이 슬라이드를 삭제하시겠습니까?\n삭제된 슬라이드는 복구할 수 없습니다.',
+            confirmText: '삭제',
+            cancelText: '취소',
+            variant: 'danger',
+            onConfirm: () => handleConfirmDelete(slide.id),
+        });
     };
 
-    const handleConfirmDelete = async () => {
-        if (!slideToDelete) return;
-
+    const handleConfirmDelete = async (slideId: string) => {
         try {
-            await deleteMutation.mutateAsync(slideToDelete.id);
-            setSlideToDelete(null);
+            await deleteMutation.mutateAsync(slideId);
+            openAlertModal({
+                title: '삭제 완료',
+                message: '슬라이드가 성공적으로 삭제되었습니다.',
+                type: 'success',
+            });
         } catch (error) {
             console.error('Delete error:', error);
+            openAlertModal({
+                title: '삭제 실패',
+                message: '슬라이드 삭제 중 오류가 발생했습니다.',
+                type: 'error',
+            });
         }
     };
 
@@ -79,14 +94,6 @@ export default function SlidesPage() {
                 slides={slides ?? []}
                 isLoading={isSlidesLoading}
                 onDelete={handleDelete}
-            />
-
-            {/* 삭제 확인 모달 */}
-            <HeroSlideDeleteModal
-                isOpen={!!slideToDelete}
-                onClose={() => setSlideToDelete(null)}
-                onConfirm={handleConfirmDelete}
-                isDeleting={deleteMutation.isPending}
             />
         </div>
     );

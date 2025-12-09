@@ -6,6 +6,7 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Upload, X, File as FileIcon, Download, Trash2, CheckCircle, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import useModalStore from '@/app/_lib/shared/stores/modal/useModalStore';
 
 interface FileUploaderProps {
     /**
@@ -52,6 +53,7 @@ export function FileUploader({
         getDownloadUrl,
         // clearTempFiles
     } = useFileStore();
+    const { openAlertModal, openConfirmModal } = useModalStore();
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isDragging, setIsDragging] = useState(false);
@@ -86,7 +88,11 @@ export function FileUploader({
 
         // 10MB 제한
         if (file.size > 10 * 1024 * 1024) {
-            alert('파일 크기는 10MB를 초과할 수 없습니다.');
+            openAlertModal({
+                title: '파일 크기 초과',
+                message: '파일 크기는 10MB를 초과할 수 없습니다.',
+                type: 'error',
+            });
             return;
         }
 
@@ -111,7 +117,11 @@ export function FileUploader({
             }
         } catch (error) {
             console.error('Upload failed', error);
-            alert('파일 업로드에 실패했습니다.');
+            openAlertModal({
+                title: '업로드 실패',
+                message: '파일 업로드에 실패했습니다.',
+                type: 'error',
+            });
         }
     };
 
@@ -127,18 +137,39 @@ export function FileUploader({
             document.body.removeChild(link);
         } catch (error) {
             console.error('Download failed', error);
-            alert('다운로드 주소를 가져오는데 실패했습니다.');
+            openAlertModal({
+                title: '다운로드 실패',
+                message: '다운로드 주소를 가져오는데 실패했습니다.',
+                type: 'error',
+            });
         }
     };
 
     const handleDelete = async (fileId: string, filePath: string) => {
-        if (!confirm('정말로 이 파일을 삭제하시겠습니까?')) return;
-        try {
-            await deleteFile(fileId, filePath);
-        } catch (error) {
-            console.error('Delete failed', error);
-            alert('파일 삭제에 실패했습니다.');
-        }
+        openConfirmModal({
+            title: '파일 삭제',
+            message: '정말로 이 파일을 삭제하시겠습니까?',
+            confirmText: '삭제',
+            cancelText: '취소',
+            variant: 'danger',
+            onConfirm: async () => {
+                try {
+                    await deleteFile(fileId, filePath);
+                    openAlertModal({
+                        title: '삭제 완료',
+                        message: '파일이 성공적으로 삭제되었습니다.',
+                        type: 'success',
+                    });
+                } catch (error) {
+                    console.error('Delete failed', error);
+                    openAlertModal({
+                        title: '삭제 실패',
+                        message: '파일 삭제에 실패했습니다.',
+                        type: 'error',
+                    });
+                }
+            },
+        });
     };
 
     const handleRemoveTemp = (tempId: string) => {
@@ -183,7 +214,11 @@ export function FileUploader({
 
         // 10MB 제한
         if (file.size > 10 * 1024 * 1024) {
-            alert('파일 크기는 10MB를 초과할 수 없습니다.');
+            openAlertModal({
+                title: '파일 크기 초과',
+                message: '파일 크기는 10MB를 초과할 수 없습니다.',
+                type: 'error',
+            });
             return;
         }
 
@@ -191,7 +226,11 @@ export function FileUploader({
             await uploadTempFile(file);
         } catch (error) {
             console.error('Upload failed', error);
-            alert('파일 업로드에 실패했습니다.');
+            openAlertModal({
+                title: '업로드 실패',
+                message: '파일 업로드에 실패했습니다.',
+                type: 'error',
+            });
         }
     };
 
