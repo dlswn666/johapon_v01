@@ -22,6 +22,9 @@ import {
     ChevronDown,
     ArrowRight,
     FileDown,
+    LockKeyhole,
+    BellRing,
+    Coins,
 } from 'lucide-react';
 
 type Union = Database['public']['Tables']['unions']['Row'];
@@ -97,22 +100,22 @@ export default function MarketingPage() {
                 {/* Content */}
                 <div className="relative z-10 flex flex-col items-center justify-center h-full px-4 md:px-6 pt-12 md:pt-16 w-full">
                     <div className="text-center space-y-4 md:space-y-6 max-w-6xl w-full px-4 md:px-6 mx-auto">
-                        <h1 
+                        <h1
                             className="font-bold text-white"
-                            style={{ 
-                                fontSize: 'var(--text-marketing-hero)', 
-                                lineHeight: 'var(--leading-marketing-hero)' 
+                            style={{
+                                fontSize: 'var(--text-marketing-hero)',
+                                lineHeight: 'var(--leading-marketing-hero)',
                             }}
                         >
                             우리 조합의 홈페이지,
                             <br />
                             이제는 더 쉽고 스마트하게
                         </h1>
-                        <p 
+                        <p
                             className="text-white/90 font-medium"
-                            style={{ 
-                                fontSize: 'var(--text-marketing-subtitle)', 
-                                lineHeight: 'var(--leading-marketing-subtitle)' 
+                            style={{
+                                fontSize: 'var(--text-marketing-subtitle)',
+                                lineHeight: 'var(--leading-marketing-subtitle)',
                             }}
                         >
                             조합원 소통, 공지 전달, 광고 수익까지 한 번에 해결
@@ -125,96 +128,114 @@ export default function MarketingPage() {
                             >
                                 도입 문의하기
                             </button>
-                            <button
-                                onClick={() => router.push('/features')}
-                                className="px-6 md:px-8 py-3 bg-white/10 text-white border border-white/30 rounded-lg font-bold hover:bg-white/20 transition-colors cursor-pointer"
-                                style={{ fontSize: 'var(--text-marketing-button)' }}
-                            >
-                                홈페이지 예시 보기
-                            </button>
                         </div>
                     </div>
                 </div>
             </section>
 
             {/* Problem Section */}
-            <section className="bg-[#e6e6e6] py-12 md:py-20 px-4 md:px-6">
+            <section className="bg-gray-50 py-12 md:py-20 px-4 md:px-6">
                 <div className="max-w-6xl mx-auto">
+                    {/* 헤더 영역 */}
                     <div className="text-center mb-10 md:mb-16">
-                        <h2 
-                            className="font-bold text-[#2d2d2d] mb-3 md:mb-4"
-                            style={{ 
-                                fontSize: 'var(--text-marketing-section-title)', 
-                                lineHeight: 'var(--leading-marketing-section-title)' 
+                        <h2
+                            className="font-bold text-gray-900 mb-3 md:mb-4 leading-tight"
+                            style={{
+                                fontSize: 'var(--text-marketing-section-title)',
+                                lineHeight: 'var(--leading-marketing-section-title)',
                             }}
                         >
-                            지금도 전화로
-                            <br />
-                            조합 소식 전하시나요?
+                            아직도 카페와 단톡방으로
+                            <br className="md:hidden" /> 조합을 운영하시나요?
                         </h2>
-                        <p 
+                        <p
                             className="text-gray-600 font-medium"
                             style={{ fontSize: 'var(--text-marketing-section-subtitle)' }}
                         >
-                            이런 불편함을 겪고 계시지 않나요?
+                            기존 방식의 한계를 넘어, 조합온이 확실한 해결책을 드립니다.
                         </p>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8">
-                        {/* Card 1 */}
-                        <div className="bg-white border border-[#e6e6e6] rounded-xl p-5 md:p-8 text-center">
-                            <div className="w-14 h-14 md:w-16 md:h-16 mx-auto mb-4 md:mb-6 bg-[#4e8c6d]/10 rounded-full flex items-center justify-center">
-                                <Phone className="w-7 h-7 md:w-8 md:h-8 text-[#4e8c6d]" />
+                    {/* 카드 그리드 영역 */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 px-0 md:px-4">
+                        {/* 카드 1: 보안 */}
+                        <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm hover:shadow-md transition-shadow duration-300 border border-gray-100 flex flex-col items-center text-center group">
+                            <div className="w-14 h-14 md:w-16 md:h-16 bg-green-50 rounded-full flex items-center justify-center mb-4 md:mb-6 group-hover:bg-green-100 transition-colors">
+                                <LockKeyhole className="w-7 h-7 md:w-8 md:h-8 text-green-600" />
                             </div>
-                            <h3 
-                                className="font-bold text-[#2d2d2d] mb-3 md:mb-4"
-                                style={{ fontSize: 'var(--text-marketing-card-title)', lineHeight: 'var(--leading-marketing-card-title)' }}
+                            <h3
+                                className="text-lg md:text-xl font-bold text-gray-800 mb-3 md:mb-4"
+                                style={{
+                                    fontSize: 'var(--text-marketing-card-title)',
+                                    lineHeight: 'var(--leading-marketing-card-title)',
+                                }}
                             >
-                                전화로 일일이 연락
+                                불안한 정보 보안 해결
                             </h3>
-                            <p 
-                                className="text-gray-600"
-                                style={{ fontSize: 'var(--text-marketing-card-body)', lineHeight: 'var(--leading-marketing-card-body)' }}
+                            <p
+                                className="text-gray-600 leading-relaxed text-sm break-keep"
+                                style={{
+                                    fontSize: 'var(--text-marketing-card-body)',
+                                    lineHeight: 'var(--leading-marketing-card-body)',
+                                }}
                             >
-                                중요한 공지사항을 조합원 한 명 한 명에게 전화로 전달하느라 시간과 비용이 낭비됩니다.
+                                포털 검색으로 노출되는 카페와 휘발성 강한 단톡방은 위험합니다.{' '}
+                                <span className="font-semibold text-green-700">외부인 차단 보안 시스템</span>으로 조합의
+                                민감한 정보를 안전하게 보호하세요.
                             </p>
                         </div>
 
-                        {/* Card 2 */}
-                        <div className="bg-white border border-[#e6e6e6] rounded-xl p-5 md:p-8 text-center">
-                            <div className="w-14 h-14 md:w-16 md:h-16 mx-auto mb-4 md:mb-6 bg-[#4e8c6d]/10 rounded-full flex items-center justify-center">
-                                <FileText className="w-7 h-7 md:w-8 md:h-8 text-[#4e8c6d]" />
+                        {/* 카드 2: 접근성/참여 */}
+                        <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm hover:shadow-md transition-shadow duration-300 border border-gray-100 flex flex-col items-center text-center group">
+                            <div className="w-14 h-14 md:w-16 md:h-16 bg-green-50 rounded-full flex items-center justify-center mb-4 md:mb-6 group-hover:bg-green-100 transition-colors">
+                                <BellRing className="w-7 h-7 md:w-8 md:h-8 text-green-600" />
                             </div>
-                            <h3 
-                                className="font-bold text-[#2d2d2d] mb-3 md:mb-4"
-                                style={{ fontSize: 'var(--text-marketing-card-title)', lineHeight: 'var(--leading-marketing-card-title)' }}
+                            <h3
+                                className="text-lg md:text-xl font-bold text-gray-800 mb-3 md:mb-4"
+                                style={{
+                                    fontSize: 'var(--text-marketing-card-title)',
+                                    lineHeight: 'var(--leading-marketing-card-title)',
+                                }}
                             >
-                                복잡한 문서 관리
+                                확실한 정보 전달, 참여 유도
                             </h3>
-                            <p 
-                                className="text-gray-600"
-                                style={{ fontSize: 'var(--text-marketing-card-body)', lineHeight: 'var(--leading-marketing-card-body)' }}
+                            <p
+                                className="text-gray-600 leading-relaxed text-sm break-keep"
+                                style={{
+                                    fontSize: 'var(--text-marketing-card-body)',
+                                    lineHeight: 'var(--leading-marketing-card-body)',
+                                }}
                             >
-                                회의록, 계약서, 진행상황 등 중요한 문서들이 여기저기 흩어져 관리가 어렵습니다.
+                                IT가 어려운 어르신도, 무관심한 젊은 층도 문제없습니다.{' '}
+                                <span className="font-semibold text-green-700">카카오 알림톡</span>으로 소식을 전달하고,
+                                동의서 미제출자에게 참여를 적극 유도합니다.
                             </p>
                         </div>
 
-                        {/* Card 3 */}
-                        <div className="bg-white border border-[#e6e6e6] rounded-xl p-5 md:p-8 text-center">
-                            <div className="w-14 h-14 md:w-16 md:h-16 mx-auto mb-4 md:mb-6 bg-[#4e8c6d]/10 rounded-full flex items-center justify-center">
-                                <Wallet className="w-7 h-7 md:w-8 md:h-8 text-[#4e8c6d]" />
+                        {/* 카드 3: 수익구조 */}
+                        <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm hover:shadow-md transition-shadow duration-300 border border-gray-100 flex flex-col items-center text-center group">
+                            <div className="w-14 h-14 md:w-16 md:h-16 bg-green-50 rounded-full flex items-center justify-center mb-4 md:mb-6 group-hover:bg-green-100 transition-colors">
+                                <Coins className="w-7 h-7 md:w-8 md:h-8 text-green-600" />
                             </div>
-                            <h3 
-                                className="font-bold text-[#2d2d2d] mb-3 md:mb-4"
-                                style={{ fontSize: 'var(--text-marketing-card-title)', lineHeight: 'var(--leading-marketing-card-title)' }}
+                            <h3
+                                className="text-lg md:text-xl font-bold text-gray-800 mb-3 md:mb-4"
+                                style={{
+                                    fontSize: 'var(--text-marketing-card-title)',
+                                    lineHeight: 'var(--leading-marketing-card-title)',
+                                }}
                             >
-                                부족한 운영비
+                                운영 수익 창출
                             </h3>
-                            <p 
-                                className="text-gray-600"
-                                style={{ fontSize: 'var(--text-marketing-card-body)', lineHeight: 'var(--leading-marketing-card-body)' }}
+                            <p
+                                className="text-gray-600 leading-relaxed text-sm break-keep"
+                                style={{
+                                    fontSize: 'var(--text-marketing-card-body)',
+                                    lineHeight: 'var(--leading-marketing-card-body)',
+                                }}
                             >
-                                조합 홈페이지 운영에 필요한 비용을 조합원들에게 추가로 부담시키기 어렵습니다.
+                                예산 부족으로 업체에 휘둘리지 마세요. 조합온의{' '}
+                                <span className="font-semibold text-green-700">자체 광고 시스템</span>은 조합 운영에
+                                실질적인 도움이 되는 건전한 수익을 만들어 드립니다.
                             </p>
                         </div>
                     </div>
@@ -225,18 +246,18 @@ export default function MarketingPage() {
             <section className="bg-white py-12 md:py-20 px-4 md:px-6">
                 <div className="max-w-6xl mx-auto">
                     <div className="text-center mb-10 md:mb-16">
-                        <h2 
+                        <h2
                             className="font-bold text-[#2d2d2d] mb-3 md:mb-4"
-                            style={{ 
-                                fontSize: 'var(--text-marketing-section-title)', 
-                                lineHeight: 'var(--leading-marketing-section-title)' 
+                            style={{
+                                fontSize: 'var(--text-marketing-section-title)',
+                                lineHeight: 'var(--leading-marketing-section-title)',
                             }}
                         >
                             조합 운영을 위한
                             <br />
                             스마트한 기능들
                         </h2>
-                        <p 
+                        <p
                             className="text-gray-600 font-medium"
                             style={{ fontSize: 'var(--text-marketing-section-subtitle)' }}
                         >
@@ -252,15 +273,21 @@ export default function MarketingPage() {
                                     <MessageSquare className="w-5 h-5 md:w-6 md:h-6 text-[#4e8c6d]" />
                                 </div>
                                 <div>
-                                    <h3 
+                                    <h3
                                         className="font-bold text-[#2d2d2d] mb-1 md:mb-2"
-                                        style={{ fontSize: 'var(--text-marketing-card-title)', lineHeight: 'var(--leading-marketing-card-title)' }}
+                                        style={{
+                                            fontSize: 'var(--text-marketing-card-title)',
+                                            lineHeight: 'var(--leading-marketing-card-title)',
+                                        }}
                                     >
                                         카카오톡 연동
                                     </h3>
-                                    <p 
+                                    <p
                                         className="text-gray-600"
-                                        style={{ fontSize: 'var(--text-marketing-card-body)', lineHeight: 'var(--leading-marketing-card-body)' }}
+                                        style={{
+                                            fontSize: 'var(--text-marketing-card-body)',
+                                            lineHeight: 'var(--leading-marketing-card-body)',
+                                        }}
                                     >
                                         조합원들이 자주 사용하는 카카오톡으로 공지사항을 즉시 전달할 수 있습니다.
                                     </p>
@@ -275,17 +302,23 @@ export default function MarketingPage() {
                                     <Bell className="w-5 h-5 md:w-6 md:h-6 text-[#4e8c6d]" />
                                 </div>
                                 <div>
-                                    <h3 
+                                    <h3
                                         className="font-bold text-[#2d2d2d] mb-1 md:mb-2"
-                                        style={{ fontSize: 'var(--text-marketing-card-title)', lineHeight: 'var(--leading-marketing-card-title)' }}
+                                        style={{
+                                            fontSize: 'var(--text-marketing-card-title)',
+                                            lineHeight: 'var(--leading-marketing-card-title)',
+                                        }}
                                     >
                                         공지사항 전체 발송
                                     </h3>
-                                    <p 
+                                    <p
                                         className="text-gray-600"
-                                        style={{ fontSize: 'var(--text-marketing-card-body)', lineHeight: 'var(--leading-marketing-card-body)' }}
+                                        style={{
+                                            fontSize: 'var(--text-marketing-card-body)',
+                                            lineHeight: 'var(--leading-marketing-card-body)',
+                                        }}
                                     >
-                                        중요한 소식을 클릭 한 번으로 모든 조합원에게 동시에 전달합니다.
+                                        중요한 소식을 등록 한 번으로 모든 조합원에게 전달됩니다.
                                     </p>
                                 </div>
                             </div>
@@ -298,15 +331,21 @@ export default function MarketingPage() {
                                     <Clock className="w-5 h-5 md:w-6 md:h-6 text-[#4e8c6d]" />
                                 </div>
                                 <div>
-                                    <h3 
+                                    <h3
                                         className="font-bold text-[#2d2d2d] mb-1 md:mb-2"
-                                        style={{ fontSize: 'var(--text-marketing-card-title)', lineHeight: 'var(--leading-marketing-card-title)' }}
+                                        style={{
+                                            fontSize: 'var(--text-marketing-card-title)',
+                                            lineHeight: 'var(--leading-marketing-card-title)',
+                                        }}
                                     >
                                         타임라인 재개발 현황
                                     </h3>
-                                    <p 
+                                    <p
                                         className="text-gray-600"
-                                        style={{ fontSize: 'var(--text-marketing-card-body)', lineHeight: 'var(--leading-marketing-card-body)' }}
+                                        style={{
+                                            fontSize: 'var(--text-marketing-card-body)',
+                                            lineHeight: 'var(--leading-marketing-card-body)',
+                                        }}
                                     >
                                         사업 진행 상황을 시간 순서대로 한눈에 볼 수 있어 투명한 정보 공유가 가능합니다.
                                     </p>
@@ -321,15 +360,21 @@ export default function MarketingPage() {
                                     <Users className="w-5 h-5 md:w-6 md:h-6 text-[#4e8c6d]" />
                                 </div>
                                 <div>
-                                    <h3 
+                                    <h3
                                         className="font-bold text-[#2d2d2d] mb-1 md:mb-2"
-                                        style={{ fontSize: 'var(--text-marketing-card-title)', lineHeight: 'var(--leading-marketing-card-title)' }}
+                                        style={{
+                                            fontSize: 'var(--text-marketing-card-title)',
+                                            lineHeight: 'var(--leading-marketing-card-title)',
+                                        }}
                                     >
                                         어르신을 위한 UI
                                     </h3>
-                                    <p 
+                                    <p
                                         className="text-gray-600"
-                                        style={{ fontSize: 'var(--text-marketing-card-body)', lineHeight: 'var(--leading-marketing-card-body)' }}
+                                        style={{
+                                            fontSize: 'var(--text-marketing-card-body)',
+                                            lineHeight: 'var(--leading-marketing-card-body)',
+                                        }}
                                     >
                                         큰 글씨, 명확한 버튼, 간단한 구조로 누구나 쉽게 사용할 수 있습니다.
                                     </p>
@@ -344,15 +389,21 @@ export default function MarketingPage() {
                                     <Palette className="w-5 h-5 md:w-6 md:h-6 text-[#4e8c6d]" />
                                 </div>
                                 <div>
-                                    <h3 
+                                    <h3
                                         className="font-bold text-[#2d2d2d] mb-1 md:mb-2"
-                                        style={{ fontSize: 'var(--text-marketing-card-title)', lineHeight: 'var(--leading-marketing-card-title)' }}
+                                        style={{
+                                            fontSize: 'var(--text-marketing-card-title)',
+                                            lineHeight: 'var(--leading-marketing-card-title)',
+                                        }}
                                     >
                                         조합 맞춤형 테마
                                     </h3>
-                                    <p 
+                                    <p
                                         className="text-gray-600"
-                                        style={{ fontSize: 'var(--text-marketing-card-body)', lineHeight: 'var(--leading-marketing-card-body)' }}
+                                        style={{
+                                            fontSize: 'var(--text-marketing-card-body)',
+                                            lineHeight: 'var(--leading-marketing-card-body)',
+                                        }}
                                     >
                                         우리 조합만의 색상과 로고를 적용하여 브랜드 아이덴티티를 구축합니다.
                                     </p>
@@ -367,15 +418,21 @@ export default function MarketingPage() {
                                     <Smartphone className="w-5 h-5 md:w-6 md:h-6 text-[#4e8c6d]" />
                                 </div>
                                 <div>
-                                    <h3 
+                                    <h3
                                         className="font-bold text-[#2d2d2d] mb-1 md:mb-2"
-                                        style={{ fontSize: 'var(--text-marketing-card-title)', lineHeight: 'var(--leading-marketing-card-title)' }}
+                                        style={{
+                                            fontSize: 'var(--text-marketing-card-title)',
+                                            lineHeight: 'var(--leading-marketing-card-title)',
+                                        }}
                                     >
                                         모바일 최적화
                                     </h3>
-                                    <p 
+                                    <p
                                         className="text-gray-600"
-                                        style={{ fontSize: 'var(--text-marketing-card-body)', lineHeight: 'var(--leading-marketing-card-body)' }}
+                                        style={{
+                                            fontSize: 'var(--text-marketing-card-body)',
+                                            lineHeight: 'var(--leading-marketing-card-body)',
+                                        }}
                                     >
                                         PC는 물론 스마트폰에서도 편리하게 이용할 수 있는 반응형 디자인입니다.
                                     </p>
@@ -393,25 +450,25 @@ export default function MarketingPage() {
                     <div className="text-center mb-10 md:mb-16">
                         <div className="inline-flex items-center gap-2 px-3 md:px-4 py-2 bg-[#4e8c6d]/10 rounded-full mb-4 md:mb-6">
                             <DollarSign className="w-4 h-4 text-[#4e8c6d]" />
-                            <span 
+                            <span
                                 className="text-[#4e8c6d] font-bold"
                                 style={{ fontSize: 'var(--text-marketing-card-body)' }}
                             >
                                 추가 비용 부담 없이
                             </span>
                         </div>
-                        <h2 
+                        <h2
                             className="font-bold text-[#2d2d2d] mb-3 md:mb-4"
-                            style={{ 
-                                fontSize: 'var(--text-marketing-section-title)', 
-                                lineHeight: 'var(--leading-marketing-section-title)' 
+                            style={{
+                                fontSize: 'var(--text-marketing-section-title)',
+                                lineHeight: 'var(--leading-marketing-section-title)',
                             }}
                         >
                             운영비 걱정 없이
                             <br />
                             조합을 운영하세요
                         </h2>
-                        <p 
+                        <p
                             className="text-gray-600 font-medium"
                             style={{ fontSize: 'var(--text-marketing-section-subtitle)' }}
                         >
@@ -426,15 +483,21 @@ export default function MarketingPage() {
                             <div className="w-14 h-14 md:w-16 md:h-16 mx-auto mb-4 md:mb-6 bg-[#4e8c6d]/10 rounded-full flex items-center justify-center">
                                 <HandCoins className="w-7 h-7 md:w-8 md:h-8 text-[#4e8c6d]" />
                             </div>
-                            <h3 
+                            <h3
                                 className="font-bold text-[#2d2d2d] mb-3 md:mb-4"
-                                style={{ fontSize: 'var(--text-marketing-card-title)', lineHeight: 'var(--leading-marketing-card-title)' }}
+                                style={{
+                                    fontSize: 'var(--text-marketing-card-title)',
+                                    lineHeight: 'var(--leading-marketing-card-title)',
+                                }}
                             >
                                 협력사 광고 수익
                             </h3>
-                            <p 
+                            <p
                                 className="text-gray-600"
-                                style={{ fontSize: 'var(--text-marketing-card-body)', lineHeight: 'var(--leading-marketing-card-body)' }}
+                                style={{
+                                    fontSize: 'var(--text-marketing-card-body)',
+                                    lineHeight: 'var(--leading-marketing-card-body)',
+                                }}
                             >
                                 부동산, 이사업체 등 관련 업체의 광고를 게재하여 수익을 창출합니다
                             </p>
@@ -445,15 +508,21 @@ export default function MarketingPage() {
                             <div className="w-14 h-14 md:w-16 md:h-16 mx-auto mb-4 md:mb-6 bg-[#5fa37c]/10 rounded-full flex items-center justify-center">
                                 <DollarSign className="w-7 h-7 md:w-8 md:h-8 text-[#4e8c6d]" />
                             </div>
-                            <h3 
+                            <h3
                                 className="font-bold text-[#2d2d2d] mb-3 md:mb-4"
-                                style={{ fontSize: 'var(--text-marketing-card-title)', lineHeight: 'var(--leading-marketing-card-title)' }}
+                                style={{
+                                    fontSize: 'var(--text-marketing-card-title)',
+                                    lineHeight: 'var(--leading-marketing-card-title)',
+                                }}
                             >
                                 운영비 지원
                             </h3>
-                            <p 
+                            <p
                                 className="text-gray-600"
-                                style={{ fontSize: 'var(--text-marketing-card-body)', lineHeight: 'var(--leading-marketing-card-body)' }}
+                                style={{
+                                    fontSize: 'var(--text-marketing-card-body)',
+                                    lineHeight: 'var(--leading-marketing-card-body)',
+                                }}
                             >
                                 발생한 수익으로 홈페이지 운영비와 유지보수 비용을 충당합니다
                             </p>
@@ -464,15 +533,21 @@ export default function MarketingPage() {
                             <div className="w-14 h-14 md:w-16 md:h-16 mx-auto mb-4 md:mb-6 bg-[#4e8c6d]/10 rounded-full flex items-center justify-center">
                                 <PiggyBank className="w-7 h-7 md:w-8 md:h-8 text-[#4e8c6d]" />
                             </div>
-                            <h3 
+                            <h3
                                 className="font-bold text-[#2d2d2d] mb-3 md:mb-4"
-                                style={{ fontSize: 'var(--text-marketing-card-title)', lineHeight: 'var(--leading-marketing-card-title)' }}
+                                style={{
+                                    fontSize: 'var(--text-marketing-card-title)',
+                                    lineHeight: 'var(--leading-marketing-card-title)',
+                                }}
                             >
                                 조합원 부담 최소화
                             </h3>
-                            <p 
+                            <p
                                 className="text-gray-600"
-                                style={{ fontSize: 'var(--text-marketing-card-body)', lineHeight: 'var(--leading-marketing-card-body)' }}
+                                style={{
+                                    fontSize: 'var(--text-marketing-card-body)',
+                                    lineHeight: 'var(--leading-marketing-card-body)',
+                                }}
                             >
                                 조합원들에게 추가 비용을 부담시키지 않고 안정적인 운영이 가능합니다
                             </p>
@@ -486,15 +561,21 @@ export default function MarketingPage() {
                                 <Megaphone className="w-12 h-12 md:w-16 md:h-16 text-[#4e8c6d]" />
                             </div>
                             <div className="text-center md:text-left">
-                                <h3 
+                                <h3
                                     className="font-bold text-[#2d2d2d] mb-3 md:mb-4"
-                                    style={{ fontSize: 'var(--text-marketing-card-title)', lineHeight: 'var(--leading-marketing-card-title)' }}
+                                    style={{
+                                        fontSize: 'var(--text-marketing-card-title)',
+                                        lineHeight: 'var(--leading-marketing-card-title)',
+                                    }}
                                 >
                                     광고를 통한 운영 지원
                                 </h3>
-                                <p 
+                                <p
                                     className="text-gray-600"
-                                    style={{ fontSize: 'var(--text-marketing-card-body)', lineHeight: 'var(--leading-marketing-card-body)' }}
+                                    style={{
+                                        fontSize: 'var(--text-marketing-card-body)',
+                                        lineHeight: 'var(--leading-marketing-card-body)',
+                                    }}
                                 >
                                     조합원들에게 유용한 정보를 제공하는 협력사 광고를 통해
                                     <br className="hidden md:block" />
@@ -510,16 +591,16 @@ export default function MarketingPage() {
             <section className="bg-white py-12 md:py-20 px-4 md:px-6">
                 <div className="max-w-3xl mx-auto">
                     <div className="text-center mb-10 md:mb-16">
-                        <h2 
+                        <h2
                             className="font-bold text-[#2d2d2d] mb-3 md:mb-4"
-                            style={{ 
-                                fontSize: 'var(--text-marketing-section-title)', 
-                                lineHeight: 'var(--leading-marketing-section-title)' 
+                            style={{
+                                fontSize: 'var(--text-marketing-section-title)',
+                                lineHeight: 'var(--leading-marketing-section-title)',
                             }}
                         >
                             자주 묻는 질문
                         </h2>
-                        <p 
+                        <p
                             className="text-gray-600 font-medium"
                             style={{ fontSize: 'var(--text-marketing-section-subtitle)' }}
                         >
@@ -534,7 +615,7 @@ export default function MarketingPage() {
                                     onClick={() => toggleFaq(index)}
                                     className="w-full px-4 md:px-6 py-4 md:py-5 flex items-center justify-between text-left cursor-pointer hover:bg-gray-50 transition-colors"
                                 >
-                                    <span 
+                                    <span
                                         className="font-bold text-[#2d2d2d] pr-2"
                                         style={{ fontSize: 'var(--text-marketing-faq-question)' }}
                                     >
@@ -548,9 +629,12 @@ export default function MarketingPage() {
                                 </button>
                                 {openFaq === index && (
                                     <div className="px-4 md:px-6 pb-4 md:pb-5">
-                                        <p 
+                                        <p
                                             className="text-gray-600"
-                                            style={{ fontSize: 'var(--text-marketing-faq-answer)', lineHeight: 'var(--leading-marketing-card-body)' }}
+                                            style={{
+                                                fontSize: 'var(--text-marketing-faq-answer)',
+                                                lineHeight: 'var(--leading-marketing-card-body)',
+                                            }}
                                         >
                                             {item.answer}
                                         </p>
@@ -565,20 +649,23 @@ export default function MarketingPage() {
             {/* CTA Section */}
             <section className="bg-gradient-to-b from-[#4e8c6d] to-[#5fa37c] py-16 md:py-24 px-4 md:px-6">
                 <div className="max-w-4xl mx-auto text-center">
-                    <h2 
+                    <h2
                         className="font-bold text-white mb-4 md:mb-6"
-                        style={{ 
-                            fontSize: 'var(--text-marketing-section-title)', 
-                            lineHeight: 'var(--leading-marketing-section-title)' 
+                        style={{
+                            fontSize: 'var(--text-marketing-section-title)',
+                            lineHeight: 'var(--leading-marketing-section-title)',
                         }}
                     >
                         오늘부터 우리 조합의
                         <br />
                         홈페이지를 시작해보세요
                     </h2>
-                    <p 
+                    <p
                         className="text-white/90 mb-8 md:mb-10 font-medium"
-                        style={{ fontSize: 'var(--text-marketing-subtitle)', lineHeight: 'var(--leading-marketing-subtitle)' }}
+                        style={{
+                            fontSize: 'var(--text-marketing-subtitle)',
+                            lineHeight: 'var(--leading-marketing-subtitle)',
+                        }}
                     >
                         조합원들과의 더 나은 소통, 투명한 정보 공유,
                         <br />
@@ -605,10 +692,7 @@ export default function MarketingPage() {
                     </div>
 
                     <div className="border-t border-white/20 pt-6 md:pt-8">
-                        <p 
-                            className="text-white/80"
-                            style={{ fontSize: 'var(--text-marketing-card-body)' }}
-                        >
+                        <p className="text-white/80" style={{ fontSize: 'var(--text-marketing-card-body)' }}>
                             💬 빠른 상담을 원하시나요? <span className="text-white font-bold">1588-XXXX</span> 또는{' '}
                             <span className="text-white font-bold">contact@example.com</span>으로 연락주세요
                         </p>
@@ -619,15 +703,12 @@ export default function MarketingPage() {
             {/* 테스트용 조합 바로가기 (맨 아래 배치) */}
             <section className="bg-gray-50 py-10 md:py-12 px-4 md:px-6">
                 <div className="max-w-md mx-auto p-5 md:p-8 border rounded-2xl bg-white shadow-sm">
-                    <h3 
-                        className="font-bold mb-4"
-                        style={{ fontSize: 'var(--text-marketing-card-title)' }}
-                    >
+                    <h3 className="font-bold mb-4" style={{ fontSize: 'var(--text-marketing-card-title)' }}>
                         테스트용 조합 바로가기
                     </h3>
                     <div className="space-y-4">
                         {isLoading ? (
-                            <div 
+                            <div
                                 className="text-center py-4 text-gray-500"
                                 style={{ fontSize: 'var(--text-marketing-card-body)' }}
                             >
