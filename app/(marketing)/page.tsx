@@ -525,7 +525,13 @@ export default function MarketingPage() {
                                 <ShieldCheck className="w-4 h-4 text-[#4e8c6d]" />
                                 <span className="text-[#4e8c6d] font-bold text-sm">철통 보안 시스템</span>
                             </div>
-                            <h2 className="text-3xl md:text-4xl font-bold text-[#2d2d2d] mb-6 leading-tight">
+                            <h2
+                                className="font-bold text-[#2d2d2d] mb-3 md:mb-4"
+                                style={{
+                                    fontSize: 'var(--text-marketing-section-title)',
+                                    lineHeight: 'var(--leading-marketing-section-title)',
+                                }}
+                            >
                                 외부인은 절대 볼 수 없는
                                 <br />
                                 <span className="text-[#4e8c6d]">프라이빗 조합 공간</span>
@@ -537,8 +543,22 @@ export default function MarketingPage() {
                                         <EyeOff className="w-5 h-5 text-gray-600" />
                                     </div>
                                     <div>
-                                        <h3 className="font-bold text-lg text-[#2d2d2d]">검색 노출 원천 차단</h3>
-                                        <p className="text-gray-600 text-sm leading-relaxed mt-1">
+                                        <h3
+                                            className="font-bold text-gray-800"
+                                            style={{
+                                                fontSize: 'var(--text-marketing-card-title)',
+                                                lineHeight: 'var(--leading-marketing-card-title)',
+                                            }}
+                                        >
+                                            검색 노출 원천 차단
+                                        </h3>
+                                        <p
+                                            className="text-gray-600 mt-1"
+                                            style={{
+                                                fontSize: 'var(--text-marketing-card-body)',
+                                                lineHeight: 'var(--leading-marketing-card-body)',
+                                            }}
+                                        >
                                             네이버, 구글 등 검색 엔진의 접근을 기술적으로 막아
                                             <br className="hidden md:block" />
                                             조합 내부 정보가 외부로 유출되는 것을 방지합니다.
@@ -550,8 +570,22 @@ export default function MarketingPage() {
                                         <UserCheck className="w-5 h-5 text-gray-600" />
                                     </div>
                                     <div>
-                                        <h3 className="font-bold text-lg text-[#2d2d2d]">100% 실명 조합원 인증</h3>
-                                        <p className="text-gray-600 text-sm leading-relaxed mt-1">
+                                        <h3
+                                            className="font-bold text-gray-800"
+                                            style={{
+                                                fontSize: 'var(--text-marketing-card-title)',
+                                                lineHeight: 'var(--leading-marketing-card-title)',
+                                            }}
+                                        >
+                                            100% 실명 조합원 인증
+                                        </h3>
+                                        <p
+                                            className="text-gray-600 mt-1"
+                                            style={{
+                                                fontSize: 'var(--text-marketing-card-body)',
+                                                lineHeight: 'var(--leading-marketing-card-body)',
+                                            }}
+                                        >
                                             가입 시 조합원 명부와 대조하여 실명 인증을 거친
                                             <br className="hidden md:block" />
                                             실제 소유주만 활동할 수 있습니다.
@@ -563,8 +597,22 @@ export default function MarketingPage() {
                                         <FileKey className="w-5 h-5 text-gray-600" />
                                     </div>
                                     <div>
-                                        <h3 className="font-bold text-lg text-[#2d2d2d]">등급별 권한 관리</h3>
-                                        <p className="text-gray-600 text-sm leading-relaxed mt-1">
+                                        <h3
+                                            className="font-bold text-gray-800"
+                                            style={{
+                                                fontSize: 'var(--text-marketing-card-title)',
+                                                lineHeight: 'var(--leading-marketing-card-title)',
+                                            }}
+                                        >
+                                            등급별 권한 관리
+                                        </h3>
+                                        <p
+                                            className="text-gray-600 mt-1"
+                                            style={{
+                                                fontSize: 'var(--text-marketing-card-body)',
+                                                lineHeight: 'var(--leading-marketing-card-body)',
+                                            }}
+                                        >
                                             조합원, 대의원, 임원 등 직책에 따라
                                             <br className="hidden md:block" />
                                             정보 열람 권한을 체계적으로 구분합니다.
@@ -590,12 +638,21 @@ export default function MarketingPage() {
                             <MessageCircle className="w-4 h-4 text-[#4e8c6d]" />
                             <span className="text-[#4e8c6d] font-bold text-sm">누구나 쉬운 소통</span>
                         </div>
-                        <h2 className="text-3xl md:text-4xl font-bold text-[#2d2d2d] leading-tight mb-4">
+                        <h2
+                            className="font-bold text-[#2d2d2d] mb-3 md:mb-4"
+                            style={{
+                                fontSize: 'var(--text-marketing-section-title)',
+                                lineHeight: 'var(--leading-marketing-section-title)',
+                            }}
+                        >
                             어르신도 문제없는
                             <br />
                             <span className="text-[#4e8c6d]">가장 쉬운 디지털 소통</span>
                         </h2>
-                        <p className="text-gray-600 max-w-2xl mx-auto">
+                        <p
+                            className="text-gray-600 font-medium max-w-2xl mx-auto"
+                            style={{ fontSize: 'var(--text-marketing-section-subtitle)' }}
+                        >
                             복잡한 앱 사용법을 배울 필요 없이, <br className="md:hidden" />
                             전국민이 쓰는 익숙한 방식 그대로 연결됩니다.
                         </p>
@@ -655,8 +712,22 @@ export default function MarketingPage() {
                             <div className="w-10 h-10 bg-[#FEE500]/20 rounded-lg flex items-center justify-center mb-3">
                                 <MessageCircle className="w-5 h-5 text-[#3C1E1E]" />
                             </div>
-                            <h3 className="font-bold text-gray-800 mb-2">카카오 알림톡 연동</h3>
-                            <p className="text-sm text-gray-500">
+                            <h3
+                                className="font-bold text-gray-800 mb-2"
+                                style={{
+                                    fontSize: 'var(--text-marketing-card-title)',
+                                    lineHeight: 'var(--leading-marketing-card-title)',
+                                }}
+                            >
+                                카카오 알림톡 연동
+                            </h3>
+                            <p
+                                className="text-gray-600"
+                                style={{
+                                    fontSize: 'var(--text-marketing-card-body)',
+                                    lineHeight: 'var(--leading-marketing-card-body)',
+                                }}
+                            >
                                 별도 앱 설치 없이, 전국민이 쓰는 카카오톡으로 공지사항이 즉시 전달됩니다.
                             </p>
                         </div>
@@ -664,8 +735,22 @@ export default function MarketingPage() {
                             <div className="w-10 h-10 bg-[#4e8c6d]/10 rounded-lg flex items-center justify-center mb-3">
                                 <Smile className="w-5 h-5 text-[#4e8c6d]" />
                             </div>
-                            <h3 className="font-bold text-gray-800 mb-2">어르신 전용 큰 글씨</h3>
-                            <p className="text-sm text-gray-500">
+                            <h3
+                                className="font-bold text-gray-800 mb-2"
+                                style={{
+                                    fontSize: 'var(--text-marketing-card-title)',
+                                    lineHeight: 'var(--leading-marketing-card-title)',
+                                }}
+                            >
+                                어르신 전용 큰 글씨
+                            </h3>
+                            <p
+                                className="text-gray-600"
+                                style={{
+                                    fontSize: 'var(--text-marketing-card-body)',
+                                    lineHeight: 'var(--leading-marketing-card-body)',
+                                }}
+                            >
                                 작은 글씨가 힘든 어르신을 위해 글자 크기를 키우고 메뉴를 단순화했습니다.
                             </p>
                         </div>
@@ -673,8 +758,22 @@ export default function MarketingPage() {
                             <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center mb-3">
                                 <Smartphone className="w-5 h-5 text-blue-500" />
                             </div>
-                            <h3 className="font-bold text-gray-800 mb-2">100% 모바일 최적화</h3>
-                            <p className="text-sm text-gray-500">
+                            <h3
+                                className="font-bold text-gray-800 mb-2"
+                                style={{
+                                    fontSize: 'var(--text-marketing-card-title)',
+                                    lineHeight: 'var(--leading-marketing-card-title)',
+                                }}
+                            >
+                                100% 모바일 최적화
+                            </h3>
+                            <p
+                                className="text-gray-600"
+                                style={{
+                                    fontSize: 'var(--text-marketing-card-body)',
+                                    lineHeight: 'var(--leading-marketing-card-body)',
+                                }}
+                            >
                                 PC, 태블릿, 스마트폰 어디서든 깨지지 않는 최적화된 화면을 제공합니다.
                             </p>
                         </div>
@@ -696,7 +795,13 @@ export default function MarketingPage() {
                                 <DollarSign className="w-4 h-4 text-[#4e8c6d]" />
                                 <span className="text-[#4e8c6d] font-bold text-sm">운영비 걱정 없는 조합</span>
                             </div>
-                            <h2 className="text-3xl md:text-4xl font-bold text-[#2d2d2d] mb-6 leading-tight">
+                            <h2
+                                className="font-bold text-[#2d2d2d] mb-3 md:mb-4"
+                                style={{
+                                    fontSize: 'var(--text-marketing-section-title)',
+                                    lineHeight: 'var(--leading-marketing-section-title)',
+                                }}
+                            >
                                 추가 비용 부담 없이
                                 <br />
                                 <span className="text-[#4e8c6d]">스스로 돈 버는 홈페이지</span>
@@ -708,8 +813,22 @@ export default function MarketingPage() {
                                         <LayoutTemplate className="w-5 h-5 text-gray-600" />
                                     </div>
                                     <div>
-                                        <h3 className="font-bold text-lg text-[#2d2d2d]">협력사 광고 수익</h3>
-                                        <p className="text-gray-600 text-sm leading-relaxed mt-1">
+                                        <h3
+                                            className="font-bold text-gray-800"
+                                            style={{
+                                                fontSize: 'var(--text-marketing-card-title)',
+                                                lineHeight: 'var(--leading-marketing-card-title)',
+                                            }}
+                                        >
+                                            협력사 광고 수익
+                                        </h3>
+                                        <p
+                                            className="text-gray-600 mt-1"
+                                            style={{
+                                                fontSize: 'var(--text-marketing-card-body)',
+                                                lineHeight: 'var(--leading-marketing-card-body)',
+                                            }}
+                                        >
                                             부동산, 이사업체 등 조합원에게 필요한
                                             <br className="hidden md:block" />
                                             관련 업체의 광고를 게재하여 수익을 창출합니다.
@@ -721,8 +840,22 @@ export default function MarketingPage() {
                                         <HandCoins className="w-5 h-5 text-gray-600" />
                                     </div>
                                     <div>
-                                        <h3 className="font-bold text-lg text-[#2d2d2d]">운영비 자동 충당</h3>
-                                        <p className="text-gray-600 text-sm leading-relaxed mt-1">
+                                        <h3
+                                            className="font-bold text-gray-800"
+                                            style={{
+                                                fontSize: 'var(--text-marketing-card-title)',
+                                                lineHeight: 'var(--leading-marketing-card-title)',
+                                            }}
+                                        >
+                                            운영비 자동 충당
+                                        </h3>
+                                        <p
+                                            className="text-gray-600 mt-1"
+                                            style={{
+                                                fontSize: 'var(--text-marketing-card-body)',
+                                                lineHeight: 'var(--leading-marketing-card-body)',
+                                            }}
+                                        >
                                             발생한 광고 수익으로 매달 발생하는
                                             <br className="hidden md:block" />
                                             홈페이지 서버비와 유지보수 비용을 해결합니다.
@@ -734,8 +867,22 @@ export default function MarketingPage() {
                                         <PiggyBank className="w-5 h-5 text-gray-600" />
                                     </div>
                                     <div>
-                                        <h3 className="font-bold text-lg text-[#2d2d2d]">조합원 부담 Zero</h3>
-                                        <p className="text-gray-600 text-sm leading-relaxed mt-1">
+                                        <h3
+                                            className="font-bold text-gray-800"
+                                            style={{
+                                                fontSize: 'var(--text-marketing-card-title)',
+                                                lineHeight: 'var(--leading-marketing-card-title)',
+                                            }}
+                                        >
+                                            조합원 부담 Zero
+                                        </h3>
+                                        <p
+                                            className="text-gray-600 mt-1"
+                                            style={{
+                                                fontSize: 'var(--text-marketing-card-body)',
+                                                lineHeight: 'var(--leading-marketing-card-body)',
+                                            }}
+                                        >
                                             결과적으로 조합원은 추가 비용 부담 없이
                                             <br className="hidden md:block" />
                                             안정적이고 질 높은 서비스를 이용할 수 있습니다.
@@ -797,7 +944,7 @@ export default function MarketingPage() {
             </section>
 
             {/* FAQ Section */}
-            <section className="bg-white py-12 md:py-20 px-4 md:px-6">
+            {/* <section className="bg-white py-12 md:py-20 px-4 md:px-6">
                 <div className="max-w-3xl mx-auto">
                     <div className="text-center mb-10 md:mb-16">
                         <h2
@@ -853,7 +1000,7 @@ export default function MarketingPage() {
                         ))}
                     </div>
                 </div>
-            </section>
+            </section> */}
 
             {/* CTA Section */}
             <section className="bg-gradient-to-b from-[#4e8c6d] to-[#5fa37c] py-16 md:py-24 px-4 md:px-6">
@@ -890,20 +1037,12 @@ export default function MarketingPage() {
                             상담하기
                             <ArrowRight className="w-4 h-4" />
                         </button>
-                        <button
-                            onClick={() => router.push('/features')}
-                            className="inline-flex items-center justify-center gap-2 px-6 md:px-8 py-3 border-2 border-white/70 text-white rounded-lg font-bold hover:bg-white/10 transition-colors cursor-pointer"
-                            style={{ fontSize: 'var(--text-marketing-button)' }}
-                        >
-                            <FileDown className="w-4 h-4" />
-                            서비스 소개서 보기
-                        </button>
                     </div>
 
                     <div className="border-t border-white/20 pt-6 md:pt-8">
                         <p className="text-white/80" style={{ fontSize: 'var(--text-marketing-card-body)' }}>
                             💬 빠른 상담을 원하시나요? <span className="text-white font-bold">1588-XXXX</span> 또는{' '}
-                            <span className="text-white font-bold">contact@example.com</span>으로 연락주세요
+                            <span className="text-white font-bold">injostar@naver.com</span>으로 연락주세요
                         </p>
                     </div>
                 </div>

@@ -7,13 +7,13 @@ export function MarketingFooter() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 mb-8 md:mb-[37px]">
                     {/* 회사 소개 */}
                     <div className="flex flex-col gap-3 md:gap-[18px]">
-                        <h3 
+                        <h3
                             className="font-bold"
                             style={{ fontSize: 'var(--text-marketing-footer-title)', lineHeight: '1.5' }}
                         >
                             조합온
                         </h3>
-                        <div 
+                        <div
                             className="text-[#d1d5dc]"
                             style={{ fontSize: 'var(--text-marketing-footer-body)', lineHeight: '1.7' }}
                         >
@@ -24,33 +24,29 @@ export function MarketingFooter() {
 
                     {/* 연락처 */}
                     <div className="flex flex-col gap-3 md:gap-[18px]">
-                        <h4 
+                        <h4
                             className="font-bold"
                             style={{ fontSize: 'var(--text-marketing-footer-title)', lineHeight: '1.5' }}
                         >
                             연락처
                         </h4>
-                        <div 
+                        <div
                             className="flex flex-col gap-2 md:gap-[9px] text-[#d1d5dc]"
                             style={{ fontSize: 'var(--text-marketing-footer-body)', lineHeight: '1.5' }}
                         >
                             <p>
                                 전화:{' '}
-                                <a
-                                    href="tel:0212345678"
-                                    className="hover:text-white transition-colors cursor-pointer"
-                                >
-                                    02-1234-5678
+                                <a href="tel:0212345678" className="hover:text-white transition-colors cursor-pointer">
+                                    010-3504-8164
                                 </a>
                             </p>
-                            <p>팩스: 02-1234-5679</p>
                             <p>
                                 이메일:{' '}
                                 <a
                                     href="mailto:contact@johapon.com"
                                     className="hover:text-white transition-colors cursor-pointer"
                                 >
-                                    contact@johapon.com
+                                    injostar@naver.com
                                 </a>
                             </p>
                         </div>
@@ -58,25 +54,25 @@ export function MarketingFooter() {
 
                     {/* 오시는 길 */}
                     <div className="flex flex-col gap-3 md:gap-[18px]">
-                        <h4 
+                        <h4
                             className="font-bold"
                             style={{ fontSize: 'var(--text-marketing-footer-title)', lineHeight: '1.5' }}
                         >
                             오시는 길
                         </h4>
-                        <div 
+                        <div
                             className="text-[#d1d5dc]"
                             style={{ fontSize: 'var(--text-marketing-footer-body)', lineHeight: '1.7' }}
                         >
-                            <p>서울특별시 강남구 테헤란로 123</p>
-                            <p>조합온 빌딩 10층</p>
+                            <p></p>
+                            <p></p>
                         </div>
                     </div>
                 </div>
 
                 {/* Copyright */}
                 <div className="border-t border-[#364153] pt-6 md:pt-[37px]">
-                    <p 
+                    <p
                         className="text-[#99a1af] text-center"
                         style={{ fontSize: 'var(--text-marketing-footer-body)', lineHeight: '1.5' }}
                     >
