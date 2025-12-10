@@ -29,7 +29,7 @@ export default function SlideEditPage({ params }: SlideEditPageProps) {
     const { data: slide, isLoading, error } = useHeroSlide(id);
     const updateMutation = useUpdateHeroSlide();
     const { openConfirmModal, openAlertModal } = useModalStore();
-    const [pendingData, setPendingData] = useState<FormData | null>(null);
+    const [_pendingData, setPendingData] = useState<FormData | null>(null);
 
     // 권한 체크
     useEffect(() => {

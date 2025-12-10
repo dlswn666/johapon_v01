@@ -22,7 +22,7 @@ export default function NewSlidePage() {
     const { isAdmin, isLoading: isAuthLoading } = useAuth();
     const createMutation = useCreateHeroSlide();
     const { openConfirmModal, openAlertModal } = useModalStore();
-    const [pendingData, setPendingData] = useState<FormData | null>(null);
+    const [_pendingData, setPendingData] = useState<FormData | null>(null);
 
     // 권한 체크
     useEffect(() => {

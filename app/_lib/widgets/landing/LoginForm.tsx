@@ -17,7 +17,7 @@ interface LoginFormProps {
  * - 소셜 로그인 버튼 (카카오, 네이버)
  * - 테스트 로그인 버튼
  */
-export function LoginForm({ className, unionName, onLoginSuccess }: LoginFormProps) {
+export function LoginForm({ className, unionName: _unionName, onLoginSuccess }: LoginFormProps) {
     const { switchUser } = useAuth();
     const [userId, setUserId] = useState('');
     const [password, setPassword] = useState('');
@@ -43,7 +43,7 @@ export function LoginForm({ className, unionName, onLoginSuccess }: LoginFormPro
             } else {
                 setError('아이디 또는 비밀번호가 일치하지 않습니다.');
             }
-        } catch (err) {
+        } catch (_err) {
             setError('로그인 중 오류가 발생했습니다.');
         } finally {
             setIsLoading(false);

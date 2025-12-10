@@ -20,7 +20,7 @@ interface HeroSliderProps {
  * - 이미지가 없으면 "점검중..." 표시
  * - link_url이 있으면 클릭 가능 (cursor: pointer)
  */
-export function HeroSlider({ slides, autoPlayInterval = 4000, className, title, description }: HeroSliderProps) {
+export function HeroSlider({ slides, autoPlayInterval = 4000, className, title: _title, description: _description }: HeroSliderProps) {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isTransitioning, setIsTransitioning] = useState(false);
     const sliderRef = useRef<HTMLDivElement>(null);
