@@ -22,6 +22,17 @@ import {
     LockKeyhole,
     BellRing,
     Coins,
+    EyeOff,
+    Eye,
+    ShieldCheck,
+    UserCheck,
+    MessageCircle,
+    FileKey,
+    Search,
+    XCircle,
+    Smile,
+    LayoutTemplate,
+    ArrowDown,
 } from 'lucide-react';
 
 type Union = Database['public']['Tables']['unions']['Row'];
@@ -104,7 +115,7 @@ export default function MarketingPage() {
                                 lineHeight: 'var(--leading-marketing-hero)',
                             }}
                         >
-                            우리 조합의 홈페이지,
+                            우리 조합의 홈페이지 개설,
                             <br />
                             이제는 더 쉽고 스마트하게
                         </h1>
@@ -250,24 +261,24 @@ export default function MarketingPage() {
                                 lineHeight: 'var(--leading-marketing-section-title)',
                             }}
                         >
-                            조합 운영을 위한
+                            안전한 보안, 쉬운 소통
                             <br />
-                            스마트한 기능들
+                            든든한 수익 구조까지
                         </h2>
                         <p
                             className="text-gray-600 font-medium"
                             style={{ fontSize: 'var(--text-marketing-section-subtitle)' }}
                         >
-                            실제로 필요한 기능만 모았습니다
+                            조합 운영에 꼭 필요한 핵심 기능을 담았습니다.
                         </p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                         {/* Feature 1 */}
-                        <div className="bg-white border border-[#e6e6e6] rounded-xl p-5 md:p-8">
-                            <div className="flex gap-3 md:gap-4">
+                        <div className="bg-white border border-[#e6e6e6] rounded-xl p-5 md:p-8 h-full">
+                            <div className="flex gap-3 md:gap-4 h-full">
                                 <div className="w-10 h-10 md:w-12 md:h-12 bg-[#4e8c6d]/10 rounded-lg flex items-center justify-center shrink-0">
-                                    <MessageSquare className="w-5 h-5 md:w-6 md:h-6 text-[#4e8c6d]" />
+                                    <LockKeyhole className="w-5 h-5 md:w-6 md:h-6 text-[#4e8c6d]" />
                                 </div>
                                 <div>
                                     <h3
@@ -277,7 +288,7 @@ export default function MarketingPage() {
                                             lineHeight: 'var(--leading-marketing-card-title)',
                                         }}
                                     >
-                                        카카오톡 연동
+                                        검증된 조합 전용 공간
                                     </h3>
                                     <p
                                         className="text-gray-600"
@@ -286,17 +297,19 @@ export default function MarketingPage() {
                                             lineHeight: 'var(--leading-marketing-card-body)',
                                         }}
                                     >
-                                        조합원들이 자주 사용하는 카카오톡으로 공지사항을 즉시 전달할 수 있습니다.
+                                        실명 인증과 명부 대조를 통해 외부인 접속을 원천 차단하여
+                                        <br /> 소중한 정보를 안전하게 <br className="hidden md:block" />
+                                        지킵니다.
                                     </p>
                                 </div>
                             </div>
                         </div>
 
                         {/* Feature 2 */}
-                        <div className="bg-white border border-[#e6e6e6] rounded-xl p-5 md:p-8">
-                            <div className="flex gap-3 md:gap-4">
+                        <div className="bg-white border border-[#e6e6e6] rounded-xl p-5 md:p-8 h-full">
+                            <div className="flex gap-3 md:gap-4 h-full">
                                 <div className="w-10 h-10 md:w-12 md:h-12 bg-[#4e8c6d]/10 rounded-lg flex items-center justify-center shrink-0">
-                                    <Bell className="w-5 h-5 md:w-6 md:h-6 text-[#4e8c6d]" />
+                                    <EyeOff className="w-5 h-5 md:w-6 md:h-6 text-[#4e8c6d]" />
                                 </div>
                                 <div>
                                     <h3
@@ -306,7 +319,7 @@ export default function MarketingPage() {
                                             lineHeight: 'var(--leading-marketing-card-title)',
                                         }}
                                     >
-                                        공지사항 전체 발송
+                                        검색 노출 원천 차단
                                     </h3>
                                     <p
                                         className="text-gray-600"
@@ -315,15 +328,79 @@ export default function MarketingPage() {
                                             lineHeight: 'var(--leading-marketing-card-body)',
                                         }}
                                     >
-                                        중요한 소식을 등록 한 번으로 모든 조합원에게 전달됩니다.
+                                        인터넷 검색으로 훤히 보이던
+                                        <br className="hidden md:block" /> 카페 글은 이제 그만!
+                                        <br />
+                                        조합 소식은 오직 우리 조합원에게만 안전하게 공유됩니다.
                                     </p>
                                 </div>
                             </div>
                         </div>
 
                         {/* Feature 3 */}
-                        <div className="bg-white border border-[#e6e6e6] rounded-xl p-5 md:p-8">
-                            <div className="flex gap-3 md:gap-4">
+                        <div className="bg-white border border-[#e6e6e6] rounded-xl p-5 md:p-8 h-full">
+                            <div className="flex gap-3 md:gap-4 h-full">
+                                <div className="w-10 h-10 md:w-12 md:h-12 bg-[#4e8c6d]/10 rounded-lg flex items-center justify-center shrink-0">
+                                    <BellRing className="w-5 h-5 md:w-6 md:h-6 text-[#4e8c6d]" />
+                                </div>
+                                <div>
+                                    <h3
+                                        className="font-bold text-[#2d2d2d] mb-1 md:mb-2"
+                                        style={{
+                                            fontSize: 'var(--text-marketing-card-title)',
+                                            lineHeight: 'var(--leading-marketing-card-title)',
+                                        }}
+                                    >
+                                        카카오 알림톡 연동
+                                    </h3>
+                                    <p
+                                        className="text-gray-600"
+                                        style={{
+                                            fontSize: 'var(--text-marketing-card-body)',
+                                            lineHeight: 'var(--leading-marketing-card-body)',
+                                        }}
+                                    >
+                                        회원 가입만 하면 전국민이 쓰는 카카오톡으로 <br />
+                                        공지사항이 즉시 전달됩니다.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Feature 4 */}
+                        <div className="bg-white border border-[#e6e6e6] rounded-xl p-5 md:p-8 h-full">
+                            <div className="flex gap-3 md:gap-4 h-full">
+                                <div className="w-10 h-10 md:w-12 md:h-12 bg-[#4e8c6d]/10 rounded-lg flex items-center justify-center shrink-0">
+                                    <Eye className="w-5 h-5 md:w-6 md:h-6 text-[#4e8c6d]" />
+                                </div>
+                                <div>
+                                    <h3
+                                        className="font-bold text-[#2d2d2d] mb-1 md:mb-2"
+                                        style={{
+                                            fontSize: 'var(--text-marketing-card-title)',
+                                            lineHeight: 'var(--leading-marketing-card-title)',
+                                        }}
+                                    >
+                                        어르신을 위한 UI
+                                    </h3>
+                                    <p
+                                        className="text-gray-600"
+                                        style={{
+                                            fontSize: 'var(--text-marketing-card-body)',
+                                            lineHeight: 'var(--leading-marketing-card-body)',
+                                        }}
+                                    >
+                                        복잡한 기능은 덜어내고
+                                        <br />
+                                        명확한 UI로 쉽게 사용할 수 있습니다.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Feature 5 */}
+                        <div className="bg-white border border-[#e6e6e6] rounded-xl p-5 md:p-8 h-full">
+                            <div className="flex gap-3 md:gap-4 h-full">
                                 <div className="w-10 h-10 md:w-12 md:h-12 bg-[#4e8c6d]/10 rounded-lg flex items-center justify-center shrink-0">
                                     <Clock className="w-5 h-5 md:w-6 md:h-6 text-[#4e8c6d]" />
                                 </div>
@@ -350,69 +427,11 @@ export default function MarketingPage() {
                             </div>
                         </div>
 
-                        {/* Feature 4 */}
-                        <div className="bg-white border border-[#e6e6e6] rounded-xl p-5 md:p-8">
-                            <div className="flex gap-3 md:gap-4">
-                                <div className="w-10 h-10 md:w-12 md:h-12 bg-[#4e8c6d]/10 rounded-lg flex items-center justify-center shrink-0">
-                                    <Users className="w-5 h-5 md:w-6 md:h-6 text-[#4e8c6d]" />
-                                </div>
-                                <div>
-                                    <h3
-                                        className="font-bold text-[#2d2d2d] mb-1 md:mb-2"
-                                        style={{
-                                            fontSize: 'var(--text-marketing-card-title)',
-                                            lineHeight: 'var(--leading-marketing-card-title)',
-                                        }}
-                                    >
-                                        어르신을 위한 UI
-                                    </h3>
-                                    <p
-                                        className="text-gray-600"
-                                        style={{
-                                            fontSize: 'var(--text-marketing-card-body)',
-                                            lineHeight: 'var(--leading-marketing-card-body)',
-                                        }}
-                                    >
-                                        큰 글씨, 명확한 버튼, 간단한 구조로 누구나 쉽게 사용할 수 있습니다.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Feature 5 */}
-                        <div className="bg-white border border-[#e6e6e6] rounded-xl p-5 md:p-8">
-                            <div className="flex gap-3 md:gap-4">
-                                <div className="w-10 h-10 md:w-12 md:h-12 bg-[#4e8c6d]/10 rounded-lg flex items-center justify-center shrink-0">
-                                    <Palette className="w-5 h-5 md:w-6 md:h-6 text-[#4e8c6d]" />
-                                </div>
-                                <div>
-                                    <h3
-                                        className="font-bold text-[#2d2d2d] mb-1 md:mb-2"
-                                        style={{
-                                            fontSize: 'var(--text-marketing-card-title)',
-                                            lineHeight: 'var(--leading-marketing-card-title)',
-                                        }}
-                                    >
-                                        조합 맞춤형 테마
-                                    </h3>
-                                    <p
-                                        className="text-gray-600"
-                                        style={{
-                                            fontSize: 'var(--text-marketing-card-body)',
-                                            lineHeight: 'var(--leading-marketing-card-body)',
-                                        }}
-                                    >
-                                        우리 조합만의 색상과 로고를 적용하여 브랜드 아이덴티티를 구축합니다.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-
                         {/* Feature 6 */}
-                        <div className="bg-white border border-[#e6e6e6] rounded-xl p-5 md:p-8">
-                            <div className="flex gap-3 md:gap-4">
+                        <div className="bg-white border border-[#e6e6e6] rounded-xl p-5 md:p-8 h-full">
+                            <div className="flex gap-3 md:gap-4 h-full">
                                 <div className="w-10 h-10 md:w-12 md:h-12 bg-[#4e8c6d]/10 rounded-lg flex items-center justify-center shrink-0">
-                                    <Smartphone className="w-5 h-5 md:w-6 md:h-6 text-[#4e8c6d]" />
+                                    <Coins className="w-5 h-5 md:w-6 md:h-6 text-[#4e8c6d]" />
                                 </div>
                                 <div>
                                     <h3
@@ -422,7 +441,7 @@ export default function MarketingPage() {
                                             lineHeight: 'var(--leading-marketing-card-title)',
                                         }}
                                     >
-                                        모바일 최적화
+                                        자체 광고 수익 시스템
                                     </h3>
                                     <p
                                         className="text-gray-600"
@@ -431,7 +450,8 @@ export default function MarketingPage() {
                                             lineHeight: 'var(--leading-marketing-card-body)',
                                         }}
                                     >
-                                        PC는 물론 스마트폰에서도 편리하게 이용할 수 있는 반응형 디자인입니다.
+                                        우리 조합 홈페이지 내 <br className="hidden md:block" /> 광고 배너를 통해
+                                        <br /> 조합의 수익 모델을 제공합니다.
                                     </p>
                                 </div>
                             </div>
@@ -440,144 +460,336 @@ export default function MarketingPage() {
                 </div>
             </section>
 
-            {/* Revenue Section */}
-            <section className="bg-white py-12 md:py-20 px-4 md:px-6">
+            {/* =========================================
+                SECURITY SECTION (보안)
+                컨셉: 방어막 (The Firewall)
+                구조: 좌측(공격차단 도식) + 우측(설명 리스트)
+            ========================================= */}
+            <section className="bg-white py-16 md:py-24 px-4 md:px-6 border-b border-gray-100">
                 <div className="max-w-6xl mx-auto">
-                    {/* Badge & Title */}
-                    <div className="text-center mb-10 md:mb-16">
-                        <div className="inline-flex items-center gap-2 px-3 md:px-4 py-2 bg-[#4e8c6d]/10 rounded-full mb-4 md:mb-6">
-                            <DollarSign className="w-4 h-4 text-[#4e8c6d]" />
-                            <span
-                                className="text-[#4e8c6d] font-bold"
-                                style={{ fontSize: 'var(--text-marketing-card-body)' }}
-                            >
-                                추가 비용 부담 없이
-                            </span>
+                    <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
+                        {/* 보안 도식화 (Diagram) */}
+                        <div className="w-full lg:w-1/2 flex justify-center">
+                            <div className="relative w-full max-w-md aspect-[4/3] bg-gray-50 rounded-2xl border border-gray-200 p-6 flex items-center justify-between overflow-hidden shadow-inner">
+                                {/* 배경 그리드 패턴 */}
+                                <div
+                                    className="absolute inset-0 opacity-[0.05]"
+                                    style={{
+                                        backgroundImage: 'radial-gradient(#000 1px, transparent 1px)',
+                                        backgroundSize: '20px 20px',
+                                    }}
+                                ></div>
+
+                                {/* 왼쪽: 외부 접속 시도 (차단됨) */}
+                                <div className="flex flex-col gap-4 z-10 opacity-60">
+                                    <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg shadow-sm border border-red-100">
+                                        <Search className="w-4 h-4 text-gray-400" />
+                                        <span className="text-xs font-bold text-gray-500">Naver Bot</span>
+                                        <XCircle className="w-4 h-4 text-red-500 ml-1" />
+                                    </div>
+                                    <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg shadow-sm border border-red-100">
+                                        <Search className="w-4 h-4 text-gray-400" />
+                                        <span className="text-xs font-bold text-gray-500">Google Bot</span>
+                                        <XCircle className="w-4 h-4 text-red-500 ml-1" />
+                                    </div>
+                                    <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg shadow-sm border border-red-100">
+                                        <Users className="w-4 h-4 text-gray-400" />
+                                        <span className="text-xs font-bold text-gray-500">외부인</span>
+                                        <XCircle className="w-4 h-4 text-red-500 ml-1" />
+                                    </div>
+                                </div>
+
+                                {/* 중앙: 방화벽 (Shield) */}
+                                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-full w-px bg-gradient-to-b from-transparent via-red-400 to-transparent z-0"></div>
+                                <div className="z-20 bg-white p-3 rounded-full border-2 border-red-100 shadow-lg relative">
+                                    <LockKeyhole className="w-6 h-6 text-[#ef4444]" />
+                                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                                </div>
+
+                                {/* 오른쪽: 내부 안전 지대 */}
+                                <div className="flex flex-col gap-3 z-10">
+                                    <div className="w-24 h-24 bg-[#4e8c6d]/10 rounded-full flex flex-col items-center justify-center border-2 border-[#4e8c6d] shadow-lg animate-pulse">
+                                        <ShieldCheck className="w-8 h-8 text-[#4e8c6d] mb-1" />
+                                        <span className="text-[10px] font-bold text-[#4e8c6d]">Safe Zone</span>
+                                    </div>
+                                    <div className="bg-[#4e8c6d] text-white text-xs px-3 py-1 rounded-full text-center shadow-md">
+                                        인증된 조합원
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <h2
-                            className="font-bold text-[#2d2d2d] mb-3 md:mb-4"
-                            style={{
-                                fontSize: 'var(--text-marketing-section-title)',
-                                lineHeight: 'var(--leading-marketing-section-title)',
-                            }}
-                        >
-                            운영비 걱정 없이
+
+                        {/* 보안 텍스트 설명 */}
+                        <div className="w-full lg:w-1/2">
+                            <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#4e8c6d]/10 rounded-full mb-4">
+                                <ShieldCheck className="w-4 h-4 text-[#4e8c6d]" />
+                                <span className="text-[#4e8c6d] font-bold text-sm">철통 보안 시스템</span>
+                            </div>
+                            <h2 className="text-3xl md:text-4xl font-bold text-[#2d2d2d] mb-6 leading-tight">
+                                외부인은 절대 볼 수 없는
+                                <br />
+                                <span className="text-[#4e8c6d]">프라이빗 조합 공간</span>
+                            </h2>
+
+                            <div className="space-y-6">
+                                <div className="flex gap-4">
+                                    <div className="shrink-0 w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+                                        <EyeOff className="w-5 h-5 text-gray-600" />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-lg text-[#2d2d2d]">검색 노출 원천 차단</h3>
+                                        <p className="text-gray-600 text-sm leading-relaxed mt-1">
+                                            네이버, 구글 등 검색 엔진의 접근을 기술적으로 막아
+                                            <br className="hidden md:block" />
+                                            조합 내부 정보가 외부로 유출되는 것을 방지합니다.
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="flex gap-4">
+                                    <div className="shrink-0 w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+                                        <UserCheck className="w-5 h-5 text-gray-600" />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-lg text-[#2d2d2d]">100% 실명 조합원 인증</h3>
+                                        <p className="text-gray-600 text-sm leading-relaxed mt-1">
+                                            가입 시 조합원 명부와 대조하여 실명 인증을 거친
+                                            <br className="hidden md:block" />
+                                            실제 소유주만 활동할 수 있습니다.
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="flex gap-4">
+                                    <div className="shrink-0 w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+                                        <FileKey className="w-5 h-5 text-gray-600" />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-lg text-[#2d2d2d]">등급별 권한 관리</h3>
+                                        <p className="text-gray-600 text-sm leading-relaxed mt-1">
+                                            조합원, 대의원, 임원 등 직책에 따라
+                                            <br className="hidden md:block" />
+                                            정보 열람 권한을 체계적으로 구분합니다.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* =========================================
+                COMMUNICATION SECTION (소통)
+                컨셉: 연결의 다리 (The Bridge)
+                구조: 중앙 집중형 도식 + 하단 3단 설명
+            ========================================= */}
+            <section className="bg-gray-50 py-16 md:py-24 px-4 md:px-6">
+                <div className="max-w-6xl mx-auto text-center">
+                    {/* 소통 헤더 */}
+                    <div className="mb-12">
+                        <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#4e8c6d]/10 rounded-full mb-4">
+                            <MessageCircle className="w-4 h-4 text-[#4e8c6d]" />
+                            <span className="text-[#4e8c6d] font-bold text-sm">누구나 쉬운 소통</span>
+                        </div>
+                        <h2 className="text-3xl md:text-4xl font-bold text-[#2d2d2d] leading-tight mb-4">
+                            어르신도 문제없는
                             <br />
-                            조합을 운영하세요
+                            <span className="text-[#4e8c6d]">가장 쉬운 디지털 소통</span>
                         </h2>
-                        <p
-                            className="text-gray-600 font-medium"
-                            style={{ fontSize: 'var(--text-marketing-section-subtitle)' }}
-                        >
-                            협력사 광고를 통해 운영비를 확보할 수 있습니다
+                        <p className="text-gray-600 max-w-2xl mx-auto">
+                            복잡한 앱 사용법을 배울 필요 없이, <br className="md:hidden" />
+                            전국민이 쓰는 익숙한 방식 그대로 연결됩니다.
                         </p>
                     </div>
 
-                    {/* Revenue Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8 mb-8 md:mb-12">
-                        {/* Card 1 */}
-                        <div className="bg-white border border-[#e6e6e6] rounded-xl p-5 md:p-8 text-center">
-                            <div className="w-14 h-14 md:w-16 md:h-16 mx-auto mb-4 md:mb-6 bg-[#4e8c6d]/10 rounded-full flex items-center justify-center">
-                                <HandCoins className="w-7 h-7 md:w-8 md:h-8 text-[#4e8c6d]" />
+                    {/* 소통 도식화 (중앙 배치) */}
+                    <div className="relative w-full max-w-3xl mx-auto mb-16 h-64 md:h-80 bg-white rounded-3xl border border-gray-200 shadow-sm flex items-center justify-center overflow-hidden">
+                        {/* 연결 선 */}
+                        <div className="absolute w-[80%] h-[2px] bg-gray-100 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></div>
+
+                        {/* 왼쪽: 어르신 */}
+                        <div className="absolute left-6 md:left-12 flex flex-col items-center group">
+                            <div className="w-16 h-16 md:w-20 md:h-20 bg-gray-100 rounded-full flex items-center justify-center mb-2 group-hover:bg-[#4e8c6d]/10 transition-colors">
+                                <span className="text-3xl md:text-4xl">👴</span>
                             </div>
-                            <h3
-                                className="font-bold text-[#2d2d2d] mb-3 md:mb-4"
-                                style={{
-                                    fontSize: 'var(--text-marketing-card-title)',
-                                    lineHeight: 'var(--leading-marketing-card-title)',
-                                }}
-                            >
-                                협력사 광고 수익
-                            </h3>
-                            <p
-                                className="text-gray-600"
-                                style={{
-                                    fontSize: 'var(--text-marketing-card-body)',
-                                    lineHeight: 'var(--leading-marketing-card-body)',
-                                }}
-                            >
-                                부동산, 이사업체 등 관련 업체의 광고를 게재하여 수익을 창출합니다
-                            </p>
+                            <span className="text-sm font-bold text-gray-500">어르신</span>
                         </div>
 
-                        {/* Card 2 */}
-                        <div className="bg-white border border-[#e6e6e6] rounded-xl p-5 md:p-8 text-center">
-                            <div className="w-14 h-14 md:w-16 md:h-16 mx-auto mb-4 md:mb-6 bg-[#5fa37c]/10 rounded-full flex items-center justify-center">
-                                <DollarSign className="w-7 h-7 md:w-8 md:h-8 text-[#4e8c6d]" />
+                        {/* 오른쪽: 젊은 층 */}
+                        <div className="absolute right-6 md:right-12 flex flex-col items-center group">
+                            <div className="w-16 h-16 md:w-20 md:h-20 bg-gray-100 rounded-full flex items-center justify-center mb-2 group-hover:bg-[#4e8c6d]/10 transition-colors">
+                                <span className="text-3xl md:text-4xl">🧑‍💻</span>
                             </div>
-                            <h3
-                                className="font-bold text-[#2d2d2d] mb-3 md:mb-4"
-                                style={{
-                                    fontSize: 'var(--text-marketing-card-title)',
-                                    lineHeight: 'var(--leading-marketing-card-title)',
-                                }}
-                            >
-                                운영비 지원
-                            </h3>
-                            <p
-                                className="text-gray-600"
-                                style={{
-                                    fontSize: 'var(--text-marketing-card-body)',
-                                    lineHeight: 'var(--leading-marketing-card-body)',
-                                }}
-                            >
-                                발생한 수익으로 홈페이지 운영비와 유지보수 비용을 충당합니다
-                            </p>
+                            <span className="text-sm font-bold text-gray-500">젊은 세대</span>
                         </div>
 
-                        {/* Card 3 */}
-                        <div className="bg-white border border-[#e6e6e6] rounded-xl p-5 md:p-8 text-center">
-                            <div className="w-14 h-14 md:w-16 md:h-16 mx-auto mb-4 md:mb-6 bg-[#4e8c6d]/10 rounded-full flex items-center justify-center">
-                                <PiggyBank className="w-7 h-7 md:w-8 md:h-8 text-[#4e8c6d]" />
+                        {/* 중앙: 카카오톡/스마트폰 */}
+                        <div className="relative z-10 flex flex-col items-center animate-bounce">
+                            <div className="relative bg-gray-800 rounded-[2rem] p-2 border-4 border-gray-200 shadow-xl">
+                                <div className="w-24 h-40 md:w-32 md:h-48 bg-white rounded-[1.5rem] flex flex-col items-center justify-center relative overflow-hidden">
+                                    {/* 화면 내용 */}
+                                    <div className="w-full h-8 bg-[#FEE500] absolute top-0"></div>
+                                    <div className="flex flex-col gap-2 w-full px-3 mt-4">
+                                        <div className="bg-gray-100 rounded-lg p-2 text-[10px] text-gray-400 w-3/4">
+                                            공지사항입니다...
+                                        </div>
+                                        <div className="bg-[#FEE500] rounded-lg p-2 text-[10px] self-end w-3/4">
+                                            확인했습니다!
+                                        </div>
+                                    </div>
+                                    {/* 카카오 아이콘 */}
+                                    <div className="absolute bottom-4 w-10 h-10 bg-[#FEE500] rounded-xl flex items-center justify-center shadow-sm">
+                                        <MessageCircle className="w-6 h-6 text-[#3C1E1E] fill-current" />
+                                    </div>
+                                </div>
                             </div>
-                            <h3
-                                className="font-bold text-[#2d2d2d] mb-3 md:mb-4"
-                                style={{
-                                    fontSize: 'var(--text-marketing-card-title)',
-                                    lineHeight: 'var(--leading-marketing-card-title)',
-                                }}
-                            >
-                                조합원 부담 최소화
-                            </h3>
-                            <p
-                                className="text-gray-600"
-                                style={{
-                                    fontSize: 'var(--text-marketing-card-body)',
-                                    lineHeight: 'var(--leading-marketing-card-body)',
-                                }}
-                            >
-                                조합원들에게 추가 비용을 부담시키지 않고 안정적인 운영이 가능합니다
-                            </p>
+                            {/* 뱃지 */}
+                            <div className="absolute -top-4 -right-4 w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg border border-gray-100">
+                                <BellRing className="w-6 h-6 text-[#FEE500] fill-current" />
+                            </div>
                         </div>
                     </div>
 
-                    {/* Banner */}
-                    <div className="bg-white border-2 border-[#4e8c6d]/20 rounded-2xl p-5 md:p-12 mx-auto max-w-4xl">
-                        <div className="flex flex-col md:flex-row items-center gap-5 md:gap-8">
-                            <div className="w-24 h-24 md:w-32 md:h-32 bg-[#4e8c6d]/10 rounded-xl flex items-center justify-center shrink-0">
-                                <Megaphone className="w-12 h-12 md:w-16 md:h-16 text-[#4e8c6d]" />
+                    {/* 소통 기능 카드 (Grid) */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="bg-white p-6 rounded-xl border border-gray-100 text-left hover:shadow-md transition-shadow">
+                            <div className="w-10 h-10 bg-[#FEE500]/20 rounded-lg flex items-center justify-center mb-3">
+                                <MessageCircle className="w-5 h-5 text-[#3C1E1E]" />
                             </div>
-                            <div className="text-center md:text-left">
-                                <h3
-                                    className="font-bold text-[#2d2d2d] mb-3 md:mb-4"
-                                    style={{
-                                        fontSize: 'var(--text-marketing-card-title)',
-                                        lineHeight: 'var(--leading-marketing-card-title)',
-                                    }}
-                                >
-                                    광고를 통한 운영 지원
-                                </h3>
-                                <p
-                                    className="text-gray-600"
-                                    style={{
-                                        fontSize: 'var(--text-marketing-card-body)',
-                                        lineHeight: 'var(--leading-marketing-card-body)',
-                                    }}
-                                >
-                                    조합원들에게 유용한 정보를 제공하는 협력사 광고를 통해
-                                    <br className="hidden md:block" />
-                                    홈페이지 운영에 필요한 비용을 확보하고, 지속 가능한 서비스를 제공합니다.
-                                </p>
+                            <h3 className="font-bold text-gray-800 mb-2">카카오 알림톡 연동</h3>
+                            <p className="text-sm text-gray-500">
+                                별도 앱 설치 없이, 전국민이 쓰는 카카오톡으로 공지사항이 즉시 전달됩니다.
+                            </p>
+                        </div>
+                        <div className="bg-white p-6 rounded-xl border border-gray-100 text-left hover:shadow-md transition-shadow">
+                            <div className="w-10 h-10 bg-[#4e8c6d]/10 rounded-lg flex items-center justify-center mb-3">
+                                <Smile className="w-5 h-5 text-[#4e8c6d]" />
+                            </div>
+                            <h3 className="font-bold text-gray-800 mb-2">어르신 전용 큰 글씨</h3>
+                            <p className="text-sm text-gray-500">
+                                작은 글씨가 힘든 어르신을 위해 글자 크기를 키우고 메뉴를 단순화했습니다.
+                            </p>
+                        </div>
+                        <div className="bg-white p-6 rounded-xl border border-gray-100 text-left hover:shadow-md transition-shadow">
+                            <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center mb-3">
+                                <Smartphone className="w-5 h-5 text-blue-500" />
+                            </div>
+                            <h3 className="font-bold text-gray-800 mb-2">100% 모바일 최적화</h3>
+                            <p className="text-sm text-gray-500">
+                                PC, 태블릿, 스마트폰 어디서든 깨지지 않는 최적화된 화면을 제공합니다.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* =========================================
+                REVENUE SECTION (수익)
+                컨셉: 수익 파이프라인 (The Pipeline)
+                구조: 세로형 흐름도 (Top-Down) + 우측 설명
+            ========================================= */}
+            <section className="bg-white py-16 md:py-24 px-4 md:px-6">
+                <div className="max-w-6xl mx-auto">
+                    <div className="flex flex-col-reverse lg:flex-row items-center gap-12 lg:gap-20">
+                        {/* 수익 텍스트 설명 */}
+                        <div className="w-full lg:w-1/2">
+                            <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#4e8c6d]/10 rounded-full mb-4">
+                                <DollarSign className="w-4 h-4 text-[#4e8c6d]" />
+                                <span className="text-[#4e8c6d] font-bold text-sm">운영비 걱정 없는 조합</span>
+                            </div>
+                            <h2 className="text-3xl md:text-4xl font-bold text-[#2d2d2d] mb-6 leading-tight">
+                                추가 비용 부담 없이
+                                <br />
+                                <span className="text-[#4e8c6d]">스스로 돈 버는 홈페이지</span>
+                            </h2>
+
+                            <div className="space-y-6">
+                                <div className="flex gap-4">
+                                    <div className="shrink-0 w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+                                        <LayoutTemplate className="w-5 h-5 text-gray-600" />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-lg text-[#2d2d2d]">협력사 광고 수익</h3>
+                                        <p className="text-gray-600 text-sm leading-relaxed mt-1">
+                                            부동산, 이사업체 등 조합원에게 필요한
+                                            <br className="hidden md:block" />
+                                            관련 업체의 광고를 게재하여 수익을 창출합니다.
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="flex gap-4">
+                                    <div className="shrink-0 w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+                                        <HandCoins className="w-5 h-5 text-gray-600" />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-lg text-[#2d2d2d]">운영비 자동 충당</h3>
+                                        <p className="text-gray-600 text-sm leading-relaxed mt-1">
+                                            발생한 광고 수익으로 매달 발생하는
+                                            <br className="hidden md:block" />
+                                            홈페이지 서버비와 유지보수 비용을 해결합니다.
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="flex gap-4">
+                                    <div className="shrink-0 w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+                                        <PiggyBank className="w-5 h-5 text-gray-600" />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-lg text-[#2d2d2d]">조합원 부담 Zero</h3>
+                                        <p className="text-gray-600 text-sm leading-relaxed mt-1">
+                                            결과적으로 조합원은 추가 비용 부담 없이
+                                            <br className="hidden md:block" />
+                                            안정적이고 질 높은 서비스를 이용할 수 있습니다.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* 수익 도식화 (Pipeline Diagram) */}
+                        <div className="w-full lg:w-1/2 flex justify-center">
+                            <div className="relative w-full max-w-sm bg-white rounded-2xl p-0 md:p-4 flex flex-col items-center">
+                                {/* 1단계: 홈페이지 (광고판) */}
+                                <div className="w-full bg-gray-50 border border-gray-200 rounded-xl p-4 shadow-sm relative z-10">
+                                    <div className="flex gap-1.5 mb-3">
+                                        <div className="w-2 h-2 rounded-full bg-gray-300"></div>
+                                        <div className="w-2 h-2 rounded-full bg-gray-300"></div>
+                                    </div>
+                                    <div className="h-2 w-1/2 bg-gray-200 rounded mb-3"></div>
+                                    <div className="h-2 w-3/4 bg-gray-200 rounded mb-4"></div>
+                                    {/* AD Banner */}
+                                    <div className="h-12 w-full bg-blue-50 border border-blue-100 rounded-lg flex items-center justify-center gap-2 animate-pulse">
+                                        <Megaphone className="w-4 h-4 text-blue-500" />
+                                        <span className="text-xs font-bold text-blue-500">협력사 AD 배너</span>
+                                    </div>
+                                </div>
+
+                                {/* 화살표 (Flow) */}
+                                <div className="h-16 w-0.5 bg-gray-200 relative my-2">
+                                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white p-1 rounded-full border border-gray-100">
+                                        <ArrowDown className="w-4 h-4 text-gray-400" />
+                                    </div>
+                                </div>
+
+                                {/* 2단계: 수익 창출 */}
+                                <div className="relative">
+                                    {/* 동전 애니메이션 */}
+                                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 animate-bounce">
+                                        <span className="text-2xl font-bold text-yellow-400">₩</span>
+                                    </div>
+
+                                    {/* 저금통/금고 */}
+                                    <div className="w-32 h-32 bg-[#4e8c6d] rounded-full flex items-center justify-center shadow-xl border-4 border-[#3d7056] relative overflow-hidden">
+                                        <div className="absolute inset-0 bg-gradient-to-tr from-black/10 to-transparent"></div>
+                                        <PiggyBank className="w-14 h-14 text-white relative z-10" />
+                                        {/* 반짝이 */}
+                                        <div className="absolute top-4 right-6 w-2 h-2 bg-white rounded-full opacity-50"></div>
+                                    </div>
+                                </div>
+
+                                {/* 결과 뱃지 */}
+                                <div className="mt-6 bg-white border border-[#4e8c6d] text-[#4e8c6d] px-4 py-2 rounded-full font-bold shadow-sm text-sm">
+                                    운영비 0원 달성
+                                </div>
                             </div>
                         </div>
                     </div>
