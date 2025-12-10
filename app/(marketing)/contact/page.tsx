@@ -28,7 +28,7 @@ export default function ContactPage() {
                                 아래 연락처로 문의 주시면 친절하게 안내해 드리겠습니다.
                             </p>
                         </div>
-                        <div className="mt-7 md:mt-28">
+                        <div className="mt-7 md:mt-58">
                             <div className="flex">
                                 <div className="flex-shrink-0">
                                     <svg
@@ -90,7 +90,7 @@ export default function ContactPage() {
                             >
                                 FAQ
                             </h3>
-                            <ul className="mt-4 space-y-4">
+                            <ul className="mt-4 space-y-8">
                                 <li>
                                     <p
                                         className="font-semibold text-[#2d2d2d]"
@@ -99,17 +99,17 @@ export default function ContactPage() {
                                         Q. 홈페이지 구축 비용은 얼마인가요?
                                     </p>
                                     <p
-                                        className="mt-1 text-gray-600"
+                                        className="mt-2 text-gray-600"
                                         style={{
                                             fontSize: 'var(--text-marketing-faq-answer)',
                                             lineHeight: 'var(--leading-marketing-card-body)',
                                         }}
                                     >
-                                        A. 구축 비용은 무료입니다. 단, 운영 비용이 발생합니다.
+                                        A. 홈페이지 구축 비용은 <strong>무료</strong>입니다. 단, 운영 비용이 발생합니다.
                                         <br />
-                                        &nbsp;&nbsp;&nbsp;&nbsp;운영 비용 3개월은 무료이며
+                                        &nbsp;&nbsp;&nbsp;&nbsp;초기 3개월은 운영비가 면제되며,
                                         <br />
-                                        &nbsp;&nbsp;&nbsp;&nbsp;이후 내용은 상담을 통해 안내드리겠습니다.
+                                        &nbsp;&nbsp;&nbsp;&nbsp;이후 비용은 상담을 통해 상세히 안내해 드립니다.
                                     </p>
                                 </li>
                                 <li>
@@ -120,17 +120,17 @@ export default function ContactPage() {
                                         Q. 구축까지 얼마나 걸리나요?
                                     </p>
                                     <p
-                                        className="mt-1 text-gray-600"
+                                        className="mt-2 text-gray-600"
                                         style={{
                                             fontSize: 'var(--text-marketing-faq-answer)',
                                             lineHeight: 'var(--leading-marketing-card-body)',
                                         }}
                                     >
-                                        A. 홈페이지 구축은 1시간이면 충분합니다.
+                                        A. 시스템 구축은 <strong>1시간이면 충분</strong>합니다.
                                         <br />
-                                        &nbsp;&nbsp;&nbsp;&nbsp; 조합의 정보를 정리하는데 시간이 소요됩니다.
+                                        &nbsp;&nbsp;&nbsp;&nbsp;다만, 조합의 내부 정보를 정리하고 등록하는 데
                                         <br />
-                                        &nbsp;&nbsp;&nbsp;&nbsp; 자세한 내용은 상담을 통해 안내드리겠습니다.
+                                        &nbsp;&nbsp;&nbsp;&nbsp;추가적인 시간이 소요될 수 있습니다.
                                     </p>
                                 </li>
                                 <li>
@@ -141,13 +141,15 @@ export default function ContactPage() {
                                         Q. 홈페이지 구축 후 조합 정보 적용은 어떻게 하나요?
                                     </p>
                                     <p
-                                        className="mt-1 text-gray-600"
+                                        className="mt-2 text-gray-600"
                                         style={{
                                             fontSize: 'var(--text-marketing-faq-answer)',
                                             lineHeight: 'var(--leading-marketing-card-body)',
                                         }}
                                     >
-                                        A. 조합온에서 조합 정보를 홈페이지에 정리해 드립니다.
+                                        A. 걱정하지 마세요. <strong>조합온</strong>에서
+                                        <br />
+                                        &nbsp;&nbsp;&nbsp;&nbsp;초기 정보 입력 및 홈페이지 구성을 직접 도와드립니다.
                                     </p>
                                 </li>
                             </ul>
