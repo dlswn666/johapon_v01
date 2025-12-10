@@ -41,7 +41,6 @@ export default function MarketingPage() {
     const [unions, setUnions] = useState<Union[]>([]);
     const [selectedSlug, setSelectedSlug] = useState<string>('');
     const [isLoading, setIsLoading] = useState(true);
-    const [openFaq, setOpenFaq] = useState<number | null>(null);
 
     useEffect(() => {
         const fetchUnions = async () => {
@@ -69,25 +68,6 @@ export default function MarketingPage() {
             router.push(`/${selectedSlug}`);
         }
     };
-
-    const toggleFaq = (index: number) => {
-        setOpenFaq(openFaq === index ? null : index);
-    };
-
-    const faqItems = [
-        {
-            question: '어르신들도 쉽게 사용할 수 있나요?',
-            answer: '네, 큰 글씨와 명확한 버튼, 간단한 구조로 설계하여 어르신들도 쉽게 사용하실 수 있습니다. 또한 카카오톡 연동을 통해 익숙한 방식으로 알림을 받으실 수 있습니다.',
-        },
-        {
-            question: '도입 비용은 얼마인가요?',
-            answer: '협력사 광고를 통해 운영비를 충당하기 때문에 조합원들에게 추가 비용 부담이 없습니다. 자세한 내용은 상담을 통해 안내드립니다.',
-        },
-        {
-            question: '도입 절차는 어떻게 되나요?',
-            answer: '상담 신청 → 조합 현황 파악 → 맞춤 홈페이지 구축 → 테스트 운영 → 정식 오픈 순서로 진행됩니다. 전체 과정은 약 2-4주 정도 소요됩니다.',
-        },
-    ];
 
     return (
         <div className="flex flex-col">
