@@ -2,17 +2,16 @@
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
-import { Search, Paperclip, Image as ImageIcon, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
 import { useUnionInfos } from '@/app/_lib/features/union-info/api/useUnionInfoHook';
 import useUnionInfoStore from '@/app/_lib/features/union-info/model/useUnionInfoStore';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import ConfirmModal from '@/app/_lib/widgets/modal/ConfirmModal';
 import AlertModal from '@/app/_lib/widgets/modal/AlertModal';
+import { ListCard, ListCardItem } from '@/app/_lib/widgets/common/list-card';
 
 const UnionInfoListPage = () => {
     const router = useRouter();
@@ -62,6 +61,21 @@ const UnionInfoListPage = () => {
 
     const posts = data?.data || [];
 
+    // 조합 정보 데이터를 ListCardItem 형태로 변환
+    const listItems: ListCardItem[] = posts.map((post) => {
+        const authorName = (post.author as { name: string } | null)?.name || '알 수 없음';
+
+        return {
+            id: post.id,
+            title: post.title,
+            author: authorName,
+            date: new Date(post.created_at).toLocaleDateString('ko-KR'),
+            views: post.views,
+            hasAttachment: post.has_attachments,
+            thumbnailUrl: post.thumbnail_url,
+        };
+    });
+
     return (
         <>
             <div className={cn('container mx-auto max-w-[1280px] px-4 py-8')}>
@@ -106,78 +120,12 @@ const UnionInfoListPage = () => {
                     </Button>
                 </div>
 
-                <div className={cn('border border-[#CCCCCC] rounded-[12px] overflow-hidden')}>
-                    <Table>
-                        <TableHeader>
-                            <TableRow className="bg-[#E6E6E6] h-[56px] border-b border-[#CCCCCC] hover:bg-[#E6E6E6]">
-                                <TableHead className="w-[80px] text-center text-[#4A4A4A] font-bold text-[16px]">번호</TableHead>
-                                <TableHead className="w-[80px] text-center text-[#4A4A4A] font-bold text-[16px]">썸네일</TableHead>
-                                <TableHead className="text-[#4A4A4A] font-bold text-[16px]">제목</TableHead>
-                                <TableHead className="w-[120px] text-center text-[#4A4A4A] font-bold text-[16px]">작성자</TableHead>
-                                <TableHead className="w-[120px] text-center text-[#4A4A4A] font-bold text-[16px]">작성일</TableHead>
-                                <TableHead className="w-[80px] text-center text-[#4A4A4A] font-bold text-[16px]">조회수</TableHead>
-                                <TableHead className="w-[80px] text-center text-[#4A4A4A] font-bold text-[16px]">첨부</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {posts && posts.length > 0 ? (
-                                posts.map((post, index) => {
-                                    const authorName = (post.author as { name: string } | null)?.name || '알 수 없음';
-                                    const rowNumber = totalCount - ((filters.page - 1) * filters.pageSize) - index;
-                                    
-                                    return (
-                                        <TableRow
-                                            key={post.id}
-                                            className="cursor-pointer hover:bg-[#F5F5F5] h-[72px] border-b border-[#CCCCCC] last:border-0 transition-colors"
-                                            onClick={() => router.push(`/${slug}/communication/union-info/${post.id}`)}
-                                        >
-                                            <TableCell className="text-center text-[16px] text-gray-600">{rowNumber}</TableCell>
-                                            <TableCell className="text-center">
-                                                {post.thumbnail_url ? (
-                                                    <div className="w-[50px] h-[50px] mx-auto rounded-[8px] overflow-hidden bg-[#E6E6E6] relative">
-                                                        <Image 
-                                                            src={post.thumbnail_url} 
-                                                            alt="썸네일" 
-                                                            fill
-                                                            className="object-cover"
-                                                        />
-                                                    </div>
-                                                ) : (
-                                                    <div className="w-[50px] h-[50px] mx-auto rounded-[8px] bg-[#F5F5F5] flex items-center justify-center">
-                                                        <ImageIcon className="h-5 w-5 text-[#AFAFAF]" />
-                                                    </div>
-                                                )}
-                                            </TableCell>
-                                            <TableCell className="font-medium">
-                                                <span className="truncate text-[16px] text-gray-800 block max-w-[400px]">
-                                                    {post.title}
-                                                </span>
-                                            </TableCell>
-                                            <TableCell className="text-center text-[14px] text-gray-500">{authorName}</TableCell>
-                                            <TableCell className="text-center text-[14px] text-gray-500">
-                                                {new Date(post.created_at).toLocaleDateString('ko-KR')}
-                                            </TableCell>
-                                            <TableCell className="text-center text-[14px] text-gray-500">{post.views}</TableCell>
-                                            <TableCell className="text-center">
-                                                {post.has_attachments ? (
-                                                    <Paperclip className="h-4 w-4 text-[#5FA37C] mx-auto" />
-                                                ) : (
-                                                    <span className="text-[#AFAFAF]">-</span>
-                                                )}
-                                            </TableCell>
-                                        </TableRow>
-                                    );
-                                })
-                            ) : (
-                                <TableRow>
-                                    <TableCell colSpan={7} className="text-center h-32 text-[#AFAFAF] text-[16px]">
-                                        {filters.keyword || filters.author ? '검색 결과가 없습니다.' : '등록된 게시글이 없습니다.'}
-                                    </TableCell>
-                                </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
-                </div>
+                <ListCard
+                    items={listItems}
+                    onItemClick={(id) => router.push(`/${slug}/communication/union-info/${id}`)}
+                    emptyMessage={filters.keyword || filters.author ? '검색 결과가 없습니다.' : '등록된 게시글이 없습니다.'}
+                    showThumbnail={true}
+                />
 
                 {/* 페이지네이션 */}
                 {totalPages > 1 && (
@@ -226,4 +174,3 @@ const UnionInfoListPage = () => {
 };
 
 export default UnionInfoListPage;
-

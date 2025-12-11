@@ -3,9 +3,8 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
-import { Search, Paperclip, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, User } from 'lucide-react';
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useFreeBoards } from '@/app/_lib/features/free-board/api/useFreeBoardHook';
@@ -16,6 +15,7 @@ import ConfirmModal from '@/app/_lib/widgets/modal/ConfirmModal';
 import AlertModal from '@/app/_lib/widgets/modal/AlertModal';
 import UnionNavigation from '@/app/_lib/widgets/union/navigation/Navigation';
 import UnionHeader from '@/app/_lib/widgets/union/header/UnionHeader';
+import { ListCard, ListCardItem } from '@/app/_lib/widgets/common/list-card';
 
 const FreeBoardPage = () => {
     const router = useRouter();
@@ -84,6 +84,34 @@ const FreeBoardPage = () => {
         );
     }
 
+    // 자유게시판 데이터를 ListCardItem 형태로 변환
+    const listItems: ListCardItem[] = freeBoards.map((freeBoard) => {
+        const isMine = freeBoard.author_id === user?.id;
+        const authorName = (freeBoard.author as { name: string } | null)?.name || freeBoard.author_id;
+
+        return {
+            id: freeBoard.id,
+            title: freeBoard.title,
+            author: authorName,
+            date: new Date(freeBoard.created_at).toLocaleDateString('ko-KR'),
+            views: freeBoard.views,
+            commentCount: freeBoard.comment_count,
+            hasAttachment: freeBoard.file_count > 0,
+            isMine,
+        };
+    });
+
+    // 내 글 표시 렌더링
+    const renderTitleSuffix = (item: ListCardItem) => {
+        if (!item.isMine) return null;
+
+        return (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-[#5FA37C] text-white text-[10px] rounded-full shrink-0">
+                <User className="h-3 w-3" />내 글
+            </span>
+        );
+    };
+
     return (
         <>
             <div className={cn('container mx-auto max-w-[1280px] px-4 py-8')}>
@@ -126,66 +154,12 @@ const FreeBoardPage = () => {
                     </Button>
                 </div>
 
-                <div className={cn('border border-[#CCCCCC] rounded-[12px] overflow-hidden')}>
-                    <Table>
-                        <TableHeader>
-                            <TableRow className="bg-[#E6E6E6] h-[56px] border-b border-[#CCCCCC] hover:bg-[#E6E6E6]">
-                                <TableHead className="w-[80px] text-center text-[#4A4A4A] font-bold text-[16px]">번호</TableHead>
-                                <TableHead className="text-[#4A4A4A] font-bold text-[16px]">제목</TableHead>
-                                <TableHead className="w-[120px] text-center text-[#4A4A4A] font-bold text-[16px]">작성자</TableHead>
-                                <TableHead className="w-[120px] text-center text-[#4A4A4A] font-bold text-[16px]">작성일</TableHead>
-                                <TableHead className="w-[100px] text-center text-[#4A4A4A] font-bold text-[16px]">조회수</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {freeBoards && freeBoards.length > 0 ? (
-                                freeBoards.map((freeBoard) => {
-                                    const isMine = freeBoard.author_id === user?.id;
-                                    const authorName = (freeBoard.author as { name: string } | null)?.name || freeBoard.author_id;
-                                    
-                                    return (
-                                        <TableRow
-                                            key={freeBoard.id}
-                                            className={cn(
-                                                "cursor-pointer hover:bg-[#F5F5F5] h-[56px] border-b border-[#CCCCCC] last:border-0 transition-colors",
-                                                isMine && "bg-[#F0F7F4]"
-                                            )}
-                                            onClick={() => router.push(`/${slug}/free-board/${freeBoard.id}`)}
-                                        >
-                                            <TableCell className="text-center text-[16px] text-gray-600">{freeBoard.id}</TableCell>
-                                            <TableCell className="font-medium">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="truncate text-[16px] text-gray-800">{freeBoard.title}</span>
-                                                    {freeBoard.comment_count > 0 && (
-                                                        <span className="text-xs text-[#4E8C6D] font-bold shrink-0">
-                                                            [{freeBoard.comment_count}]
-                                                        </span>
-                                                    )}
-                                                    <div className="flex items-center gap-1 shrink-0">
-                                                        {freeBoard.file_count > 0 && (
-                                                            <Paperclip className="h-4 w-4 text-gray-400" />
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="text-center text-[14px] text-gray-500">{authorName}</TableCell>
-                                            <TableCell className="text-center text-[14px] text-gray-500">
-                                                {new Date(freeBoard.created_at).toLocaleDateString('ko-KR')}
-                                            </TableCell>
-                                            <TableCell className="text-center text-[14px] text-gray-500">{freeBoard.views}</TableCell>
-                                        </TableRow>
-                                    );
-                                })
-                            ) : (
-                                <TableRow>
-                                    <TableCell colSpan={5} className="text-center h-32 text-[#AFAFAF] text-[16px]">
-                                        {searchQuery ? '검색 결과가 없습니다.' : '등록된 게시글이 없습니다.'}
-                                    </TableCell>
-                                </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
-                </div>
+                <ListCard
+                    items={listItems}
+                    onItemClick={(id) => router.push(`/${slug}/free-board/${id}`)}
+                    emptyMessage={searchQuery ? '검색 결과가 없습니다.' : '등록된 게시글이 없습니다.'}
+                    renderTitleSuffix={renderTitleSuffix}
+                />
 
                 {/* 페이지네이션 */}
                 {totalPages > 1 && (
@@ -244,7 +218,3 @@ const FreeBoardPage = () => {
 };
 
 export default FreeBoardPage;
-
-
-
-

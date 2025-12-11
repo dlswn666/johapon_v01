@@ -56,7 +56,7 @@ export default function UnionLayoutContent({ children }: UnionLayoutContentProps
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col">
+        <div className="min-h-[1080px] bg-gray-50 flex flex-col">
             {/* Header - 모든 페이지에서 공통 렌더링 */}
             <UnionHomeHeader />
 
@@ -65,7 +65,7 @@ export default function UnionLayoutContent({ children }: UnionLayoutContentProps
 
             {/* ABC 3분할 레이아웃 */}
             {/* Desktop: 가로 배치 (20% / 60% / 20%), Mobile: 세로 쌓기 (A → B → C) */}
-            <div className="flex-1 flex flex-col md:flex-row">
+            <div className="flex-1 flex flex-col md:flex-row min-h-[800px]">
                 {/* A 영역 - 왼쪽 광고 */}
                 <aside className="w-full md:w-[20%] bg-gray-100 p-4 order-1">
                     <div className="h-full min-h-[100px] md:min-h-0 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center text-gray-400">
@@ -74,7 +74,7 @@ export default function UnionLayoutContent({ children }: UnionLayoutContentProps
                 </aside>
 
                 {/* B 영역 - 메인 콘텐츠 */}
-                <main className="w-full md:w-[60%] order-2">{children}</main>
+                <main className="w-full md:w-[60%] order-2 min-h-[600px]">{children}</main>
 
                 {/* C 영역 - 오른쪽 광고 */}
                 <aside className="w-full md:w-[20%] bg-gray-100 p-4 order-3">
