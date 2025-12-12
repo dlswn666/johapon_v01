@@ -17,7 +17,6 @@ import {
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
     AlertDialog,
@@ -219,22 +218,22 @@ export default function MemberInvitePage() {
         switch (status) {
             case 'USED':
                 return (
-                    <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-400 flex items-center gap-1">
-                        <CheckCircle2 className="w-3 h-3" />
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                        <CheckCircle2 className="w-3 h-3 mr-1" />
                         수락됨
                     </span>
                 );
             case 'EXPIRED':
                 return (
-                    <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-red-500/20 text-red-400 flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                        <Clock className="w-3 h-3 mr-1" />
                         만료됨
                     </span>
                 );
             default:
                 return (
-                    <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-400 flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
+                        <Clock className="w-3 h-3 mr-1" />
                         대기중
                     </span>
                 );
@@ -256,7 +255,7 @@ export default function MemberInvitePage() {
     if (isLoading) {
         return (
             <div className="flex items-center justify-center min-h-[400px]">
-                <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+                <Loader2 className="w-8 h-8 animate-spin text-[#4E8C6D]" />
             </div>
         );
     }
@@ -264,41 +263,39 @@ export default function MemberInvitePage() {
     if (!union) {
         return (
             <div className="text-center py-12">
-                <AlertCircle className="w-16 h-16 text-slate-600 mx-auto mb-4" />
-                <p className="text-lg text-slate-400">조합을 찾을 수 없습니다</p>
+                <AlertCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <p className="text-lg text-gray-600">조합을 찾을 수 없습니다</p>
             </div>
         );
     }
 
     return (
-        <div className="space-y-8">
-            {/* 페이지 헤더 */}
-            <div>
-                <h1 className="text-3xl font-bold text-white">조합원 초대 관리</h1>
-                <p className="mt-1 text-slate-400">{union.name} 조합의 예비 조합원을 관리합니다</p>
-            </div>
+        <div className="min-h-screen bg-gray-50 py-8 px-4">
+            <div className="max-w-6xl mx-auto space-y-6">
+                {/* 페이지 헤더 */}
+                <div className="mb-8">
+                    <h1 className="text-2xl font-bold text-gray-900 mb-2">조합원 초대 관리</h1>
+                    <p className="text-gray-600">{union.name} 조합의 예비 조합원을 관리합니다</p>
+                </div>
 
-            {/* 엑셀 업로드 카드 */}
-            <Card className="bg-slate-800/50 border-slate-700">
-                <CardHeader>
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-blue-500/20 rounded-xl flex items-center justify-center">
-                            <FileSpreadsheet className="w-5 h-5 text-blue-400" />
+                {/* 엑셀 업로드 카드 */}
+                <div className="bg-white rounded-xl shadow-sm p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="w-10 h-10 bg-[#4E8C6D]/10 rounded-xl flex items-center justify-center">
+                            <FileSpreadsheet className="w-5 h-5 text-[#4E8C6D]" />
                         </div>
                         <div>
-                            <CardTitle className="text-white">엑셀 업로드</CardTitle>
-                            <CardDescription className="text-slate-400">
+                            <h2 className="text-lg font-semibold text-gray-900">엑셀 업로드</h2>
+                            <p className="text-sm text-gray-600">
                                 예비 조합원 명부를 엑셀로 업로드하면 DB와 동기화됩니다
-                            </CardDescription>
+                            </p>
                         </div>
                     </div>
-                </CardHeader>
-                <CardContent>
                     <div className="flex flex-wrap gap-4">
                         <Button
                             variant="outline"
                             onClick={handleDownloadTemplate}
-                            className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
+                            className="border-gray-300 text-gray-700 hover:bg-gray-50"
                         >
                             <Download className="w-4 h-4 mr-2" />
                             템플릿 다운로드
@@ -306,7 +303,7 @@ export default function MemberInvitePage() {
                         <Button
                             onClick={() => fileInputRef.current?.click()}
                             disabled={isUploading || syncMutation.isPending}
-                            className="bg-blue-600 hover:bg-blue-700"
+                            className="bg-[#4E8C6D] hover:bg-[#3d7058] text-white"
                         >
                             {isUploading || syncMutation.isPending ? (
                                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -323,173 +320,166 @@ export default function MemberInvitePage() {
                             className="hidden"
                         />
                     </div>
-                    <p className="mt-3 text-xs text-slate-500">
+                    <p className="mt-3 text-xs text-gray-500">
                         * 업로드 시 기존 데이터와 비교하여 자동으로 추가/삭제됩니다. 이미 수락한 조합원도 엑셀에 없으면 삭제됩니다.
                     </p>
-                </CardContent>
-            </Card>
+                </div>
 
-            {/* 초대 목록 카드 */}
-            <Card className="bg-slate-800/50 border-slate-700">
-                <CardHeader>
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-emerald-500/20 rounded-xl flex items-center justify-center">
-                                <Users className="w-5 h-5 text-emerald-400" />
+                {/* 초대 목록 카드 */}
+                <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+                    <div className="p-6 border-b border-gray-100">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-[#4E8C6D]/10 rounded-xl flex items-center justify-center">
+                                    <Users className="w-5 h-5 text-[#4E8C6D]" />
+                                </div>
+                                <div>
+                                    <h2 className="text-lg font-semibold text-gray-900">초대 목록</h2>
+                                    <p className="text-sm text-gray-600">총 {filteredInvites.length}명</p>
+                                </div>
                             </div>
-                            <div>
-                                <CardTitle className="text-white">초대 목록</CardTitle>
-                                <CardDescription className="text-slate-400">
-                                    총 {filteredInvites.length}명
-                                </CardDescription>
+                            {/* 필터 버튼 */}
+                            <div className="flex gap-2">
+                                {filterButtons.map((btn) => (
+                                    <button
+                                        key={btn.key}
+                                        onClick={() => setFilter(btn.key)}
+                                        className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                                            filter === btn.key
+                                                ? 'bg-[#4E8C6D] text-white'
+                                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                        }`}
+                                    >
+                                        {btn.label}
+                                    </button>
+                                ))}
                             </div>
-                        </div>
-                        {/* 필터 버튼 */}
-                        <div className="flex gap-2">
-                            {filterButtons.map((btn) => (
-                                <Button
-                                    key={btn.key}
-                                    variant={filter === btn.key ? 'default' : 'outline'}
-                                    size="sm"
-                                    onClick={() => setFilter(btn.key)}
-                                    className={
-                                        filter === btn.key
-                                            ? 'bg-blue-600 hover:bg-blue-700'
-                                            : 'bg-slate-700 border-slate-600 text-white hover:bg-slate-600'
-                                    }
-                                >
-                                    {btn.label}
-                                </Button>
-                            ))}
                         </div>
                     </div>
-                </CardHeader>
-                <CardContent>
-                    {filteredInvites.length === 0 ? (
-                        <div className="text-center py-12">
-                            <Users className="w-16 h-16 text-slate-600 mx-auto mb-4" />
-                            <p className="text-slate-400">초대된 조합원이 없습니다</p>
-                            <p className="text-sm text-slate-500 mt-1">엑셀 파일을 업로드하여 조합원을 추가하세요</p>
-                        </div>
-                    ) : (
-                        <>
-                            {/* 테이블 */}
-                            <div className="overflow-x-auto">
-                                <table className="w-full">
-                                    <thead>
-                                        <tr className="border-b border-slate-700">
-                                            <th className="py-3 px-4 text-left">
-                                                <Checkbox
-                                                    checked={allPendingSelected}
-                                                    onCheckedChange={handleSelectAllPending}
-                                                    disabled={pendingCount === 0}
-                                                    className="border-slate-600"
-                                                />
-                                            </th>
-                                            <th className="py-3 px-4 text-left text-sm font-medium text-slate-400">
-                                                물건지 주소
-                                            </th>
-                                            <th className="py-3 px-4 text-left text-sm font-medium text-slate-400">
-                                                상태
-                                            </th>
-                                            <th className="py-3 px-4 text-right text-sm font-medium text-slate-400">
-                                                관리
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {filteredInvites.map((invite) => (
-                                            <tr
-                                                key={invite.id}
-                                                className="border-b border-slate-700/50 hover:bg-slate-700/30"
-                                            >
-                                                <td className="py-3 px-4">
+                    <div className="p-6">
+                        {filteredInvites.length === 0 ? (
+                            <div className="text-center py-12">
+                                <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                                <p className="text-gray-600">초대된 조합원이 없습니다</p>
+                                <p className="text-sm text-gray-500 mt-1">엑셀 파일을 업로드하여 조합원을 추가하세요</p>
+                            </div>
+                        ) : (
+                            <>
+                                {/* 테이블 */}
+                                <div className="overflow-x-auto">
+                                    <table className="w-full">
+                                        <thead className="bg-gray-50 border-b">
+                                            <tr>
+                                                <th className="py-3 px-4 text-left">
                                                     <Checkbox
-                                                        checked={selectedIds.includes(invite.id)}
-                                                        onCheckedChange={() => toggleSelect(invite.id)}
-                                                        disabled={invite.status !== 'PENDING'}
-                                                        className="border-slate-600"
+                                                        checked={allPendingSelected}
+                                                        onCheckedChange={handleSelectAllPending}
+                                                        disabled={pendingCount === 0}
+                                                        className="border-gray-300"
                                                     />
-                                                </td>
-                                                <td className="py-3 px-4">
-                                                    <button
-                                                        onClick={() => setDetailTarget(invite)}
-                                                        className="text-white hover:text-blue-400 transition-colors flex items-center gap-2"
-                                                    >
-                                                        <Eye className="w-4 h-4 text-slate-500" />
-                                                        {invite.property_address}
-                                                    </button>
-                                                </td>
-                                                <td className="py-3 px-4">{getStatusBadge(invite.status)}</td>
-                                                <td className="py-3 px-4 text-right">
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        onClick={() => setDeleteTarget(invite)}
-                                                        className="text-slate-400 hover:text-red-400 hover:bg-red-500/20"
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </Button>
-                                                </td>
+                                                </th>
+                                                <th className="py-3 px-4 text-left text-sm font-medium text-gray-700">
+                                                    물건지 주소
+                                                </th>
+                                                <th className="py-3 px-4 text-left text-sm font-medium text-gray-700">
+                                                    상태
+                                                </th>
+                                                <th className="py-3 px-4 text-center text-sm font-medium text-gray-700">
+                                                    관리
+                                                </th>
                                             </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-100">
+                                            {filteredInvites.map((invite) => (
+                                                <tr
+                                                    key={invite.id}
+                                                    className="hover:bg-gray-50"
+                                                >
+                                                    <td className="py-3 px-4">
+                                                        <Checkbox
+                                                            checked={selectedIds.includes(invite.id)}
+                                                            onCheckedChange={() => toggleSelect(invite.id)}
+                                                            disabled={invite.status !== 'PENDING'}
+                                                            className="border-gray-300"
+                                                        />
+                                                    </td>
+                                                    <td className="py-3 px-4">
+                                                        <button
+                                                            onClick={() => setDetailTarget(invite)}
+                                                            className="text-gray-900 hover:text-[#4E8C6D] transition-colors flex items-center gap-2"
+                                                        >
+                                                            <Eye className="w-4 h-4 text-gray-400" />
+                                                            {invite.property_address}
+                                                        </button>
+                                                    </td>
+                                                    <td className="py-3 px-4">{getStatusBadge(invite.status)}</td>
+                                                    <td className="py-3 px-4 text-center">
+                                                        <button
+                                                            onClick={() => setDeleteTarget(invite)}
+                                                            className="p-2 text-gray-500 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
 
-                            {/* 하단 액션 버튼 */}
-                            <div className="mt-4 flex justify-between items-center">
-                                <p className="text-sm text-slate-400">
-                                    {selectedIds.length > 0 && `${selectedIds.length}명 선택됨`}
-                                </p>
-                                <Button
-                                    onClick={handleBulkInvite}
-                                    disabled={selectedIds.length === 0}
-                                    className="bg-amber-600 hover:bg-amber-700"
-                                >
-                                    <Send className="w-4 h-4 mr-2" />
-                                    일괄 초대 (추후 구현)
-                                </Button>
-                            </div>
-                        </>
-                    )}
-                </CardContent>
-            </Card>
+                                {/* 하단 액션 버튼 */}
+                                <div className="mt-4 flex justify-between items-center border-t pt-4">
+                                    <p className="text-sm text-gray-600">
+                                        {selectedIds.length > 0 && `${selectedIds.length}명 선택됨`}
+                                    </p>
+                                    <Button
+                                        onClick={handleBulkInvite}
+                                        disabled={selectedIds.length === 0}
+                                        className="bg-amber-500 hover:bg-amber-600 text-white"
+                                    >
+                                        <Send className="w-4 h-4 mr-2" />
+                                        일괄 초대 (추후 구현)
+                                    </Button>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </div>
 
-            {/* 삭제 확인 다이얼로그 */}
-            <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
-                <AlertDialogContent className="bg-slate-800 border-slate-700">
-                    <AlertDialogHeader>
-                        <AlertDialogTitle className="text-white">초대 삭제</AlertDialogTitle>
-                        <AlertDialogDescription className="text-slate-400">
-                            이 초대를 삭제하시겠습니까?
-                            {deleteTarget?.status === 'USED' && (
-                                <span className="block mt-2 text-red-400">
-                                    ⚠️ 이미 수락된 초대입니다. 삭제하면 해당 사용자의 가입 정보도 함께 삭제됩니다.
-                                </span>
-                            )}
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600">
-                            취소
-                        </AlertDialogCancel>
-                        <AlertDialogAction
-                            onClick={handleDelete}
-                            className="bg-red-600 hover:bg-red-700 text-white"
-                        >
-                            삭제
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+                {/* 삭제 확인 다이얼로그 */}
+                <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
+                    <AlertDialogContent className="bg-white">
+                        <AlertDialogHeader>
+                            <AlertDialogTitle className="text-gray-900">초대 삭제</AlertDialogTitle>
+                            <AlertDialogDescription className="text-gray-600">
+                                이 초대를 삭제하시겠습니까?
+                                {deleteTarget?.status === 'USED' && (
+                                    <span className="block mt-2 text-red-600">
+                                        ⚠️ 이미 수락된 초대입니다. 삭제하면 해당 사용자의 가입 정보도 함께 삭제됩니다.
+                                    </span>
+                                )}
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel className="border-gray-300 text-gray-700 hover:bg-gray-50">
+                                취소
+                            </AlertDialogCancel>
+                            <AlertDialogAction
+                                onClick={handleDelete}
+                                className="bg-red-500 hover:bg-red-600 text-white"
+                            >
+                                삭제
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
 
-            {/* 상세 모달 */}
-            <MemberDetailModal
-                invite={detailTarget}
-                onClose={() => setDetailTarget(null)}
-            />
+                {/* 상세 모달 */}
+                <MemberDetailModal
+                    invite={detailTarget}
+                    onClose={() => setDetailTarget(null)}
+                />
+            </div>
         </div>
     );
 }
-

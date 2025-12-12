@@ -25,22 +25,22 @@ export default function MemberDetailModal({ invite, onClose }: MemberDetailModal
                 return {
                     label: '수락됨',
                     icon: CheckCircle2,
-                    color: 'text-emerald-400',
-                    bgColor: 'bg-emerald-500/20',
+                    color: 'text-green-700',
+                    bgColor: 'bg-green-100',
                 };
             case 'EXPIRED':
                 return {
                     label: '만료됨',
                     icon: Clock,
-                    color: 'text-red-400',
-                    bgColor: 'bg-red-500/20',
+                    color: 'text-red-700',
+                    bgColor: 'bg-red-100',
                 };
             default:
                 return {
                     label: '대기중',
                     icon: Clock,
-                    color: 'text-blue-400',
-                    bgColor: 'bg-blue-500/20',
+                    color: 'text-yellow-700',
+                    bgColor: 'bg-yellow-100',
                 };
         }
     };
@@ -50,10 +50,10 @@ export default function MemberDetailModal({ invite, onClose }: MemberDetailModal
 
     return (
         <Dialog open={!!invite} onOpenChange={onClose}>
-            <DialogContent className="bg-slate-800 border-slate-700 max-w-md">
+            <DialogContent className="bg-white max-w-md">
                 <DialogHeader>
-                    <DialogTitle className="text-white flex items-center gap-2">
-                        <MapPin className="w-5 h-5 text-blue-400" />
+                    <DialogTitle className="text-gray-900 flex items-center gap-2">
+                        <MapPin className="w-5 h-5 text-[#4E8C6D]" />
                         조합원 상세 정보
                     </DialogTitle>
                 </DialogHeader>
@@ -66,34 +66,34 @@ export default function MemberDetailModal({ invite, onClose }: MemberDetailModal
                     </div>
 
                     {/* 이름 */}
-                    <div className="p-4 bg-slate-700/50 rounded-xl space-y-1">
-                        <div className="flex items-center gap-2 text-slate-400 text-sm">
+                    <div className="p-4 bg-gray-50 rounded-xl space-y-1">
+                        <div className="flex items-center gap-2 text-gray-500 text-sm">
                             <User className="w-4 h-4" />
                             이름
                         </div>
-                        <p className="text-white text-lg font-medium pl-6">{invite.name}</p>
+                        <p className="text-gray-900 text-lg font-medium pl-6">{invite.name}</p>
                     </div>
 
                     {/* 핸드폰번호 */}
-                    <div className="p-4 bg-slate-700/50 rounded-xl space-y-1">
-                        <div className="flex items-center gap-2 text-slate-400 text-sm">
+                    <div className="p-4 bg-gray-50 rounded-xl space-y-1">
+                        <div className="flex items-center gap-2 text-gray-500 text-sm">
                             <Phone className="w-4 h-4" />
                             핸드폰번호
                         </div>
-                        <p className="text-white text-lg font-medium pl-6">{invite.phone_number}</p>
+                        <p className="text-gray-900 text-lg font-medium pl-6">{invite.phone_number}</p>
                     </div>
 
                     {/* 물건지 주소 */}
-                    <div className="p-4 bg-slate-700/50 rounded-xl space-y-1">
-                        <div className="flex items-center gap-2 text-slate-400 text-sm">
+                    <div className="p-4 bg-gray-50 rounded-xl space-y-1">
+                        <div className="flex items-center gap-2 text-gray-500 text-sm">
                             <MapPin className="w-4 h-4" />
                             물건지 주소
                         </div>
-                        <p className="text-white text-lg font-medium pl-6">{invite.property_address}</p>
+                        <p className="text-gray-900 text-lg font-medium pl-6">{invite.property_address}</p>
                     </div>
 
                     {/* 등록일 */}
-                    <div className="text-sm text-slate-500 text-center pt-2">
+                    <div className="text-sm text-gray-500 text-center pt-2">
                         등록일: {new Date(invite.created_at).toLocaleDateString('ko-KR')}
                         {invite.used_at && (
                             <span className="ml-4">
@@ -106,4 +106,3 @@ export default function MemberDetailModal({ invite, onClose }: MemberDetailModal
         </Dialog>
     );
 }
-

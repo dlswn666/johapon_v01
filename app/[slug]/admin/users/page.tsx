@@ -218,14 +218,14 @@ export default function AdminUsersPage() {
     // 권한이 없으면 접근 차단 UI 표시
     if (!isAdmin) {
         return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-                <div className="bg-white rounded-xl shadow-lg p-8 max-w-md w-full text-center">
-                    <Shield className="w-16 h-16 text-red-500 mx-auto mb-4" />
-                    <h2 className="text-xl font-bold text-gray-900 mb-2">접근 권한이 없습니다</h2>
-                    <p className="text-gray-600 mb-6">관리자만 접근할 수 있는 페이지입니다.</p>
+            <div className="min-h-screen bg-[#F5F5F5] flex items-center justify-center p-4">
+                <div className="bg-white rounded-xl shadow-lg p-10 max-w-md w-full text-center">
+                    <Shield className="w-20 h-20 text-red-500 mx-auto mb-6" />
+                    <h2 className="text-[24px] font-bold text-gray-900 mb-3">접근 권한이 없습니다</h2>
+                    <p className="text-[18px] text-gray-600 mb-8">관리자만 접근할 수 있는 페이지입니다.</p>
                     <button
                         onClick={() => router.push(`/${slug}`)}
-                        className="px-6 py-2 bg-[#4E8C6D] text-white rounded-lg hover:bg-[#3d7058] transition-colors"
+                        className="px-8 py-3 bg-[#4E8C6D] text-white rounded-xl hover:bg-[#3d7058] transition-colors text-[18px] font-medium"
                     >
                         홈으로 이동
                     </button>
@@ -235,20 +235,20 @@ export default function AdminUsersPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 py-8 px-4">
+        <div className="min-h-screen bg-[#F5F5F5] py-8 px-4">
             <div className="max-w-6xl mx-auto">
                 {/* 헤더 */}
                 <div className="mb-8">
-                    <h1 className="text-2xl font-bold text-gray-900 mb-2">사용자 관리</h1>
-                    <p className="text-gray-600">조합원 가입 신청을 확인하고 승인/반려 처리합니다.</p>
+                    <h1 className="text-[32px] font-bold text-gray-900 mb-2">사용자 관리</h1>
+                    <p className="text-[20px] text-gray-600">조합원 가입 신청을 확인하고 승인/반려 처리합니다.</p>
                 </div>
 
                 {/* 검색 및 필터 */}
-                <div className="bg-white rounded-xl shadow-sm p-4 mb-6">
+                <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
                     <div className="flex flex-col md:flex-row gap-4">
                         {/* 검색 */}
                         <div className="flex-1 relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                             <input
                                 type="text"
                                 value={searchQuery}
@@ -257,7 +257,7 @@ export default function AdminUsersPage() {
                                     setPage(1);
                                 }}
                                 placeholder="이름, 전화번호, 물건지로 검색..."
-                                className="w-full h-10 pl-10 pr-4 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4E8C6D] focus:border-transparent"
+                                className="w-full h-12 pl-12 pr-4 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4E8C6D] focus:border-transparent text-[16px]"
                             />
                         </div>
 
@@ -268,7 +268,7 @@ export default function AdminUsersPage() {
                                 setStatusFilter(e.target.value as UserStatusFilter);
                                 setPage(1);
                             }}
-                            className="h-10 px-4 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4E8C6D] focus:border-transparent"
+                            className="h-12 px-4 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4E8C6D] focus:border-transparent text-[16px]"
                         >
                             <option value="ALL">전체 상태</option>
                             <option value="PENDING_APPROVAL">승인 대기</option>
@@ -284,7 +284,7 @@ export default function AdminUsersPage() {
                                 setRoleFilter(e.target.value as UserRoleFilter);
                                 setPage(1);
                             }}
-                            className="h-10 px-4 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4E8C6D] focus:border-transparent"
+                            className="h-12 px-4 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4E8C6D] focus:border-transparent text-[16px]"
                         >
                             <option value="ALL">전체 등급</option>
                             <option value="USER">조합원</option>
@@ -298,35 +298,35 @@ export default function AdminUsersPage() {
                 {/* 사용자 목록 */}
                 <div className="bg-white rounded-xl shadow-sm overflow-hidden">
                     {isLoading ? (
-                        <div className="p-8 text-center text-gray-500">로딩 중...</div>
+                        <div className="p-8 text-center text-gray-500 text-[18px]">로딩 중...</div>
                     ) : usersData?.users.length === 0 ? (
-                        <div className="p-8 text-center text-gray-500">검색 결과가 없습니다.</div>
+                        <div className="p-8 text-center text-gray-500 text-[18px]">검색 결과가 없습니다.</div>
                     ) : (
                         <>
                             {/* 테이블 */}
                             <div className="overflow-x-auto">
                                 <table className="w-full">
-                                    <thead className="bg-gray-50 border-b">
+                                    <thead className="bg-[#F5F5F5] border-b border-gray-200">
                                         <tr>
-                                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
+                                            <th className="px-6 py-4 text-left text-[16px] font-bold text-gray-700">
                                                 상태
                                             </th>
-                                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
+                                            <th className="px-6 py-4 text-left text-[16px] font-bold text-gray-700">
                                                 이름
                                             </th>
-                                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
+                                            <th className="px-6 py-4 text-left text-[16px] font-bold text-gray-700">
                                                 전화번호
                                             </th>
-                                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
+                                            <th className="px-6 py-4 text-left text-[16px] font-bold text-gray-700">
                                                 물건지
                                             </th>
-                                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
+                                            <th className="px-6 py-4 text-left text-[16px] font-bold text-gray-700">
                                                 등급
                                             </th>
-                                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
+                                            <th className="px-6 py-4 text-left text-[16px] font-bold text-gray-700">
                                                 가입일
                                             </th>
-                                            <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">
+                                            <th className="px-6 py-4 text-center text-[16px] font-bold text-gray-700">
                                                 관리
                                             </th>
                                         </tr>
@@ -336,46 +336,45 @@ export default function AdminUsersPage() {
                                             <tr
                                                 key={user.id}
                                                 className={cn(
-                                                    'hover:bg-gray-50 cursor-pointer',
-                                                    user.user_status === 'PENDING_APPROVAL' &&
-                                                        'bg-yellow-50'
+                                                    'hover:bg-gray-50 cursor-pointer transition-colors',
+                                                    user.user_status === 'PENDING_APPROVAL' && 'bg-yellow-50/50'
                                                 )}
                                                 onClick={() => openDetailModal(user)}
                                             >
-                                                <td className="px-4 py-3">
+                                                <td className="px-6 py-4">
                                                     <span
                                                         className={cn(
-                                                            'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
+                                                            'inline-flex items-center px-3 py-1 rounded-full text-[14px] font-medium',
                                                             USER_STATUS_COLORS[user.user_status]
                                                         )}
                                                     >
                                                         {USER_STATUS_LABELS[user.user_status]}
                                                     </span>
                                                 </td>
-                                                <td className="px-4 py-3 text-sm text-gray-900 font-medium">
+                                                <td className="px-6 py-4 text-[16px] text-gray-900 font-medium">
                                                     {user.name}
                                                 </td>
-                                                <td className="px-4 py-3 text-sm text-gray-600">
+                                                <td className="px-6 py-4 text-[16px] text-gray-600">
                                                     {user.phone_number}
                                                 </td>
-                                                <td className="px-4 py-3 text-sm text-gray-600 max-w-[200px] truncate">
+                                                <td className="px-6 py-4 text-[16px] text-gray-600 max-w-[200px] truncate">
                                                     {user.property_address || '-'}
                                                 </td>
-                                                <td className="px-4 py-3 text-sm text-gray-600">
+                                                <td className="px-6 py-4 text-[16px] text-gray-600">
                                                     {USER_ROLE_LABELS[user.role] || user.role}
                                                 </td>
-                                                <td className="px-4 py-3 text-sm text-gray-600">
+                                                <td className="px-6 py-4 text-[16px] text-gray-600">
                                                     {new Date(user.created_at).toLocaleDateString('ko-KR')}
                                                 </td>
-                                                <td className="px-4 py-3 text-center">
+                                                <td className="px-6 py-4 text-center">
                                                     <button
                                                         onClick={(e) => {
                                                             e.stopPropagation();
                                                             openDetailModal(user);
                                                         }}
-                                                        className="p-2 text-gray-500 hover:text-[#4E8C6D] hover:bg-gray-100 rounded-lg transition-colors"
+                                                        className="p-2 text-gray-400 hover:text-[#4E8C6D] hover:bg-green-50 rounded-lg transition-colors"
                                                     >
-                                                        <Edit className="w-4 h-4" />
+                                                        <Edit className="w-5 h-5" />
                                                     </button>
                                                 </td>
                                             </tr>
@@ -386,8 +385,8 @@ export default function AdminUsersPage() {
 
                             {/* 페이지네이션 */}
                             {totalPages > 1 && (
-                                <div className="flex items-center justify-between px-4 py-3 border-t">
-                                    <div className="text-sm text-gray-600">
+                                <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100">
+                                    <div className="text-[16px] text-gray-600">
                                         총 {usersData?.total}명 중 {(page - 1) * pageSize + 1}-
                                         {Math.min(page * pageSize, usersData?.total || 0)}명
                                     </div>
@@ -397,9 +396,9 @@ export default function AdminUsersPage() {
                                             disabled={page === 1}
                                             className="p-2 rounded-lg border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
                                         >
-                                            <ChevronLeft className="w-4 h-4" />
+                                            <ChevronLeft className="w-5 h-5" />
                                         </button>
-                                        <span className="text-sm text-gray-600">
+                                        <span className="text-[16px] text-gray-900 font-medium px-2">
                                             {page} / {totalPages}
                                         </span>
                                         <button
@@ -407,7 +406,7 @@ export default function AdminUsersPage() {
                                             disabled={page === totalPages}
                                             className="p-2 rounded-lg border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
                                         >
-                                            <ChevronRight className="w-4 h-4" />
+                                            <ChevronRight className="w-5 h-5" />
                                         </button>
                                     </div>
                                 </div>
@@ -422,18 +421,18 @@ export default function AdminUsersPage() {
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
                         {/* 모달 헤더 */}
-                        <div className="p-6 border-b">
-                            <h3 className="text-lg font-bold text-gray-900">사용자 상세 정보</h3>
+                        <div className="p-6 border-b border-gray-100">
+                            <h3 className="text-[24px] font-bold text-gray-900">사용자 상세 정보</h3>
                         </div>
 
                         {/* 모달 본문 */}
                         <div className="p-6 space-y-6">
                             {/* 상태 배지 */}
                             <div className="flex items-center justify-between">
-                                <span className="text-sm text-gray-500">현재 상태</span>
+                                <span className="text-[16px] text-gray-500">현재 상태</span>
                                 <span
                                     className={cn(
-                                        'inline-flex items-center px-3 py-1 rounded-full text-sm font-medium',
+                                        'inline-flex items-center px-4 py-1.5 rounded-full text-[16px] font-medium',
                                         USER_STATUS_COLORS[selectedUser.user_status]
                                     )}
                                 >
@@ -442,39 +441,42 @@ export default function AdminUsersPage() {
                             </div>
 
                             {/* 기본 정보 */}
-                            <div className="space-y-3">
-                                <div className="flex items-center gap-3">
-                                    <UserIcon className="w-5 h-5 text-gray-400" />
+                            <div className="space-y-4">
+                                <div className="flex items-center gap-4 p-4 bg-[#F5F5F5] rounded-xl">
+                                    <UserIcon className="w-6 h-6 text-gray-400" />
                                     <div>
-                                        <p className="text-xs text-gray-500">이름</p>
-                                        <p className="font-medium">{selectedUser.name}</p>
+                                        <p className="text-[14px] text-gray-500">이름</p>
+                                        <p className="text-[18px] font-bold text-gray-900">{selectedUser.name}</p>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-3">
-                                    <Phone className="w-5 h-5 text-gray-400" />
+                                <div className="flex items-center gap-4 p-4 bg-[#F5F5F5] rounded-xl">
+                                    <Phone className="w-6 h-6 text-gray-400" />
                                     <div>
-                                        <p className="text-xs text-gray-500">전화번호</p>
-                                        <p className="font-medium">{selectedUser.phone_number}</p>
+                                        <p className="text-[14px] text-gray-500">전화번호</p>
+                                        <p className="text-[18px] font-bold text-gray-900">
+                                            {selectedUser.phone_number}
+                                        </p>
                                     </div>
                                 </div>
                                 {selectedUser.birth_date && (
-                                    <div className="flex items-center gap-3">
-                                        <Calendar className="w-5 h-5 text-gray-400" />
+                                    <div className="flex items-center gap-4 p-4 bg-[#F5F5F5] rounded-xl">
+                                        <Calendar className="w-6 h-6 text-gray-400" />
                                         <div>
-                                            <p className="text-xs text-gray-500">생년월일</p>
-                                            <p className="font-medium">{selectedUser.birth_date}</p>
+                                            <p className="text-[14px] text-gray-500">생년월일</p>
+                                            <p className="text-[18px] font-bold text-gray-900">
+                                                {selectedUser.birth_date}
+                                            </p>
                                         </div>
                                     </div>
                                 )}
-                                <div className="flex items-start gap-3">
-                                    <MapPin className="w-5 h-5 text-gray-400 mt-0.5" />
+                                <div className="flex items-start gap-4 p-4 bg-[#F5F5F5] rounded-xl">
+                                    <MapPin className="w-6 h-6 text-gray-400 mt-1" />
                                     <div>
-                                        <p className="text-xs text-gray-500">물건지</p>
-                                        <p className="font-medium">
+                                        <p className="text-[14px] text-gray-500">물건지</p>
+                                        <p className="text-[18px] font-bold text-gray-900">
                                             {selectedUser.property_address || '-'}
                                             {selectedUser.property_address_detail && (
-                                                <span className="text-gray-500">
-                                                    {' '}
+                                                <span className="text-gray-600 font-normal block mt-1">
                                                     {selectedUser.property_address_detail}
                                                 </span>
                                             )}
@@ -485,19 +487,17 @@ export default function AdminUsersPage() {
 
                             {/* 역할 변경 */}
                             <div className="space-y-2">
-                                <label className="block text-sm font-medium text-gray-700">등급</label>
+                                <label className="block text-[16px] font-medium text-gray-700">등급</label>
                                 <div className="flex gap-2">
                                     <select
                                         value={newRole}
                                         onChange={(e) => setNewRole(e.target.value)}
-                                        className="flex-1 h-10 px-4 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4E8C6D] focus:border-transparent"
+                                        className="flex-1 h-12 px-4 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4E8C6D] focus:border-transparent text-[16px]"
                                     >
                                         <option value="APPLICANT">가입 신청자</option>
                                         <option value="USER">조합원</option>
                                         <option value="ADMIN">조합 관리자</option>
-                                        {isSystemAdmin && (
-                                            <option value="SYSTEM_ADMIN">시스템 관리자</option>
-                                        )}
+                                        {isSystemAdmin && <option value="SYSTEM_ADMIN">시스템 관리자</option>}
                                     </select>
                                     <button
                                         onClick={() =>
@@ -506,11 +506,8 @@ export default function AdminUsersPage() {
                                                 role: newRole,
                                             })
                                         }
-                                        disabled={
-                                            newRole === selectedUser.role ||
-                                            updateRoleMutation.isPending
-                                        }
-                                        className="px-4 h-10 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                        disabled={newRole === selectedUser.role || updateRoleMutation.isPending}
+                                        className="px-6 h-12 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-[16px] font-medium"
                                     >
                                         변경
                                     </button>
@@ -520,7 +517,7 @@ export default function AdminUsersPage() {
                             {/* 반려 사유 (승인 대기 상태일 때만) */}
                             {selectedUser.user_status === 'PENDING_APPROVAL' && (
                                 <div className="space-y-2">
-                                    <label className="block text-sm font-medium text-gray-700">
+                                    <label className="block text-[16px] font-medium text-gray-700">
                                         반려 사유 (반려 시 입력)
                                     </label>
                                     <textarea
@@ -528,33 +525,30 @@ export default function AdminUsersPage() {
                                         onChange={(e) => setRejectionReason(e.target.value)}
                                         placeholder="반려 사유를 입력하세요..."
                                         rows={3}
-                                        className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4E8C6D] focus:border-transparent resize-none"
+                                        className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4E8C6D] focus:border-transparent resize-none text-[16px]"
                                     />
                                 </div>
                             )}
 
                             {/* 기존 반려 사유 표시 */}
-                            {selectedUser.user_status === 'REJECTED' &&
-                                selectedUser.rejected_reason && (
-                                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                                        <p className="text-sm font-medium text-red-800 mb-1">
-                                            반려 사유
-                                        </p>
-                                        <p className="text-sm text-red-700">
-                                            {selectedUser.rejected_reason}
-                                        </p>
-                                    </div>
-                                )}
+                            {selectedUser.user_status === 'REJECTED' && selectedUser.rejected_reason && (
+                                <div className="bg-red-50 border border-red-200 rounded-xl p-5">
+                                    <p className="text-[16px] font-bold text-red-800 mb-2">반려 사유</p>
+                                    <p className="text-[16px] text-red-700 leading-relaxed">
+                                        {selectedUser.rejected_reason}
+                                    </p>
+                                </div>
+                            )}
                         </div>
 
                         {/* 모달 푸터 */}
-                        <div className="p-6 border-t bg-gray-50 flex gap-3">
+                        <div className="p-6 border-t border-gray-100 bg-gray-50 flex gap-4">
                             <button
                                 onClick={() => {
                                     setShowDetailModal(false);
                                     setSelectedUser(null);
                                 }}
-                                className="flex-1 h-10 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition-colors"
+                                className="flex-1 h-12 rounded-xl border border-gray-300 text-gray-700 hover:bg-gray-100 transition-colors text-[16px] font-medium"
                             >
                                 닫기
                             </button>
@@ -569,17 +563,17 @@ export default function AdminUsersPage() {
                                             })
                                         }
                                         disabled={rejectMutation.isPending}
-                                        className="flex-1 h-10 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                                        className="flex-1 h-12 rounded-xl bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 text-[16px] font-medium"
                                     >
-                                        <XCircle className="w-4 h-4" />
+                                        <XCircle className="w-5 h-5" />
                                         <span>반려</span>
                                     </button>
                                     <button
                                         onClick={() => approveMutation.mutate(selectedUser.id)}
                                         disabled={approveMutation.isPending}
-                                        className="flex-1 h-10 rounded-lg bg-[#4E8C6D] text-white hover:bg-[#3d7058] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                                        className="flex-1 h-12 rounded-xl bg-[#4E8C6D] text-white hover:bg-[#3d7058] transition-colors disabled:opacity-50 flex items-center justify-center gap-2 text-[16px] font-medium"
                                     >
-                                        <CheckCircle className="w-4 h-4" />
+                                        <CheckCircle className="w-5 h-5" />
                                         <span>승인</span>
                                     </button>
                                 </>
