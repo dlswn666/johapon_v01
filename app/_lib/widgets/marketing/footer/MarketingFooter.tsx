@@ -11,7 +11,7 @@ export function MarketingFooter() {
                             className="font-bold"
                             style={{ fontSize: 'var(--text-marketing-footer-title)', lineHeight: '1.5' }}
                         >
-                            조합온
+                            조합온( 라텔 )
                         </h3>
                         <div
                             className="text-[#d1d5dc]"
@@ -68,6 +68,20 @@ export function MarketingFooter() {
                             <p></p>
                         </div>
                     </div>
+                </div>
+
+                {/* 사업자 정보 */}
+                <div
+                    className="flex flex-wrap justify-center items-center gap-2 md:gap-4 text-[#99a1af] text-center mb-6 md:mb-[37px]"
+                    style={{ fontSize: 'var(--text-marketing-footer-body)', lineHeight: '1.5' }}
+                >
+                    <span>상호: 라텔</span>
+                    <span className="hidden md:inline">|</span>
+                    <span>대표: 정인주</span>
+                    <span className="hidden md:inline">|</span>
+                    <span>사업자등록번호: 276-40-01354</span>
+                    <span className="hidden md:inline">|</span>
+                    <span>주소: 서울특별시 강북구 인수봉로 6가길 9</span>
                 </div>
 
                 {/* Copyright */}

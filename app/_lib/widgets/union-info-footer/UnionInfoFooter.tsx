@@ -10,15 +10,9 @@ interface UnionInfoFooterProps {
     className?: string;
 }
 
-/**
- * 조합 정보 Footer 섹션
- * - 전화번호, 주소, 이메일, 운영시간 표시
- * - 조합 소개 표시
- * - 정보가 없으면 "작성중" 표시
- */
-export function UnionInfoFooter({ union, className }: UnionInfoFooterProps) {
-    const placeholderText = '작성중';
+const placeholderText = '텍스트가 없습니다.';
 
+export function UnionInfoFooter({ union, className }: UnionInfoFooterProps) {
     return (
         <footer className={cn('bg-[#1e2939] text-white w-full py-[37px]', className)}>
             <div className="container mx-auto max-w-[1280px] px-4">
@@ -85,11 +79,10 @@ export function UnionInfoFooter({ union, className }: UnionInfoFooterProps) {
                         </div>
                     </div>
                 </div>
-
                 {/* Copyright */}
                 <div className="border-t border-[#364153] pt-[37px]">
                     <p className="text-[#99a1af] text-[15.75px] text-center leading-[23.625px]">
-                        © {new Date().getFullYear()} {union.name}. All rights reserved.
+                        © 2025 ratel. All rights reserved.
                     </p>
                 </div>
             </div>
