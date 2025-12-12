@@ -9,6 +9,7 @@ import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import UnionInfoFooter from '@/app/_lib/widgets/union-info-footer/UnionInfoFooter';
 import UnionHomeHeader from '@/app/_lib/widgets/union/header/UnionHomeHeader';
 import UnionBreadcrumb from '@/app/_lib/widgets/union/breadcrumb/UnionBreadcrumb';
+import { UserStatusModal } from '@/app/_lib/widgets/modal';
 
 interface UnionLayoutContentProps {
     children: React.ReactNode;
@@ -16,11 +17,14 @@ interface UnionLayoutContentProps {
 
 export default function UnionLayoutContent({ children }: UnionLayoutContentProps) {
     const { union, slug, isLoading: isUnionLoading } = useSlug();
-    const { isLoading: isAuthLoading } = useAuth();
+    const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
     const pathname = usePathname();
 
-    // 홈 페이지 여부 확인 (Breadcrumb만 홈에서 숨김)
+    // 홈 페이지 여부 확인
     const isHomePage = pathname === `/${slug}`;
+
+    // 랜딩 페이지 여부 확인 (비로그인 + 홈페이지)
+    const isLandingPage = isHomePage && !isAuthenticated;
 
     // 로딩 중
     if (isUnionLoading || isAuthLoading) {
@@ -55,6 +59,18 @@ export default function UnionLayoutContent({ children }: UnionLayoutContentProps
         );
     }
 
+    // 랜딩 페이지 레이아웃 (비로그인 + 홈페이지): Header, 사이드 광고 없이 Footer만 표시
+    if (isLandingPage) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex flex-col">
+                <main className="flex-1">{children}</main>
+                {union && <UnionInfoFooter union={union} />}
+                <UserStatusModal />
+            </div>
+        );
+    }
+
+    // 일반 레이아웃 (로그인 상태 또는 다른 페이지)
     return (
         <div className="min-h-[1080px] bg-gray-50 flex flex-col">
             {/* Header - 모든 페이지에서 공통 렌더링 */}
@@ -86,6 +102,9 @@ export default function UnionLayoutContent({ children }: UnionLayoutContentProps
 
             {/* Footer 표시 */}
             {union && <UnionInfoFooter union={union} />}
+
+            {/* 사용자 상태 모달 (승인대기/반려) */}
+            <UserStatusModal />
         </div>
     );
 }

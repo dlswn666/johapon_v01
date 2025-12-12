@@ -7,7 +7,7 @@ interface FreeBoardStore {
     freeBoards: FreeBoard[];
     selectedFreeBoard: FreeBoard | null;
     editorImages: Record<string, File>; // blobUrl -> File 매핑
-    
+
     // 페이지네이션 상태
     totalCount: number;
     currentPage: number;
@@ -19,12 +19,12 @@ interface FreeBoardStore {
     updateFreeBoard: (id: number, freeBoard: Partial<FreeBoard>) => void;
     removeFreeBoard: (id: number) => void;
     incrementViews: (id: number) => void;
-    
+
     // 페이지네이션 액션
     setTotalCount: (count: number) => void;
     setCurrentPage: (page: number) => void;
     setPageSize: (size: number) => void;
-    
+
     // 에디터 이미지 관리
     addEditorImage: (blobUrl: string, file: File) => void;
     removeEditorImage: (blobUrl: string) => void;
@@ -57,12 +57,13 @@ const useFreeBoardStore = create<FreeBoardStore>((set) => ({
 
     updateFreeBoard: (id, updatedFreeBoard) =>
         set((state) => ({
-            freeBoards: state.freeBoards.map((freeBoard) => 
-                (freeBoard.id === id ? { ...freeBoard, ...updatedFreeBoard } : freeBoard)
+            freeBoards: state.freeBoards.map((freeBoard) =>
+                freeBoard.id === id ? { ...freeBoard, ...updatedFreeBoard } : freeBoard
             ),
-            selectedFreeBoard: state.selectedFreeBoard?.id === id 
-                ? { ...state.selectedFreeBoard, ...updatedFreeBoard } 
-                : state.selectedFreeBoard,
+            selectedFreeBoard:
+                state.selectedFreeBoard?.id === id
+                    ? { ...state.selectedFreeBoard, ...updatedFreeBoard }
+                    : state.selectedFreeBoard,
         })),
 
     removeFreeBoard: (id) =>
@@ -74,12 +75,13 @@ const useFreeBoardStore = create<FreeBoardStore>((set) => ({
 
     incrementViews: (id) =>
         set((state) => ({
-            freeBoards: state.freeBoards.map((freeBoard) => 
-                (freeBoard.id === id ? { ...freeBoard, views: freeBoard.views + 1 } : freeBoard)
+            freeBoards: state.freeBoards.map((freeBoard) =>
+                freeBoard.id === id ? { ...freeBoard, views: freeBoard.views + 1 } : freeBoard
             ),
-            selectedFreeBoard: state.selectedFreeBoard?.id === id 
-                ? { ...state.selectedFreeBoard, views: state.selectedFreeBoard.views + 1 } 
-                : state.selectedFreeBoard,
+            selectedFreeBoard:
+                state.selectedFreeBoard?.id === id
+                    ? { ...state.selectedFreeBoard, views: state.selectedFreeBoard.views + 1 }
+                    : state.selectedFreeBoard,
         })),
 
     setTotalCount: (count) => set({ totalCount: count }),
@@ -104,12 +106,3 @@ const useFreeBoardStore = create<FreeBoardStore>((set) => ({
 }));
 
 export default useFreeBoardStore;
-
-
-
-
-
-
-
-
-

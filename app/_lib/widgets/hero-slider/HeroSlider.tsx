@@ -10,8 +10,6 @@ interface HeroSliderProps {
     slides: HeroSlide[];
     autoPlayInterval?: number; // 자동 슬라이드 간격 (ms), 기본 4000ms
     className?: string;
-    title?: string; // 중앙 타이틀 (선택)
-    description?: string; // 중앙 설명 (선택)
 }
 
 /**
@@ -20,7 +18,7 @@ interface HeroSliderProps {
  * - 이미지가 없으면 "점검중..." 표시
  * - link_url이 있으면 클릭 가능 (cursor: pointer)
  */
-export function HeroSlider({ slides, autoPlayInterval = 4000, className, title: _title, description: _description }: HeroSliderProps) {
+export function HeroSlider({ slides, autoPlayInterval = 4000, className }: HeroSliderProps) {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isTransitioning, setIsTransitioning] = useState(false);
     const sliderRef = useRef<HTMLDivElement>(null);
@@ -185,14 +183,14 @@ export function HeroSlider({ slides, autoPlayInterval = 4000, className, title: 
                 <>
                     <button
                         onClick={goToPrev}
-                        className="absolute left-[36px] top-1/2 -translate-y-1/2 bg-[rgba(255,255,255,0.3)] hover:bg-[rgba(255,255,255,0.4)] text-white rounded-full transition-colors z-20 w-[63px] h-[63px] flex items-center justify-center"
+                        className="absolute left-[36px] top-1/2 -translate-y-1/2 bg-[rgba(255,255,255,0.3)] hover:bg-[rgba(255,255,255,0.4)] text-white rounded-full transition-colors z-20 w-[63px] h-[63px] flex items-center justify-center cursor-pointer"
                         aria-label="이전 슬라이드"
                     >
                         <ChevronLeft className="w-6 h-6" />
                     </button>
                     <button
                         onClick={goToNext}
-                        className="absolute right-[36px] top-1/2 -translate-y-1/2 bg-[rgba(255,255,255,0.3)] hover:bg-[rgba(255,255,255,0.4)] text-white rounded-full transition-colors z-20 w-[63px] h-[63px] flex items-center justify-center"
+                        className="absolute right-[36px] top-1/2 -translate-y-1/2 bg-[rgba(255,255,255,0.3)] hover:bg-[rgba(255,255,255,0.4)] text-white rounded-full transition-colors z-20 w-[63px] h-[63px] flex items-center justify-center cursor-pointer"
                         aria-label="다음 슬라이드"
                     >
                         <ChevronRight className="w-6 h-6" />
@@ -213,7 +211,7 @@ export function HeroSlider({ slides, autoPlayInterval = 4000, className, title: 
                                 key={index}
                                 onClick={() => goToSlide(index)}
                                 className={cn(
-                                    'rounded-full transition-all duration-300',
+                                    'rounded-full transition-all duration-300 cursor-pointer',
                                     isActive
                                         ? 'bg-white w-[13.5px] h-[13.5px]'
                                         : 'bg-[rgba(255,255,255,0.5)] w-[13.5px] h-[13.5px] hover:bg-[rgba(255,255,255,0.7)]'

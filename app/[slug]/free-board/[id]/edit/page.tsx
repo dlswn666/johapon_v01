@@ -37,10 +37,10 @@ const EditFreeBoardPage = ({ params }: EditFreeBoardPageProps) => {
     const { slug, id } = use(params);
     const freeBoardId = parseInt(id);
     const { isLoading: isUnionLoading } = useSlug();
-    
+
     const { data: freeBoard, isLoading } = useFreeBoard(freeBoardId);
     const { mutate: updateFreeBoard, isPending } = useUpdateFreeBoard();
-    
+
     // Store cleanup actions
     const clearEditorImages = useFreeBoardStore((state) => state.clearEditorImages);
     const clearTempFiles = useFileStore((state) => state.clearTempFiles);
@@ -124,10 +124,10 @@ const EditFreeBoardPage = ({ params }: EditFreeBoardPageProps) => {
                                     <FormItem>
                                         <FormLabel className="text-[16px] font-bold text-[#5FA37C]">제목</FormLabel>
                                         <FormControl>
-                                            <Input 
-                                                placeholder="제목을 입력해주세요" 
-                                                {...field} 
-                                                className="h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]" 
+                                            <Input
+                                                placeholder="제목을 입력해주세요"
+                                                {...field}
+                                                className="h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]"
                                             />
                                         </FormControl>
                                         <FormMessage />
@@ -166,16 +166,16 @@ const EditFreeBoardPage = ({ params }: EditFreeBoardPageProps) => {
                             />
 
                             <div className="flex justify-end gap-3 pt-6 border-t border-[#CCCCCC]">
-                                <Button 
-                                    type="button" 
-                                    variant="outline" 
+                                <Button
+                                    type="button"
+                                    variant="outline"
                                     onClick={() => router.push(`/${slug}/free-board/${id}`)}
                                     className="h-[48px] px-8 text-[16px] border-[#CCCCCC] text-gray-600 hover:bg-gray-50 cursor-pointer"
                                 >
                                     취소
                                 </Button>
-                                <Button 
-                                    type="submit" 
+                                <Button
+                                    type="submit"
                                     disabled={isPending}
                                     className="h-[48px] px-8 text-[16px] bg-[#4E8C6D] hover:bg-[#5FA37C] text-white cursor-pointer"
                                 >
@@ -193,12 +193,3 @@ const EditFreeBoardPage = ({ params }: EditFreeBoardPageProps) => {
 };
 
 export default EditFreeBoardPage;
-
-
-
-
-
-
-
-
-

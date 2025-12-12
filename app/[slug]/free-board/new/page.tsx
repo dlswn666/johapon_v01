@@ -31,7 +31,7 @@ const NewFreeBoardPage = () => {
     const { slug, union } = useSlug();
     const { user } = useAuth();
     const { mutate: addFreeBoard, isPending } = useAddFreeBoard();
-    
+
     // Store cleanup actions
     const clearEditorImages = useFreeBoardStore((state) => state.clearEditorImages);
     const clearTempFiles = useFileStore((state) => state.clearTempFiles);
@@ -88,10 +88,10 @@ const NewFreeBoardPage = () => {
                                     <FormItem>
                                         <FormLabel className="text-[16px] font-bold text-[#5FA37C]">제목</FormLabel>
                                         <FormControl>
-                                            <Input 
-                                                placeholder="제목을 입력해주세요" 
-                                                {...field} 
-                                                className="h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]" 
+                                            <Input
+                                                placeholder="제목을 입력해주세요"
+                                                {...field}
+                                                className="h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]"
                                             />
                                         </FormControl>
                                         <FormMessage />
@@ -103,10 +103,7 @@ const NewFreeBoardPage = () => {
                             <FormItem>
                                 <FormLabel className="text-[16px] font-bold text-[#5FA37C]">첨부파일</FormLabel>
                                 <FormControl>
-                                    <FileUploader
-                                        unionSlug={slug}
-                                        targetType="FREE_BOARD"
-                                    />
+                                    <FileUploader unionSlug={slug} targetType="FREE_BOARD" />
                                 </FormControl>
                             </FormItem>
 
@@ -129,16 +126,16 @@ const NewFreeBoardPage = () => {
                             />
 
                             <div className="flex justify-end gap-3 pt-6 border-t border-[#CCCCCC]">
-                                <Button 
-                                    type="button" 
-                                    variant="outline" 
+                                <Button
+                                    type="button"
+                                    variant="outline"
                                     onClick={() => router.push(`/${slug}/free-board`)}
                                     className="h-[48px] px-8 text-[16px] border-[#CCCCCC] text-gray-600 hover:bg-gray-50 cursor-pointer"
                                 >
                                     취소
                                 </Button>
-                                <Button 
-                                    type="submit" 
+                                <Button
+                                    type="submit"
                                     disabled={isPending}
                                     className="h-[48px] px-8 text-[16px] bg-[#4E8C6D] hover:bg-[#5FA37C] text-white cursor-pointer"
                                 >
@@ -156,12 +153,3 @@ const NewFreeBoardPage = () => {
 };
 
 export default NewFreeBoardPage;
-
-
-
-
-
-
-
-
-

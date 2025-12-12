@@ -21,9 +21,9 @@ import { fileApi } from '@/app/_lib/shared/hooks/file/fileApi';
  * 자유 게시판 목록 조회 (검색, 페이지네이션 포함)
  */
 export const useFreeBoards = (
-    enabled: boolean = true, 
-    searchQuery: string = '', 
-    page: number = 1, 
+    enabled: boolean = true,
+    searchQuery: string = '',
+    page: number = 1,
     limit: number = 10
 ) => {
     const setFreeBoards = useFreeBoardStore((state) => state.setFreeBoards);
@@ -109,13 +109,13 @@ export const useFreeBoards = (
                 comment_count: commentCountMap[freeBoard.id] || 0,
             }));
 
-            return { 
+            return {
                 data: freeBoardsWithCounts as (FreeBoard & {
                     author: { id: string; name: string } | null;
                     file_count: number;
                     comment_count: number;
-                })[], 
-                count: count || 0 
+                })[],
+                count: count || 0,
             };
         },
         enabled: enabled && !!union?.id,
@@ -231,9 +231,9 @@ export const useAddFreeBoard = () => {
 
             // 2. 에디터 이미지 업로드 및 본문 URL 치환
             const finalContent = await processEditorImages(
-                newFreeBoard.content || '', 
-                editorImages, 
-                slug, 
+                newFreeBoard.content || '',
+                editorImages,
+                slug,
                 freeBoardData.id
             );
 
@@ -460,12 +460,3 @@ export const useIncrementFreeBoardViews = () => {
         },
     });
 };
-
-
-
-
-
-
-
-
-

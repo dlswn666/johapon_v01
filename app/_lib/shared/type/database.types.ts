@@ -325,31 +325,55 @@ export type Database = {
             };
             users: {
                 Row: {
-                    created_at: string;
-                    email: string;
                     id: string;
                     name: string;
+                    email: string;
                     phone_number: string;
-                    role: string;
+                    role: 'SYSTEM_ADMIN' | 'ADMIN' | 'USER' | 'APPLICANT';
                     union_id: string | null;
+                    user_status: 'PENDING_PROFILE' | 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED';
+                    birth_date: string | null;
+                    property_address: string | null;
+                    property_address_detail: string | null;
+                    rejected_reason: string | null;
+                    approved_at: string | null;
+                    rejected_at: string | null;
+                    created_at: string;
+                    updated_at: string;
                 };
                 Insert: {
-                    created_at?: string;
-                    email: string;
                     id: string;
                     name: string;
+                    email: string;
                     phone_number: string;
-                    role: string;
+                    role: 'SYSTEM_ADMIN' | 'ADMIN' | 'USER' | 'APPLICANT';
                     union_id?: string | null;
+                    user_status?: 'PENDING_PROFILE' | 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED';
+                    birth_date?: string | null;
+                    property_address?: string | null;
+                    property_address_detail?: string | null;
+                    rejected_reason?: string | null;
+                    approved_at?: string | null;
+                    rejected_at?: string | null;
+                    created_at?: string;
+                    updated_at?: string;
                 };
                 Update: {
-                    created_at?: string;
-                    email?: string;
                     id?: string;
                     name?: string;
+                    email?: string;
                     phone_number?: string;
-                    role?: string;
+                    role?: 'SYSTEM_ADMIN' | 'ADMIN' | 'USER' | 'APPLICANT';
                     union_id?: string | null;
+                    user_status?: 'PENDING_PROFILE' | 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED';
+                    birth_date?: string | null;
+                    property_address?: string | null;
+                    property_address_detail?: string | null;
+                    rejected_reason?: string | null;
+                    approved_at?: string | null;
+                    rejected_at?: string | null;
+                    created_at?: string;
+                    updated_at?: string;
                 };
                 Relationships: [
                     {
@@ -357,6 +381,38 @@ export type Database = {
                         columns: ['union_id'];
                         isOneToOne: false;
                         referencedRelation: 'unions';
+                        referencedColumns: ['id'];
+                    }
+                ];
+            };
+            user_auth_links: {
+                Row: {
+                    id: string;
+                    user_id: string;
+                    auth_user_id: string;
+                    provider: 'kakao' | 'naver' | 'email';
+                    created_at: string;
+                };
+                Insert: {
+                    id?: string;
+                    user_id: string;
+                    auth_user_id: string;
+                    provider: 'kakao' | 'naver' | 'email';
+                    created_at?: string;
+                };
+                Update: {
+                    id?: string;
+                    user_id?: string;
+                    auth_user_id?: string;
+                    provider?: 'kakao' | 'naver' | 'email';
+                    created_at?: string;
+                };
+                Relationships: [
+                    {
+                        foreignKeyName: 'user_auth_links_user_id_fkey';
+                        columns: ['user_id'];
+                        isOneToOne: false;
+                        referencedRelation: 'users';
                         referencedColumns: ['id'];
                     }
                 ];
@@ -530,6 +586,130 @@ export type Database = {
                     }
                 ];
             };
+            admin_invites: {
+                Row: {
+                    id: string;
+                    union_id: string;
+                    name: string;
+                    phone_number: string;
+                    email: string;
+                    invite_token: string;
+                    status: 'PENDING' | 'USED' | 'EXPIRED';
+                    created_by: string;
+                    expires_at: string;
+                    used_at: string | null;
+                    created_at: string;
+                };
+                Insert: {
+                    id?: string;
+                    union_id: string;
+                    name: string;
+                    phone_number: string;
+                    email: string;
+                    invite_token: string;
+                    status?: 'PENDING' | 'USED' | 'EXPIRED';
+                    created_by: string;
+                    expires_at: string;
+                    used_at?: string | null;
+                    created_at?: string;
+                };
+                Update: {
+                    id?: string;
+                    union_id?: string;
+                    name?: string;
+                    phone_number?: string;
+                    email?: string;
+                    invite_token?: string;
+                    status?: 'PENDING' | 'USED' | 'EXPIRED';
+                    created_by?: string;
+                    expires_at?: string;
+                    used_at?: string | null;
+                    created_at?: string;
+                };
+                Relationships: [
+                    {
+                        foreignKeyName: 'admin_invites_union_id_fkey';
+                        columns: ['union_id'];
+                        isOneToOne: false;
+                        referencedRelation: 'unions';
+                        referencedColumns: ['id'];
+                    },
+                    {
+                        foreignKeyName: 'admin_invites_created_by_fkey';
+                        columns: ['created_by'];
+                        isOneToOne: false;
+                        referencedRelation: 'users';
+                        referencedColumns: ['id'];
+                    }
+                ];
+            };
+            member_invites: {
+                Row: {
+                    id: string;
+                    union_id: string;
+                    name: string;
+                    phone_number: string;
+                    property_address: string;
+                    invite_token: string;
+                    status: 'PENDING' | 'USED' | 'EXPIRED';
+                    user_id: string | null;
+                    created_by: string;
+                    expires_at: string;
+                    used_at: string | null;
+                    created_at: string;
+                };
+                Insert: {
+                    id?: string;
+                    union_id: string;
+                    name: string;
+                    phone_number: string;
+                    property_address: string;
+                    invite_token: string;
+                    status?: 'PENDING' | 'USED' | 'EXPIRED';
+                    user_id?: string | null;
+                    created_by: string;
+                    expires_at: string;
+                    used_at?: string | null;
+                    created_at?: string;
+                };
+                Update: {
+                    id?: string;
+                    union_id?: string;
+                    name?: string;
+                    phone_number?: string;
+                    property_address?: string;
+                    invite_token?: string;
+                    status?: 'PENDING' | 'USED' | 'EXPIRED';
+                    user_id?: string | null;
+                    created_by?: string;
+                    expires_at?: string;
+                    used_at?: string | null;
+                    created_at?: string;
+                };
+                Relationships: [
+                    {
+                        foreignKeyName: 'member_invites_union_id_fkey';
+                        columns: ['union_id'];
+                        isOneToOne: false;
+                        referencedRelation: 'unions';
+                        referencedColumns: ['id'];
+                    },
+                    {
+                        foreignKeyName: 'member_invites_user_id_fkey';
+                        columns: ['user_id'];
+                        isOneToOne: false;
+                        referencedRelation: 'users';
+                        referencedColumns: ['id'];
+                    },
+                    {
+                        foreignKeyName: 'member_invites_created_by_fkey';
+                        columns: ['created_by'];
+                        isOneToOne: false;
+                        referencedRelation: 'users';
+                        referencedColumns: ['id'];
+                    }
+                ];
+            };
         };
         Views: {
             [_ in never]: never;
@@ -551,9 +731,21 @@ export type Database = {
                 Args: { free_board_id: number };
                 Returns: undefined;
             };
+            sync_member_invites: {
+                Args: {
+                    p_union_id: string;
+                    p_created_by: string;
+                    p_expires_hours: number;
+                    p_members: Json;
+                };
+                Returns: Json;
+            };
         };
         Enums: {
-            user_role: 'systemAdmin' | 'admin' | 'user';
+            user_role: 'SYSTEM_ADMIN' | 'ADMIN' | 'USER' | 'APPLICANT';
+            user_status: 'PENDING_PROFILE' | 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED';
+            auth_provider: 'kakao' | 'naver' | 'email';
+            admin_invite_status: 'PENDING' | 'USED' | 'EXPIRED';
         };
         CompositeTypes: {
             [_ in never]: never;
@@ -673,7 +865,11 @@ export type CompositeTypes<
 export const Constants = {
     public: {
         Enums: {
-            user_role: ['systemAdmin', 'admin', 'user'],
+            user_role: ['SYSTEM_ADMIN', 'ADMIN', 'USER', 'APPLICANT'],
+            user_status: ['PENDING_PROFILE', 'PENDING_APPROVAL', 'APPROVED', 'REJECTED'],
+            auth_provider: ['kakao', 'naver', 'email'],
+            admin_invite_status: ['PENDING', 'USED', 'EXPIRED'],
+            member_invite_status: ['PENDING', 'USED', 'EXPIRED'],
         },
     },
 } as const;
@@ -714,6 +910,42 @@ export type UpdateFileMeta = Database['public']['Tables']['files']['Update'];
 export type FreeBoard = Database['public']['Tables']['free_boards']['Row'];
 export type NewFreeBoard = Database['public']['Tables']['free_boards']['Insert'];
 export type UpdateFreeBoard = Database['public']['Tables']['free_boards']['Update'];
+
+export type UserAuthLink = Database['public']['Tables']['user_auth_links']['Row'];
+export type NewUserAuthLink = Database['public']['Tables']['user_auth_links']['Insert'];
+export type UpdateUserAuthLink = Database['public']['Tables']['user_auth_links']['Update'];
+
+// 사용자 상태 타입
+export type UserStatus = 'PENDING_PROFILE' | 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED';
+export type UserRole = 'SYSTEM_ADMIN' | 'ADMIN' | 'USER' | 'APPLICANT';
+export type AuthProvider = 'kakao' | 'naver' | 'email';
+export type AdminInviteStatus = 'PENDING' | 'USED' | 'EXPIRED';
+
+// 관리자 초대 타입
+export type AdminInvite = Database['public']['Tables']['admin_invites']['Row'];
+export type NewAdminInvite = Database['public']['Tables']['admin_invites']['Insert'];
+export type UpdateAdminInvite = Database['public']['Tables']['admin_invites']['Update'];
+
+// 관리자 초대 + 조합 정보 타입
+export type AdminInviteWithUnion = AdminInvite & { union: { id: string; name: string; slug: string } | null };
+
+// 조합원 초대 타입
+export type MemberInvite = Database['public']['Tables']['member_invites']['Row'];
+export type NewMemberInvite = Database['public']['Tables']['member_invites']['Insert'];
+export type UpdateMemberInvite = Database['public']['Tables']['member_invites']['Update'];
+export type MemberInviteStatus = 'PENDING' | 'USED' | 'EXPIRED';
+
+// 조합원 초대 + 조합 정보 타입
+export type MemberInviteWithUnion = MemberInvite & { union: { id: string; name: string; slug: string } | null };
+
+// 동기화 결과 타입
+export type SyncMemberInvitesResult = {
+    deleted_pending: number;
+    deleted_used: number;
+    inserted: number;
+    deleted_user_ids: string[];
+    deleted_auth_user_ids: string[];
+};
 
 // 조합 타입
 export type UnionInfoWithFiles = UnionInfo & { files: FileMeta[] };

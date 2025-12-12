@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
@@ -22,7 +22,6 @@ export default function NewSlidePage() {
     const { isAdmin, isLoading: isAuthLoading } = useAuth();
     const createMutation = useCreateHeroSlide();
     const { openConfirmModal, openAlertModal } = useModalStore();
-    const [_pendingData, setPendingData] = useState<FormData | null>(null);
 
     // 권한 체크
     useEffect(() => {
@@ -32,7 +31,6 @@ export default function NewSlidePage() {
     }, [isAuthLoading, isAdmin, router, slug]);
 
     const handleSubmit = async (data: FormData) => {
-        setPendingData(data);
         openConfirmModal({
             title: '슬라이드 등록',
             message: '새로운 슬라이드를 등록하시겠습니까?',
@@ -104,12 +102,7 @@ export default function NewSlidePage() {
 
     return (
         <div className="container mx-auto px-4 py-8">
-            <HeroSlideForm
-                mode="create"
-                onSubmit={handleSubmit}
-                isSubmitting={createMutation.isPending}
-            />
+            <HeroSlideForm mode="create" onSubmit={handleSubmit} isSubmitting={createMutation.isPending} />
         </div>
     );
 }
-

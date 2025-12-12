@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, use, useEffect } from 'react';
+import React, { use, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -29,7 +29,6 @@ export default function SlideEditPage({ params }: SlideEditPageProps) {
     const { data: slide, isLoading, error } = useHeroSlide(id);
     const updateMutation = useUpdateHeroSlide();
     const { openConfirmModal, openAlertModal } = useModalStore();
-    const [_pendingData, setPendingData] = useState<FormData | null>(null);
 
     // 권한 체크
     useEffect(() => {
@@ -39,7 +38,6 @@ export default function SlideEditPage({ params }: SlideEditPageProps) {
     }, [isAuthLoading, isAdmin, router, slug]);
 
     const handleSubmit = async (data: FormData) => {
-        setPendingData(data);
         openConfirmModal({
             title: '슬라이드 수정',
             message: '슬라이드 정보를 수정하시겠습니까?',
@@ -104,12 +102,8 @@ export default function SlideEditPage({ params }: SlideEditPageProps) {
         return (
             <div className="min-h-[400px] flex items-center justify-center">
                 <div className="text-center space-y-4">
-                    <p className="text-xl font-semibold text-gray-700">
-                        슬라이드를 찾을 수 없습니다
-                    </p>
-                    <Button onClick={() => router.push(`/${slug}/admin/slides`)}>
-                        목록으로 돌아가기
-                    </Button>
+                    <p className="text-xl font-semibold text-gray-700">슬라이드를 찾을 수 없습니다</p>
+                    <Button onClick={() => router.push(`/${slug}/admin/slides`)}>목록으로 돌아가기</Button>
                 </div>
             </div>
         );
@@ -126,4 +120,3 @@ export default function SlideEditPage({ params }: SlideEditPageProps) {
         </div>
     );
 }
-
