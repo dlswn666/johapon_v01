@@ -1,12 +1,32 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User } from '@/app/_lib/shared/type/database.types';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import { supabase } from '@/app/_lib/shared/supabase/client';
+import { User, UserStatus } from '@/app/_lib/shared/type/database.types';
+import { Session, User as SupabaseUser } from '@supabase/supabase-js';
 
 // 사용자 역할 타입
-export type UserRole = 'SYSTEM_ADMIN' | 'ADMIN' | 'USER';
+export type UserRole = 'SYSTEM_ADMIN' | 'ADMIN' | 'USER' | 'APPLICANT';
 
-// Mock 사용자 데이터 (개발용 - 실제 DB의 users 테이블과 ID 일치)
+interface AuthContextType {
+    user: User | null;
+    authUser: SupabaseUser | null;
+    session: Session | null;
+    isLoading: boolean;
+    isAuthenticated: boolean;
+    isSystemAdmin: boolean;
+    isAdmin: boolean;
+    userStatus: UserStatus | null;
+    login: (provider: 'kakao' | 'naver', slug?: string) => Promise<void>;
+    loginWithEmail: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+    logout: () => Promise<void>;
+    refreshUser: () => Promise<void>;
+    // 개발용 (나중에 제거)
+    switchUser: (userId: string) => void;
+    mockUsers: User[];
+}
+
+// 개발용 Mock 사용자 데이터
 const MOCK_USERS: User[] = [
     {
         id: 'systemAdmin',
@@ -15,7 +35,15 @@ const MOCK_USERS: User[] = [
         phone_number: '010-1234-5678',
         role: 'SYSTEM_ADMIN',
         created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
         union_id: null,
+        user_status: 'APPROVED',
+        birth_date: null,
+        property_address: null,
+        property_address_detail: null,
+        rejected_reason: null,
+        approved_at: null,
+        rejected_at: null,
     },
     {
         id: 'admin',
@@ -24,7 +52,15 @@ const MOCK_USERS: User[] = [
         phone_number: '010-2345-6789',
         role: 'ADMIN',
         created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
         union_id: null,
+        user_status: 'APPROVED',
+        birth_date: null,
+        property_address: null,
+        property_address_detail: null,
+        rejected_reason: null,
+        approved_at: null,
+        rejected_at: null,
     },
     {
         id: 'user',
@@ -33,30 +69,31 @@ const MOCK_USERS: User[] = [
         phone_number: '010-3456-7890',
         role: 'USER',
         created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
         union_id: null,
+        user_status: 'APPROVED',
+        birth_date: null,
+        property_address: null,
+        property_address_detail: null,
+        rejected_reason: null,
+        approved_at: null,
+        rejected_at: null,
     },
 ];
 
-interface AuthContextType {
-    user: User | null;
-    isLoading: boolean;
-    isAuthenticated: boolean;
-    isSystemAdmin: boolean;
-    isAdmin: boolean;
-    login: (email: string) => void;
-    logout: () => void;
-    switchUser: (userId: string) => void;
-    mockUsers: User[];
-}
-
 const AuthContext = createContext<AuthContextType>({
     user: null,
+    authUser: null,
+    session: null,
     isLoading: true,
     isAuthenticated: false,
     isSystemAdmin: false,
     isAdmin: false,
-    login: () => {},
-    logout: () => {},
+    userStatus: null,
+    login: async () => {},
+    loginWithEmail: async () => ({ success: false }),
+    logout: async () => {},
+    refreshUser: async () => {},
     switchUser: () => {},
     mockUsers: [],
 });
@@ -68,52 +105,256 @@ interface AuthProviderProps {
 }
 
 export default function AuthProvider({ children }: AuthProviderProps) {
-    // 개발 환경에서는 항상 시스템 관리자로 시작 (개발 편의)
-    const [user, setUser] = useState<User | null>(MOCK_USERS[0]);
-    const isLoading = false; // Mock 인증에서는 로딩 상태 불필요
+    const [user, setUser] = useState<User | null>(null);
+    const [authUser, setAuthUser] = useState<SupabaseUser | null>(null);
+    const [session, setSession] = useState<Session | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
 
+    // 개발 모드에서 Mock 사용자 사용 여부
+    const useMockAuth = process.env.NEXT_PUBLIC_USE_MOCK_AUTH === 'true';
+
+    /**
+     * auth.users ID로 연결된 public.users 조회
+     */
+    const fetchUserByAuthId = useCallback(async (authUserId: string): Promise<User | null> => {
+        try {
+            // user_auth_links에서 연결된 user_id 조회
+            const { data: authLink, error: linkError } = await supabase
+                .from('user_auth_links')
+                .select('user_id')
+                .eq('auth_user_id', authUserId)
+                .single();
+
+            if (linkError || !authLink) {
+                console.log('No linked user found for auth_user_id:', authUserId);
+                return null;
+            }
+
+            // public.users에서 사용자 정보 조회
+            const { data: userData, error: userError } = await supabase
+                .from('users')
+                .select('*')
+                .eq('id', authLink.user_id)
+                .single();
+
+            if (userError || !userData) {
+                console.error('Failed to fetch user:', userError);
+                return null;
+            }
+
+            return userData as User;
+        } catch (error) {
+            console.error('Error fetching user by auth ID:', error);
+            return null;
+        }
+    }, []);
+
+    /**
+     * 세션 및 사용자 정보 초기화
+     */
+    const initializeAuth = useCallback(async () => {
+        try {
+            setIsLoading(true);
+
+            // 개발 모드에서 Mock 인증 사용
+            if (useMockAuth) {
+                const savedUserId = localStorage.getItem('mock_user_id');
+                const mockUser = MOCK_USERS.find((u) => u.id === savedUserId) || MOCK_USERS[0];
+                setUser(mockUser);
+                setIsLoading(false);
+                return;
+            }
+
+            // Supabase 세션 조회
+            const { data: { session: currentSession }, error } = await supabase.auth.getSession();
+
+            if (error) {
+                console.error('Failed to get session:', error);
+                setIsLoading(false);
+                return;
+            }
+
+            if (currentSession?.user) {
+                setSession(currentSession);
+                setAuthUser(currentSession.user);
+
+                // 연결된 public.users 조회
+                const linkedUser = await fetchUserByAuthId(currentSession.user.id);
+                setUser(linkedUser);
+            }
+        } catch (error) {
+            console.error('Auth initialization error:', error);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [useMockAuth, fetchUserByAuthId]);
+
+    /**
+     * Supabase Auth 상태 변경 감지
+     */
     useEffect(() => {
-        // localStorage에 사용자 ID 저장
-        if (user) {
-            localStorage.setItem('mock_user_id', user.id);
-        }
-    }, [user]);
+        initializeAuth();
 
-    const login = (email: string) => {
-        const foundUser = MOCK_USERS.find((u) => u.email === email);
-        if (foundUser) {
-            setUser(foundUser);
-            localStorage.setItem('mock_user_id', foundUser.id);
-        }
-    };
+        // Auth 상태 변경 리스너
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+            async (event, newSession) => {
+                console.log('Auth state changed:', event);
 
-    const logout = () => {
+                if (event === 'SIGNED_IN' && newSession?.user) {
+                    setSession(newSession);
+                    setAuthUser(newSession.user);
+
+                    const linkedUser = await fetchUserByAuthId(newSession.user.id);
+                    setUser(linkedUser);
+                } else if (event === 'SIGNED_OUT') {
+                    setSession(null);
+                    setAuthUser(null);
+                    setUser(null);
+                } else if (event === 'TOKEN_REFRESHED' && newSession) {
+                    setSession(newSession);
+                }
+            }
+        );
+
+        return () => {
+            subscription.unsubscribe();
+        };
+    }, [initializeAuth, fetchUserByAuthId]);
+
+    /**
+     * 소셜 로그인
+     */
+    const login = useCallback(async (provider: 'kakao' | 'naver', slug?: string) => {
+        if (provider === 'kakao') {
+            // 카카오는 Supabase 공식 지원
+            const redirectTo = `${window.location.origin}/auth/callback${slug ? `?slug=${slug}` : ''}`;
+
+            const { error } = await supabase.auth.signInWithOAuth({
+                provider: 'kakao',
+                options: {
+                    redirectTo,
+                },
+            });
+
+            if (error) {
+                console.error('Kakao login error:', error);
+                throw error;
+            }
+        } else if (provider === 'naver') {
+            // 네이버는 커스텀 OAuth
+            const naverAuthUrl = `/api/auth/naver${slug ? `?slug=${slug}` : ''}`;
+            window.location.href = naverAuthUrl;
+        }
+    }, []);
+
+    /**
+     * 이메일/비밀번호 로그인 (시스템 관리자용)
+     */
+    const loginWithEmail = useCallback(async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+        try {
+            const { data, error } = await supabase.auth.signInWithPassword({
+                email,
+                password,
+            });
+
+            if (error) {
+                console.error('Email login error:', error);
+                return { success: false, error: error.message };
+            }
+
+            if (!data.user) {
+                return { success: false, error: '로그인에 실패했습니다.' };
+            }
+
+            // 연결된 public.users 조회
+            const linkedUser = await fetchUserByAuthId(data.user.id);
+
+            if (!linkedUser) {
+                // 연결된 사용자가 없으면 로그아웃
+                await supabase.auth.signOut();
+                return { success: false, error: '등록된 사용자가 아닙니다.' };
+            }
+
+            // SYSTEM_ADMIN 권한 확인
+            if (linkedUser.role !== 'SYSTEM_ADMIN') {
+                await supabase.auth.signOut();
+                return { success: false, error: '시스템 관리자 권한이 없습니다.' };
+            }
+
+            setSession(data.session);
+            setAuthUser(data.user);
+            setUser(linkedUser);
+
+            return { success: true };
+        } catch (error) {
+            console.error('Login with email error:', error);
+            return { success: false, error: '로그인 중 오류가 발생했습니다.' };
+        }
+    }, [fetchUserByAuthId]);
+
+    /**
+     * 로그아웃
+     */
+    const logout = useCallback(async () => {
+        if (useMockAuth) {
+            setUser(null);
+            localStorage.removeItem('mock_user_id');
+            return;
+        }
+
+        const { error } = await supabase.auth.signOut();
+
+        if (error) {
+            console.error('Logout error:', error);
+            throw error;
+        }
+
+        setSession(null);
+        setAuthUser(null);
         setUser(null);
-        localStorage.removeItem('mock_user_id');
-    };
+    }, [useMockAuth]);
 
-    const switchUser = (userId: string) => {
+    /**
+     * 사용자 정보 새로고침
+     */
+    const refreshUser = useCallback(async () => {
+        if (authUser) {
+            const linkedUser = await fetchUserByAuthId(authUser.id);
+            setUser(linkedUser);
+        }
+    }, [authUser, fetchUserByAuthId]);
+
+    /**
+     * 개발용: Mock 사용자 전환
+     */
+    const switchUser = useCallback((userId: string) => {
         const foundUser = MOCK_USERS.find((u) => u.id === userId);
         if (foundUser) {
             setUser(foundUser);
             localStorage.setItem('mock_user_id', foundUser.id);
         }
-    };
+    }, []);
 
-    const isAuthenticated = !!user;
+    const isAuthenticated = !!user || !!authUser;
     const isSystemAdmin = user?.role === 'SYSTEM_ADMIN';
     const isAdmin = user?.role === 'ADMIN' || user?.role === 'SYSTEM_ADMIN';
+    const userStatus = user?.user_status || null;
 
     return (
         <AuthContext.Provider
             value={{
                 user,
+                authUser,
+                session,
                 isLoading,
                 isAuthenticated,
                 isSystemAdmin,
                 isAdmin,
+                userStatus,
                 login,
+                loginWithEmail,
                 logout,
+                refreshUser,
                 switchUser,
                 mockUsers: MOCK_USERS,
             }}
@@ -136,4 +377,8 @@ export const checkUnionMember = (user: User | null, unionId: string): boolean =>
     if (!user) return false;
     if (user.role === 'SYSTEM_ADMIN') return true;
     return user.union_id === unionId;
+};
+
+export const checkApproved = (user: User | null): boolean => {
+    return user?.user_status === 'APPROVED';
 };

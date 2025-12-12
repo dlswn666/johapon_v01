@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, use, useEffect } from 'react';
+import React, { use, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -29,7 +29,6 @@ export default function SlideEditPage({ params }: SlideEditPageProps) {
     const { data: slide, isLoading, error } = useHeroSlide(id);
     const updateMutation = useUpdateHeroSlide();
     const { openConfirmModal, openAlertModal } = useModalStore();
-    const [pendingData, setPendingData] = useState<FormData | null>(null);
 
     // 권한 체크
     useEffect(() => {
@@ -39,7 +38,6 @@ export default function SlideEditPage({ params }: SlideEditPageProps) {
     }, [isAuthLoading, isAdmin, router, slug]);
 
     const handleSubmit = async (data: FormData) => {
-        setPendingData(data);
         openConfirmModal({
             title: '슬라이드 수정',
             message: '슬라이드 정보를 수정하시겠습니까?',

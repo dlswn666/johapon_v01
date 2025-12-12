@@ -86,10 +86,32 @@ export function UnionInfoFooter({ union, className }: UnionInfoFooterProps) {
                     </div>
                 </div>
 
+                {/* 사업자 정보 */}
+                <div className="border-t border-[#364153] pt-6 mt-6">
+                    <div className="text-[#99a1af] text-sm text-center space-y-1">
+                        <p>주식회사 조합온 | 대표: 홍길동 | 사업자등록번호: 123-45-67890</p>
+                        <p>서울특별시 강남구 테헤란로 123 조합온 빌딩 10층</p>
+                        <p>
+                            전화:{' '}
+                            <a href="tel:0212345678" className="hover:text-white transition-colors cursor-pointer">
+                                02-1234-5678
+                            </a>
+                            {' | '}
+                            이메일:{' '}
+                            <a
+                                href="mailto:contact@johapon.com"
+                                className="hover:text-white transition-colors cursor-pointer"
+                            >
+                                contact@johapon.com
+                            </a>
+                        </p>
+                    </div>
+                </div>
+
                 {/* Copyright */}
-                <div className="border-t border-[#364153] pt-[37px]">
+                <div className="border-t border-[#364153] pt-6 mt-6">
                     <p className="text-[#99a1af] text-[15.75px] text-center leading-[23.625px]">
-                        © {new Date().getFullYear()} {union.name}. All rights reserved.
+                        © {new Date().getFullYear()} {union.name}. All rights reserved. | Powered by 조합온
                     </p>
                 </div>
             </div>

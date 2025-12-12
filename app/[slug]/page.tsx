@@ -64,7 +64,7 @@ export default function UnionHomePage() {
                         <Loader2 className="h-10 w-10 animate-spin text-gray-400" />
                     </div>
                 ) : (
-                    <HeroSlider slides={heroSlides || []} autoPlayInterval={4000} title={union.name} description="" />
+                    <HeroSlider slides={heroSlides || []} autoPlayInterval={4000} />
                 )}
             </section>
 

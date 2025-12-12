@@ -1,9 +1,11 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import { CrossfadeBackground } from './CrossfadeBackground';
 import { LoginForm } from './LoginForm';
+import { RegisterModal } from '@/app/_lib/widgets/modal';
 
 interface LandingPageProps {
     unionName: string;
@@ -16,8 +18,24 @@ interface LandingPageProps {
  * - 크로스페이드 배경 (재개발 전 → 후)
  * - 조합명 표시
  * - 로그인 폼
+ * - 회원가입 모달 (신규 사용자)
  */
 export function LandingPage({ unionName, onLoginSuccess, className }: LandingPageProps) {
+    const { authUser, user } = useAuth();
+    const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
+
+    // OAuth 인증 후 신규 사용자인 경우 (authUser는 있지만 user가 없음) 자동으로 RegisterModal 표시
+    useEffect(() => {
+        if (authUser && !user && !isRegisterModalOpen) {
+            const timer = setTimeout(() => setIsRegisterModalOpen(true), 0);
+            return () => clearTimeout(timer);
+        }
+    }, [authUser, user, isRegisterModalOpen]);
+
+    const handleRegisterModalClose = () => {
+        setIsRegisterModalOpen(false);
+    };
+
     return (
         <div
             className={cn(
@@ -49,9 +67,11 @@ export function LandingPage({ unionName, onLoginSuccess, className }: LandingPag
                 {/* 로그인 폼 */}
                 <LoginForm unionName={unionName} onLoginSuccess={onLoginSuccess} />
             </div>
+
+            {/* 회원가입 모달 (신규 사용자) */}
+            <RegisterModal isOpen={isRegisterModalOpen} onClose={handleRegisterModalClose} />
         </div>
     );
 }
 
 export default LandingPage;
-
