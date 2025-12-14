@@ -1,16 +1,83 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import { CrossfadeBackground } from './CrossfadeBackground';
 import { LoginForm } from './LoginForm';
-import { RegisterModal } from '@/app/_lib/widgets/modal';
+import { RegisterModal, InviteData } from '@/app/_lib/widgets/modal/RegisterModal';
+import { AuthProvider } from '@/app/_lib/shared/type/database.types';
 
 interface LandingPageProps {
     unionName: string;
     onLoginSuccess?: () => void;
     className?: string;
+}
+
+interface PrefillDataState {
+    inviteData: InviteData | null;
+    provider: AuthProvider;
+    prefillName: string;
+    prefillPhone: string;
+}
+
+/**
+ * 쿠키에서 prefill 데이터 읽기
+ */
+function getPrefillDataFromCookie(): PrefillDataState {
+    if (typeof document === 'undefined') {
+        return { inviteData: null, provider: 'kakao', prefillName: '', prefillPhone: '' };
+    }
+
+    try {
+        const cookies = document.cookie.split(';').reduce((acc, cookie) => {
+            const [key, value] = cookie.trim().split('=');
+            acc[key] = value;
+            return acc;
+        }, {} as Record<string, string>);
+
+        const prefillCookie = cookies['register-prefill'];
+        if (!prefillCookie) {
+            return { inviteData: null, provider: 'kakao', prefillName: '', prefillPhone: '' };
+        }
+
+        const prefillData = JSON.parse(decodeURIComponent(prefillCookie));
+
+        // 초대 링크 데이터인 경우
+        if (prefillData.invite_token) {
+            return {
+                inviteData: {
+                    name: prefillData.name || '',
+                    phone_number: prefillData.phone_number || '',
+                    property_address: prefillData.property_address || '',
+                    invite_type: prefillData.invite_type,
+                    invite_token: prefillData.invite_token,
+                },
+                provider: prefillData.provider || 'kakao',
+                prefillName: prefillData.name || '',
+                prefillPhone: prefillData.phone_number || '',
+            };
+        }
+
+        // 일반 prefill 데이터 (네이버 등에서 온 경우)
+        return {
+            inviteData: null,
+            provider: prefillData.provider || 'kakao',
+            prefillName: prefillData.name || '',
+            prefillPhone: prefillData.phone_number || '',
+        };
+    } catch (error) {
+        console.error('Failed to parse prefill cookie:', error);
+        return { inviteData: null, provider: 'kakao', prefillName: '', prefillPhone: '' };
+    }
+}
+
+/**
+ * prefill 쿠키 삭제
+ */
+function clearPrefillCookie() {
+    if (typeof document === 'undefined') return;
+    document.cookie = 'register-prefill=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
 }
 
 /**
@@ -23,17 +90,34 @@ interface LandingPageProps {
 export function LandingPage({ unionName, onLoginSuccess, className }: LandingPageProps) {
     const { authUser, user } = useAuth();
     const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
+    const [hasMounted, setHasMounted] = useState(false);
+
+    // 컴포넌트 마운트 상태 추적 (클라이언트 쿠키 접근을 위해 필요)
+    useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setHasMounted(true);
+    }, []);
+
+    // 쿠키에서 prefill 데이터 읽기 (마운트 후에만)
+    const prefillData = useMemo<PrefillDataState>(() => {
+        if (!hasMounted) {
+            return { inviteData: null, provider: 'kakao', prefillName: '', prefillPhone: '' };
+        }
+        return getPrefillDataFromCookie();
+    }, [hasMounted]);
 
     // OAuth 인증 후 신규 사용자인 경우 (authUser는 있지만 user가 없음) 자동으로 RegisterModal 표시
     useEffect(() => {
         if (authUser && !user && !isRegisterModalOpen) {
-            const timer = setTimeout(() => setIsRegisterModalOpen(true), 0);
+            const timer = setTimeout(() => setIsRegisterModalOpen(true), 100);
             return () => clearTimeout(timer);
         }
     }, [authUser, user, isRegisterModalOpen]);
 
     const handleRegisterModalClose = () => {
         setIsRegisterModalOpen(false);
+        // 모달이 닫힐 때 prefill 쿠키 삭제
+        clearPrefillCookie();
     };
 
     return (
@@ -69,7 +153,14 @@ export function LandingPage({ unionName, onLoginSuccess, className }: LandingPag
             </div>
 
             {/* 회원가입 모달 (신규 사용자) */}
-            <RegisterModal isOpen={isRegisterModalOpen} onClose={handleRegisterModalClose} />
+            <RegisterModal 
+                isOpen={isRegisterModalOpen} 
+                onClose={handleRegisterModalClose}
+                provider={prefillData.provider}
+                prefillName={prefillData.prefillName}
+                prefillPhone={prefillData.prefillPhone}
+                inviteData={prefillData.inviteData}
+            />
         </div>
     );
 }

@@ -6,8 +6,6 @@ import Image from 'next/image';
 import { supabase } from '@/app/_lib/shared/supabase/client';
 import { Database } from '@/app/_lib/shared/type/database.types';
 import {
-    MessageSquare,
-    Bell,
     Clock,
     Users,
     Smartphone,

@@ -92,22 +92,36 @@ export async function GET(request: NextRequest) {
         }
     }
 
-    // 초대 토큰이 있는 경우 - 관리자로 자동 등록
+    // 초대 토큰이 있는 경우 - prefill 데이터를 쿠키에 저장하고 메인 페이지로 이동
     if (inviteToken) {
-        const result = await handleAdminInvite(supabase, authUser, inviteToken, provider, origin);
+        const result = await handleAdminInvitePrefill(supabase, inviteToken, origin, slug);
         if (result) {
             const response = NextResponse.redirect(result.redirectUrl);
             setSessionCookies(response, sessionData.session);
+            // prefill 데이터를 쿠키에 저장
+            response.cookies.set('register-prefill', JSON.stringify(result.prefillData), {
+                httpOnly: false,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'lax',
+                maxAge: 60 * 60, // 1시간
+            });
             return response;
         }
     }
 
-    // 조합원 초대 토큰이 있는 경우 - 조합원으로 자동 등록
+    // 조합원 초대 토큰이 있는 경우 - prefill 데이터를 쿠키에 저장하고 메인 페이지로 이동
     if (memberInviteToken) {
-        const result = await handleMemberInvite(supabase, authUser, memberInviteToken, provider, origin);
+        const result = await handleMemberInvitePrefill(supabase, memberInviteToken, origin, slug);
         if (result) {
             const response = NextResponse.redirect(result.redirectUrl);
             setSessionCookies(response, sessionData.session);
+            // prefill 데이터를 쿠키에 저장
+            response.cookies.set('register-prefill', JSON.stringify(result.prefillData), {
+                httpOnly: false,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'lax',
+                maxAge: 60 * 60, // 1시간
+            });
             return response;
         }
     }
@@ -135,16 +149,15 @@ export async function GET(request: NextRequest) {
 }
 
 /**
- * 관리자 초대 처리
+ * 관리자 초대 prefill 데이터 처리 (자동 계정 생성 대신 prefill 데이터만 반환)
  */
-async function handleAdminInvite(
+async function handleAdminInvitePrefill(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     supabase: any,
-    authUser: { id: string; email?: string },
     inviteToken: string,
-    provider: 'kakao' | 'naver',
-    origin: string
-): Promise<{ redirectUrl: string } | null> {
+    origin: string,
+    slug: string
+): Promise<{ redirectUrl: string; prefillData: object } | null> {
     try {
         // 초대 정보 조회
         const { data: invite, error: inviteError } = await supabase
@@ -164,83 +177,42 @@ async function handleAdminInvite(
         const expiresAt = new Date(invite.expires_at);
         if (now > expiresAt) {
             console.error('Invite token expired:', inviteToken);
-            // 만료 상태 업데이트
             await supabase
                 .from('admin_invites')
                 .update({ status: 'EXPIRED' })
                 .eq('id', invite.id);
-            return { redirectUrl: `${origin}/invite/${inviteToken}` };
-        }
-
-        // 새 public.users 생성 (관리자로)
-        const newUserId = authUser.id; // auth.users ID를 public.users ID로 사용
-
-        const { error: userError } = await supabase.from('users').insert([
-            {
-                id: newUserId,
-                name: invite.name,
-                email: invite.email,
-                phone_number: invite.phone_number,
-                role: 'ADMIN',
-                union_id: invite.union_id,
-                user_status: 'APPROVED',
-                approved_at: new Date().toISOString(),
-            },
-        ]);
-
-        if (userError) {
-            console.error('Failed to create admin user:', userError);
             return null;
         }
 
-        // user_auth_links 연결
-        const { error: linkError } = await supabase.from('user_auth_links').insert([
-            {
-                user_id: newUserId,
-                auth_user_id: authUser.id,
-                provider: provider,
+        const unionSlug = invite.union?.slug || slug;
+        const mainPageUrl = unionSlug ? `${origin}/${unionSlug}` : origin;
+
+        return {
+            redirectUrl: mainPageUrl,
+            prefillData: {
+                name: invite.name || '',
+                phone_number: invite.phone_number || '',
+                property_address: '',
+                invite_type: 'admin',
+                invite_token: inviteToken,
             },
-        ]);
-
-        if (linkError) {
-            console.error('Failed to create auth link:', linkError);
-            // 롤백: 생성된 사용자 삭제
-            await supabase.from('users').delete().eq('id', newUserId);
-            return null;
-        }
-
-        // 초대 상태 업데이트
-        await supabase
-            .from('admin_invites')
-            .update({ status: 'USED', used_at: new Date().toISOString() })
-            .eq('id', invite.id);
-
-        console.log('Admin user created successfully:', {
-            userId: newUserId,
-            unionId: invite.union_id,
-            inviteToken,
-        });
-
-        // 조합 관리 페이지로 리다이렉트
-        const unionSlug = invite.union?.slug || '';
-        return { redirectUrl: `${origin}/${unionSlug}/admin` };
+        };
     } catch (error) {
-        console.error('Error handling admin invite:', error);
+        console.error('Error handling admin invite prefill:', error);
         return null;
     }
 }
 
 /**
- * 조합원 초대 처리
+ * 조합원 초대 prefill 데이터 처리 (자동 계정 생성 대신 prefill 데이터만 반환)
  */
-async function handleMemberInvite(
+async function handleMemberInvitePrefill(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     supabase: any,
-    authUser: { id: string; email?: string },
     memberInviteToken: string,
-    provider: 'kakao' | 'naver',
-    origin: string
-): Promise<{ redirectUrl: string } | null> {
+    origin: string,
+    slug: string
+): Promise<{ redirectUrl: string; prefillData: object } | null> {
     try {
         // 초대 정보 조회
         const { data: invite, error: inviteError } = await supabase
@@ -260,73 +232,28 @@ async function handleMemberInvite(
         const expiresAt = new Date(invite.expires_at);
         if (now > expiresAt) {
             console.error('Member invite token expired:', memberInviteToken);
-            // 만료 상태 업데이트
             await supabase
                 .from('member_invites')
                 .update({ status: 'EXPIRED' })
                 .eq('id', invite.id);
-            return { redirectUrl: `${origin}/member-invite/${memberInviteToken}` };
-        }
-
-        // 새 public.users 생성 (조합원으로)
-        const newUserId = authUser.id; // auth.users ID를 public.users ID로 사용
-
-        const { error: userError } = await supabase.from('users').insert([
-            {
-                id: newUserId,
-                name: invite.name,
-                email: authUser.email || '',
-                phone_number: invite.phone_number,
-                role: 'USER',
-                union_id: invite.union_id,
-                user_status: 'APPROVED',
-                property_address: invite.property_address,
-                approved_at: new Date().toISOString(),
-            },
-        ]);
-
-        if (userError) {
-            console.error('Failed to create member user:', userError);
             return null;
         }
 
-        // user_auth_links 연결
-        const { error: linkError } = await supabase.from('user_auth_links').insert([
-            {
-                user_id: newUserId,
-                auth_user_id: authUser.id,
-                provider: provider,
+        const unionSlug = invite.union?.slug || slug;
+        const mainPageUrl = unionSlug ? `${origin}/${unionSlug}` : origin;
+
+        return {
+            redirectUrl: mainPageUrl,
+            prefillData: {
+                name: invite.name || '',
+                phone_number: invite.phone_number || '',
+                property_address: invite.property_address || '',
+                invite_type: 'member',
+                invite_token: memberInviteToken,
             },
-        ]);
-
-        if (linkError) {
-            console.error('Failed to create auth link:', linkError);
-            // 롤백: 생성된 사용자 삭제
-            await supabase.from('users').delete().eq('id', newUserId);
-            return null;
-        }
-
-        // 초대 상태 업데이트
-        await supabase
-            .from('member_invites')
-            .update({ 
-                status: 'USED', 
-                used_at: new Date().toISOString(),
-                user_id: newUserId,
-            })
-            .eq('id', invite.id);
-
-        console.log('Member user created successfully:', {
-            userId: newUserId,
-            unionId: invite.union_id,
-            memberInviteToken,
-        });
-
-        // 조합 홈페이지로 리다이렉트
-        const unionSlug = invite.union?.slug || '';
-        return { redirectUrl: `${origin}/${unionSlug}` };
+        };
     } catch (error) {
-        console.error('Error handling member invite:', error);
+        console.error('Error handling member invite prefill:', error);
         return null;
     }
 }
@@ -357,8 +284,8 @@ function getRedirectByUserStatus(origin: string, slug: string, userStatus: strin
 
     switch (userStatus) {
         case 'PENDING_PROFILE':
-            // 프로필 입력이 필요한 경우
-            return `${basePath}/register`;
+            // 프로필 입력이 필요한 경우 - 메인 페이지로 이동 (모달이 자동으로 열림)
+            return basePath;
         case 'PENDING_APPROVAL':
             // 승인 대기 중
             return `${basePath}?status=pending`;

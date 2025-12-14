@@ -190,17 +190,29 @@ export async function GET(request: NextRequest) {
         }
     }
 
-    // 7. 연결된 사용자가 없음 - 회원가입 폼으로 이동
-    const registerUrl = slug ? `${baseUrl}/${slug}/register` : `${baseUrl}/register`;
-    const response = NextResponse.redirect(
-        `${registerUrl}?auth_user_id=${authUserId}&provider=naver&name=${encodeURIComponent(naverUser.name || '')}&phone=${encodeURIComponent(naverUser.mobile || '')}`
-    );
+    // 7. 연결된 사용자가 없음 - 메인 페이지로 이동 (회원가입 모달이 자동으로 표시됨)
+    const mainPageUrl = slug ? `${baseUrl}/${slug}` : baseUrl;
+    const response = NextResponse.redirect(mainPageUrl);
 
+    // 네이버 인증 정보를 쿠키에 저장 (회원가입 폼에서 사용)
     response.cookies.set('naver-auth-user-id', authUserId, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
-        maxAge: 60 * 60,
+        maxAge: 60 * 60, // 1시간 (회원가입 완료까지의 시간)
+    });
+
+    // prefill 데이터를 쿠키에 저장
+    const prefillData = {
+        name: naverUser.name || '',
+        phone_number: naverUser.mobile || '',
+        provider: 'naver',
+    };
+    response.cookies.set('register-prefill', JSON.stringify(prefillData), {
+        httpOnly: false, // 클라이언트에서 읽을 수 있도록
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60, // 1시간
     });
 
     return response;
@@ -214,7 +226,8 @@ function getRedirectByUserStatus(baseUrl: string, slug: string, userStatus: stri
 
     switch (userStatus) {
         case 'PENDING_PROFILE':
-            return `${basePath}/register`;
+            // 프로필 입력이 필요한 경우 - 메인 페이지로 이동 (모달이 자동으로 열림)
+            return basePath;
         case 'PENDING_APPROVAL':
             return `${basePath}?status=pending`;
         case 'APPROVED':
