@@ -31,6 +31,11 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 export const supabase = createClient(supabaseUrl as string, supabaseAnonKey as string, {
     auth: {
         /**
+         * flowType: PKCE 흐름 사용 (서버사이드에서 code 교환을 위해 필수)
+         */
+        flowType: 'pkce',
+
+        /**
          * persistSession: 세션을 브라우저 로컬 스토리지에 저장하여 페이지 새로고침 시에도 로그인 상태 유지
          */
         persistSession: true,
