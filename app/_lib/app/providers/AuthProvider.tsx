@@ -14,6 +14,7 @@ interface AuthContextType {
     authUser: SupabaseUser | null;
     session: Session | null;
     isLoading: boolean;
+    isUserFetching: boolean; // user 정보 fetch 중인지 여부
     isAuthenticated: boolean;
     isSystemAdmin: boolean;
     isAdmin: boolean;
@@ -87,6 +88,7 @@ const AuthContext = createContext<AuthContextType>({
     authUser: null,
     session: null,
     isLoading: true,
+    isUserFetching: false,
     isAuthenticated: false,
     isSystemAdmin: false,
     isAdmin: false,
@@ -110,6 +112,7 @@ export default function AuthProvider({ children }: AuthProviderProps) {
     const [authUser, setAuthUser] = useState<SupabaseUser | null>(null);
     const [session, setSession] = useState<Session | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [isUserFetching, setIsUserFetching] = useState(false); // user fetch 중인지 여부
 
     // 개발 모드에서 Mock 사용자 사용 여부
     const useMockAuth = process.env.NEXT_PUBLIC_USE_MOCK_AUTH === 'true';
@@ -208,9 +211,14 @@ export default function AuthProvider({ children }: AuthProviderProps) {
             if (event === 'SIGNED_IN' && newSession?.user) {
                 setSession(newSession);
                 setAuthUser(newSession.user);
+                setIsUserFetching(true);
 
-                const linkedUser = await fetchUserByAuthId(newSession.user.id);
-                setUser(linkedUser);
+                try {
+                    const linkedUser = await fetchUserByAuthId(newSession.user.id);
+                    setUser(linkedUser);
+                } finally {
+                    setIsUserFetching(false);
+                }
             } else if (event === 'SIGNED_OUT') {
                 setSession(null);
                 setAuthUser(null);
@@ -358,6 +366,7 @@ export default function AuthProvider({ children }: AuthProviderProps) {
                 authUser,
                 session,
                 isLoading,
+                isUserFetching,
                 isAuthenticated,
                 isSystemAdmin,
                 isAdmin,

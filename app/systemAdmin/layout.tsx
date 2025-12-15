@@ -200,32 +200,32 @@ function SystemAdminHeader() {
 function SystemAdminLayoutContent({ children }: { children: React.ReactNode }) {
     const router = useRouter();
     const pathname = usePathname();
-    const { isLoading, isSystemAdmin, isAuthenticated, user, authUser } = useAuth();
+    const { isLoading, isUserFetching, isSystemAdmin, isAuthenticated } = useAuth();
 
     // 로그인 페이지는 레이아웃 체크 제외
     const isLoginPage = pathname === '/systemAdmin/login';
 
-    // 인증은 되었지만 user 정보가 아직 로드되지 않은 상태
-    const isUserLoading = isAuthenticated && authUser && !user;
+    // 전체 로딩 상태 (초기 로딩 + user 정보 fetch 중)
+    const isFullLoading = isLoading || isUserFetching;
 
     useEffect(() => {
-        // 로딩 중이거나 user 정보 로드 중이면 리다이렉트 하지 않음
-        if (!isLoading && !isUserLoading && !isLoginPage) {
+        // 로딩 중이면 리다이렉트 하지 않음
+        if (!isFullLoading && !isLoginPage) {
             if (!isAuthenticated) {
                 router.push('/systemAdmin/login');
             } else if (!isSystemAdmin) {
                 router.push('/systemAdmin/login');
             }
         }
-    }, [isLoading, isUserLoading, isAuthenticated, isSystemAdmin, isLoginPage, router]);
+    }, [isFullLoading, isAuthenticated, isSystemAdmin, isLoginPage, router]);
 
-    // 로그인 페이지는 레이아웃 없이 렌더링
+    // 로그인 페이지는 레이아웃 없이 렌더링 (로딩 상태와 관계없이)
     if (isLoginPage) {
         return <>{children}</>;
     }
 
-    // 초기 로딩 또는 user 정보 로드 중
-    if (isLoading || isUserLoading) {
+    // 초기 로딩 또는 user 정보 fetch 중
+    if (isFullLoading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-slate-900">
                 <div className="flex flex-col items-center gap-3">
