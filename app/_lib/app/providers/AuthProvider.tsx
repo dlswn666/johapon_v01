@@ -116,7 +116,7 @@ export default function AuthProvider({ children }: AuthProviderProps) {
 
     // 개발 모드에서 Mock 사용자 사용 여부
     const useMockAuth = process.env.NEXT_PUBLIC_USE_MOCK_AUTH === 'true';
-    
+
     // 초기화 완료 여부를 추적하여 중복 실행 방지
     const isInitializedRef = useRef(false);
     // 현재 처리 중인 세션을 추적하여 race condition 방지
@@ -162,58 +162,58 @@ export default function AuthProvider({ children }: AuthProviderProps) {
      * 세션에서 사용자 정보 처리 (공통 로직)
      * INITIAL_SESSION, SIGNED_IN 이벤트에서 공통으로 사용
      */
-    const handleSessionWithUser = useCallback(async (
-        currentSession: Session | null,
-        event: AuthChangeEvent
-    ): Promise<void> => {
-        // 세션이 없으면 상태 초기화
-        if (!currentSession?.user) {
-            setSession(null);
-            setAuthUser(null);
-            setUser(null);
-            return;
-        }
+    const handleSessionWithUser = useCallback(
+        async (currentSession: Session | null, event: AuthChangeEvent): Promise<void> => {
+            // 세션이 없으면 상태 초기화
+            if (!currentSession?.user) {
+                setSession(null);
+                setAuthUser(null);
+                setUser(null);
+                return;
+            }
 
-        const sessionId = currentSession.user.id;
+            const sessionId = currentSession.user.id;
 
-        // 이미 같은 세션을 처리 중이면 중복 실행 방지
-        if (processingSessionRef.current === sessionId) {
-            console.log(`Already processing session for user ${sessionId}, skipping...`);
-            return;
-        }
+            // 이미 같은 세션을 처리 중이면 중복 실행 방지
+            if (processingSessionRef.current === sessionId) {
+                console.log(`Already processing session for user ${sessionId}, skipping...`);
+                return;
+            }
 
-        processingSessionRef.current = sessionId;
-        setIsUserFetching(true);
+            processingSessionRef.current = sessionId;
+            setIsUserFetching(true);
 
-        try {
-            console.log(`Processing session for event: ${event}, user: ${sessionId}`);
-            
-            const linkedUser = await fetchUserByAuthId(sessionId);
+            try {
+                console.log(`Processing session for event: ${event}, user: ${sessionId}`);
 
-            if (linkedUser) {
-                // 연결된 사용자가 있으면 정상 처리
-                setSession(currentSession);
-                setAuthUser(currentSession.user);
-                setUser(linkedUser);
-            } else {
-                // 연결된 사용자가 없으면 세션은 유지하되 user만 null
-                // (회원가입 플로우를 위해 authUser는 설정)
-                console.log(`${event}: No linked user found. Setting authUser without user...`);
+                const linkedUser = await fetchUserByAuthId(sessionId);
+
+                if (linkedUser) {
+                    // 연결된 사용자가 있으면 정상 처리
+                    setSession(currentSession);
+                    setAuthUser(currentSession.user);
+                    setUser(linkedUser);
+                } else {
+                    // 연결된 사용자가 없으면 세션은 유지하되 user만 null
+                    // (회원가입 플로우를 위해 authUser는 설정)
+                    console.log(`${event}: No linked user found. Setting authUser without user...`);
+                    setSession(currentSession);
+                    setAuthUser(currentSession.user);
+                    setUser(null);
+                }
+            } catch (error) {
+                console.error(`Error handling session for ${event}:`, error);
+                // 에러 발생 시에도 세션 정보는 설정
                 setSession(currentSession);
                 setAuthUser(currentSession.user);
                 setUser(null);
+            } finally {
+                setIsUserFetching(false);
+                processingSessionRef.current = null;
             }
-        } catch (error) {
-            console.error(`Error handling session for ${event}:`, error);
-            // 에러 발생 시에도 세션 정보는 설정
-            setSession(currentSession);
-            setAuthUser(currentSession.user);
-            setUser(null);
-        } finally {
-            setIsUserFetching(false);
-            processingSessionRef.current = null;
-        }
-    }, [fetchUserByAuthId]);
+        },
+        [fetchUserByAuthId]
+    );
 
     /**
      * Supabase Auth 상태 변경 감지
@@ -290,7 +290,7 @@ export default function AuthProvider({ children }: AuthProviderProps) {
         return () => {
             subscription.unsubscribe();
         };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [useMockAuth]);
 
     /**
@@ -301,7 +301,30 @@ export default function AuthProvider({ children }: AuthProviderProps) {
             // 카카오는 Supabase 공식 지원 (카카오싱크 간편 로그인)
             const redirectTo = `${window.location.origin}/auth/callback${slug ? `?slug=${slug}` : ''}`;
 
-            const { error } = await supabase.auth.signInWithOAuth({
+            // ========== PKCE 디버깅 로그 시작 ==========
+            console.log('='.repeat(60));
+            console.log('[Kakao Login] OAuth 로그인 시작');
+            console.log('[Kakao Login] Provider:', provider);
+            console.log('[Kakao Login] Redirect URL:', redirectTo);
+            console.log('[Kakao Login] Current Origin:', window.location.origin);
+            console.log('[Kakao Login] Current URL:', window.location.href);
+            console.log('[Kakao Login] Slug:', slug || '(없음)');
+
+            // 현재 쿠키 상태 확인
+            console.log('[Kakao Login] 현재 document.cookie:', document.cookie ? '(쿠키 있음)' : '(쿠키 없음)');
+            const cookieNames = document.cookie
+                .split(';')
+                .map((c) => c.trim().split('=')[0])
+                .filter(Boolean);
+            console.log('[Kakao Login] 쿠키 이름 목록:', cookieNames);
+
+            // Supabase 관련 쿠키 확인
+            const supabaseCookies = cookieNames.filter((name) => name.startsWith('sb-'));
+            console.log('[Kakao Login] Supabase 쿠키:', supabaseCookies);
+            console.log('='.repeat(60));
+            // ========== PKCE 디버깅 로그 끝 ==========
+
+            const { data, error } = await supabase.auth.signInWithOAuth({
                 provider: 'kakao',
                 options: {
                     redirectTo,
@@ -311,6 +334,25 @@ export default function AuthProvider({ children }: AuthProviderProps) {
                     },
                 },
             });
+
+            // ========== OAuth 호출 결과 로그 ==========
+            console.log('[Kakao Login] signInWithOAuth 완료');
+            console.log('[Kakao Login] Data:', data);
+            console.log('[Kakao Login] Error:', error);
+
+            // PKCE code_verifier 쿠키 확인 (OAuth 호출 후)
+            const postCookieNames = document.cookie
+                .split(';')
+                .map((c) => c.trim().split('=')[0])
+                .filter(Boolean);
+            const newCookies = postCookieNames.filter((name) => !cookieNames.includes(name));
+            console.log('[Kakao Login] 새로 생성된 쿠키:', newCookies);
+            const codeVerifierCookies = postCookieNames.filter(
+                (name) => name.includes('code-verifier') || name.includes('code_verifier') || name.includes('pkce')
+            );
+            console.log('[Kakao Login] code_verifier 관련 쿠키:', codeVerifierCookies);
+            console.log('='.repeat(60));
+            // ========== OAuth 호출 결과 로그 끝 ==========
 
             if (error) {
                 console.error('Kakao login error:', error);

@@ -154,3 +154,4 @@ const NewFreeBoardPage = () => {
 
 export default NewFreeBoardPage;
 
+

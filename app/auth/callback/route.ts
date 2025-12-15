@@ -19,6 +19,18 @@ export async function GET(request: NextRequest) {
     const inviteToken = searchParams.get('invite_token');
     const memberInviteToken = searchParams.get('member_invite_token');
 
+    // ========== PKCE 디버깅 로그 시작 ==========
+    console.log('='.repeat(60));
+    console.log('[OAuth Callback] 디버깅 시작');
+    console.log('[OAuth Callback] Request URL:', request.url);
+    console.log('[OAuth Callback] Origin:', origin);
+    console.log('[OAuth Callback] Code 존재 여부:', !!code);
+    console.log('[OAuth Callback] Code (앞 20자):', code ? code.substring(0, 20) + '...' : 'null');
+    console.log('[OAuth Callback] Slug:', slug || '(없음)');
+    console.log('[OAuth Callback] Invite Token:', inviteToken || '(없음)');
+    console.log('[OAuth Callback] Member Invite Token:', memberInviteToken || '(없음)');
+    // ========== PKCE 디버깅 로그 끝 ==========
+
     if (!code) {
         console.error('OAuth callback: No code provided');
         return NextResponse.redirect(`${origin}/auth/error?message=no_code`);
@@ -27,6 +39,39 @@ export async function GET(request: NextRequest) {
     // Next.js 쿠키 스토어 가져오기
     const cookieStore = await cookies();
 
+    // ========== 쿠키 디버깅 로그 시작 ==========
+    const allCookies = cookieStore.getAll();
+    console.log('[OAuth Callback] 전체 쿠키 개수:', allCookies.length);
+    console.log(
+        '[OAuth Callback] 쿠키 이름 목록:',
+        allCookies.map((c) => c.name)
+    );
+
+    // code_verifier 관련 쿠키 찾기 (Supabase는 sb-*-auth-token-code-verifier 형태로 저장)
+    const codeVerifierCookies = allCookies.filter(
+        (c) => c.name.includes('code-verifier') || c.name.includes('code_verifier') || c.name.includes('pkce')
+    );
+    console.log(
+        '[OAuth Callback] code_verifier 관련 쿠키:',
+        codeVerifierCookies.map((c) => ({
+            name: c.name,
+            valueLength: c.value?.length || 0,
+            hasValue: !!c.value,
+        }))
+    );
+
+    // Supabase auth 관련 쿠키 확인
+    const supabaseCookies = allCookies.filter((c) => c.name.startsWith('sb-'));
+    console.log(
+        '[OAuth Callback] Supabase 관련 쿠키:',
+        supabaseCookies.map((c) => ({
+            name: c.name,
+            valueLength: c.value?.length || 0,
+        }))
+    );
+    console.log('='.repeat(60));
+    // ========== 쿠키 디버깅 로그 끝 ==========
+
     // Supabase 서버 클라이언트 생성 (PKCE를 위한 쿠키 핸들링)
     const supabase = createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -34,9 +79,15 @@ export async function GET(request: NextRequest) {
         {
             cookies: {
                 getAll() {
-                    return cookieStore.getAll();
+                    const cookies = cookieStore.getAll();
+                    console.log('[Supabase getAll] 쿠키 요청됨, 개수:', cookies.length);
+                    return cookies;
                 },
                 setAll(cookiesToSet) {
+                    console.log(
+                        '[Supabase setAll] 쿠키 설정 요청:',
+                        cookiesToSet.map((c) => c.name)
+                    );
                     try {
                         cookiesToSet.forEach(({ name, value, options }) => {
                             cookieStore.set(name, value, options);
@@ -50,10 +101,18 @@ export async function GET(request: NextRequest) {
     );
 
     // Authorization code를 세션으로 교환 (PKCE: 쿠키에서 code_verifier 자동 읽기)
+    console.log('[OAuth Callback] exchangeCodeForSession 호출 시작...');
     const { data: sessionData, error: sessionError } = await supabase.auth.exchangeCodeForSession(code);
+    console.log('[OAuth Callback] exchangeCodeForSession 완료');
+    console.log('[OAuth Callback] Session 존재:', !!sessionData?.session);
+    console.log('[OAuth Callback] Error:', sessionError ? JSON.stringify(sessionError) : '없음');
 
     if (sessionError || !sessionData.session) {
         console.error('OAuth callback: Session exchange failed', sessionError);
+        console.error('[OAuth Callback] 실패 원인 분석:');
+        console.error('  - code_verifier 쿠키가 없거나 비어있을 가능성');
+        console.error('  - 쿠키 SameSite 정책으로 인한 쿠키 미전송 가능성');
+        console.error('  - OAuth 흐름 중 쿠키 저장 실패 가능성');
         return NextResponse.redirect(`${origin}/auth/error?message=session_error`);
     }
 
