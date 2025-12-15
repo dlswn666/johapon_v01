@@ -19,17 +19,6 @@ export async function GET(request: NextRequest) {
     const inviteToken = searchParams.get('invite_token');
     const memberInviteToken = searchParams.get('member_invite_token');
 
-    // [DEBUG] URL 파라미터 로깅
-    console.log('='.repeat(60));
-    console.log('[DEBUG] OAuth Callback - URL Parameters');
-    console.log('='.repeat(60));
-    console.log('[DEBUG] Full URL:', request.url);
-    console.log('[DEBUG] code:', code ? `${code.substring(0, 20)}...` : 'null');
-    console.log('[DEBUG] slug:', slug || '(empty)');
-    console.log('[DEBUG] inviteToken:', inviteToken || 'null');
-    console.log('[DEBUG] memberInviteToken:', memberInviteToken || 'null');
-    console.log('-'.repeat(60));
-
     if (!code) {
         console.error('OAuth callback: No code provided');
         return NextResponse.redirect(`${origin}/auth/error?message=no_code`);
@@ -79,24 +68,13 @@ export async function GET(request: NextRequest) {
     });
 
     // user_auth_links에서 이미 연결된 public.users가 있는지 확인
-    const { data: authLink, error: authLinkError } = await supabase
+    const { data: authLink } = await supabase
         .from('user_auth_links')
         .select('user_id')
         .eq('auth_user_id', authUser.id)
         .single();
 
-    // [DEBUG] authLink 조회 결과 로깅
-    console.log('[DEBUG] authLink 조회 결과:', {
-        authLink: authLink || 'null',
-        authLinkError: authLinkError?.message || 'null',
-        hasExistingLink: !!authLink,
-    });
-
     if (authLink) {
-        // [DEBUG] 기존 연결된 사용자 발견 - 조기 리턴됨
-        console.log('[DEBUG] ⚠️ 기존 연결된 사용자가 있습니다! 초대 토큰 처리를 건너뜁니다.');
-        console.log('[DEBUG] authLink.user_id:', authLink.user_id);
-
         // 기존 연결된 사용자가 있음 - 해당 사용자의 상태에 따라 리다이렉트
         // unions 테이블을 JOIN하여 사용자의 조합 slug 정보도 함께 조회
         const { data: existingUser } = await supabase
@@ -109,30 +87,14 @@ export async function GET(request: NextRequest) {
             // 사용자의 조합 slug를 우선 사용, 없으면 URL의 slug 사용
             const userUnionSlug = existingUser.union?.slug || '';
             const redirectUrl = getRedirectByUserStatus(origin, slug, existingUser.user_status, userUnionSlug);
-            console.log('[DEBUG] 기존 사용자 리다이렉트:', {
-                userId: existingUser.id,
-                userStatus: existingUser.user_status,
-                redirectUrl,
-            });
             return NextResponse.redirect(redirectUrl);
         }
     }
 
     // 초대 토큰이 있는 경우 - prefill 데이터를 쿠키에 저장하고 메인 페이지로 이동
-    console.log('[DEBUG] inviteToken 조건 체크:', {
-        inviteToken: inviteToken || 'null',
-        hasInviteToken: !!inviteToken,
-    });
-
     if (inviteToken) {
-        console.log('[DEBUG] ✅ inviteToken이 있습니다. handleAdminInvitePrefill 호출...');
         const result = await handleAdminInvitePrefill(supabase, inviteToken, origin, slug);
-        console.log('[DEBUG] handleAdminInvitePrefill 결과:', result ? 'success' : 'null/failed');
-
         if (result) {
-            console.log('[DEBUG] prefill 데이터:', result.prefillData);
-            console.log('[DEBUG] 리다이렉트 URL:', result.redirectUrl);
-
             const response = NextResponse.redirect(result.redirectUrl);
             // prefill 데이터를 쿠키에 저장
             response.cookies.set('register-prefill', JSON.stringify(result.prefillData), {
@@ -141,7 +103,6 @@ export async function GET(request: NextRequest) {
                 sameSite: 'lax',
                 maxAge: 60 * 60, // 1시간
             });
-            console.log('[DEBUG] register-prefill 쿠키 설정 완료');
             return response;
         }
     }
@@ -165,9 +126,6 @@ export async function GET(request: NextRequest) {
     // 연결된 사용자가 없음 - 메인 페이지로 이동 (회원가입 모달이 자동으로 표시됨)
     // 신규 사용자는 프로필 입력이 필요함
     const mainPageUrl = slug ? `${origin}/${slug}` : origin;
-    console.log('[DEBUG] 연결된 사용자 없음, 메인 페이지로 이동:', mainPageUrl);
-    console.log('[DEBUG] 초대 토큰 없이 리다이렉트됨 (회원가입 모달 표시 예정)');
-    console.log('='.repeat(60));
     return NextResponse.redirect(mainPageUrl);
 }
 
@@ -181,14 +139,8 @@ async function handleAdminInvitePrefill(
     origin: string,
     slug: string
 ): Promise<{ redirectUrl: string; prefillData: object } | null> {
-    console.log('[DEBUG] === handleAdminInvitePrefill 함수 진입 ===');
-    console.log('[DEBUG] inviteToken:', inviteToken);
-    console.log('[DEBUG] origin:', origin);
-    console.log('[DEBUG] slug:', slug);
-
     try {
         // 초대 정보 조회
-        console.log('[DEBUG] admin_invites 테이블에서 초대 정보 조회 중...');
         const { data: invite, error: inviteError } = await supabase
             .from('admin_invites')
             .select('*, union:unions(id, name, slug)')
@@ -196,38 +148,22 @@ async function handleAdminInvitePrefill(
             .eq('status', 'PENDING')
             .single();
 
-        console.log('[DEBUG] 초대 조회 결과:', {
-            invite: invite ? { id: invite.id, name: invite.name, status: invite.status } : 'null',
-            inviteError: inviteError?.message || 'null',
-        });
-
         if (inviteError || !invite) {
-            console.error('[DEBUG] ❌ Invalid invite token:', inviteToken);
-            console.error('[DEBUG] inviteError:', inviteError);
+            console.error('Invalid invite token:', inviteToken);
             return null;
         }
 
         // 만료 여부 확인
         const now = new Date();
         const expiresAt = new Date(invite.expires_at);
-        console.log('[DEBUG] 만료 체크:', {
-            now: now.toISOString(),
-            expiresAt: expiresAt.toISOString(),
-            isExpired: now > expiresAt,
-        });
-
         if (now > expiresAt) {
-            console.error('[DEBUG] ❌ Invite token expired:', inviteToken);
+            console.error('Invite token expired:', inviteToken);
             await supabase.from('admin_invites').update({ status: 'EXPIRED' }).eq('id', invite.id);
             return null;
         }
 
         const unionSlug = invite.union?.slug || slug;
         const mainPageUrl = unionSlug ? `${origin}/${unionSlug}` : origin;
-
-        console.log('[DEBUG] ✅ 초대 정보 유효! prefill 데이터 반환');
-        console.log('[DEBUG] unionSlug:', unionSlug);
-        console.log('[DEBUG] mainPageUrl:', mainPageUrl);
 
         return {
             redirectUrl: mainPageUrl,
@@ -240,7 +176,7 @@ async function handleAdminInvitePrefill(
             },
         };
     } catch (error) {
-        console.error('[DEBUG] ❌ Error handling admin invite prefill:', error);
+        console.error('Error handling admin invite prefill:', error);
         return null;
     }
 }

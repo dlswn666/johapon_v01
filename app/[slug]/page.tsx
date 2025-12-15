@@ -13,12 +13,15 @@ import { LandingPage } from '@/app/_lib/widgets/landing';
 
 export default function UnionHomePage() {
     const { union, isLoading: isUnionLoading } = useSlug();
-    const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
+    const { isAuthenticated, isLoading: isAuthLoading, authUser, user } = useAuth();
     const { data: heroSlides, isLoading: isSlidesLoading } = useHeroSlides(union?.id);
     const { data: popupNotices } = usePopupNotices(union?.id);
     
     // 로그인 성공 후 홈페이지로 전환하기 위한 상태
     const [forceShowHome, setForceShowHome] = useState(false);
+
+    // 신규 사용자: authUser는 있지만 user가 없는 경우 (회원가입 필요)
+    const needsRegistration = !!authUser && !user;
 
     // 로딩 중
     if (isUnionLoading || isAuthLoading) {
@@ -44,8 +47,9 @@ export default function UnionHomePage() {
         );
     }
 
-    // 비로그인 상태: 랜딩 페이지 표시
-    if (!isAuthenticated && !forceShowHome) {
+    // 비로그인 상태 또는 회원가입이 필요한 신규 사용자: 랜딩 페이지 표시
+    // needsRegistration: authUser는 있지만 user가 없는 경우 (회원가입 모달 표시 필요)
+    if ((!isAuthenticated || needsRegistration) && !forceShowHome) {
         return (
             <LandingPage
                 unionName={union.name}
