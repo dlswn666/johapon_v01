@@ -224,7 +224,7 @@ export default function UnionAdminsPage() {
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="email" className="text-slate-300">
-                                    이메일 <span className="text-red-400">*</span>
+                                    이메일 <span className="text-slate-500 text-xs">(선택)</span>
                                 </Label>
                                 <Input
                                     id="email"
@@ -233,7 +233,6 @@ export default function UnionAdminsPage() {
                                     value={formData.email}
                                     onChange={handleChange}
                                     placeholder="admin@example.com"
-                                    required
                                     className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-500"
                                 />
                             </div>
@@ -344,10 +343,12 @@ export default function UnionAdminsPage() {
                                                 {getStatusBadge(invite.status, invite.expires_at)}
                                             </div>
                                             <div className="flex items-center gap-4 mt-1 text-sm text-slate-400">
-                                                <span className="flex items-center gap-1">
-                                                    <Mail className="w-3 h-3" />
-                                                    {invite.email}
-                                                </span>
+                                                {invite.email && (
+                                                    <span className="flex items-center gap-1">
+                                                        <Mail className="w-3 h-3" />
+                                                        {invite.email}
+                                                    </span>
+                                                )}
                                                 <span className="flex items-center gap-1">
                                                     <Phone className="w-3 h-3" />
                                                     {invite.phone_number}

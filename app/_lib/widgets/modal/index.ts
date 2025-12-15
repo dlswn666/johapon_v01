@@ -4,3 +4,5 @@ export { ApprovalPendingModal } from './ApprovalPendingModal';
 export { ApprovalRejectedModal } from './ApprovalRejectedModal';
 export { UserStatusModal } from './UserStatusModal';
 export { RegisterModal } from './RegisterModal';
+export { TermsConsentModal } from './TermsConsentModal';
+export { TermsModal } from './TermsModal';

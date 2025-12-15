@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { AlimtalkLog, AlimtalkLogWithUnion } from '@/app/_lib/shared/type/database.types';
+import { AlimtalkLogWithUnion } from '@/app/_lib/shared/type/database.types';
 
 interface AlimtalkLogStore {
     // 상태

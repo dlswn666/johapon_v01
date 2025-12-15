@@ -86,7 +86,7 @@ export const useCreateAdminInvite = () => {
             unionId: string;
             name: string;
             phoneNumber: string;
-            email: string;
+            email?: string;
             createdBy: string;
         }) => {
             const inviteToken = generateInviteToken();
@@ -97,7 +97,7 @@ export const useCreateAdminInvite = () => {
                 union_id: input.unionId,
                 name: input.name,
                 phone_number: input.phoneNumber,
-                email: input.email,
+                email: input.email || null,
                 invite_token: inviteToken,
                 status: 'PENDING',
                 created_by: input.createdBy,
@@ -130,7 +130,7 @@ export const useCreateAdminInvite = () => {
             console.log('='.repeat(60));
             console.log('조합명:', data.union?.name);
             console.log('초대 대상:', data.name);
-            console.log('이메일:', data.email);
+            if (data.email) console.log('이메일:', data.email);
             console.log('전화번호:', data.phone_number);
             console.log('만료 시간:', new Date(data.expires_at).toLocaleString('ko-KR'));
             console.log('-'.repeat(60));

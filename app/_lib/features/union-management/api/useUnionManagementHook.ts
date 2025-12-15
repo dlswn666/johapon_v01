@@ -325,7 +325,7 @@ export const useRegisterUnionSenderKey = () => {
             channelName: string;
         }) => {
             // RPC 호출로 Vault에 Sender Key 저장
-            const { data: secretId, error: rpcError } = await supabase.rpc('register_union_sender_key', {
+            const { data: _secretId, error: rpcError } = await supabase.rpc('register_union_sender_key', {
                 p_union_id: unionId,
                 p_sender_key: senderKey,
                 p_channel_name: channelName,

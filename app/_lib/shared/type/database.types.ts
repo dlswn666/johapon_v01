@@ -695,7 +695,7 @@ export type Database = {
                     union_id: string;
                     name: string;
                     phone_number: string;
-                    email: string;
+                    email: string | null;
                     invite_token: string;
                     status: 'PENDING' | 'USED' | 'EXPIRED';
                     created_by: string;
@@ -708,7 +708,7 @@ export type Database = {
                     union_id: string;
                     name: string;
                     phone_number: string;
-                    email: string;
+                    email?: string | null;
                     invite_token: string;
                     status?: 'PENDING' | 'USED' | 'EXPIRED';
                     created_by: string;

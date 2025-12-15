@@ -226,13 +226,14 @@ export default function AuthProvider({ children }: AuthProviderProps) {
      */
     const login = useCallback(async (provider: 'kakao' | 'naver', slug?: string) => {
         if (provider === 'kakao') {
-            // 카카오는 Supabase 공식 지원
+            // 카카오는 Supabase 공식 지원 (카카오싱크 간편 로그인)
             const redirectTo = `${window.location.origin}/auth/callback${slug ? `?slug=${slug}` : ''}`;
 
             const { error } = await supabase.auth.signInWithOAuth({
                 provider: 'kakao',
                 options: {
                     redirectTo,
+                    // 카카오싱크: prompt 파라미터 없음 = 카카오톡 로그인 상태면 간편 로그인
                 },
             });
 

@@ -1,4 +1,5 @@
 import React from 'react';
+import Link from 'next/link';
 
 export function MarketingFooter() {
     return (
@@ -82,6 +83,26 @@ export function MarketingFooter() {
                     <span>사업자등록번호: 276-40-01354</span>
                     <span className="hidden md:inline">|</span>
                     <span>주소: 서울특별시 강북구 인수봉로 6가길 9</span>
+                </div>
+
+                {/* 약관 링크 */}
+                <div
+                    className="flex flex-wrap justify-center items-center gap-4 md:gap-6 mb-6 md:mb-[37px]"
+                    style={{ fontSize: 'var(--text-marketing-footer-body)', lineHeight: '1.5' }}
+                >
+                    <Link
+                        href="/terms"
+                        className="text-[#99a1af] hover:text-white transition-colors"
+                    >
+                        이용약관
+                    </Link>
+                    <span className="text-[#4b5563]">|</span>
+                    <Link
+                        href="/privacy"
+                        className="text-[#99a1af] hover:text-white transition-colors"
+                    >
+                        개인정보처리방침
+                    </Link>
                 </div>
 
                 {/* Copyright */}

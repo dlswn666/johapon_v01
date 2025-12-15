@@ -64,7 +64,7 @@ export default function UnionDetailPage() {
     const [isSenderKeyModalOpen, setIsSenderKeyModalOpen] = useState(false);
     const [newSenderKey, setNewSenderKey] = useState('');
     const registerSenderKeyMutation = useRegisterUnionSenderKey();
-    const updateAlimtalkSettingsMutation = useUpdateUnionAlimtalkSettings();
+    const _updateAlimtalkSettingsMutation = useUpdateUnionAlimtalkSettings();
 
     useEffect(() => {
         if (union) {
