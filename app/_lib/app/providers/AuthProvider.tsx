@@ -301,30 +301,7 @@ export default function AuthProvider({ children }: AuthProviderProps) {
             // 카카오는 Supabase 공식 지원 (카카오싱크 간편 로그인)
             const redirectTo = `${window.location.origin}/auth/callback${slug ? `?slug=${slug}` : ''}`;
 
-            // ========== PKCE 디버깅 로그 시작 ==========
-            console.log('='.repeat(60));
-            console.log('[Kakao Login] OAuth 로그인 시작');
-            console.log('[Kakao Login] Provider:', provider);
-            console.log('[Kakao Login] Redirect URL:', redirectTo);
-            console.log('[Kakao Login] Current Origin:', window.location.origin);
-            console.log('[Kakao Login] Current URL:', window.location.href);
-            console.log('[Kakao Login] Slug:', slug || '(없음)');
-
-            // 현재 쿠키 상태 확인
-            console.log('[Kakao Login] 현재 document.cookie:', document.cookie ? '(쿠키 있음)' : '(쿠키 없음)');
-            const cookieNames = document.cookie
-                .split(';')
-                .map((c) => c.trim().split('=')[0])
-                .filter(Boolean);
-            console.log('[Kakao Login] 쿠키 이름 목록:', cookieNames);
-
-            // Supabase 관련 쿠키 확인
-            const supabaseCookies = cookieNames.filter((name) => name.startsWith('sb-'));
-            console.log('[Kakao Login] Supabase 쿠키:', supabaseCookies);
-            console.log('='.repeat(60));
-            // ========== PKCE 디버깅 로그 끝 ==========
-
-            const { data, error } = await supabase.auth.signInWithOAuth({
+            const { error } = await supabase.auth.signInWithOAuth({
                 provider: 'kakao',
                 options: {
                     redirectTo,
@@ -334,25 +311,6 @@ export default function AuthProvider({ children }: AuthProviderProps) {
                     },
                 },
             });
-
-            // ========== OAuth 호출 결과 로그 ==========
-            console.log('[Kakao Login] signInWithOAuth 완료');
-            console.log('[Kakao Login] Data:', data);
-            console.log('[Kakao Login] Error:', error);
-
-            // PKCE code_verifier 쿠키 확인 (OAuth 호출 후)
-            const postCookieNames = document.cookie
-                .split(';')
-                .map((c) => c.trim().split('=')[0])
-                .filter(Boolean);
-            const newCookies = postCookieNames.filter((name) => !cookieNames.includes(name));
-            console.log('[Kakao Login] 새로 생성된 쿠키:', newCookies);
-            const codeVerifierCookies = postCookieNames.filter(
-                (name) => name.includes('code-verifier') || name.includes('code_verifier') || name.includes('pkce')
-            );
-            console.log('[Kakao Login] code_verifier 관련 쿠키:', codeVerifierCookies);
-            console.log('='.repeat(60));
-            // ========== OAuth 호출 결과 로그 끝 ==========
 
             if (error) {
                 console.error('Kakao login error:', error);

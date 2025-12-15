@@ -1,17 +1,11 @@
-import { createClient } from '@supabase/supabase-js';
+import { createBrowserClient } from '@supabase/ssr';
 
 /**
- * Supabase 클라이언트 인스턴스
+ * Supabase 브라우저 클라이언트 인스턴스
  *
- * 환경 변수를 통해 Supabase URL과 Anon Key를 설정합니다.
+ * @supabase/ssr의 createBrowserClient를 사용하여 쿠키 기반 세션 관리를 지원합니다.
+ * PKCE 흐름에서 code_verifier가 쿠키에 올바르게 저장되도록 합니다.
  * 싱글톤 패턴으로 전역에서 하나의 인스턴스만 생성됩니다.
- */
-
-// 환경 변수 검증
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-/**
- * Supabase 클라이언트 인스턴스
  *
  * @example
  * ```typescript
@@ -28,28 +22,9 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
  *   .insert({ name: 'John' });
  * ```
  */
-export const supabase = createClient(supabaseUrl as string, supabaseAnonKey as string, {
-    auth: {
-        /**
-         * flowType: PKCE 흐름 사용 (서버사이드에서 code 교환을 위해 필수)
-         */
-        flowType: 'pkce',
-
-        /**
-         * persistSession: 세션을 브라우저 로컬 스토리지에 저장하여 페이지 새로고침 시에도 로그인 상태 유지
-         */
-        persistSession: true,
-
-        /**
-         * autoRefreshToken: 토큰 만료 전 자동으로 갱신하여 사용자가 로그아웃되지 않도록 함
-         */
-        autoRefreshToken: true,
-
-        /**
-         * detectSessionInUrl: URL의 해시 프래그먼트에서 세션 정보를 감지 (OAuth 콜백 처리용)
-         */
-        detectSessionInUrl: true,
-    },
-});
+export const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 export default supabase;
