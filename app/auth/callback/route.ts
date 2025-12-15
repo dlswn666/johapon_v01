@@ -1,4 +1,5 @@
-import { createClient } from '@supabase/supabase-js';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
@@ -23,18 +24,30 @@ export async function GET(request: NextRequest) {
         return NextResponse.redirect(`${origin}/auth/error?message=no_code`);
     }
 
-    // Supabase 클라이언트 생성
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+    // 쿠키 스토어 가져오기
+    const cookieStore = await cookies();
 
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-        auth: {
-            flowType: 'pkce',
-            autoRefreshToken: false,
-            detectSessionInUrl: false,
-            persistSession: false,
-        },
-    });
+    // Supabase 서버 클라이언트 생성 (쿠키에서 PKCE code_verifier 읽기 위해)
+    const supabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+            cookies: {
+                getAll() {
+                    return cookieStore.getAll();
+                },
+                setAll(cookiesToSet) {
+                    try {
+                        cookiesToSet.forEach(({ name, value, options }) => {
+                            cookieStore.set(name, value, options);
+                        });
+                    } catch {
+                        // 서버 컴포넌트에서 호출된 경우 무시
+                    }
+                },
+            },
+        }
+    );
 
     // Authorization code를 세션으로 교환
     const { data: sessionData, error: sessionError } = await supabase.auth.exchangeCodeForSession(code);
@@ -62,11 +75,7 @@ export async function GET(request: NextRequest) {
 
     if (authLink) {
         // 기존 연결된 사용자가 있음 - 해당 사용자의 상태에 따라 리다이렉트
-        const { data: existingUser } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', authLink.user_id)
-            .single();
+        const { data: existingUser } = await supabase.from('users').select('*').eq('id', authLink.user_id).single();
 
         if (existingUser) {
             const redirectUrl = getRedirectByUserStatus(origin, slug, existingUser.user_status);
@@ -177,10 +186,7 @@ async function handleAdminInvitePrefill(
         const expiresAt = new Date(invite.expires_at);
         if (now > expiresAt) {
             console.error('Invite token expired:', inviteToken);
-            await supabase
-                .from('admin_invites')
-                .update({ status: 'EXPIRED' })
-                .eq('id', invite.id);
+            await supabase.from('admin_invites').update({ status: 'EXPIRED' }).eq('id', invite.id);
             return null;
         }
 
@@ -232,10 +238,7 @@ async function handleMemberInvitePrefill(
         const expiresAt = new Date(invite.expires_at);
         if (now > expiresAt) {
             console.error('Member invite token expired:', memberInviteToken);
-            await supabase
-                .from('member_invites')
-                .update({ status: 'EXPIRED' })
-                .eq('id', invite.id);
+            await supabase.from('member_invites').update({ status: 'EXPIRED' }).eq('id', invite.id);
             return null;
         }
 
@@ -299,5 +302,3 @@ function getRedirectByUserStatus(origin: string, slug: string, userStatus: strin
             return basePath;
     }
 }
-
-
