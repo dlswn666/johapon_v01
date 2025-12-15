@@ -39,19 +39,20 @@ export default function SlugProvider({ children, slug }: SlugProviderProps) {
                 const data = await getUnionBySlug(slug);
                 
                 if (!data) {
-                    // 유효하지 않은 slug인 경우 404 처리 또는 홈으로 리다이렉트
-                    // 여기서는 일단 에러 처리만 하고, 페이지 컴포넌트에서 notFound() 호출 등을 유도하거나
-                    // 리다이렉트 시킬 수 있음. 현재는 단순히 상태 업데이트
+                    // 유효하지 않은 slug인 경우 404 페이지로 리다이렉트
                     setError(new Error('Union not found'));
-                    // router.push('/404'); // 또는 notFound()
-                } else {
-                    setLocalUnion(data);
-                    setCurrentUnion(data);
-                    setError(null);
+                    router.replace('/not-found');
+                    return;
                 }
+                
+                setLocalUnion(data);
+                setCurrentUnion(data);
+                setError(null);
             } catch (err) {
                 console.error('Error in SlugProvider:', err);
                 setError(err instanceof Error ? err : new Error('Unknown error'));
+                // 에러 발생 시에도 404로 리다이렉트
+                router.replace('/not-found');
             } finally {
                 setIsLoading(false);
                 setLoading(false);

@@ -76,10 +76,17 @@ export async function GET(request: NextRequest) {
 
     if (authLink) {
         // 기존 연결된 사용자가 있음 - 해당 사용자의 상태에 따라 리다이렉트
-        const { data: existingUser } = await supabase.from('users').select('*').eq('id', authLink.user_id).single();
+        // unions 테이블을 JOIN하여 사용자의 조합 slug 정보도 함께 조회
+        const { data: existingUser } = await supabase
+            .from('users')
+            .select('*, union:unions(id, slug)')
+            .eq('id', authLink.user_id)
+            .single();
 
         if (existingUser) {
-            const redirectUrl = getRedirectByUserStatus(origin, slug, existingUser.user_status);
+            // 사용자의 조합 slug를 우선 사용, 없으면 URL의 slug 사용
+            const userUnionSlug = existingUser.union?.slug || '';
+            const redirectUrl = getRedirectByUserStatus(origin, slug, existingUser.user_status, userUnionSlug);
             return NextResponse.redirect(redirectUrl);
         }
     }
@@ -228,9 +235,16 @@ async function handleMemberInvitePrefill(
 
 /**
  * 사용자 상태에 따른 리다이렉트 URL 반환
+ * @param origin - 기본 origin URL
+ * @param urlSlug - URL 파라미터에서 전달받은 slug
+ * @param userStatus - 사용자 상태
+ * @param unionSlug - 사용자가 소속된 조합의 slug (선택)
  */
-function getRedirectByUserStatus(origin: string, slug: string, userStatus: string): string {
-    const basePath = slug ? `${origin}/${slug}` : origin;
+function getRedirectByUserStatus(origin: string, urlSlug: string, userStatus: string, unionSlug?: string): string {
+    // APPROVED 상태일 때는 사용자의 조합 slug를 우선 사용
+    // 그 외 상태에서는 URL slug 사용 (회원가입 플로우 등)
+    const effectiveSlug = userStatus === 'APPROVED' && unionSlug ? unionSlug : urlSlug;
+    const basePath = effectiveSlug ? `${origin}/${effectiveSlug}` : origin;
 
     switch (userStatus) {
         case 'PENDING_PROFILE':
@@ -240,7 +254,7 @@ function getRedirectByUserStatus(origin: string, slug: string, userStatus: strin
             // 승인 대기 중
             return `${basePath}?status=pending`;
         case 'APPROVED':
-            // 승인됨 - 홈으로
+            // 승인됨 - 사용자의 조합 홈으로 이동
             return basePath;
         case 'REJECTED':
             // 거부됨
