@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Loader2, Building2, AlertCircle, Clock, CheckCircle2, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAdminInviteByToken } from '@/app/_lib/features/admin-invite/api/useAdminInviteHook';
 import { supabase } from '@/app/_lib/shared/supabase/client';
-import { TermsConsentModal } from '@/app/_lib/widgets/modal';
+import { KAKAO_SERVICE_TERMS_STRING } from '@/app/_lib/shared/constants/kakaoServiceTerms';
 
 export default function InvitePage() {
     const params = useParams();
@@ -15,9 +15,6 @@ export default function InvitePage() {
     const token = params.token as string;
 
     const { data: invite, isLoading, error } = useAdminInviteByToken(token);
-    
-    // 약관 동의 모달 상태
-    const [showTermsModal, setShowTermsModal] = useState(false);
 
     const handleKakaoLogin = async () => {
         // 카카오 로그인 시 state에 invite_token 포함
@@ -27,24 +24,16 @@ export default function InvitePage() {
             provider: 'kakao',
             options: {
                 redirectTo,
-                // 카카오싱크: prompt 파라미터 없음 = 기존 세션 재사용 (간편 로그인)
+                // 카카오싱크: 간편 로그인 + 서비스 약관 동의
+                queryParams: {
+                    service_terms: KAKAO_SERVICE_TERMS_STRING,
+                },
             },
         });
 
         if (error) {
             console.error('Kakao login error:', error);
         }
-    };
-
-    // 약관 동의 완료 후 카카오 로그인 진행
-    const handleTermsAgree = () => {
-        setShowTermsModal(false);
-        handleKakaoLogin();
-    };
-
-    // 카카오 로그인 버튼 클릭 시 약관 동의 모달 표시
-    const handleStartLogin = () => {
-        setShowTermsModal(true);
     };
 
     if (isLoading) {
@@ -148,8 +137,7 @@ export default function InvitePage() {
 
     // 유효한 초대 - 카카오 로그인 유도
     return (
-        <>
-            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4">
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4">
                 {/* 배경 패턴 */}
                 <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiMyMDIwMjAiIGZpbGwtb3BhY2l0eT0iMC4xIj48cGF0aCBkPSJNMzYgMzRoLTJ2LTRoMnY0em0wLTZoLTJ2LTRoMnY0em0wLTZoLTJ2LTRoMnY0em0wLTZoLTJWMTJoMnY0em0wLTZoLTJWNmgydjR6Ii8+PC9nPjwvZz48L3N2Zz4=')] opacity-20" />
 
@@ -195,7 +183,7 @@ export default function InvitePage() {
 
                         {/* 카카오 로그인 버튼 */}
                         <Button
-                            onClick={handleStartLogin}
+                            onClick={handleKakaoLogin}
                             className="w-full bg-[#FEE500] hover:bg-[#FDD800] text-[#191919] font-medium py-6 text-lg transition-all duration-200 shadow-lg"
                         >
                             <svg className="w-6 h-6 mr-3" viewBox="0 0 24 24" fill="currentColor">
@@ -210,13 +198,5 @@ export default function InvitePage() {
                     </CardContent>
                 </Card>
             </div>
-
-            {/* 약관 동의 모달 */}
-            <TermsConsentModal
-                isOpen={showTermsModal}
-                onClose={() => setShowTermsModal(false)}
-                onAgree={handleTermsAgree}
-            />
-        </>
     );
 }

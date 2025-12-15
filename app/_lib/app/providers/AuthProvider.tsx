@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useCa
 import { supabase } from '@/app/_lib/shared/supabase/client';
 import { User, UserStatus } from '@/app/_lib/shared/type/database.types';
 import { Session, User as SupabaseUser } from '@supabase/supabase-js';
+import { KAKAO_SERVICE_TERMS_STRING } from '@/app/_lib/shared/constants/kakaoServiceTerms';
 
 // 사용자 역할 타입
 export type UserRole = 'SYSTEM_ADMIN' | 'ADMIN' | 'USER' | 'APPLICANT';
@@ -166,7 +167,10 @@ export default function AuthProvider({ children }: AuthProviderProps) {
             }
 
             // Supabase 세션 조회
-            const { data: { session: currentSession }, error } = await supabase.auth.getSession();
+            const {
+                data: { session: currentSession },
+                error,
+            } = await supabase.auth.getSession();
 
             if (error) {
                 console.error('Failed to get session:', error);
@@ -196,25 +200,25 @@ export default function AuthProvider({ children }: AuthProviderProps) {
         initializeAuth();
 
         // Auth 상태 변경 리스너
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(
-            async (event, newSession) => {
-                console.log('Auth state changed:', event);
+        const {
+            data: { subscription },
+        } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+            console.log('Auth state changed:', event);
 
-                if (event === 'SIGNED_IN' && newSession?.user) {
-                    setSession(newSession);
-                    setAuthUser(newSession.user);
+            if (event === 'SIGNED_IN' && newSession?.user) {
+                setSession(newSession);
+                setAuthUser(newSession.user);
 
-                    const linkedUser = await fetchUserByAuthId(newSession.user.id);
-                    setUser(linkedUser);
-                } else if (event === 'SIGNED_OUT') {
-                    setSession(null);
-                    setAuthUser(null);
-                    setUser(null);
-                } else if (event === 'TOKEN_REFRESHED' && newSession) {
-                    setSession(newSession);
-                }
+                const linkedUser = await fetchUserByAuthId(newSession.user.id);
+                setUser(linkedUser);
+            } else if (event === 'SIGNED_OUT') {
+                setSession(null);
+                setAuthUser(null);
+                setUser(null);
+            } else if (event === 'TOKEN_REFRESHED' && newSession) {
+                setSession(newSession);
             }
-        );
+        });
 
         return () => {
             subscription.unsubscribe();
@@ -234,6 +238,9 @@ export default function AuthProvider({ children }: AuthProviderProps) {
                 options: {
                     redirectTo,
                     // 카카오싱크: prompt 파라미터 없음 = 카카오톡 로그인 상태면 간편 로그인
+                    queryParams: {
+                        service_terms: KAKAO_SERVICE_TERMS_STRING,
+                    },
                 },
             });
 
@@ -251,47 +258,50 @@ export default function AuthProvider({ children }: AuthProviderProps) {
     /**
      * 이메일/비밀번호 로그인 (시스템 관리자용)
      */
-    const loginWithEmail = useCallback(async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
-        try {
-            const { data, error } = await supabase.auth.signInWithPassword({
-                email,
-                password,
-            });
+    const loginWithEmail = useCallback(
+        async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+            try {
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email,
+                    password,
+                });
 
-            if (error) {
-                console.error('Email login error:', error);
-                return { success: false, error: error.message };
+                if (error) {
+                    console.error('Email login error:', error);
+                    return { success: false, error: error.message };
+                }
+
+                if (!data.user) {
+                    return { success: false, error: '로그인에 실패했습니다.' };
+                }
+
+                // 연결된 public.users 조회
+                const linkedUser = await fetchUserByAuthId(data.user.id);
+
+                if (!linkedUser) {
+                    // 연결된 사용자가 없으면 로그아웃
+                    await supabase.auth.signOut();
+                    return { success: false, error: '등록된 사용자가 아닙니다.' };
+                }
+
+                // SYSTEM_ADMIN 권한 확인
+                if (linkedUser.role !== 'SYSTEM_ADMIN') {
+                    await supabase.auth.signOut();
+                    return { success: false, error: '시스템 관리자 권한이 없습니다.' };
+                }
+
+                setSession(data.session);
+                setAuthUser(data.user);
+                setUser(linkedUser);
+
+                return { success: true };
+            } catch (error) {
+                console.error('Login with email error:', error);
+                return { success: false, error: '로그인 중 오류가 발생했습니다.' };
             }
-
-            if (!data.user) {
-                return { success: false, error: '로그인에 실패했습니다.' };
-            }
-
-            // 연결된 public.users 조회
-            const linkedUser = await fetchUserByAuthId(data.user.id);
-
-            if (!linkedUser) {
-                // 연결된 사용자가 없으면 로그아웃
-                await supabase.auth.signOut();
-                return { success: false, error: '등록된 사용자가 아닙니다.' };
-            }
-
-            // SYSTEM_ADMIN 권한 확인
-            if (linkedUser.role !== 'SYSTEM_ADMIN') {
-                await supabase.auth.signOut();
-                return { success: false, error: '시스템 관리자 권한이 없습니다.' };
-            }
-
-            setSession(data.session);
-            setAuthUser(data.user);
-            setUser(linkedUser);
-
-            return { success: true };
-        } catch (error) {
-            console.error('Login with email error:', error);
-            return { success: false, error: '로그인 중 오류가 발생했습니다.' };
-        }
-    }, [fetchUserByAuthId]);
+        },
+        [fetchUserByAuthId]
+    );
 
     /**
      * 로그아웃

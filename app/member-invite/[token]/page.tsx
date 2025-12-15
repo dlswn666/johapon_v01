@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Loader2, Building2, AlertCircle, Clock, CheckCircle2, UserPlus, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useMemberInviteByToken } from '@/app/_lib/features/member-invite/api/useMemberInviteHook';
 import { supabase } from '@/app/_lib/shared/supabase/client';
-import { TermsConsentModal } from '@/app/_lib/widgets/modal';
+import { KAKAO_SERVICE_TERMS_STRING } from '@/app/_lib/shared/constants/kakaoServiceTerms';
 
 export default function MemberInvitePage() {
     const params = useParams();
@@ -15,11 +15,6 @@ export default function MemberInvitePage() {
     const token = params.token as string;
 
     const { data: invite, isLoading, error } = useMemberInviteByToken(token);
-    
-    // 약관 동의 모달 상태
-    const [showTermsModal, setShowTermsModal] = useState(false);
-    // 어떤 로그인 방식을 사용할지 저장
-    const [selectedProvider, setSelectedProvider] = useState<'kakao' | 'naver' | null>(null);
 
     const handleKakaoLogin = async () => {
         // 카카오 로그인 시 state에 member_invite_token 포함
@@ -29,7 +24,10 @@ export default function MemberInvitePage() {
             provider: 'kakao',
             options: {
                 redirectTo,
-                // 카카오싱크: prompt 파라미터 없음 = 기존 세션 재사용 (간편 로그인)
+                // 카카오싱크: 간편 로그인 + 서비스 약관 동의
+                queryParams: {
+                    service_terms: KAKAO_SERVICE_TERMS_STRING,
+                },
             },
         });
 
@@ -52,29 +50,6 @@ export default function MemberInvitePage() {
         if (error) {
             console.error('Naver login error:', error);
         }
-    };
-
-    // 약관 동의 완료 후 로그인 진행
-    const handleTermsAgree = () => {
-        setShowTermsModal(false);
-        if (selectedProvider === 'kakao') {
-            handleKakaoLogin();
-        } else if (selectedProvider === 'naver') {
-            handleNaverLogin();
-        }
-        setSelectedProvider(null);
-    };
-
-    // 카카오 로그인 버튼 클릭 시 약관 동의 모달 표시
-    const handleStartKakaoLogin = () => {
-        setSelectedProvider('kakao');
-        setShowTermsModal(true);
-    };
-
-    // 네이버 로그인 버튼 클릭 시 약관 동의 모달 표시
-    const handleStartNaverLogin = () => {
-        setSelectedProvider('naver');
-        setShowTermsModal(true);
     };
 
     if (isLoading) {
@@ -178,8 +153,7 @@ export default function MemberInvitePage() {
 
     // 유효한 초대 - 로그인 유도
     return (
-        <>
-            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4">
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4">
                 {/* 배경 패턴 */}
                 <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiMyMDIwMjAiIGZpbGwtb3BhY2l0eT0iMC4xIj48cGF0aCBkPSJNMzYgMzRoLTJ2LTRoMnY0em0wLTZoLTJ2LTRoMnY0em0wLTZoLTJ2LTRoMnY0em0wLTZoLTJWMTJoMnY0em0wLTZoLTJWNmgydjR6Ii8+PC9nPjwvZz48L3N2Zz4=')] opacity-20" />
 
@@ -227,7 +201,7 @@ export default function MemberInvitePage() {
 
                         {/* 카카오 로그인 버튼 */}
                         <Button
-                            onClick={handleStartKakaoLogin}
+                            onClick={handleKakaoLogin}
                             className="w-full bg-[#FEE500] hover:bg-[#FDD800] text-[#191919] font-medium py-6 text-lg transition-all duration-200 shadow-lg"
                         >
                             <svg className="w-6 h-6 mr-3" viewBox="0 0 24 24" fill="currentColor">
@@ -238,7 +212,7 @@ export default function MemberInvitePage() {
 
                         {/* 네이버 로그인 버튼 */}
                         <Button
-                            onClick={handleStartNaverLogin}
+                            onClick={handleNaverLogin}
                             className="w-full bg-[#03C75A] hover:bg-[#02b350] text-white font-medium py-6 text-lg transition-all duration-200 shadow-lg"
                         >
                             <svg className="w-6 h-6 mr-3" viewBox="0 0 24 24" fill="currentColor">
@@ -253,16 +227,5 @@ export default function MemberInvitePage() {
                     </CardContent>
                 </Card>
             </div>
-
-            {/* 약관 동의 모달 */}
-            <TermsConsentModal
-                isOpen={showTermsModal}
-                onClose={() => {
-                    setShowTermsModal(false);
-                    setSelectedProvider(null);
-                }}
-                onAgree={handleTermsAgree}
-            />
-        </>
     );
 }
