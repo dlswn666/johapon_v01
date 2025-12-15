@@ -182,12 +182,22 @@ export default function AuthProvider({ children }: AuthProviderProps) {
             }
 
             if (currentSession?.user) {
-                setSession(currentSession);
-                setAuthUser(currentSession.user);
-
                 // 연결된 public.users 조회
                 const linkedUser = await fetchUserByAuthId(currentSession.user.id);
-                setUser(linkedUser);
+                
+                if (linkedUser) {
+                    // 연결된 사용자가 있으면 정상 처리
+                    setSession(currentSession);
+                    setAuthUser(currentSession.user);
+                    setUser(linkedUser);
+                } else {
+                    // 연결된 사용자가 없으면 세션 정리 (유효하지 않은 세션)
+                    console.log('Session exists but no linked user found. Clearing session...');
+                    await supabase.auth.signOut();
+                    setSession(null);
+                    setAuthUser(null);
+                    setUser(null);
+                }
             }
         } catch (error) {
             console.error('Auth initialization error:', error);
@@ -209,13 +219,24 @@ export default function AuthProvider({ children }: AuthProviderProps) {
             console.log('Auth state changed:', event);
 
             if (event === 'SIGNED_IN' && newSession?.user) {
-                setSession(newSession);
-                setAuthUser(newSession.user);
                 setIsUserFetching(true);
 
                 try {
                     const linkedUser = await fetchUserByAuthId(newSession.user.id);
-                    setUser(linkedUser);
+                    
+                    if (linkedUser) {
+                        // 연결된 사용자가 있으면 정상 처리
+                        setSession(newSession);
+                        setAuthUser(newSession.user);
+                        setUser(linkedUser);
+                    } else {
+                        // 연결된 사용자가 없으면 세션 정리
+                        console.log('SIGNED_IN but no linked user found. Clearing session...');
+                        await supabase.auth.signOut();
+                        setSession(null);
+                        setAuthUser(null);
+                        setUser(null);
+                    }
                 } finally {
                     setIsUserFetching(false);
                 }
