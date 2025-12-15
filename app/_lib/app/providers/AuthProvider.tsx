@@ -1,9 +1,9 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
 import { supabase } from '@/app/_lib/shared/supabase/client';
 import { User, UserStatus } from '@/app/_lib/shared/type/database.types';
-import { Session, User as SupabaseUser } from '@supabase/supabase-js';
+import { Session, User as SupabaseUser, AuthChangeEvent } from '@supabase/supabase-js';
 import { KAKAO_SERVICE_TERMS_STRING } from '@/app/_lib/shared/constants/kakaoServiceTerms';
 
 // 사용자 역할 타입
@@ -116,6 +116,11 @@ export default function AuthProvider({ children }: AuthProviderProps) {
 
     // 개발 모드에서 Mock 사용자 사용 여부
     const useMockAuth = process.env.NEXT_PUBLIC_USE_MOCK_AUTH === 'true';
+    
+    // 초기화 완료 여부를 추적하여 중복 실행 방지
+    const isInitializedRef = useRef(false);
+    // 현재 처리 중인 세션을 추적하여 race condition 방지
+    const processingSessionRef = useRef<string | null>(null);
 
     /**
      * auth.users ID로 연결된 public.users 조회
@@ -154,105 +159,139 @@ export default function AuthProvider({ children }: AuthProviderProps) {
     }, []);
 
     /**
-     * 세션 및 사용자 정보 초기화
+     * 세션에서 사용자 정보 처리 (공통 로직)
+     * INITIAL_SESSION, SIGNED_IN 이벤트에서 공통으로 사용
      */
-    const initializeAuth = useCallback(async () => {
+    const handleSessionWithUser = useCallback(async (
+        currentSession: Session | null,
+        event: AuthChangeEvent
+    ): Promise<void> => {
+        // 세션이 없으면 상태 초기화
+        if (!currentSession?.user) {
+            setSession(null);
+            setAuthUser(null);
+            setUser(null);
+            return;
+        }
+
+        const sessionId = currentSession.user.id;
+
+        // 이미 같은 세션을 처리 중이면 중복 실행 방지
+        if (processingSessionRef.current === sessionId) {
+            console.log(`Already processing session for user ${sessionId}, skipping...`);
+            return;
+        }
+
+        processingSessionRef.current = sessionId;
+        setIsUserFetching(true);
+
         try {
-            setIsLoading(true);
+            console.log(`Processing session for event: ${event}, user: ${sessionId}`);
+            
+            const linkedUser = await fetchUserByAuthId(sessionId);
 
-            // 개발 모드에서 Mock 인증 사용
-            if (useMockAuth) {
-                const savedUserId = localStorage.getItem('mock_user_id');
-                const mockUser = MOCK_USERS.find((u) => u.id === savedUserId) || MOCK_USERS[0];
-                setUser(mockUser);
-                setIsLoading(false);
-                return;
-            }
-
-            // Supabase 세션 조회
-            const {
-                data: { session: currentSession },
-                error,
-            } = await supabase.auth.getSession();
-
-            if (error) {
-                console.error('Failed to get session:', error);
-                setIsLoading(false);
-                return;
-            }
-
-            if (currentSession?.user) {
-                // 연결된 public.users 조회
-                const linkedUser = await fetchUserByAuthId(currentSession.user.id);
-                
-                if (linkedUser) {
-                    // 연결된 사용자가 있으면 정상 처리
-                    setSession(currentSession);
-                    setAuthUser(currentSession.user);
-                    setUser(linkedUser);
-                } else {
-                    // 연결된 사용자가 없으면 세션 정리 (유효하지 않은 세션)
-                    console.log('Session exists but no linked user found. Clearing session...');
-                    await supabase.auth.signOut();
-                    setSession(null);
-                    setAuthUser(null);
-                    setUser(null);
-                }
+            if (linkedUser) {
+                // 연결된 사용자가 있으면 정상 처리
+                setSession(currentSession);
+                setAuthUser(currentSession.user);
+                setUser(linkedUser);
+            } else {
+                // 연결된 사용자가 없으면 세션은 유지하되 user만 null
+                // (회원가입 플로우를 위해 authUser는 설정)
+                console.log(`${event}: No linked user found. Setting authUser without user...`);
+                setSession(currentSession);
+                setAuthUser(currentSession.user);
+                setUser(null);
             }
         } catch (error) {
-            console.error('Auth initialization error:', error);
+            console.error(`Error handling session for ${event}:`, error);
+            // 에러 발생 시에도 세션 정보는 설정
+            setSession(currentSession);
+            setAuthUser(currentSession.user);
+            setUser(null);
         } finally {
-            setIsLoading(false);
+            setIsUserFetching(false);
+            processingSessionRef.current = null;
         }
-    }, [useMockAuth, fetchUserByAuthId]);
+    }, [fetchUserByAuthId]);
 
     /**
      * Supabase Auth 상태 변경 감지
+     * onAuthStateChange가 모든 세션 상태 변화를 처리
      */
     useEffect(() => {
-        initializeAuth();
+        // 개발 모드에서 Mock 인증 사용
+        if (useMockAuth) {
+            const savedUserId = localStorage.getItem('mock_user_id');
+            const mockUser = MOCK_USERS.find((u) => u.id === savedUserId) || MOCK_USERS[0];
+            setUser(mockUser);
+            setIsLoading(false);
+            return;
+        }
 
-        // Auth 상태 변경 리스너
+        // Auth 상태 변경 리스너 설정
         const {
             data: { subscription },
         } = supabase.auth.onAuthStateChange(async (event, newSession) => {
-            console.log('Auth state changed:', event);
+            console.log('Auth state changed:', event, newSession?.user?.id ?? 'no user');
 
-            if (event === 'SIGNED_IN' && newSession?.user) {
-                setIsUserFetching(true);
+            switch (event) {
+                case 'INITIAL_SESSION':
+                    // 초기 세션 이벤트: 페이지 로드 시 첫 번째로 발생
+                    // 이 이벤트에서 모든 초기화 처리
+                    await handleSessionWithUser(newSession, event);
+                    setIsLoading(false);
+                    isInitializedRef.current = true;
+                    break;
 
-                try {
-                    const linkedUser = await fetchUserByAuthId(newSession.user.id);
-                    
-                    if (linkedUser) {
-                        // 연결된 사용자가 있으면 정상 처리
+                case 'SIGNED_IN':
+                    // 로그인 이벤트: 실제 로그인 시에만 처리 (초기화 완료 후)
+                    // INITIAL_SESSION 이후에 발생하는 SIGNED_IN만 처리
+                    if (isInitializedRef.current) {
+                        await handleSessionWithUser(newSession, event);
+                    }
+                    break;
+
+                case 'SIGNED_OUT':
+                    // 로그아웃 이벤트
+                    setSession(null);
+                    setAuthUser(null);
+                    setUser(null);
+                    break;
+
+                case 'TOKEN_REFRESHED':
+                    // 토큰 갱신 이벤트: 세션만 업데이트
+                    if (newSession) {
+                        setSession(newSession);
+                    }
+                    break;
+
+                case 'USER_UPDATED':
+                    // 사용자 정보 업데이트 이벤트
+                    if (newSession) {
                         setSession(newSession);
                         setAuthUser(newSession.user);
-                        setUser(linkedUser);
-                    } else {
-                        // 연결된 사용자가 없으면 세션 정리
-                        console.log('SIGNED_IN but no linked user found. Clearing session...');
-                        await supabase.auth.signOut();
-                        setSession(null);
-                        setAuthUser(null);
-                        setUser(null);
                     }
-                } finally {
-                    setIsUserFetching(false);
-                }
-            } else if (event === 'SIGNED_OUT') {
-                setSession(null);
-                setAuthUser(null);
-                setUser(null);
-            } else if (event === 'TOKEN_REFRESHED' && newSession) {
-                setSession(newSession);
+                    break;
+
+                case 'PASSWORD_RECOVERY':
+                    // 비밀번호 복구 이벤트
+                    if (newSession) {
+                        setSession(newSession);
+                        setAuthUser(newSession.user);
+                    }
+                    break;
+
+                default:
+                    console.log('Unhandled auth event:', event);
             }
         });
 
         return () => {
             subscription.unsubscribe();
         };
-    }, [initializeAuth, fetchUserByAuthId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [useMockAuth]);
 
     /**
      * 소셜 로그인

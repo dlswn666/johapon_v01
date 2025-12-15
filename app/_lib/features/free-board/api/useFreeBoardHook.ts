@@ -460,3 +460,4 @@ export const useIncrementFreeBoardViews = () => {
         },
     });
 };
+

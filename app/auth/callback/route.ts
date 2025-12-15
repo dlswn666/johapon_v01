@@ -1,11 +1,12 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextRequest, NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 
 /**
  * OAuth 콜백 핸들러 (카카오)
  * Supabase Auth의 OAuth 인증 완료 후 호출됨
  *
- * 1. Authorization code를 세션으로 교환
+ * 1. Authorization code를 세션으로 교환 (PKCE 흐름 - code_verifier 쿠키 사용)
  * 2. auth.users에서 사용자 정보 조회
  * 3. user_auth_links에서 연결된 public.users 조회
  * 4. invite_token이 있으면 관리자로 자동 등록
@@ -23,36 +24,32 @@ export async function GET(request: NextRequest) {
         return NextResponse.redirect(`${origin}/auth/error?message=no_code`);
     }
 
-    // 응답 객체 먼저 생성 (쿠키 설정을 위해)
-    let response = NextResponse.next({
-        request: {
-            headers: request.headers,
-        },
-    });
+    // Next.js 쿠키 스토어 가져오기
+    const cookieStore = await cookies();
 
-    // Supabase 서버 클라이언트 생성 (request.cookies 사용)
+    // Supabase 서버 클라이언트 생성 (PKCE를 위한 쿠키 핸들링)
     const supabase = createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
         {
             cookies: {
                 getAll() {
-                    return request.cookies.getAll();
+                    return cookieStore.getAll();
                 },
                 setAll(cookiesToSet) {
-                    cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-                    response = NextResponse.next({
-                        request: {
-                            headers: request.headers,
-                        },
-                    });
-                    cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
+                    try {
+                        cookiesToSet.forEach(({ name, value, options }) => {
+                            cookieStore.set(name, value, options);
+                        });
+                    } catch (error) {
+                        console.warn('Failed to set cookies:', error);
+                    }
                 },
             },
         }
     );
 
-    // Authorization code를 세션으로 교환
+    // Authorization code를 세션으로 교환 (PKCE: 쿠키에서 code_verifier 자동 읽기)
     const { data: sessionData, error: sessionError } = await supabase.auth.exchangeCodeForSession(code);
 
     if (sessionError || !sessionData.session) {
@@ -82,25 +79,7 @@ export async function GET(request: NextRequest) {
 
         if (existingUser) {
             const redirectUrl = getRedirectByUserStatus(origin, slug, existingUser.user_status);
-
-            // 세션 쿠키 설정을 위한 response 생성
-            const authLinkResponse = NextResponse.redirect(redirectUrl);
-
-            // Supabase 세션 쿠키 설정
-            authLinkResponse.cookies.set('sb-access-token', sessionData.session.access_token, {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: 'lax',
-                maxAge: 60 * 60 * 24 * 7, // 7일
-            });
-            authLinkResponse.cookies.set('sb-refresh-token', sessionData.session.refresh_token, {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: 'lax',
-                maxAge: 60 * 60 * 24 * 7, // 7일
-            });
-
-            return authLinkResponse;
+            return NextResponse.redirect(redirectUrl);
         }
     }
 
@@ -108,16 +87,15 @@ export async function GET(request: NextRequest) {
     if (inviteToken) {
         const result = await handleAdminInvitePrefill(supabase, inviteToken, origin, slug);
         if (result) {
-            const adminInviteResponse = NextResponse.redirect(result.redirectUrl);
-            setSessionCookies(adminInviteResponse, sessionData.session);
+            const response = NextResponse.redirect(result.redirectUrl);
             // prefill 데이터를 쿠키에 저장
-            adminInviteResponse.cookies.set('register-prefill', JSON.stringify(result.prefillData), {
+            response.cookies.set('register-prefill', JSON.stringify(result.prefillData), {
                 httpOnly: false,
                 secure: process.env.NODE_ENV === 'production',
                 sameSite: 'lax',
                 maxAge: 60 * 60, // 1시간
             });
-            return adminInviteResponse;
+            return response;
         }
     }
 
@@ -125,39 +103,22 @@ export async function GET(request: NextRequest) {
     if (memberInviteToken) {
         const result = await handleMemberInvitePrefill(supabase, memberInviteToken, origin, slug);
         if (result) {
-            const memberInviteResponse = NextResponse.redirect(result.redirectUrl);
-            setSessionCookies(memberInviteResponse, sessionData.session);
+            const response = NextResponse.redirect(result.redirectUrl);
             // prefill 데이터를 쿠키에 저장
-            memberInviteResponse.cookies.set('register-prefill', JSON.stringify(result.prefillData), {
+            response.cookies.set('register-prefill', JSON.stringify(result.prefillData), {
                 httpOnly: false,
                 secure: process.env.NODE_ENV === 'production',
                 sameSite: 'lax',
                 maxAge: 60 * 60, // 1시간
             });
-            return memberInviteResponse;
+            return response;
         }
     }
 
     // 연결된 사용자가 없음 - 메인 페이지로 이동 (회원가입 모달이 자동으로 표시됨)
     // 신규 사용자는 프로필 입력이 필요함
     const mainPageUrl = slug ? `${origin}/${slug}` : origin;
-    const finalResponse = NextResponse.redirect(mainPageUrl);
-
-    // 임시 세션 쿠키 설정 (회원가입 폼에서 사용)
-    finalResponse.cookies.set('sb-access-token', sessionData.session.access_token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 60 * 60, // 1시간 (회원가입 완료까지의 시간)
-    });
-    finalResponse.cookies.set('sb-refresh-token', sessionData.session.refresh_token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 60 * 60, // 1시간
-    });
-
-    return finalResponse;
+    return NextResponse.redirect(mainPageUrl);
 }
 
 /**
@@ -262,24 +223,6 @@ async function handleMemberInvitePrefill(
         console.error('Error handling member invite prefill:', error);
         return null;
     }
-}
-
-/**
- * 세션 쿠키 설정
- */
-function setSessionCookies(response: NextResponse, session: { access_token: string; refresh_token: string }) {
-    response.cookies.set('sb-access-token', session.access_token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 60 * 60 * 24 * 7, // 7일
-    });
-    response.cookies.set('sb-refresh-token', session.refresh_token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 60 * 60 * 24 * 7, // 7일
-    });
 }
 
 /**
