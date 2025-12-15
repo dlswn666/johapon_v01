@@ -75,6 +75,7 @@ export default function UnionHomeHeader() {
             href: `/${union?.slug || ''}/admin`,
             subItems: [
                 { label: '슬라이드 관리', href: `/${union?.slug || ''}/admin/slides` },
+                { label: '알림톡 내역', href: `/${union?.slug || ''}/admin/alimtalk` },
             ],
         },
     ];

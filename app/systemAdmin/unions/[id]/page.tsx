@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, Upload, X, Loader2, Building2, Edit, Save, Users, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Upload, X, Loader2, Building2, Edit, Save, Users, ExternalLink, MessageSquare, Key, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -12,7 +12,14 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useUnion, useUpdateUnion } from '@/app/_lib/features/union-management/api/useUnionManagementHook';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter,
+} from '@/components/ui/dialog';
+import { useUnion, useUpdateUnion, useRegisterUnionSenderKey, useUpdateUnionAlimtalkSettings } from '@/app/_lib/features/union-management/api/useUnionManagementHook';
 import { supabase } from '@/app/_lib/shared/supabase/client';
 
 interface UnionFormData {
@@ -25,6 +32,7 @@ interface UnionFormData {
     business_hours: string;
     logo_url: string;
     is_active: boolean;
+    kakao_channel_id: string;
 }
 
 export default function UnionDetailPage() {
@@ -46,10 +54,17 @@ export default function UnionDetailPage() {
         business_hours: '',
         logo_url: '',
         is_active: true,
+        kakao_channel_id: '',
     });
     const [logoFile, setLogoFile] = useState<File | null>(null);
     const [logoPreview, setLogoPreview] = useState<string | null>(null);
     const [isUploading, setIsUploading] = useState(false);
+    
+    // Sender Key 모달 상태
+    const [isSenderKeyModalOpen, setIsSenderKeyModalOpen] = useState(false);
+    const [newSenderKey, setNewSenderKey] = useState('');
+    const registerSenderKeyMutation = useRegisterUnionSenderKey();
+    const updateAlimtalkSettingsMutation = useUpdateUnionAlimtalkSettings();
 
     useEffect(() => {
         if (union) {
@@ -63,6 +78,7 @@ export default function UnionDetailPage() {
                 business_hours: union.business_hours || '',
                 logo_url: union.logo_url || '',
                 is_active: union.is_active ?? true,
+                kakao_channel_id: union.kakao_channel_id || '',
             });
             if (union.logo_url) {
                 setLogoPreview(union.logo_url);
@@ -138,6 +154,7 @@ export default function UnionDetailPage() {
                     business_hours: formData.business_hours || null,
                     logo_url: logoUrl || null,
                     is_active: formData.is_active,
+                    kakao_channel_id: formData.kakao_channel_id || null,
                 },
             });
 
@@ -162,6 +179,7 @@ export default function UnionDetailPage() {
                 business_hours: union.business_hours || '',
                 logo_url: union.logo_url || '',
                 is_active: union.is_active ?? true,
+                kakao_channel_id: union.kakao_channel_id || '',
             });
             if (union.logo_url) {
                 setLogoPreview(union.logo_url);
@@ -171,6 +189,28 @@ export default function UnionDetailPage() {
         }
         setLogoFile(null);
         setIsEditing(false);
+    };
+
+    // Sender Key 등록 핸들러
+    const handleRegisterSenderKey = async () => {
+        if (!newSenderKey.trim() || !formData.kakao_channel_id.trim()) {
+            toast.error('채널 ID와 Sender Key를 모두 입력해주세요.');
+            return;
+        }
+
+        try {
+            await registerSenderKeyMutation.mutateAsync({
+                unionId,
+                senderKey: newSenderKey.trim(),
+                channelName: formData.kakao_channel_id.trim(),
+            });
+            toast.success('Sender Key가 등록되었습니다.');
+            setIsSenderKeyModalOpen(false);
+            setNewSenderKey('');
+        } catch (error) {
+            console.error('Sender Key 등록 오류:', error);
+            toast.error('Sender Key 등록에 실패했습니다.');
+        }
     };
 
     const isSubmitting = updateMutation.isPending || isUploading;
@@ -408,6 +448,68 @@ export default function UnionDetailPage() {
                             />
                         </div>
 
+                        {/* 알림톡 설정 */}
+                        <div className="space-y-4 p-4 bg-slate-700/30 rounded-xl">
+                            <div className="flex items-center gap-2">
+                                <MessageSquare className="w-5 h-5 text-yellow-500" />
+                                <Label className="text-base font-medium text-white">알림톡 설정</Label>
+                            </div>
+                            
+                            <div className="space-y-4">
+                                {/* 카카오 채널 ID */}
+                                <div className="space-y-2">
+                                    <Label htmlFor="kakao_channel_id" className="text-slate-300">
+                                        카카오 채널 ID
+                                    </Label>
+                                    <Input
+                                        id="kakao_channel_id"
+                                        name="kakao_channel_id"
+                                        value={formData.kakao_channel_id}
+                                        onChange={handleChange}
+                                        placeholder="@채널명"
+                                        disabled={!isEditing}
+                                        className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-500 disabled:opacity-70"
+                                    />
+                                    <p className="text-xs text-slate-500">예: @조합온, @행복재건축조합</p>
+                                </div>
+
+                                {/* Sender Key 상태 */}
+                                <div className="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg">
+                                    <div className="flex items-center gap-3">
+                                        <Key className="w-5 h-5 text-slate-400" />
+                                        <div>
+                                            <p className="text-sm font-medium text-white">Sender Key</p>
+                                            <p className="text-xs text-slate-400">
+                                                {union?.vault_sender_key_id ? (
+                                                    <span className="text-green-400">✓ 등록됨</span>
+                                                ) : (
+                                                    <span className="text-yellow-400">미등록 (조합온 채널 사용)</span>
+                                                )}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setIsSenderKeyModalOpen(true)}
+                                        className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
+                                    >
+                                        {union?.vault_sender_key_id ? '변경' : '등록'}
+                                    </Button>
+                                </div>
+
+                                {!union?.vault_sender_key_id && (
+                                    <div className="flex items-start gap-2 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+                                        <AlertTriangle className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
+                                        <p className="text-xs text-yellow-200">
+                                            Sender Key가 등록되지 않으면 조합온 기본 채널로 알림톡이 발송됩니다.
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
                         {/* 활성화 상태 */}
                         <div className="flex items-center justify-between p-4 bg-slate-700/30 rounded-xl">
                             <div>
@@ -451,6 +553,67 @@ export default function UnionDetailPage() {
                     </form>
                 </CardContent>
             </Card>
+
+            {/* Sender Key 등록 모달 */}
+            <Dialog open={isSenderKeyModalOpen} onOpenChange={setIsSenderKeyModalOpen}>
+                <DialogContent className="bg-slate-800 border-slate-700">
+                    <DialogHeader>
+                        <DialogTitle className="text-white">Sender Key 등록</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label className="text-slate-300">카카오 채널 ID</Label>
+                            <Input
+                                value={formData.kakao_channel_id}
+                                onChange={(e) => setFormData((prev) => ({ ...prev, kakao_channel_id: e.target.value }))}
+                                placeholder="@채널명"
+                                className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-500"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label className="text-slate-300">Sender Key</Label>
+                            <Input
+                                value={newSenderKey}
+                                onChange={(e) => setNewSenderKey(e.target.value)}
+                                placeholder="알리고에서 발급받은 Sender Key"
+                                className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-500"
+                            />
+                            <p className="text-xs text-slate-500">
+                                알리고 콘솔에서 채널 연동 후 발급받은 40자 내외의 키를 입력하세요.
+                            </p>
+                        </div>
+                        <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+                            <p className="text-xs text-yellow-200">
+                                ⚠️ Sender Key는 암호화되어 저장되며, 이후 조회할 수 없습니다.
+                            </p>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => {
+                                setIsSenderKeyModalOpen(false);
+                                setNewSenderKey('');
+                            }}
+                            className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
+                        >
+                            취소
+                        </Button>
+                        <Button
+                            onClick={handleRegisterSenderKey}
+                            disabled={registerSenderKeyMutation.isPending}
+                            className="bg-blue-600 hover:bg-blue-700"
+                        >
+                            {registerSenderKeyMutation.isPending ? (
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            ) : (
+                                <Key className="w-4 h-4 mr-2" />
+                            )}
+                            등록
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

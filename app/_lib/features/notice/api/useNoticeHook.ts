@@ -12,7 +12,6 @@ import { Notice, NewNotice, UpdateNotice } from '@/app/_lib/shared/type/database
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import { getUnionPath } from '@/app/_lib/shared/lib/utils/slug';
 import { fileApi } from '@/app/_lib/shared/hooks/file/fileApi';
-import { sendAlimTalk } from '@/app/_lib/features/alimtalk/actions/sendAlimTalk';
 
 // ============================================
 // Query Hooks (조회)
@@ -240,14 +239,11 @@ export const useAddNotice = () => {
             });
 
             // 5. 알림톡 발송 로직
+            // TODO: 알림톡 발송 기능은 별도 구현 필요
+            // SendAlimTalkParams에 필요한 파라미터: unionId, templateCode, templateName, recipients
             if (send_alimtalk) {
-                // Server Action 호출
-                await sendAlimTalk({
-                    noticeId: noticeData.id,
-                    title: noticeData.title,
-                    content: noticeData.content,
-                });
                 console.log('AlimTalk sending requested for notice:', noticeData.id);
+                // 알림톡 발송은 별도 관리자 페이지에서 처리
             }
 
             return noticeData as Notice;

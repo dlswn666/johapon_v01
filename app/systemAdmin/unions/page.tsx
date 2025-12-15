@@ -2,7 +2,7 @@
 
 import React, { useCallback, useState } from 'react';
 import Link from 'next/link';
-import { Building2, Plus, Search, Filter, ExternalLink, Users, Settings, Trash2 } from 'lucide-react';
+import { Building2, Plus, Search, Filter, ExternalLink, Users, Settings, Trash2, MessageSquare } from 'lucide-react';
 import { useUnions, useUnionStats, useDeleteUnion, useToggleUnionActive } from '@/app/_lib/features/union-management/api/useUnionManagementHook';
 import { useUnionManagementStore } from '@/app/_lib/features/union-management/model/useUnionManagementStore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -202,6 +202,20 @@ export default function SystemAdminUnionsPage() {
                                                     }`}
                                                 >
                                                     {union.is_active ? '활성' : '비활성'}
+                                                </span>
+                                                {/* 알림톡 채널 상태 */}
+                                                <span
+                                                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                                                        union.vault_sender_key_id
+                                                            ? 'bg-yellow-500/20 text-yellow-400'
+                                                            : 'bg-slate-600/50 text-slate-400'
+                                                    }`}
+                                                    title={union.vault_sender_key_id ? '자체 채널 설정됨' : '조합온 채널 사용'}
+                                                >
+                                                    <MessageSquare className="w-3 h-3" />
+                                                    {union.vault_sender_key_id
+                                                        ? union.kakao_channel_id || '자체'
+                                                        : '조합온'}
                                                 </span>
                                             </div>
                                             <div className="flex items-center gap-4 mt-1">

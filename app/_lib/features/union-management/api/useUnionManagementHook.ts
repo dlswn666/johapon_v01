@@ -273,3 +273,85 @@ export const useToggleUnionActive = () => {
         },
     });
 };
+
+// 조합 알림톡 설정 업데이트 (kakao_channel_id만)
+export const useUpdateUnionAlimtalkSettings = () => {
+    const updateUnion = useUnionManagementStore((state) => state.updateUnion);
+
+    return useMutation({
+        mutationFn: async ({
+            id,
+            kakaoChannelId,
+        }: {
+            id: string;
+            kakaoChannelId: string | null;
+        }) => {
+            const { data, error } = await supabase
+                .from('unions')
+                .update({
+                    kakao_channel_id: kakaoChannelId,
+                    updated_at: new Date().toISOString(),
+                })
+                .eq('id', id)
+                .select()
+                .single();
+
+            if (error) {
+                throw error;
+            }
+
+            return data as UnionWithActive;
+        },
+        onSuccess: (data) => {
+            updateUnion(data.id, data);
+            queryClient.invalidateQueries({ queryKey: ['unions'] });
+            queryClient.invalidateQueries({ queryKey: ['unions', data.id] });
+        },
+    });
+};
+
+// 조합 Sender Key 등록 (Vault에 저장)
+export const useRegisterUnionSenderKey = () => {
+    const updateUnion = useUnionManagementStore((state) => state.updateUnion);
+
+    return useMutation({
+        mutationFn: async ({
+            unionId,
+            senderKey,
+            channelName,
+        }: {
+            unionId: string;
+            senderKey: string;
+            channelName: string;
+        }) => {
+            // RPC 호출로 Vault에 Sender Key 저장
+            const { data: secretId, error: rpcError } = await supabase.rpc('register_union_sender_key', {
+                p_union_id: unionId,
+                p_sender_key: senderKey,
+                p_channel_name: channelName,
+            });
+
+            if (rpcError) {
+                throw rpcError;
+            }
+
+            // 업데이트된 조합 정보 조회
+            const { data: unionData, error: unionError } = await supabase
+                .from('unions')
+                .select('*')
+                .eq('id', unionId)
+                .single();
+
+            if (unionError) {
+                throw unionError;
+            }
+
+            return unionData as UnionWithActive;
+        },
+        onSuccess: (data) => {
+            updateUnion(data.id, data);
+            queryClient.invalidateQueries({ queryKey: ['unions'] });
+            queryClient.invalidateQueries({ queryKey: ['unions', data.id] });
+        },
+    });
+};

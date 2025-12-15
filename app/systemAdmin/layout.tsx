@@ -1,26 +1,77 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Loader2, Shield, Building2, Users, LogOut, Home } from 'lucide-react';
+import { Loader2, Shield, Building2, Users, LogOut, Home, MessageSquare, ChevronDown } from 'lucide-react';
 import AuthProvider, { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+
+interface NavItem {
+    href: string;
+    label: string;
+    icon: React.ElementType;
+    exact?: boolean;
+    subItems?: { href: string; label: string }[];
+}
 
 function SystemAdminHeader() {
     const pathname = usePathname();
     const { user, logout } = useAuth();
     const router = useRouter();
+    const [openDropdown, setOpenDropdown] = useState<string | null>(null);
 
-    const navItems = [
+    const navItems: NavItem[] = [
         { href: '/systemAdmin', label: '대시보드', icon: Home, exact: true },
         { href: '/systemAdmin/unions', label: '조합 관리', icon: Building2 },
+        {
+            href: '/systemAdmin/alimtalk',
+            label: '알림톡',
+            icon: MessageSquare,
+            subItems: [
+                { href: '/systemAdmin/alimtalk', label: '알림톡 관리' },
+                { href: '/systemAdmin/alimtalk/templates', label: '템플릿 관리' },
+                { href: '/systemAdmin/alimtalk/pricing', label: '가격 관리' },
+            ],
+        },
     ];
 
     const handleLogout = async () => {
         await logout();
         router.push('/systemAdmin/login');
     };
+
+    const isActiveRoute = (href: string, exact?: boolean) => {
+        if (exact) {
+            return pathname === href;
+        }
+        return pathname.startsWith(href) && pathname !== '/systemAdmin';
+    };
+
+    const hasActiveSubItem = (subItems?: { href: string; label: string }[]) => {
+        if (!subItems) return false;
+        return subItems.some((item) => pathname === item.href || pathname.startsWith(item.href + '/'));
+    };
+
+    const handleDropdownToggle = (href: string) => {
+        setOpenDropdown(openDropdown === href ? null : href);
+    };
+
+    // 드롭다운 외부 클릭 시 닫기
+    useEffect(() => {
+        const handleClickOutside = () => {
+            setOpenDropdown(null);
+        };
+
+        if (openDropdown) {
+            document.addEventListener('click', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('click', handleClickOutside);
+        };
+    }, [openDropdown]);
 
     return (
         <header className="sticky top-0 z-50 bg-slate-900 border-b border-slate-700 shadow-lg">
@@ -43,18 +94,73 @@ function SystemAdminHeader() {
                         <nav className="hidden md:flex items-center gap-1">
                             {navItems.map((item) => {
                                 const Icon = item.icon;
-                                const isActive = item.exact
-                                    ? pathname === item.href
-                                    : pathname.startsWith(item.href) && pathname !== '/systemAdmin';
+                                const hasSubItems = item.subItems && item.subItems.length > 0;
+                                const isActive = hasSubItems
+                                    ? hasActiveSubItem(item.subItems)
+                                    : isActiveRoute(item.href, item.exact);
+
+                                if (hasSubItems) {
+                                    return (
+                                        <div key={item.href} className="relative">
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleDropdownToggle(item.href);
+                                                }}
+                                                className={cn(
+                                                    'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer',
+                                                    isActive
+                                                        ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                                                        : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                                                )}
+                                            >
+                                                <Icon className="w-4 h-4" />
+                                                {item.label}
+                                                <ChevronDown
+                                                    className={cn(
+                                                        'w-3 h-3 transition-transform duration-200',
+                                                        openDropdown === item.href && 'rotate-180'
+                                                    )}
+                                                />
+                                            </button>
+
+                                            {/* 드롭다운 메뉴 */}
+                                            {openDropdown === item.href && (
+                                                <div
+                                                    className="absolute top-full left-0 mt-1 w-48 bg-slate-800 border border-slate-700 rounded-lg shadow-xl py-1 z-50"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                >
+                                                    {item.subItems?.map((subItem) => (
+                                                        <Link
+                                                            key={subItem.href}
+                                                            href={subItem.href}
+                                                            onClick={() => setOpenDropdown(null)}
+                                                            className={cn(
+                                                                'block px-4 py-2 text-sm transition-colors',
+                                                                pathname === subItem.href
+                                                                    ? 'bg-blue-500/20 text-blue-400'
+                                                                    : 'text-slate-300 hover:bg-slate-700 hover:text-white'
+                                                            )}
+                                                        >
+                                                            {subItem.label}
+                                                        </Link>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                }
+
                                 return (
                                     <Link
                                         key={item.href}
                                         href={item.href}
-                                        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer ${
+                                        className={cn(
+                                            'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer',
                                             isActive
                                                 ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
                                                 : 'text-slate-400 hover:text-white hover:bg-slate-800'
-                                        }`}
+                                        )}
                                     >
                                         <Icon className="w-4 h-4" />
                                         {item.label}
@@ -158,4 +264,3 @@ export default function SystemAdminLayout({ children }: { children: React.ReactN
         </AuthProvider>
     );
 }
-

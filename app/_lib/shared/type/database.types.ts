@@ -20,6 +20,16 @@ export type Database = {
                     sent_at: string;
                     success_count: number;
                     title: string;
+                    // 확장 필드
+                    union_id: string | null;
+                    template_code: string | null;
+                    template_name: string | null;
+                    sender_channel_name: string;
+                    kakao_success_count: number;
+                    sms_success_count: number;
+                    estimated_cost: number;
+                    recipient_details: Json | null;
+                    aligo_response: Json | null;
                 };
                 Insert: {
                     content?: string | null;
@@ -32,6 +42,16 @@ export type Database = {
                     sent_at?: string;
                     success_count?: number;
                     title: string;
+                    // 확장 필드
+                    union_id?: string | null;
+                    template_code?: string | null;
+                    template_name?: string | null;
+                    sender_channel_name?: string;
+                    kakao_success_count?: number;
+                    sms_success_count?: number;
+                    estimated_cost?: number;
+                    recipient_details?: Json | null;
+                    aligo_response?: Json | null;
                 };
                 Update: {
                     content?: string | null;
@@ -44,6 +64,16 @@ export type Database = {
                     sent_at?: string;
                     success_count?: number;
                     title?: string;
+                    // 확장 필드
+                    union_id?: string | null;
+                    template_code?: string | null;
+                    template_name?: string | null;
+                    sender_channel_name?: string;
+                    kakao_success_count?: number;
+                    sms_success_count?: number;
+                    estimated_cost?: number;
+                    recipient_details?: Json | null;
+                    aligo_response?: Json | null;
                 };
                 Relationships: [
                     {
@@ -59,8 +89,72 @@ export type Database = {
                         isOneToOne: false;
                         referencedRelation: 'users';
                         referencedColumns: ['id'];
+                    },
+                    {
+                        foreignKeyName: 'alimtalk_logs_union_id_fkey';
+                        columns: ['union_id'];
+                        isOneToOne: false;
+                        referencedRelation: 'unions';
+                        referencedColumns: ['id'];
                     }
                 ];
+            };
+            alimtalk_templates: {
+                Row: {
+                    id: string;
+                    template_code: string;
+                    template_name: string;
+                    template_content: string | null;
+                    status: string | null;
+                    insp_status: string | null;
+                    buttons: Json | null;
+                    synced_at: string | null;
+                };
+                Insert: {
+                    id?: string;
+                    template_code: string;
+                    template_name: string;
+                    template_content?: string | null;
+                    status?: string | null;
+                    insp_status?: string | null;
+                    buttons?: Json | null;
+                    synced_at?: string | null;
+                };
+                Update: {
+                    id?: string;
+                    template_code?: string;
+                    template_name?: string;
+                    template_content?: string | null;
+                    status?: string | null;
+                    insp_status?: string | null;
+                    buttons?: Json | null;
+                    synced_at?: string | null;
+                };
+                Relationships: [];
+            };
+            alimtalk_pricing: {
+                Row: {
+                    id: string;
+                    message_type: string;
+                    unit_price: number;
+                    effective_from: string;
+                    created_at: string;
+                };
+                Insert: {
+                    id?: string;
+                    message_type: string;
+                    unit_price: number;
+                    effective_from?: string;
+                    created_at?: string;
+                };
+                Update: {
+                    id?: string;
+                    message_type?: string;
+                    unit_price?: number;
+                    effective_from?: string;
+                    created_at?: string;
+                };
+                Relationships: [];
             };
             comments: {
                 Row: {
@@ -251,6 +345,9 @@ export type Database = {
                     logo_url: string | null;
                     description: string | null;
                     is_active: boolean;
+                    // 알림톡 관련 필드
+                    kakao_channel_id: string | null;
+                    vault_sender_key_id: string | null;
                 };
                 Insert: {
                     created_at?: string;
@@ -265,6 +362,9 @@ export type Database = {
                     logo_url?: string | null;
                     description?: string | null;
                     is_active?: boolean;
+                    // 알림톡 관련 필드
+                    kakao_channel_id?: string | null;
+                    vault_sender_key_id?: string | null;
                 };
                 Update: {
                     created_at?: string;
@@ -279,6 +379,9 @@ export type Database = {
                     logo_url?: string | null;
                     description?: string | null;
                     is_active?: boolean;
+                    // 알림톡 관련 필드
+                    kakao_channel_id?: string | null;
+                    vault_sender_key_id?: string | null;
                 };
                 Relationships: [];
             };
@@ -740,6 +843,18 @@ export type Database = {
                 };
                 Returns: Json;
             };
+            register_union_sender_key: {
+                Args: {
+                    p_union_id: string;
+                    p_sender_key: string;
+                    p_channel_name: string;
+                };
+                Returns: string;
+            };
+            get_current_pricing: {
+                Args: Record<string, never>;
+                Returns: { message_type: string; unit_price: number }[];
+            };
         };
         Enums: {
             user_role: 'SYSTEM_ADMIN' | 'ADMIN' | 'USER' | 'APPLICANT';
@@ -951,3 +1066,24 @@ export type SyncMemberInvitesResult = {
 export type UnionInfoWithFiles = UnionInfo & { files: FileMeta[] };
 export type UnionInfoWithAuthor = UnionInfo & { author: { id: string; name: string } | null };
 export type FreeBoardWithAuthor = FreeBoard & { author: { id: string; name: string } | null };
+
+// 알림톡 관련 타입
+export type AlimtalkLog = Database['public']['Tables']['alimtalk_logs']['Row'];
+export type NewAlimtalkLog = Database['public']['Tables']['alimtalk_logs']['Insert'];
+export type UpdateAlimtalkLog = Database['public']['Tables']['alimtalk_logs']['Update'];
+
+export type AlimtalkTemplate = Database['public']['Tables']['alimtalk_templates']['Row'];
+export type NewAlimtalkTemplate = Database['public']['Tables']['alimtalk_templates']['Insert'];
+export type UpdateAlimtalkTemplate = Database['public']['Tables']['alimtalk_templates']['Update'];
+
+export type AlimtalkPricing = Database['public']['Tables']['alimtalk_pricing']['Row'];
+export type NewAlimtalkPricing = Database['public']['Tables']['alimtalk_pricing']['Insert'];
+export type UpdateAlimtalkPricing = Database['public']['Tables']['alimtalk_pricing']['Update'];
+
+// 알림톡 로그 + 조합 정보 타입
+export type AlimtalkLogWithUnion = AlimtalkLog & {
+    union: { id: string; name: string; slug: string } | null;
+};
+
+// 알림톡 메시지 타입
+export type AlimtalkMessageType = 'KAKAO' | 'SMS' | 'LMS';

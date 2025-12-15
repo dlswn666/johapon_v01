@@ -66,6 +66,9 @@ export default function UnionMobileSidebar({ isOpen, onClose }: UnionMobileSideb
             href: `/${union?.slug || ''}/admin`,
             subItems: [
                 { label: '슬라이드 관리', href: `/${union?.slug || ''}/admin/slides` },
+                { label: '알림톡 내역', href: `/${union?.slug || ''}/admin/alimtalk` },
+                { label: '회원 관리', href: `/${union?.slug || ''}/admin/members` },
+                { label: '사용자 관리', href: `/${union?.slug || ''}/admin/users` },
             ],
         },
     ];

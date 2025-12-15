@@ -7,13 +7,21 @@ import { createClient } from '@/app/_lib/shared/supabase/server';
 // ============================================================
 
 interface SendAlimTalkParams {
-    noticeId: number;
+    unionId: string;
+    noticeId?: number;
+    templateCode: string;
+    templateName: string;
     title: string;
-    content: string;
-    // Add other necessary parameters like recipient list or union ID
+    content?: string;
+    recipients: {
+        phoneNumber: string;
+        name: string;
+        variables?: Record<string, string>;
+    }[];
 }
 
 interface AdminInviteAlimTalkParams {
+    unionId: string;
     unionName: string;
     adminName: string;
     phoneNumber: string;
@@ -23,6 +31,7 @@ interface AdminInviteAlimTalkParams {
 }
 
 interface MemberInviteAlimTalkParams {
+    unionId: string;
     unionName: string;
     memberName: string;
     phoneNumber: string;
@@ -32,6 +41,7 @@ interface MemberInviteAlimTalkParams {
 }
 
 interface BulkMemberInviteAlimTalkParams {
+    unionId: string;
     unionName: string;
     members: {
         name: string;
@@ -48,365 +58,393 @@ interface AlimTalkResult {
     error?: string;
     sentCount?: number;
     failCount?: number;
+    kakaoCount?: number;
+    smsCount?: number;
+    estimatedCost?: number;
+    channelName?: string;
+}
+
+// 알림톡 프록시 서버 URL
+const PROXY_URL = process.env.ALIMTALK_PROXY_URL || 'http://localhost:3100';
+const PROXY_TOKEN = process.env.ALIMTALK_PROXY_TOKEN || '';
+
+// ============================================================
+// 프록시 서버 호출 헬퍼
+// ============================================================
+
+async function callProxyServer(payload: {
+    unionId: string;
+    senderId: string;
+    templateCode: string;
+    templateName: string;
+    title: string;
+    content?: string;
+    noticeId?: number;
+    recipients: {
+        phoneNumber: string;
+        name: string;
+        variables?: Record<string, string>;
+    }[];
+}): Promise<AlimTalkResult> {
+    try {
+        const response = await fetch(`${PROXY_URL}/api/alimtalk/send`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${PROXY_TOKEN}`,
+            },
+            body: JSON.stringify(payload),
+        });
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+            return {
+                success: false,
+                error: result.error || '프록시 서버 호출 실패',
+            };
+        }
+
+        return {
+            success: true,
+            message: '알림톡이 발송되었습니다.',
+            sentCount: result.data.kakaoSuccessCount + result.data.smsSuccessCount,
+            failCount: result.data.failCount,
+            kakaoCount: result.data.kakaoSuccessCount,
+            smsCount: result.data.smsSuccessCount,
+            estimatedCost: result.data.estimatedCost,
+            channelName: result.data.channelName,
+        };
+    } catch (error) {
+        console.error('프록시 서버 호출 오류:', error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : '알림톡 발송에 실패했습니다.',
+        };
+    }
 }
 
 // ============================================================
-// 공지사항 알림톡 발송 (기존 기능)
+// 공지사항 알림톡 발송
 // ============================================================
 
 export async function sendAlimTalk(params: SendAlimTalkParams): Promise<AlimTalkResult> {
     const supabase = await createClient();
+    const {
+        data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+        return { success: false, error: '인증되지 않은 사용자입니다.' };
+    }
 
     console.log('Attempting to send AlimTalk:', params);
 
-    // TODO: Implement actual AlimTalk sending logic here.
-    // 1. Fetch recipients (e.g., all union members)
-    // 2. Call external AlimTalk provider API (e.g., Kakao, BizMsg)
-    // 3. Log result to `alimtalk_logs` table
+    // 테스트 모드 체크 (환경 변수로 제어)
+    const isTestMode = process.env.ALIMTALK_TEST_MODE === 'true';
 
-    try {
-        // Mock success for now
-        const { error } = await supabase.from('alimtalk_logs').insert({
-            notice_id: params.noticeId,
-            title: params.title,
-            content: params.content,
-            sender_id: 'system', // Replace with actual sender ID if available
-            recipient_count: 0,
-            success_count: 0,
-            fail_count: 0,
-            cost_per_msg: 0,
-            sent_at: new Date().toISOString(),
-        });
+    if (isTestMode) {
+        console.log('\n' + '='.repeat(60));
+        console.log('📱 [알림톡 발송 - 테스트 모드]');
+        console.log('='.repeat(60));
+        console.log('템플릿 코드:', params.templateCode);
+        console.log('템플릿 이름:', params.templateName);
+        console.log('제목:', params.title);
+        console.log('수신자 수:', params.recipients.length);
+        console.log('⚠️ 테스트 모드입니다. 실제 발송되지 않습니다.');
+        console.log('='.repeat(60) + '\n');
 
-        if (error) {
-            console.error('Failed to log AlimTalk attempt:', error);
-            return { success: false, error: error.message };
-        }
-
-        return { success: true, message: 'AlimTalk sent (mock)' };
-    } catch (error) {
-        console.error('Error sending AlimTalk:', error);
-        return { success: false, error: 'Internal Server Error' };
+        return {
+            success: true,
+            message: '알림톡 발송 (테스트 모드)',
+            sentCount: params.recipients.length,
+            failCount: 0,
+            kakaoCount: params.recipients.length,
+            smsCount: 0,
+            estimatedCost: params.recipients.length * 15,
+        };
     }
+
+    // 프록시 서버 호출
+    return callProxyServer({
+        unionId: params.unionId,
+        senderId: user.id,
+        templateCode: params.templateCode,
+        templateName: params.templateName,
+        title: params.title,
+        content: params.content,
+        noticeId: params.noticeId,
+        recipients: params.recipients,
+    });
 }
 
 // ============================================================
 // 관리자 초대 알림톡 발송
 // ============================================================
 
-/**
- * 관리자 초대 알림톡 발송
- * 
- * @param params - 관리자 초대 정보
- * @returns 발송 결과
- * 
- * @example
- * const result = await sendAdminInviteAlimTalk({
- *     unionName: '행복조합',
- *     adminName: '홍길동',
- *     phoneNumber: '010-1234-5678',
- *     email: 'admin@example.com',
- *     inviteUrl: 'https://example.com/invite/abc123',
- *     expiresAt: '2024-12-15T12:00:00Z'
- * });
- */
 export async function sendAdminInviteAlimTalk(params: AdminInviteAlimTalkParams): Promise<AlimTalkResult> {
-    const { unionName, adminName, phoneNumber, email, inviteUrl, expiresAt } = params;
+    const { unionId, unionName, adminName, phoneNumber, email, inviteUrl, expiresAt } = params;
 
-    // 테스트용: 발송 예정 정보를 콘솔에 출력
-    console.log('\n' + '='.repeat(60));
-    console.log('📱 [알림톡 발송 예정] 관리자 초대');
-    console.log('='.repeat(60));
-    console.log('조합명:', unionName);
-    console.log('수신자:', adminName);
-    console.log('전화번호:', phoneNumber);
-    console.log('이메일:', email);
-    console.log('만료 시간:', new Date(expiresAt).toLocaleString('ko-KR'));
-    console.log('-'.repeat(60));
-    console.log('📝 메시지 내용 (예시):');
-    console.log(`[${unionName}] 관리자 초대`);
-    console.log(`${adminName}님, ${unionName} 조합의 관리자로 초대되었습니다.`);
-    console.log(`아래 링크를 통해 가입을 완료해 주세요.`);
-    console.log(`${inviteUrl}`);
-    console.log('-'.repeat(60));
-    console.log('⚠️ 알림톡은 현재 비활성화 상태입니다. (테스트 모드)');
-    console.log('='.repeat(60) + '\n');
+    const supabase = await createClient();
+    const {
+        data: { user },
+    } = await supabase.auth.getUser();
 
-    /*
-    // ============================================================
-    // TODO: 실제 알림톡 발송 로직 (추후 활성화)
-    // ============================================================
-    
-    try {
-        // 1. 알림톡 템플릿 메시지 구성
-        const templateCode = 'ADMIN_INVITE'; // 카카오 비즈메시지 템플릿 코드
-        const message = {
-            to: phoneNumber.replace(/-/g, ''), // 하이픈 제거
-            templateCode,
-            templateParams: {
-                unionName,
-                adminName,
-                inviteUrl,
-                expiresAt: new Date(expiresAt).toLocaleString('ko-KR'),
-            },
-        };
-
-        // 2. 알림톡 API 호출 (예: Kakao BizMsg, NHN Cloud 등)
-        // const response = await fetch('https://alimtalk-api.example.com/send', {
-        //     method: 'POST',
-        //     headers: {
-        //         'Content-Type': 'application/json',
-        //         'Authorization': `Bearer ${process.env.ALIMTALK_API_KEY}`,
-        //     },
-        //     body: JSON.stringify(message),
-        // });
-        // 
-        // if (!response.ok) {
-        //     throw new Error('알림톡 발송 실패');
-        // }
-
-        // 3. 발송 로그 저장
-        const supabase = await createClient();
-        await supabase.from('alimtalk_logs').insert({
-            type: 'ADMIN_INVITE',
-            recipient_phone: phoneNumber,
-            recipient_name: adminName,
-            template_code: templateCode,
-            status: 'SENT',
-            sent_at: new Date().toISOString(),
-        });
-
-        return { success: true, message: '알림톡이 발송되었습니다.' };
-    } catch (error) {
-        console.error('알림톡 발송 오류:', error);
-        return { success: false, error: '알림톡 발송에 실패했습니다.' };
+    if (!user) {
+        return { success: false, error: '인증되지 않은 사용자입니다.' };
     }
-    */
 
-    // 테스트 모드: 항상 성공 반환
-    return { 
-        success: true, 
-        message: '알림톡 발송 (테스트 모드 - 실제 발송되지 않음)' 
-    };
+    // 테스트 모드 체크
+    const isTestMode = process.env.ALIMTALK_TEST_MODE === 'true';
+
+    if (isTestMode) {
+        console.log('\n' + '='.repeat(60));
+        console.log('📱 [알림톡 발송 예정] 관리자 초대');
+        console.log('='.repeat(60));
+        console.log('조합명:', unionName);
+        console.log('수신자:', adminName);
+        console.log('전화번호:', phoneNumber);
+        console.log('이메일:', email);
+        console.log('만료 시간:', new Date(expiresAt).toLocaleString('ko-KR'));
+        console.log('-'.repeat(60));
+        console.log('📝 메시지 내용 (예시):');
+        console.log(`[${unionName}] 관리자 초대`);
+        console.log(`${adminName}님, ${unionName} 조합의 관리자로 초대되었습니다.`);
+        console.log(`아래 링크를 통해 가입을 완료해 주세요.`);
+        console.log(`${inviteUrl}`);
+        console.log('-'.repeat(60));
+        console.log('⚠️ 테스트 모드입니다. 실제 발송되지 않습니다.');
+        console.log('='.repeat(60) + '\n');
+
+        return {
+            success: true,
+            message: '알림톡 발송 (테스트 모드)',
+            sentCount: 1,
+            failCount: 0,
+            kakaoCount: 1,
+            smsCount: 0,
+            estimatedCost: 15,
+        };
+    }
+
+    // 프록시 서버 호출
+    return callProxyServer({
+        unionId,
+        senderId: user.id,
+        templateCode: 'ADMIN_INVITE', // 템플릿 코드는 알리고에서 실제 등록된 코드로 변경 필요
+        templateName: '관리자 초대',
+        title: `[${unionName}] 관리자 초대`,
+        recipients: [
+            {
+                phoneNumber,
+                name: adminName,
+                variables: {
+                    unionName,
+                    adminName,
+                    inviteUrl,
+                    expiresAt: new Date(expiresAt).toLocaleString('ko-KR'),
+                },
+            },
+        ],
+    });
 }
 
 // ============================================================
 // 조합원 초대 알림톡 발송 (단건)
 // ============================================================
 
-/**
- * 조합원 초대 알림톡 발송 (단건)
- * 
- * @param params - 조합원 초대 정보
- * @returns 발송 결과
- * 
- * @example
- * const result = await sendMemberInviteAlimTalk({
- *     unionName: '행복조합',
- *     memberName: '김철수',
- *     phoneNumber: '010-9876-5432',
- *     propertyAddress: '서울시 강남구 역삼동 123-45',
- *     inviteUrl: 'https://example.com/member-invite/xyz789',
- *     expiresAt: '2025-12-14T12:00:00Z'
- * });
- */
 export async function sendMemberInviteAlimTalk(params: MemberInviteAlimTalkParams): Promise<AlimTalkResult> {
-    const { unionName, memberName, phoneNumber, propertyAddress, inviteUrl, expiresAt } = params;
+    const { unionId, unionName, memberName, phoneNumber, propertyAddress, inviteUrl, expiresAt } = params;
 
-    // 테스트용: 발송 예정 정보를 콘솔에 출력
-    console.log('\n' + '='.repeat(60));
-    console.log('📱 [알림톡 발송 예정] 조합원 초대');
-    console.log('='.repeat(60));
-    console.log('조합명:', unionName);
-    console.log('수신자:', memberName);
-    console.log('전화번호:', phoneNumber);
-    console.log('물건지 주소:', propertyAddress);
-    console.log('만료 시간:', new Date(expiresAt).toLocaleString('ko-KR'));
-    console.log('-'.repeat(60));
-    console.log('📝 메시지 내용 (예시):');
-    console.log(`[${unionName}] 조합원 가입 초대`);
-    console.log(`${memberName}님, ${unionName} 조합의 예비 조합원으로 초대되었습니다.`);
-    console.log(`물건지: ${propertyAddress}`);
-    console.log(`아래 링크를 통해 가입을 완료해 주세요.`);
-    console.log(`${inviteUrl}`);
-    console.log('-'.repeat(60));
-    console.log('⚠️ 알림톡은 현재 비활성화 상태입니다. (테스트 모드)');
-    console.log('='.repeat(60) + '\n');
+    const supabase = await createClient();
+    const {
+        data: { user },
+    } = await supabase.auth.getUser();
 
-    /*
-    // ============================================================
-    // TODO: 실제 알림톡 발송 로직 (추후 활성화)
-    // ============================================================
-    
-    try {
-        // 1. 알림톡 템플릿 메시지 구성
-        const templateCode = 'MEMBER_INVITE'; // 카카오 비즈메시지 템플릿 코드
-        const message = {
-            to: phoneNumber.replace(/-/g, ''), // 하이픈 제거
-            templateCode,
-            templateParams: {
-                unionName,
-                memberName,
-                propertyAddress,
-                inviteUrl,
-                expiresAt: new Date(expiresAt).toLocaleString('ko-KR'),
-            },
-        };
-
-        // 2. 알림톡 API 호출
-        // const response = await fetch('https://alimtalk-api.example.com/send', {
-        //     method: 'POST',
-        //     headers: {
-        //         'Content-Type': 'application/json',
-        //         'Authorization': `Bearer ${process.env.ALIMTALK_API_KEY}`,
-        //     },
-        //     body: JSON.stringify(message),
-        // });
-        // 
-        // if (!response.ok) {
-        //     throw new Error('알림톡 발송 실패');
-        // }
-
-        // 3. 발송 로그 저장
-        const supabase = await createClient();
-        await supabase.from('alimtalk_logs').insert({
-            type: 'MEMBER_INVITE',
-            recipient_phone: phoneNumber,
-            recipient_name: memberName,
-            template_code: templateCode,
-            status: 'SENT',
-            sent_at: new Date().toISOString(),
-        });
-
-        return { success: true, message: '알림톡이 발송되었습니다.' };
-    } catch (error) {
-        console.error('알림톡 발송 오류:', error);
-        return { success: false, error: '알림톡 발송에 실패했습니다.' };
+    if (!user) {
+        return { success: false, error: '인증되지 않은 사용자입니다.' };
     }
-    */
 
-    // 테스트 모드: 항상 성공 반환
-    return { 
-        success: true, 
-        message: '알림톡 발송 (테스트 모드 - 실제 발송되지 않음)' 
-    };
+    // 테스트 모드 체크
+    const isTestMode = process.env.ALIMTALK_TEST_MODE === 'true';
+
+    if (isTestMode) {
+        console.log('\n' + '='.repeat(60));
+        console.log('📱 [알림톡 발송 예정] 조합원 초대');
+        console.log('='.repeat(60));
+        console.log('조합명:', unionName);
+        console.log('수신자:', memberName);
+        console.log('전화번호:', phoneNumber);
+        console.log('물건지 주소:', propertyAddress);
+        console.log('만료 시간:', new Date(expiresAt).toLocaleString('ko-KR'));
+        console.log('-'.repeat(60));
+        console.log('📝 메시지 내용 (예시):');
+        console.log(`[${unionName}] 조합원 가입 초대`);
+        console.log(`${memberName}님, ${unionName} 조합의 예비 조합원으로 초대되었습니다.`);
+        console.log(`물건지: ${propertyAddress}`);
+        console.log(`아래 링크를 통해 가입을 완료해 주세요.`);
+        console.log(`${inviteUrl}`);
+        console.log('-'.repeat(60));
+        console.log('⚠️ 테스트 모드입니다. 실제 발송되지 않습니다.');
+        console.log('='.repeat(60) + '\n');
+
+        return {
+            success: true,
+            message: '알림톡 발송 (테스트 모드)',
+            sentCount: 1,
+            failCount: 0,
+            kakaoCount: 1,
+            smsCount: 0,
+            estimatedCost: 15,
+        };
+    }
+
+    // 프록시 서버 호출
+    return callProxyServer({
+        unionId,
+        senderId: user.id,
+        templateCode: 'MEMBER_INVITE', // 템플릿 코드는 알리고에서 실제 등록된 코드로 변경 필요
+        templateName: '조합원 초대',
+        title: `[${unionName}] 조합원 가입 초대`,
+        recipients: [
+            {
+                phoneNumber,
+                name: memberName,
+                variables: {
+                    unionName,
+                    memberName,
+                    propertyAddress,
+                    inviteUrl,
+                    expiresAt: new Date(expiresAt).toLocaleString('ko-KR'),
+                },
+            },
+        ],
+    });
 }
 
 // ============================================================
 // 조합원 초대 알림톡 일괄 발송
 // ============================================================
 
-/**
- * 조합원 초대 알림톡 일괄 발송
- * 
- * @param params - 일괄 발송할 조합원 초대 정보
- * @returns 발송 결과
- * 
- * @example
- * const result = await sendBulkMemberInviteAlimTalk({
- *     unionName: '행복조합',
- *     members: [
- *         { name: '김철수', phoneNumber: '010-1234-5678', propertyAddress: '...', inviteUrl: '...', expiresAt: '...' },
- *         { name: '이영희', phoneNumber: '010-9876-5432', propertyAddress: '...', inviteUrl: '...', expiresAt: '...' },
- *     ]
- * });
- */
 export async function sendBulkMemberInviteAlimTalk(params: BulkMemberInviteAlimTalkParams): Promise<AlimTalkResult> {
-    const { unionName, members } = params;
+    const { unionId, unionName, members } = params;
 
     if (members.length === 0) {
         return { success: false, error: '발송할 대상이 없습니다.' };
     }
 
-    // 테스트용: 발송 예정 정보를 콘솔에 출력
-    console.log('\n' + '='.repeat(70));
-    console.log('📱 [알림톡 일괄 발송 예정] 조합원 초대');
-    console.log('='.repeat(70));
-    console.log('조합명:', unionName);
-    console.log(`총 발송 대상: ${members.length}명`);
-    console.log('-'.repeat(70));
-    
-    members.forEach((member, index) => {
-        console.log(`[${index + 1}] ${member.name} (${member.phoneNumber})`);
-        console.log(`    주소: ${member.propertyAddress}`);
-        console.log(`    URL: ${member.inviteUrl}`);
-    });
-    
-    console.log('-'.repeat(70));
-    console.log('⚠️ 알림톡은 현재 비활성화 상태입니다. (테스트 모드)');
-    console.log('='.repeat(70) + '\n');
-
-    /*
-    // ============================================================
-    // TODO: 실제 알림톡 일괄 발송 로직 (추후 활성화)
-    // ============================================================
-    
-    let sentCount = 0;
-    let failCount = 0;
     const supabase = await createClient();
+    const {
+        data: { user },
+    } = await supabase.auth.getUser();
 
-    for (const member of members) {
-        try {
-            // 1. 알림톡 템플릿 메시지 구성
-            const templateCode = 'MEMBER_INVITE';
-            const message = {
-                to: member.phoneNumber.replace(/-/g, ''),
-                templateCode,
-                templateParams: {
-                    unionName,
-                    memberName: member.name,
-                    propertyAddress: member.propertyAddress,
-                    inviteUrl: member.inviteUrl,
-                    expiresAt: new Date(member.expiresAt).toLocaleString('ko-KR'),
-                },
-            };
-
-            // 2. 알림톡 API 호출
-            // const response = await fetch('https://alimtalk-api.example.com/send', {
-            //     method: 'POST',
-            //     headers: {
-            //         'Content-Type': 'application/json',
-            //         'Authorization': `Bearer ${process.env.ALIMTALK_API_KEY}`,
-            //     },
-            //     body: JSON.stringify(message),
-            // });
-            // 
-            // if (response.ok) {
-            //     sentCount++;
-            // } else {
-            //     failCount++;
-            // }
-
-            // 3. 발송 로그 저장
-            await supabase.from('alimtalk_logs').insert({
-                type: 'MEMBER_INVITE_BULK',
-                recipient_phone: member.phoneNumber,
-                recipient_name: member.name,
-                template_code: templateCode,
-                status: 'SENT',
-                sent_at: new Date().toISOString(),
-            });
-
-            sentCount++;
-        } catch (error) {
-            console.error(`알림톡 발송 실패 (${member.name}):`, error);
-            failCount++;
-        }
+    if (!user) {
+        return { success: false, error: '인증되지 않은 사용자입니다.' };
     }
 
-    return {
-        success: failCount === 0,
-        message: `총 ${members.length}명 중 ${sentCount}명 발송 성공, ${failCount}명 실패`,
-        sentCount,
-        failCount,
-    };
-    */
+    // 테스트 모드 체크
+    const isTestMode = process.env.ALIMTALK_TEST_MODE === 'true';
 
-    // 테스트 모드: 모두 성공으로 반환
-    return { 
-        success: true, 
-        message: `알림톡 일괄 발송 (테스트 모드 - 실제 발송되지 않음) - ${members.length}명 대상`,
-        sentCount: members.length,
-        failCount: 0,
+    if (isTestMode) {
+        console.log('\n' + '='.repeat(70));
+        console.log('📱 [알림톡 일괄 발송 예정] 조합원 초대');
+        console.log('='.repeat(70));
+        console.log('조합명:', unionName);
+        console.log(`총 발송 대상: ${members.length}명`);
+        console.log('-'.repeat(70));
+
+        members.slice(0, 5).forEach((member, index) => {
+            console.log(`[${index + 1}] ${member.name} (${member.phoneNumber})`);
+            console.log(`    주소: ${member.propertyAddress}`);
+        });
+
+        if (members.length > 5) {
+            console.log(`... 외 ${members.length - 5}명`);
+        }
+
+        console.log('-'.repeat(70));
+        console.log('⚠️ 테스트 모드입니다. 실제 발송되지 않습니다.');
+        console.log('='.repeat(70) + '\n');
+
+        return {
+            success: true,
+            message: `알림톡 일괄 발송 (테스트 모드) - ${members.length}명 대상`,
+            sentCount: members.length,
+            failCount: 0,
+            kakaoCount: members.length,
+            smsCount: 0,
+            estimatedCost: members.length * 15,
+        };
+    }
+
+    // 수신자 목록 구성
+    const recipients = members.map((member) => ({
+        phoneNumber: member.phoneNumber,
+        name: member.name,
+        variables: {
+            unionName,
+            memberName: member.name,
+            propertyAddress: member.propertyAddress,
+            inviteUrl: member.inviteUrl,
+            expiresAt: new Date(member.expiresAt).toLocaleString('ko-KR'),
+        },
+    }));
+
+    // 프록시 서버 호출
+    return callProxyServer({
+        unionId,
+        senderId: user.id,
+        templateCode: 'MEMBER_INVITE_BULK', // 템플릿 코드는 알리고에서 실제 등록된 코드로 변경 필요
+        templateName: '조합원 일괄 초대',
+        title: `[${unionName}] 조합원 가입 초대`,
+        recipients,
+    });
+}
+
+// ============================================================
+// 템플릿 동기화 함수
+// ============================================================
+
+export async function syncAlimtalkTemplates(): Promise<{
+    success: boolean;
+    message?: string;
+    error?: string;
+    data?: {
+        totalFromAligo: number;
+        inserted: number;
+        updated: number;
+        deleted: number;
+        syncedAt: string;
     };
+}> {
+    try {
+        const response = await fetch(`${PROXY_URL}/api/alimtalk/sync-templates`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${PROXY_TOKEN}`,
+            },
+        });
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+            return {
+                success: false,
+                error: result.error || '템플릿 동기화 실패',
+            };
+        }
+
+        return {
+            success: true,
+            message: '템플릿 동기화가 완료되었습니다.',
+            data: result.data,
+        };
+    } catch (error) {
+        console.error('템플릿 동기화 오류:', error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : '템플릿 동기화에 실패했습니다.',
+        };
+    }
 }
