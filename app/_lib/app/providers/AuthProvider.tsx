@@ -43,6 +43,9 @@ const MOCK_USERS: User[] = [
         birth_date: null,
         property_address: null,
         property_address_detail: null,
+        property_address_road: null,
+        property_address_jibun: null,
+        property_zonecode: null,
         rejected_reason: null,
         approved_at: null,
         rejected_at: null,
@@ -60,6 +63,9 @@ const MOCK_USERS: User[] = [
         birth_date: null,
         property_address: null,
         property_address_detail: null,
+        property_address_road: null,
+        property_address_jibun: null,
+        property_zonecode: null,
         rejected_reason: null,
         approved_at: null,
         rejected_at: null,
@@ -77,6 +83,9 @@ const MOCK_USERS: User[] = [
         birth_date: null,
         property_address: null,
         property_address_detail: null,
+        property_address_road: null,
+        property_address_jibun: null,
+        property_zonecode: null,
         rejected_reason: null,
         approved_at: null,
         rejected_at: null,
@@ -258,6 +267,25 @@ export default function AuthProvider({ children }: AuthProviderProps) {
             return;
         }
 
+        // 타임아웃 fallback (10초 후에도 초기화되지 않으면 수동 처리)
+        const timeoutId = setTimeout(async () => {
+            if (!isInitializedRef.current) {
+                console.log('[DEBUG] ⏰ 타임아웃: INITIAL_SESSION 미발생 - 수동 세션 체크');
+                try {
+                    const {
+                        data: { session: manualSession },
+                    } = await supabase.auth.getSession();
+                    await handleSessionWithUser(manualSession, 'INITIAL_SESSION');
+                } catch (error) {
+                    console.error('[DEBUG] ❌ 수동 세션 체크 실패:', error);
+                } finally {
+                    setIsLoading(false);
+                    isInitializedRef.current = true;
+                    console.log('[DEBUG] ✅ 타임아웃 fallback 처리 완료');
+                }
+            }
+        }, 10000);
+
         // Auth 상태 변경 리스너 설정
         const {
             data: { subscription },
@@ -284,6 +312,8 @@ export default function AuthProvider({ children }: AuthProviderProps) {
                     await handleSessionWithUser(newSession, event);
                     setIsLoading(false);
                     isInitializedRef.current = true;
+                    // 정상 처리 시 타임아웃 취소
+                    clearTimeout(timeoutId);
                     console.log('[DEBUG] ✅ INITIAL_SESSION 처리 완료');
                     break;
 
@@ -339,10 +369,10 @@ export default function AuthProvider({ children }: AuthProviderProps) {
         });
 
         return () => {
+            clearTimeout(timeoutId);
             subscription.unsubscribe();
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [useMockAuth]);
+    }, [useMockAuth, handleSessionWithUser]);
 
     /**
      * 소셜 로그인

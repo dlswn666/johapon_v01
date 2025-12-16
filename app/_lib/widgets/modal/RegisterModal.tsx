@@ -21,6 +21,8 @@ import {
     AlertTriangle,
 } from 'lucide-react';
 import { TermsModal } from './TermsModal';
+import { BirthDatePicker } from '@/app/_lib/widgets/common/date-picker/BirthDatePicker';
+import { KakaoAddressSearch, AddressData } from '@/app/_lib/widgets/common/address/KakaoAddressSearch';
 
 // Step 정의
 type StepKey = 'name' | 'birth_date' | 'phone_number' | 'property_address' | 'property_address_detail' | 'confirm';
@@ -113,6 +115,9 @@ interface FormData {
     birth_date: string;
     property_address: string;
     property_address_detail: string;
+    property_address_road: string;
+    property_address_jibun: string;
+    property_zonecode: string;
 }
 
 /**
@@ -144,6 +149,9 @@ export function RegisterModal({
         birth_date: '',
         property_address: '',
         property_address_detail: '',
+        property_address_road: '',
+        property_address_jibun: '',
+        property_zonecode: '',
     });
 
     // 최종 확인 단계에서 수정 중인 필드
@@ -176,6 +184,9 @@ export function RegisterModal({
                     birth_date: '',
                     property_address: inviteData.property_address || '',
                     property_address_detail: '',
+                    property_address_road: '',
+                    property_address_jibun: '',
+                    property_zonecode: '',
                 });
             } else {
                 setFormData({
@@ -184,6 +195,9 @@ export function RegisterModal({
                     birth_date: '',
                     property_address: '',
                     property_address_detail: '',
+                    property_address_road: '',
+                    property_address_jibun: '',
+                    property_zonecode: '',
                 });
             }
             setCurrentStep(0);
@@ -214,6 +228,9 @@ export function RegisterModal({
                         birth_date: userData.birth_date || '',
                         property_address: userData.property_address || '',
                         property_address_detail: userData.property_address_detail || '',
+                        property_address_road: userData.property_address_road || '',
+                        property_address_jibun: userData.property_address_jibun || '',
+                        property_zonecode: userData.property_zonecode || '',
                     });
                 }
             }
@@ -221,6 +238,17 @@ export function RegisterModal({
 
         loadExistingUserData();
     }, [authUserId, isOpen]);
+
+    // 카카오 주소 선택 핸들러
+    const handleAddressSelect = useCallback((addressData: AddressData) => {
+        setFormData((prev) => ({
+            ...prev,
+            property_address: addressData.address,
+            property_address_road: addressData.roadAddress,
+            property_address_jibun: addressData.jibunAddress,
+            property_zonecode: addressData.zonecode,
+        }));
+    }, []);
 
     // 현재 스텝의 설정 가져오기
     const getCurrentStepConfig = useCallback((): StepConfig | null => {
@@ -396,6 +424,9 @@ export function RegisterModal({
                 birth_date: formData.birth_date || null,
                 property_address: formData.property_address,
                 property_address_detail: formData.property_address_detail || null,
+                property_address_road: formData.property_address_road || null,
+                property_address_jibun: formData.property_address_jibun || null,
+                property_zonecode: formData.property_zonecode || null,
                 approved_at: isInvite ? new Date().toISOString() : null,
             };
 
@@ -520,6 +551,12 @@ export function RegisterModal({
                                         const value = formData[step.key as keyof FormData];
                                         const isEditing = editingField === step.key;
 
+                                        // 주소 표시 값 결정 (도로명 + 지번 둘 다 표시)
+                                        const displayValue =
+                                            step.key === 'property_address' && formData.property_address_road
+                                                ? `${formData.property_address_road}${formData.property_address_jibun ? ` (${formData.property_address_jibun})` : ''}`
+                                                : value;
+
                                         return (
                                             <div key={step.key} className="bg-gray-50 rounded-xl p-4">
                                                 <div className="flex items-center justify-between mb-2">
@@ -538,30 +575,83 @@ export function RegisterModal({
                                                     )}
                                                 </div>
                                                 {isEditing ? (
-                                                    <div className="flex gap-2">
-                                                        <input
-                                                            type={step.type}
-                                                            value={value}
-                                                            onChange={(e) =>
-                                                                handleConfirmFieldChange(step.key, e.target.value)
-                                                            }
-                                                            placeholder={step.placeholder}
-                                                            className={cn(
-                                                                'flex-1 h-12 px-4 rounded-lg border border-gray-300',
-                                                                'text-base md:text-lg',
-                                                                'focus:outline-none focus:ring-2 focus:ring-[#4E8C6D] focus:border-transparent'
-                                                            )}
-                                                        />
-                                                        <button
-                                                            onClick={() => setEditingField(null)}
-                                                            className="h-12 px-4 bg-[#4E8C6D] text-white rounded-lg hover:bg-[#3d7058]"
-                                                        >
-                                                            <Check className="w-5 h-5" />
-                                                        </button>
+                                                    <div className="flex flex-col gap-2">
+                                                        {step.key === 'birth_date' ? (
+                                                            // 생년월일: BirthDatePicker 사용
+                                                            <div className="flex gap-2 items-center">
+                                                                <div className="flex-1">
+                                                                    <BirthDatePicker
+                                                                        value={value}
+                                                                        onChange={(date) =>
+                                                                            handleConfirmFieldChange(step.key, date)
+                                                                        }
+                                                                    />
+                                                                </div>
+                                                                <button
+                                                                    onClick={() => setEditingField(null)}
+                                                                    className="h-12 px-4 bg-[#4E8C6D] text-white rounded-lg hover:bg-[#3d7058] flex-shrink-0"
+                                                                >
+                                                                    <Check className="w-5 h-5" />
+                                                                </button>
+                                                            </div>
+                                                        ) : step.key === 'property_address' ? (
+                                                            // 물건지 주소: KakaoAddressSearch 사용
+                                                            <div className="flex flex-col gap-2">
+                                                                <KakaoAddressSearch
+                                                                    value={value}
+                                                                    onAddressSelect={(addressData) => {
+                                                                        setFormData((prev) => ({
+                                                                            ...prev,
+                                                                            property_address: addressData.address,
+                                                                            property_address_road:
+                                                                                addressData.roadAddress,
+                                                                            property_address_jibun:
+                                                                                addressData.jibunAddress,
+                                                                            property_zonecode: addressData.zonecode,
+                                                                        }));
+                                                                    }}
+                                                                    placeholder={step.placeholder}
+                                                                />
+                                                                <button
+                                                                    onClick={() => setEditingField(null)}
+                                                                    className="h-12 px-4 bg-[#4E8C6D] text-white rounded-lg hover:bg-[#3d7058] w-full"
+                                                                >
+                                                                    <span className="flex items-center justify-center gap-2">
+                                                                        <Check className="w-5 h-5" />
+                                                                        완료
+                                                                    </span>
+                                                                </button>
+                                                            </div>
+                                                        ) : (
+                                                            // 기본 입력 필드
+                                                            <div className="flex gap-2">
+                                                                <input
+                                                                    type={step.type}
+                                                                    value={value}
+                                                                    onChange={(e) =>
+                                                                        handleConfirmFieldChange(step.key, e.target.value)
+                                                                    }
+                                                                    placeholder={step.placeholder}
+                                                                    className={cn(
+                                                                        'flex-1 h-12 px-4 rounded-lg border border-gray-300',
+                                                                        'text-base md:text-lg',
+                                                                        'focus:outline-none focus:ring-2 focus:ring-[#4E8C6D] focus:border-transparent'
+                                                                    )}
+                                                                />
+                                                                <button
+                                                                    onClick={() => setEditingField(null)}
+                                                                    className="h-12 px-4 bg-[#4E8C6D] text-white rounded-lg hover:bg-[#3d7058]"
+                                                                >
+                                                                    <Check className="w-5 h-5" />
+                                                                </button>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 ) : (
                                                     <p className="text-base md:text-lg text-gray-900">
-                                                        {value || <span className="text-gray-400">입력하지 않음</span>}
+                                                        {displayValue || (
+                                                            <span className="text-gray-400">입력하지 않음</span>
+                                                        )}
                                                     </p>
                                                 )}
                                             </div>
@@ -635,20 +725,36 @@ export function RegisterModal({
 
                                     {/* 입력 필드 */}
                                     <div className="w-full max-w-sm">
-                                        <input
-                                            type={stepConfig.type}
-                                            value={getCurrentValue()}
-                                            onChange={(e) => handleValueChange(e.target.value)}
-                                            placeholder={stepConfig.placeholder}
-                                            className={cn(
-                                                'w-full h-14 md:h-16 px-5 rounded-xl border-2 border-gray-200',
-                                                'text-lg md:text-xl text-center',
-                                                'placeholder:text-gray-400',
-                                                'focus:outline-none focus:ring-2 focus:ring-[#4E8C6D] focus:border-transparent',
-                                                'transition-all'
-                                            )}
-                                            autoFocus
-                                        />
+                                        {stepConfig.key === 'birth_date' ? (
+                                            // 생년월일: BirthDatePicker 사용
+                                            <BirthDatePicker
+                                                value={getCurrentValue()}
+                                                onChange={handleValueChange}
+                                            />
+                                        ) : stepConfig.key === 'property_address' ? (
+                                            // 물건지 주소: KakaoAddressSearch 사용
+                                            <KakaoAddressSearch
+                                                value={getCurrentValue()}
+                                                onAddressSelect={handleAddressSelect}
+                                                placeholder={stepConfig.placeholder}
+                                            />
+                                        ) : (
+                                            // 기본 입력 필드
+                                            <input
+                                                type={stepConfig.type}
+                                                value={getCurrentValue()}
+                                                onChange={(e) => handleValueChange(e.target.value)}
+                                                placeholder={stepConfig.placeholder}
+                                                className={cn(
+                                                    'w-full h-14 md:h-16 px-5 rounded-xl border-2 border-gray-200',
+                                                    'text-lg md:text-xl text-center',
+                                                    'placeholder:text-gray-400',
+                                                    'focus:outline-none focus:ring-2 focus:ring-[#4E8C6D] focus:border-transparent',
+                                                    'transition-all'
+                                                )}
+                                                autoFocus
+                                            />
+                                        )}
                                     </div>
 
                                     {/* 설명 */}

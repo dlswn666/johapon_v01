@@ -170,7 +170,7 @@ export function HeroSlider({ slides, autoPlayInterval = 4000, className }: HeroS
                             src={slide.image_url}
                             alt={`Slide ${index + 1}`}
                             fill
-                            className="object-cover"
+                            className="object-contain bg-gray-100"
                             draggable={false}
                             priority={index === 0}
                         />

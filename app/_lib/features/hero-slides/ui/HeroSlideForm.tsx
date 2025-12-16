@@ -1,18 +1,18 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
-import { ArrowLeft, Upload, X, Loader2, Link as LinkIcon, Hash, Image as ImageIcon } from 'lucide-react';
+import { ArrowLeft, Loader2, Link as LinkIcon, Hash } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { HeroSlide } from '@/app/_lib/shared/type/database.types';
-import { supabase } from '@/app/_lib/shared/supabase/client';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import useModalStore from '@/app/_lib/shared/stores/modal/useModalStore';
+import { ImageUploader } from '@/app/_lib/shared/ui/ImageUploader';
+import { useImageUpload } from '@/app/_lib/shared/hooks/image/useImageUpload';
 
 interface HeroSlideFormData {
     image_url: string;
@@ -32,100 +32,59 @@ export default function HeroSlideForm({ mode, initialData, onSubmit, isSubmittin
     const router = useRouter();
     const { slug } = useSlug();
     const { openAlertModal } = useModalStore();
-    const [formData, setFormData] = useState<HeroSlideFormData>({
-        image_url: '',
-        link_url: '',
-        display_order: 0,
-        is_active: true,
+
+    // useState의 초기값으로 initialData 사용 (컴포넌트 마운트 시에만 적용)
+    const [formData, setFormData] = useState<HeroSlideFormData>(() => ({
+        image_url: initialData?.image_url || '',
+        link_url: initialData?.link_url || '',
+        display_order: initialData?.display_order ?? 0,
+        is_active: initialData?.is_active ?? true,
+    }));
+    const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(() => initialData?.image_url || null);
+
+    // 이미지 업로드 Hook 사용
+    const {
+        imageInfo,
+        uploadedUrl,
+        isLoading: isImageLoading,
+        isUploading,
+        uploadImage,
+    } = useImageUpload({
+        imageType: 'hero_slide',
+        storagePath: `unions/${slug}/hero-slides`,
+        useHighRes: false,
+        onError: (error) => {
+            openAlertModal({
+                title: '이미지 오류',
+                message: error,
+                type: 'error',
+            });
+        },
     });
-    const [imageFile, setImageFile] = useState<File | null>(null);
-    const [imagePreview, setImagePreview] = useState<string | null>(null);
-    const [isUploading, setIsUploading] = useState(false);
 
     const isReadOnly = mode === 'view';
 
-    useEffect(() => {
-        if (initialData) {
-            setFormData({
-                image_url: initialData.image_url || '',
-                link_url: initialData.link_url || '',
-                display_order: initialData.display_order ?? 0,
-                is_active: initialData.is_active ?? true,
-            });
-            if (initialData.image_url) {
-                setImagePreview(initialData.image_url);
-            }
-        }
-    }, [initialData]);
-
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value, type } = e.target;
         setFormData((prev) => ({
             ...prev,
             [name]: type === 'number' ? parseInt(value, 10) || 0 : value,
         }));
-    };
+    }, []);
 
-    const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        // 파일 크기 제한 (15MB)
-        if (file.size > 15 * 1024 * 1024) {
-            openAlertModal({
-                title: '파일 크기 초과',
-                message: '이미지 크기는 15MB를 초과할 수 없습니다.',
-                type: 'error',
-            });
-            return;
+    const handleImageChange = useCallback((url: string | null) => {
+        setPendingImageUrl(url);
+        if (!url) {
+            setFormData((prev) => ({ ...prev, image_url: '' }));
         }
-
-        // 미리보기 생성
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            setImagePreview(reader.result as string);
-        };
-        reader.readAsDataURL(file);
-        setImageFile(file);
-    };
-
-    const handleRemoveImage = () => {
-        setImageFile(null);
-        setImagePreview(null);
-        setFormData((prev) => ({ ...prev, image_url: '' }));
-    };
-
-    const uploadImage = async (): Promise<string | null> => {
-        if (!imageFile) return formData.image_url || null;
-
-        setIsUploading(true);
-        try {
-            const fileExt = imageFile.name.split('.').pop();
-            const fileName = `unions/${slug}/hero-slides/${Date.now()}.${fileExt}`;
-
-            const { error: uploadError } = await supabase.storage.from('files').upload(fileName, imageFile);
-
-            if (uploadError) throw uploadError;
-
-            const {
-                data: { publicUrl },
-            } = supabase.storage.from('files').getPublicUrl(fileName);
-
-            return publicUrl;
-        } catch (error) {
-            console.error('Image upload error:', error);
-            throw error;
-        } finally {
-            setIsUploading(false);
-        }
-    };
+    }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (isReadOnly || !onSubmit) return;
 
         // 이미지 필수 검증
-        if (!imagePreview && !formData.image_url) {
+        if (!pendingImageUrl && !formData.image_url) {
             openAlertModal({
                 title: '입력 오류',
                 message: '슬라이드 이미지를 등록해주세요.',
@@ -136,8 +95,25 @@ export default function HeroSlideForm({ mode, initialData, onSubmit, isSubmittin
 
         try {
             let imageUrl = formData.image_url;
-            if (imageFile) {
-                imageUrl = (await uploadImage()) || '';
+
+            // 새로 선택한 이미지가 있고, 아직 업로드되지 않았다면 업로드
+            if (imageInfo && !uploadedUrl) {
+                const newUrl = await uploadImage();
+                if (newUrl) {
+                    imageUrl = newUrl;
+                } else {
+                    openAlertModal({
+                        title: '업로드 오류',
+                        message: '이미지 업로드에 실패했습니다.',
+                        type: 'error',
+                    });
+                    return;
+                }
+            } else if (uploadedUrl) {
+                imageUrl = uploadedUrl;
+            } else if (pendingImageUrl && pendingImageUrl.startsWith('http')) {
+                // 기존 이미지 URL 유지
+                imageUrl = pendingImageUrl;
             }
 
             await onSubmit({ ...formData, image_url: imageUrl });
@@ -169,57 +145,17 @@ export default function HeroSlideForm({ mode, initialData, onSubmit, isSubmittin
             </CardHeader>
             <CardContent className="p-6">
                 <form onSubmit={handleSubmit} className="space-y-6">
-                    {/* 슬라이드 이미지 업로드 */}
-                    <div className="space-y-2">
-                        <Label>
-                            슬라이드 이미지 <span className="text-red-500">*</span>
-                        </Label>
-                        <div className="space-y-4">
-                            {imagePreview ? (
-                                <div className="relative w-full h-[300px]">
-                                    <Image
-                                        src={imagePreview}
-                                        alt="슬라이드 미리보기"
-                                        fill
-                                        className="rounded-lg object-cover border"
-                                    />
-                                    {!isReadOnly && (
-                                        <button
-                                            type="button"
-                                            onClick={handleRemoveImage}
-                                            className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full hover:bg-red-600 shadow-lg"
-                                        >
-                                            <X className="w-4 h-4" />
-                                        </button>
-                                    )}
-                                </div>
-                            ) : (
-                                <div className="w-full h-[200px] border-2 border-dashed rounded-lg flex flex-col items-center justify-center bg-gray-50">
-                                    <ImageIcon className="w-12 h-12 text-gray-400 mb-2" />
-                                    <p className="text-sm text-gray-500">이미지를 업로드해주세요</p>
-                                    <p className="text-xs text-gray-400 mt-1">권장: 1920x600px, PNG/JPG</p>
-                                </div>
-                            )}
-                            {!isReadOnly && (
-                                <div>
-                                    <Input
-                                        type="file"
-                                        accept="image/*"
-                                        onChange={handleImageChange}
-                                        className="hidden"
-                                        id="slide-image-upload"
-                                    />
-                                    <Label
-                                        htmlFor="slide-image-upload"
-                                        className="cursor-pointer inline-flex items-center px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium transition-colors"
-                                    >
-                                        <Upload className="w-4 h-4 mr-2" />
-                                        이미지 선택
-                                    </Label>
-                                </div>
-                            )}
-                        </div>
-                    </div>
+                    {/* 슬라이드 이미지 업로드 - 새로운 ImageUploader 사용 */}
+                    <ImageUploader
+                        imageType="hero_slide"
+                        storagePath={`unions/${slug}/hero-slides`}
+                        label="슬라이드 이미지"
+                        required
+                        disabled={isReadOnly}
+                        initialImageUrl={initialData?.image_url || undefined}
+                        onImageChange={handleImageChange}
+                        previewHeight="h-[300px]"
+                    />
 
                     {/* 링크 URL */}
                     <div className="space-y-2">
@@ -293,10 +229,12 @@ export default function HeroSlideForm({ mode, initialData, onSubmit, isSubmittin
                             </Button>
                             <Button
                                 type="submit"
-                                disabled={isSubmitting || isUploading}
+                                disabled={isSubmitting || isUploading || isImageLoading}
                                 className="bg-[#4E8C6D] hover:bg-[#3d7359]"
                             >
-                                {(isSubmitting || isUploading) && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                                {(isSubmitting || isUploading || isImageLoading) && (
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                )}
                                 {mode === 'create' ? '등록' : '수정 완료'}
                             </Button>
                         </div>
