@@ -1,26 +1,26 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { FileQuestion, Home, ArrowLeft } from 'lucide-react';
+import { ShieldX, Home, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
-export default function NotFound() {
+export default function ForbiddenPage() {
     const router = useRouter();
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4">
             <Card className="w-full max-w-md bg-slate-800/80 backdrop-blur-sm border-slate-700 shadow-2xl">
                 <CardHeader className="text-center space-y-4 pb-6">
-                    <div className="mx-auto w-16 h-16 bg-amber-500/20 rounded-2xl flex items-center justify-center">
-                        <FileQuestion className="w-8 h-8 text-amber-400" />
+                    <div className="mx-auto w-16 h-16 bg-orange-500/20 rounded-2xl flex items-center justify-center">
+                        <ShieldX className="w-8 h-8 text-orange-400" />
                     </div>
                     <div>
-                        <CardTitle className="text-2xl font-bold text-white">페이지를 찾을 수 없습니다</CardTitle>
+                        <CardTitle className="text-2xl font-bold text-white">접근 권한이 없습니다</CardTitle>
                         <CardDescription className="text-slate-400 mt-2">
-                            요청하신 페이지가 존재하지 않거나 이동되었습니다.
+                            이 페이지에 접근할 권한이 없습니다.
                             <br />
-                            URL을 다시 확인해 주세요.
+                            로그인 상태를 확인하거나 관리자에게 문의해 주세요.
                         </CardDescription>
                     </div>
                 </CardHeader>
