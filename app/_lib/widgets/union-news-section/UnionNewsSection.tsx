@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { useNotices } from '@/app/_lib/features/notice/api/useNoticeHook';
-import { Notice, Question } from '@/app/_lib/shared/type/database.types';
-import { mockGeneralPosts } from './mockData';
+import { Notice, Question, FreeBoard } from '@/app/_lib/shared/type/database.types';
 import { NewsTabType } from './types';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
@@ -22,8 +22,9 @@ export function UnionNewsSection({ unionId }: UnionNewsSectionProps) {
     // eslint-disable-next-line @typescript-eslint/no-unused-expressions
     unionId;
     
+    const router = useRouter();
     const [activeTab, setActiveTab] = useState<NewsTabType>('notice');
-    const { union } = useSlug();
+    const { union, slug } = useSlug();
     const { data: notices, isLoading, error, refetch } = useNotices();
     
     // 질문 목록 조회 (공개 질문만, 최신순)
@@ -45,6 +46,40 @@ export function UnionNewsSection({ unionId }: UnionNewsSectionProps) {
         },
         enabled: !!union?.id,
     });
+
+    // 자유 게시판 목록 조회 (최신순, 4개)
+    const { data: freeBoards, isLoading: isFreeBoardsLoading, error: freeBoardsError, refetch: refetchFreeBoards } = useQuery({
+        queryKey: ['freeBoards-home', union?.id],
+        queryFn: async () => {
+            if (!union?.id) return [];
+            
+            const { data, error } = await supabase
+                .from('free_boards')
+                .select('*, author:users!free_boards_author_id_fkey(id, name)')
+                .eq('union_id', union.id)
+                .order('created_at', { ascending: false })
+                .limit(4);
+            
+            if (error) throw error;
+            return data as (FreeBoard & { author: { id: string; name: string } | null })[];
+        },
+        enabled: !!union?.id,
+    });
+
+    // 클릭 핸들러 - 공지사항 상세 페이지로 이동
+    const handleNoticeClick = (noticeId: number) => {
+        router.push(`/${slug}/news/notice/${noticeId}`);
+    };
+
+    // 클릭 핸들러 - 자유 게시판 상세 페이지로 이동
+    const handleFreeBoardClick = (freeBoardId: number) => {
+        router.push(`/${slug}/free-board/${freeBoardId}`);
+    };
+
+    // 클릭 핸들러 - 질문 상세 페이지로 이동
+    const handleQuestionClick = (questionId: number) => {
+        router.push(`/${slug}/news/qna/${questionId}`);
+    };
 
     // 공지사항 작성자 ID 목록 추출
     const authorIds = useMemo(() => {
@@ -210,7 +245,10 @@ export function UnionNewsSection({ unionId }: UnionNewsSectionProps) {
                                 <>
                                     {/* 주요 공지 카드 */}
                                     {notices[0] && (
-                                        <div className="bg-white border-l-4 border-[#5fa37c] border-r border-t border-b rounded-[12px] md:rounded-[17.5px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] pl-4 md:pl-[40px] pr-4 md:pr-px py-5 md:py-[37px]">
+                                        <div 
+                                            onClick={() => handleNoticeClick(notices[0].id)}
+                                            className="bg-white border-l-4 border-[#5fa37c] border-r border-t border-b rounded-[12px] md:rounded-[17.5px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] pl-4 md:pl-[40px] pr-4 md:pr-px py-5 md:py-[37px] cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-200"
+                                        >
                                             <div className="space-y-3 md:space-y-[18px]">
                                                 <h3 
                                                     className="font-bold text-[#333333]"
@@ -252,7 +290,8 @@ export function UnionNewsSection({ unionId }: UnionNewsSectionProps) {
                                             {notices.slice(1, 4).map((notice) => (
                                                 <div
                                                     key={notice.id}
-                                                    className="bg-white border border-gray-200 rounded-[10px] md:rounded-[13.5px] shadow-[0px_1px_3px_0px_rgba(0,0,0,0.1),0px_1px_2px_-1px_rgba(0,0,0,0.1)] pl-4 md:pl-[28px] pr-4 md:pr-px py-4 md:py-[28px]"
+                                                    onClick={() => handleNoticeClick(notice.id)}
+                                                    className="bg-white border border-gray-200 rounded-[10px] md:rounded-[13.5px] shadow-[0px_1px_3px_0px_rgba(0,0,0,0.1),0px_1px_2px_-1px_rgba(0,0,0,0.1)] pl-4 md:pl-[28px] pr-4 md:pr-px py-4 md:py-[28px] cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-200"
                                                 >
                                                     <div className="space-y-2 md:space-y-[13.5px]">
                                                         <h4 
@@ -293,77 +332,111 @@ export function UnionNewsSection({ unionId }: UnionNewsSectionProps) {
                     )}
 
                     {activeTab === 'general' && (
-                        <div className="space-y-4 md:space-y-[27px]">
-                            {mockGeneralPosts.length > 0 && (
-                                <>
+                        <>
+                            {isFreeBoardsLoading ? (
+                                <div className="flex items-center justify-center py-20">
+                                    <Loader2 className="w-10 h-10 animate-spin text-[#4e8c6d]" />
+                                </div>
+                            ) : freeBoardsError ? (
+                                <div className="flex flex-col items-center justify-center py-20 space-y-4">
+                                    <AlertCircle className="w-12 h-12 text-red-500" />
+                                    <p className="text-lg text-gray-600">게시물을 불러오는 중 오류가 발생했습니다.</p>
+                                    <button
+                                        onClick={() => refetchFreeBoards()}
+                                        className="flex items-center gap-2 px-4 py-2 bg-[#4e8c6d] text-white rounded-lg hover:bg-[#3d7a5c] transition-colors"
+                                    >
+                                        <RefreshCw className="w-4 h-4" />
+                                        다시 시도
+                                    </button>
+                                </div>
+                            ) : freeBoards && freeBoards.length > 0 ? (
+                                <div className="space-y-4 md:space-y-[27px]">
                                     {/* 주요 게시물 카드 */}
-                                    <div className="bg-white border-l-4 border-[#5fa37c] border-r border-t border-b rounded-[12px] md:rounded-[17.5px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] pl-4 md:pl-[40px] pr-4 md:pr-px py-5 md:py-[37px]">
-                                        <div className="space-y-3 md:space-y-[18px]">
-                                            <h3 
-                                                className="font-bold text-[#333333]"
-                                                style={{ 
-                                                    fontSize: 'var(--text-card-title-lg)', 
-                                                    lineHeight: 'var(--leading-card-title-lg)' 
-                                                }}
-                                            >
-                                                {mockGeneralPosts[0].title}
-                                            </h3>
-                                            <div className="flex flex-wrap items-center gap-2 md:gap-[18px]">
-                                                <span 
-                                                    className="text-[#6a7282]"
-                                                    style={{ fontSize: 'var(--text-body-md)', lineHeight: 'var(--leading-body-md)' }}
+                                    {freeBoards[0] && (
+                                        <div 
+                                            onClick={() => handleFreeBoardClick(freeBoards[0].id)}
+                                            className="bg-white border-l-4 border-[#5fa37c] border-r border-t border-b rounded-[12px] md:rounded-[17.5px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] pl-4 md:pl-[40px] pr-4 md:pr-px py-5 md:py-[37px] cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-200"
+                                        >
+                                            <div className="space-y-3 md:space-y-[18px]">
+                                                <h3 
+                                                    className="font-bold text-[#333333]"
+                                                    style={{ 
+                                                        fontSize: 'var(--text-card-title-lg)', 
+                                                        lineHeight: 'var(--leading-card-title-lg)' 
+                                                    }}
                                                 >
-                                                    작성자: {mockGeneralPosts[0].author}
-                                                </span>
-                                                <span className="text-[#6a7282] hidden md:inline" style={{ fontSize: 'var(--text-body-md)' }}>•</span>
-                                                <span 
-                                                    className="text-[#6a7282]"
-                                                    style={{ fontSize: 'var(--text-body-md)', lineHeight: 'var(--leading-body-md)' }}
+                                                    {freeBoards[0].title}
+                                                </h3>
+                                                <div className="flex flex-wrap items-center gap-2 md:gap-[18px]">
+                                                    <span 
+                                                        className="text-[#6a7282]"
+                                                        style={{ fontSize: 'var(--text-body-md)', lineHeight: 'var(--leading-body-md)' }}
+                                                    >
+                                                        작성자: {freeBoards[0].author?.name || '익명'}
+                                                    </span>
+                                                    <span className="text-[#6a7282] hidden md:inline" style={{ fontSize: 'var(--text-body-md)' }}>•</span>
+                                                    <span 
+                                                        className="text-[#6a7282]"
+                                                        style={{ fontSize: 'var(--text-body-md)', lineHeight: 'var(--leading-body-md)' }}
+                                                    >
+                                                        {formatDate(freeBoards[0].created_at)}
+                                                    </span>
+                                                </div>
+                                                <p 
+                                                    className="text-[#364153]"
+                                                    style={{ fontSize: 'var(--text-body-lg)', lineHeight: 'var(--leading-body-lg)' }}
                                                 >
-                                                    {mockGeneralPosts[0].date}
-                                                </span>
+                                                    {truncateContent(freeBoards[0].content)}
+                                                </p>
                                             </div>
                                         </div>
-                                    </div>
+                                    )}
 
                                     {/* 하단 3개 카드 그리드 */}
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-[18px]">
-                                        {mockGeneralPosts.slice(1).map((post) => (
-                                            <div
-                                                key={post.id}
-                                                className="bg-white border border-gray-200 rounded-[10px] md:rounded-[13.5px] shadow-[0px_1px_3px_0px_rgba(0,0,0,0.1),0px_1px_2px_-1px_rgba(0,0,0,0.1)] pl-4 md:pl-[28px] pr-4 md:pr-px py-4 md:py-[28px]"
-                                            >
-                                                <div className="space-y-2 md:space-y-[13.5px]">
-                                                    <h4 
-                                                        className="font-bold text-[#333333] line-clamp-2"
-                                                        style={{ 
-                                                            fontSize: 'var(--text-card-title-md)', 
-                                                            lineHeight: 'var(--leading-card-title-md)' 
-                                                        }}
-                                                    >
-                                                        {post.title}
-                                                    </h4>
-                                                    <div className="space-y-1 md:space-y-[4.5px]">
-                                                        <p 
-                                                            className="text-[#6a7282]"
-                                                            style={{ fontSize: 'var(--text-body-sm)', lineHeight: 'var(--leading-body-sm)' }}
+                                    {freeBoards.length > 1 && (
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-[18px]">
+                                            {freeBoards.slice(1, 4).map((post) => (
+                                                <div
+                                                    key={post.id}
+                                                    onClick={() => handleFreeBoardClick(post.id)}
+                                                    className="bg-white border border-gray-200 rounded-[10px] md:rounded-[13.5px] shadow-[0px_1px_3px_0px_rgba(0,0,0,0.1),0px_1px_2px_-1px_rgba(0,0,0,0.1)] pl-4 md:pl-[28px] pr-4 md:pr-px py-4 md:py-[28px] cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-200"
+                                                >
+                                                    <div className="space-y-2 md:space-y-[13.5px]">
+                                                        <h4 
+                                                            className="font-bold text-[#333333] line-clamp-2"
+                                                            style={{ 
+                                                                fontSize: 'var(--text-card-title-md)', 
+                                                                lineHeight: 'var(--leading-card-title-md)' 
+                                                            }}
                                                         >
-                                                            작성자: {post.author}
-                                                        </p>
-                                                        <p 
-                                                            className="text-[#6a7282]"
-                                                            style={{ fontSize: 'var(--text-body-sm)', lineHeight: 'var(--leading-body-sm)' }}
-                                                        >
-                                                            {post.date}
-                                                        </p>
+                                                            {post.title}
+                                                        </h4>
+                                                        <div className="space-y-1 md:space-y-[4.5px]">
+                                                            <p 
+                                                                className="text-[#6a7282]"
+                                                                style={{ fontSize: 'var(--text-body-sm)', lineHeight: 'var(--leading-body-sm)' }}
+                                                            >
+                                                                작성자: {post.author?.name || '익명'}
+                                                            </p>
+                                                            <p 
+                                                                className="text-[#6a7282]"
+                                                                style={{ fontSize: 'var(--text-body-sm)', lineHeight: 'var(--leading-body-sm)' }}
+                                                            >
+                                                                {formatDate(post.created_at)}
+                                                            </p>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="flex items-center justify-center py-20">
+                                    <p className="text-lg text-gray-500">등록된 게시물이 없습니다.</p>
+                                </div>
                             )}
-                        </div>
+                        </>
                     )}
 
                     {activeTab === 'question' && (
@@ -388,7 +461,10 @@ export function UnionNewsSection({ unionId }: UnionNewsSectionProps) {
                                 <div className="space-y-4 md:space-y-[27px]">
                                     {/* 주요 질문 카드 */}
                                     {questions[0] && (
-                                        <div className="bg-white border-l-4 border-[#5fa37c] border-r border-t border-b rounded-[12px] md:rounded-[17.5px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] pl-4 md:pl-[40px] pr-4 md:pr-px py-5 md:py-[37px]">
+                                        <div 
+                                            onClick={() => handleQuestionClick(questions[0].id)}
+                                            className="bg-white border-l-4 border-[#5fa37c] border-r border-t border-b rounded-[12px] md:rounded-[17.5px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] pl-4 md:pl-[40px] pr-4 md:pr-px py-5 md:py-[37px] cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-200"
+                                        >
                                             <div className="space-y-3 md:space-y-[18px]">
                                                 <div className="flex flex-wrap items-center gap-2 md:gap-[12px]">
                                                     <h3 
@@ -438,7 +514,8 @@ export function UnionNewsSection({ unionId }: UnionNewsSectionProps) {
                                             {questions.slice(1, 4).map((question) => (
                                                 <div
                                                     key={question.id}
-                                                    className="bg-white border border-gray-200 rounded-[10px] md:rounded-[13.5px] shadow-[0px_1px_3px_0px_rgba(0,0,0,0.1),0px_1px_2px_-1px_rgba(0,0,0,0.1)] pl-4 md:pl-[28px] pr-4 md:pr-px py-4 md:py-[28px]"
+                                                    onClick={() => handleQuestionClick(question.id)}
+                                                    className="bg-white border border-gray-200 rounded-[10px] md:rounded-[13.5px] shadow-[0px_1px_3px_0px_rgba(0,0,0,0.1),0px_1px_2px_-1px_rgba(0,0,0,0.1)] pl-4 md:pl-[28px] pr-4 md:pr-px py-4 md:py-[28px] cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-200"
                                                 >
                                                     <div className="space-y-2 md:space-y-[13.5px]">
                                                         <div className="flex items-center gap-2 md:gap-[8px]">

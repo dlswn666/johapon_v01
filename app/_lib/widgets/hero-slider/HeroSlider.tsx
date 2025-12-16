@@ -1,10 +1,34 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import Image from 'next/image';
 import { HeroSlide } from '@/app/_lib/shared/type/database.types';
 import { cn } from '@/lib/utils';
-import { ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+
+// 기본 슬라이드 이미지 (슬라이드가 없을 때 사용)
+const DEFAULT_SLIDES: HeroSlide[] = [
+    {
+        id: 'default-1',
+        union_id: '',
+        image_url: '/images/slide-default/first_default_slide.png',
+        link_url: null,
+        display_order: 0,
+        is_active: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+    },
+    {
+        id: 'default-2',
+        union_id: '',
+        image_url: '/images/slide-default/second_default_slide.png',
+        link_url: null,
+        display_order: 1,
+        is_active: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+    },
+];
 
 interface HeroSliderProps {
     slides: HeroSlide[];
@@ -15,7 +39,7 @@ interface HeroSliderProps {
 /**
  * Hero Section 무한 슬라이드 컴포넌트
  * - 오른쪽 방향으로만 이동 (1→2→3→1→2...)
- * - 이미지가 없으면 "점검중..." 표시
+ * - 이미지가 없으면 기본 슬라이드 이미지 표시
  * - link_url이 있으면 클릭 가능 (cursor: pointer)
  */
 export function HeroSlider({ slides, autoPlayInterval = 4000, className }: HeroSliderProps) {
@@ -24,14 +48,19 @@ export function HeroSlider({ slides, autoPlayInterval = 4000, className }: HeroS
     const sliderRef = useRef<HTMLDivElement>(null);
     const autoPlayRef = useRef<NodeJS.Timeout | null>(null);
 
-    const hasSlides = slides && slides.length > 0;
-    const hasMultipleSlides = hasSlides && slides.length > 1;
+    // 슬라이드가 없으면 기본 슬라이드 사용
+    const activeSlides = useMemo(() => {
+        return slides && slides.length > 0 ? slides : DEFAULT_SLIDES;
+    }, [slides]);
+
+    const hasSlides = activeSlides.length > 0;
+    const hasMultipleSlides = activeSlides.length > 1;
 
     // 무한 슬라이드를 위한 확장 배열 (앞뒤로 복제)
     const extendedSlides = hasMultipleSlides
-        ? [slides[slides.length - 1], ...slides, slides[0]]
+        ? [activeSlides[activeSlides.length - 1], ...activeSlides, activeSlides[0]]
         : hasSlides
-        ? slides
+        ? activeSlides
         : [];
 
     // 실제 인덱스 (확장 배열 기준)
@@ -71,17 +100,17 @@ export function HeroSlider({ slides, autoPlayInterval = 4000, className }: HeroS
             setIsTransitioning(false);
 
             // 마지막 복제본에서 첫 번째로 점프
-            if (currentIndex >= slides.length) {
+            if (currentIndex >= activeSlides.length) {
                 setCurrentIndex(0);
             }
             // 첫 번째 복제본에서 마지막으로 점프
             else if (currentIndex < 0) {
-                setCurrentIndex(slides.length - 1);
+                setCurrentIndex(activeSlides.length - 1);
             }
         }, 500); // transition duration과 일치
 
         return () => clearTimeout(timer);
-    }, [currentIndex, isTransitioning, hasMultipleSlides, slides.length]);
+    }, [currentIndex, isTransitioning, hasMultipleSlides, activeSlides.length]);
 
     // 자동 슬라이드
     useEffect(() => {
@@ -120,26 +149,6 @@ export function HeroSlider({ slides, autoPlayInterval = 4000, className }: HeroS
         }
     };
 
-    // 슬라이드가 없거나 비활성화된 경우 점검중 화면 표시
-    if (!hasSlides) {
-        return (
-            <div
-                className={cn(
-                    'relative w-full h-[400px] md:h-[500px] lg:h-[600px] bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center',
-                    className
-                )}
-            >
-                <div className="text-center space-y-4">
-                    <AlertTriangle className="w-16 h-16 text-gray-400 mx-auto" />
-                    <div className="space-y-2">
-                        <p className="text-2xl font-semibold text-gray-500">점검중...</p>
-                        <p className="text-sm text-gray-400">곧 새로운 소식으로 찾아뵙겠습니다</p>
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
     return (
         <div
             className={cn('relative w-full overflow-hidden', className)}
@@ -170,7 +179,7 @@ export function HeroSlider({ slides, autoPlayInterval = 4000, className }: HeroS
                             src={slide.image_url}
                             alt={`Slide ${index + 1}`}
                             fill
-                            className="object-contain bg-gray-100"
+                            className="object-cover"
                             draggable={false}
                             priority={index === 0}
                         />
@@ -201,11 +210,11 @@ export function HeroSlider({ slides, autoPlayInterval = 4000, className }: HeroS
             {/* 인디케이터 (슬라이드가 2개 이상일 때만) */}
             {hasMultipleSlides && (
                 <div className="absolute bottom-[50px] left-1/2 -translate-x-1/2 flex gap-[13.5px] z-20">
-                    {slides.map((_, index) => {
+                    {activeSlides.map((_, index) => {
                         const isActive =
                             currentIndex === index ||
-                            (currentIndex >= slides.length && index === 0) ||
-                            (currentIndex < 0 && index === slides.length - 1);
+                            (currentIndex >= activeSlides.length && index === 0) ||
+                            (currentIndex < 0 && index === activeSlides.length - 1);
                         return (
                             <button
                                 key={index}
