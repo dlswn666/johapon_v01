@@ -202,8 +202,8 @@ function SystemAdminLayoutContent({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const { isLoading, isUserFetching, isSystemAdmin, isAuthenticated } = useAuth();
 
-    // 개발 환경에서는 인증 체크 우회 (테스트용)
-    const isDevelopment = process.env.NODE_ENV === 'development';
+    // 테스트 모드 상태 (인증 우회)
+    const [isTestMode, setIsTestMode] = useState(false);
 
     // 로그인 페이지는 레이아웃 체크 제외
     const isLoginPage = pathname === '/systemAdmin/login';
@@ -212,9 +212,8 @@ function SystemAdminLayoutContent({ children }: { children: React.ReactNode }) {
     const isFullLoading = isLoading || isUserFetching;
 
     useEffect(() => {
-        // 개발 환경에서는 인증 체크 우회
-        if (isDevelopment) {
-            console.log('[DEV] 개발 환경: 시스템 관리자 인증 체크 우회');
+        // 테스트 모드에서는 인증 체크 우회
+        if (isTestMode) {
             return;
         }
 
@@ -226,21 +225,27 @@ function SystemAdminLayoutContent({ children }: { children: React.ReactNode }) {
                 router.push('/systemAdmin/login');
             }
         }
-    }, [isFullLoading, isAuthenticated, isSystemAdmin, isLoginPage, router, isDevelopment]);
+    }, [isFullLoading, isAuthenticated, isSystemAdmin, isLoginPage, router, isTestMode]);
 
     // 로그인 페이지는 레이아웃 없이 렌더링 (로딩 상태와 관계없이)
     if (isLoginPage) {
         return <>{children}</>;
     }
 
-    // 개발 환경에서는 로딩/인증 체크 우회
-    if (isDevelopment) {
+    // 테스트 모드에서는 로딩/인증 체크 우회
+    if (isTestMode) {
         return (
             <div className="min-h-screen bg-slate-900">
-                <div className="bg-yellow-500/20 border-b border-yellow-500/30 px-4 py-2 text-center">
-                    <span className="text-yellow-400 text-sm font-medium">
-                        ⚠️ 개발 모드: 인증 체크 우회 중
-                    </span>
+                <div className="bg-orange-500/20 border-b border-orange-500/30 px-4 py-2 text-center flex items-center justify-center gap-4">
+                    <span className="text-orange-400 text-sm font-medium">🧪 테스트 모드: 인증 우회 중</span>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setIsTestMode(false)}
+                        className="text-orange-400 hover:text-orange-300 hover:bg-orange-500/20 h-6 px-2 text-xs"
+                    >
+                        테스트 모드 종료
+                    </Button>
                 </div>
                 <SystemAdminHeader />
                 <main className="container mx-auto px-4 py-8">{children}</main>
@@ -267,12 +272,21 @@ function SystemAdminLayoutContent({ children }: { children: React.ReactNode }) {
                     <Shield className="w-16 h-16 text-slate-600 mx-auto" />
                     <p className="text-xl font-semibold text-white">접근 권한이 없습니다</p>
                     <p className="text-slate-400">시스템 관리자만 접근할 수 있습니다</p>
-                    <Button
-                        onClick={() => router.push('/systemAdmin/login')}
-                        className="mt-4 bg-blue-600 hover:bg-blue-700"
-                    >
-                        로그인 페이지로 이동
-                    </Button>
+                    <div className="flex flex-col gap-2 mt-4">
+                        <Button
+                            onClick={() => router.push('/systemAdmin/login')}
+                            className="bg-blue-600 hover:bg-blue-700"
+                        >
+                            로그인 페이지로 이동
+                        </Button>
+                        <Button
+                            variant="outline"
+                            onClick={() => setIsTestMode(true)}
+                            className="border-orange-500/50 text-orange-400 hover:bg-orange-500/20 hover:text-orange-300"
+                        >
+                            🧪 테스트 모드로 진입
+                        </Button>
+                    </div>
                 </div>
             </div>
         );
