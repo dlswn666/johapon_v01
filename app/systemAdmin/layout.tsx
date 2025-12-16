@@ -200,7 +200,7 @@ function SystemAdminHeader() {
 function SystemAdminLayoutContent({ children }: { children: React.ReactNode }) {
     const router = useRouter();
     const pathname = usePathname();
-    const { isLoading, isUserFetching, isSystemAdmin, isAuthenticated } = useAuth();
+    const { isLoading, isUserFetching, isSystemAdmin } = useAuth();
 
     // 테스트 모드 상태 (인증 우회)
     const [isTestMode, setIsTestMode] = useState(false);
