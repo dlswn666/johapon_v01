@@ -1,7 +1,7 @@
 'use client';
 
-import React, { use, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useEffect } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
@@ -10,10 +10,6 @@ import { useHeroSlide, useUpdateHeroSlide } from '@/app/_lib/features/hero-slide
 import { HeroSlideForm } from '@/app/_lib/features/hero-slides/ui';
 import useModalStore from '@/app/_lib/shared/stores/modal/useModalStore';
 
-interface SlideEditPageProps {
-    params: Promise<{ slug: string; id: string }>;
-}
-
 interface FormData {
     image_url: string;
     link_url: string;
@@ -21,8 +17,9 @@ interface FormData {
     is_active: boolean;
 }
 
-export default function SlideEditPage({ params }: SlideEditPageProps) {
-    const { id } = use(params);
+export default function SlideEditPage() {
+    const params = useParams();
+    const id = params.id as string;
     const router = useRouter();
     const { slug } = useSlug();
     const { isAdmin, isLoading: isAuthLoading } = useAuth();

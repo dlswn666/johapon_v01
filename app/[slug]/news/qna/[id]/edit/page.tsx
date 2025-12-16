@@ -2,8 +2,8 @@
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import React, { use, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useEffect } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -23,16 +23,11 @@ const formSchema = z.object({
     is_secret: z.boolean(),
 });
 
-interface EditQuestionPageProps {
-    params: Promise<{
-        slug: string;
-        id: string;
-    }>;
-}
-
-const EditQuestionPage = ({ params }: EditQuestionPageProps) => {
+const EditQuestionPage = () => {
     const router = useRouter();
-    const { slug, id } = use(params);
+    const params = useParams();
+    const slug = params.slug as string;
+    const id = params.id as string;
     const questionId = parseInt(id);
     const { union, isLoading: isUnionLoading } = useSlug();
     const { user, isAdmin } = useAuth();

@@ -1,16 +1,12 @@
 'use client';
 
-import React, { useState, use } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
 import { UnionForm, UnionEditConfirmModal } from '@/app/_lib/features/union-management/ui';
 import { useUnion, useUpdateUnion } from '@/app/_lib/features/union-management/api/useUnionManagementHook';
-
-interface UnionEditPageProps {
-    params: Promise<{ id: string }>;
-}
 
 interface FormData {
     name: string;
@@ -24,8 +20,9 @@ interface FormData {
     is_active: boolean;
 }
 
-export default function UnionEditPage({ params }: UnionEditPageProps) {
-    const { id } = use(params);
+export default function UnionEditPage() {
+    const params = useParams();
+    const id = params.id as string;
     const router = useRouter();
     const { data: union, isLoading, error } = useUnion(id);
     const updateMutation = useUpdateUnion();

@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useEffect, use } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useEffect } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -28,16 +28,11 @@ const formSchema = z.object({
     end_date: z.date().nullable().optional(),
 });
 
-interface EditNoticePageProps {
-    params: Promise<{
-        slug: string;
-        id: string;
-    }>;
-}
-
-const EditNoticePage = ({ params }: EditNoticePageProps) => {
+const EditNoticePage = () => {
     const router = useRouter();
-    const { id, slug } = use(params);
+    const params = useParams();
+    const slug = params.slug as string;
+    const id = params.id as string;
     const noticeId = parseInt(id);
     const { isLoading: isUnionLoading } = useSlug();
 

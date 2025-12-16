@@ -2,8 +2,8 @@
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import React, { use, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useEffect } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import { useUnionInfo, useIncrementUnionInfoViews, useDeleteUnionInfo, useDeleteUnionInfoFile } from '@/app/_lib/features/union-info/api/useUnionInfoHook';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
@@ -13,16 +13,11 @@ import useModalStore from '@/app/_lib/shared/stores/modal/useModalStore';
 import { User, Eye, Calendar, Paperclip, Download, Trash2 } from 'lucide-react';
 import { fileApi } from '@/app/_lib/shared/hooks/file/fileApi';
 
-interface UnionInfoDetailPageProps {
-    params: Promise<{
-        slug: string;
-        id: string;
-    }>;
-}
-
-const UnionInfoDetailPage = ({ params }: UnionInfoDetailPageProps) => {
+const UnionInfoDetailPage = () => {
     const router = useRouter();
-    const { slug, id } = use(params);
+    const params = useParams();
+    const slug = params.slug as string;
+    const id = params.id as string;
     const postId = parseInt(id);
     const { isLoading: isUnionLoading } = useSlug();
     const { user, isAdmin } = useAuth();

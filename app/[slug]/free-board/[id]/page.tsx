@@ -3,8 +3,8 @@
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
-import React, { use } from 'react';
-import { useRouter } from 'next/navigation';
+import React from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import {
     useFreeBoard,
     useIncrementFreeBoardViews,
@@ -20,16 +20,11 @@ import UnionHeader from '@/app/_lib/widgets/union/header/UnionHeader';
 import { FileUploader } from '@/app/_lib/widgets/common/file-uploader/FileUploader';
 import { CommentSection } from '@/app/_lib/widgets/common/comment';
 
-interface FreeBoardDetailPageProps {
-    params: Promise<{
-        slug: string;
-        id: string;
-    }>;
-}
-
-const FreeBoardDetailPage = ({ params }: FreeBoardDetailPageProps) => {
+const FreeBoardDetailPage = () => {
     const router = useRouter();
-    const { slug, id } = use(params);
+    const params = useParams();
+    const slug = params.slug as string;
+    const id = params.id as string;
     const freeBoardId = parseInt(id);
     const { isLoading: isUnionLoading } = useSlug();
     const { user } = useAuth();

@@ -1,7 +1,7 @@
 'use client';
 
-import React, { use, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useEffect } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import { Edit, Trash2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader } from '@/components/ui/card';
@@ -11,12 +11,9 @@ import { useHeroSlide, useDeleteHeroSlide } from '@/app/_lib/features/hero-slide
 import { HeroSlideForm } from '@/app/_lib/features/hero-slides/ui';
 import useModalStore from '@/app/_lib/shared/stores/modal/useModalStore';
 
-interface SlideDetailPageProps {
-    params: Promise<{ slug: string; id: string }>;
-}
-
-export default function SlideDetailPage({ params }: SlideDetailPageProps) {
-    const { id } = use(params);
+export default function SlideDetailPage() {
+    const params = useParams();
+    const id = params.id as string;
     const router = useRouter();
     const { slug } = useSlug();
     const { isAdmin, isLoading: isAuthLoading } = useAuth();

@@ -2,14 +2,18 @@
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import React, { use, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useEffect } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { useUnionInfo, useUpdateUnionInfo, useDeleteUnionInfoFile } from '@/app/_lib/features/union-info/api/useUnionInfoHook';
+import {
+    useUnionInfo,
+    useUpdateUnionInfo,
+    useDeleteUnionInfoFile,
+} from '@/app/_lib/features/union-info/api/useUnionInfoHook';
 import useUnionInfoStore from '@/app/_lib/features/union-info/model/useUnionInfoStore';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import AlertModal from '@/app/_lib/widgets/modal/AlertModal';
@@ -20,30 +24,25 @@ import { FileUploader } from '@/app/_lib/widgets/common/file-uploader/FileUpload
 import { Download, Trash2, Paperclip } from 'lucide-react';
 import { fileApi } from '@/app/_lib/shared/hooks/file/fileApi';
 
-interface EditUnionInfoPageProps {
-    params: Promise<{
-        slug: string;
-        id: string;
-    }>;
-}
-
 const formSchema = z.object({
     title: z.string().min(1, '제목을 입력해주세요.'),
     content: z.string().min(1, '내용을 입력해주세요.'),
 });
 
-const EditUnionInfoPage = ({ params }: EditUnionInfoPageProps) => {
+const EditUnionInfoPage = () => {
     const router = useRouter();
-    const { slug, id } = use(params);
+    const params = useParams();
+    const slug = params.slug as string;
+    const id = params.id as string;
     const postId = parseInt(id);
     const { isLoading: isUnionLoading } = useSlug();
     const { mutate: updateUnionInfo, isPending } = useUpdateUnionInfo();
     const { mutate: deleteFile } = useDeleteUnionInfoFile();
     const openConfirmModal = useModalStore((state) => state.openConfirmModal);
-    
+
     const { data: post, isLoading, error } = useUnionInfo(postId);
     const { openAlertModal } = useModalStore();
-    
+
     // Store cleanup actions
     const clearEditorImages = useUnionInfoStore((state) => state.clearEditorImages);
     const clearTempFiles = useUnionInfoStore((state) => state.clearTempFiles);
@@ -132,9 +131,7 @@ const EditUnionInfoPage = ({ params }: EditUnionInfoPageProps) => {
         return (
             <div className={cn('container mx-auto max-w-[1280px] px-4 py-8')}>
                 <div className="flex justify-center items-center h-64">
-                    <p className="text-[18px] text-[#D9534F]">
-                        {error?.message || '게시글을 찾을 수 없습니다.'}
-                    </p>
+                    <p className="text-[18px] text-[#D9534F]">{error?.message || '게시글을 찾을 수 없습니다.'}</p>
                 </div>
             </div>
         );
@@ -155,10 +152,10 @@ const EditUnionInfoPage = ({ params }: EditUnionInfoPageProps) => {
                                     <FormItem>
                                         <FormLabel className="text-[16px] font-bold text-[#5FA37C]">제목</FormLabel>
                                         <FormControl>
-                                            <Input 
-                                                placeholder="제목을 입력해주세요" 
-                                                {...field} 
-                                                className="h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]" 
+                                            <Input
+                                                placeholder="제목을 입력해주세요"
+                                                {...field}
+                                                className="h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]"
                                             />
                                         </FormControl>
                                         <FormMessage />
@@ -200,7 +197,9 @@ const EditUnionInfoPage = ({ params }: EditUnionInfoPageProps) => {
                                                 <div className="flex items-center gap-3 overflow-hidden">
                                                     <Paperclip className="h-4 w-4 text-[#5FA37C] shrink-0" />
                                                     <div className="min-w-0">
-                                                        <p className="font-medium truncate text-[14px] text-gray-800">{file.name}</p>
+                                                        <p className="font-medium truncate text-[14px] text-gray-800">
+                                                            {file.name}
+                                                        </p>
                                                         <p className="text-[12px] text-gray-500">
                                                             {formatFileSize(file.size)}
                                                         </p>
@@ -236,31 +235,30 @@ const EditUnionInfoPage = ({ params }: EditUnionInfoPageProps) => {
 
                             {/* 새 파일 업로더 */}
                             <div>
-                                <label className="text-[16px] font-bold text-[#5FA37C] block mb-2">새 첨부파일 추가</label>
-                                <FileUploader
-                                    unionSlug={slug}
-                                    targetType="UNION_INFO"
-                                    readOnly={false}
-                                />
+                                <label className="text-[16px] font-bold text-[#5FA37C] block mb-2">
+                                    새 첨부파일 추가
+                                </label>
+                                <FileUploader unionSlug={slug} targetType="UNION_INFO" readOnly={false} />
                             </div>
 
                             <div className="bg-[#FFF9E6] border border-[#F0AD4E] rounded-[12px] p-4">
                                 <p className="text-[14px] text-[#8B6914]">
-                                    💡 이미지는 본문 에디터에 직접 첨부할 수 있으며, 별도 파일은 아래 파일 첨부 영역을 이용해주세요.
+                                    💡 이미지는 본문 에디터에 직접 첨부할 수 있으며, 별도 파일은 아래 파일 첨부 영역을
+                                    이용해주세요.
                                 </p>
                             </div>
 
                             <div className="flex justify-end gap-3 pt-6 border-t border-[#CCCCCC]">
-                                <Button 
-                                    type="button" 
-                                    variant="outline" 
+                                <Button
+                                    type="button"
+                                    variant="outline"
                                     onClick={() => router.push(`/${slug}/communication/union-info/${id}`)}
                                     className="h-[48px] px-8 text-[16px] border-[#CCCCCC] text-gray-600 hover:bg-gray-50 cursor-pointer"
                                 >
                                     취소
                                 </Button>
-                                <Button 
-                                    type="submit" 
+                                <Button
+                                    type="submit"
                                     disabled={isPending}
                                     className="h-[48px] px-8 text-[16px] bg-[#4E8C6D] hover:bg-[#5FA37C] text-white cursor-pointer"
                                 >
@@ -279,4 +277,3 @@ const EditUnionInfoPage = ({ params }: EditUnionInfoPageProps) => {
 };
 
 export default EditUnionInfoPage;
-

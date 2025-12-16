@@ -2,8 +2,8 @@
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import React, { use, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import { useQuestion, useIncrementQuestionViews, useDeleteQuestion, useAnswerQuestion } from '@/app/_lib/features/question/api/useQuestionHook';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
@@ -13,16 +13,11 @@ import useModalStore from '@/app/_lib/shared/stores/modal/useModalStore';
 import { TextEditor } from '@/app/_lib/widgets/common/text-editor';
 import { Lock, CheckCircle, User } from 'lucide-react';
 
-interface QuestionDetailPageProps {
-    params: Promise<{
-        slug: string;
-        id: string;
-    }>;
-}
-
-const QuestionDetailPage = ({ params }: QuestionDetailPageProps) => {
+const QuestionDetailPage = () => {
     const router = useRouter();
-    const { slug, id } = use(params);
+    const params = useParams();
+    const slug = params.slug as string;
+    const id = params.id as string;
     const questionId = parseInt(id);
     const { isLoading: isUnionLoading } = useSlug();
     const { user, isAdmin } = useAuth();

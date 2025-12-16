@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, use } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import { Edit, Trash2, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
@@ -9,12 +9,9 @@ import { Card, CardHeader } from '@/components/ui/card';
 import { UnionForm, UnionDeleteModal } from '@/app/_lib/features/union-management/ui';
 import { useUnion, useDeleteUnion } from '@/app/_lib/features/union-management/api/useUnionManagementHook';
 
-interface UnionDetailPageProps {
-    params: Promise<{ id: string }>;
-}
-
-export default function UnionDetailPage({ params }: UnionDetailPageProps) {
-    const { id } = use(params);
+export default function UnionDetailPage() {
+    const params = useParams();
+    const id = params.id as string;
     const router = useRouter();
     const { data: union, isLoading, error } = useUnion(id);
     const deleteMutation = useDeleteUnion();

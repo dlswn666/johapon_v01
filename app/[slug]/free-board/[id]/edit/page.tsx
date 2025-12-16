@@ -3,8 +3,8 @@
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
-import React, { use, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useEffect } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -25,16 +25,11 @@ const formSchema = z.object({
     content: z.string().min(1, '내용을 입력해주세요.'),
 });
 
-interface EditFreeBoardPageProps {
-    params: Promise<{
-        slug: string;
-        id: string;
-    }>;
-}
-
-const EditFreeBoardPage = ({ params }: EditFreeBoardPageProps) => {
+const EditFreeBoardPage = () => {
     const router = useRouter();
-    const { slug, id } = use(params);
+    const params = useParams();
+    const slug = params.slug as string;
+    const id = params.id as string;
     const freeBoardId = parseInt(id);
     const { isLoading: isUnionLoading } = useSlug();
 

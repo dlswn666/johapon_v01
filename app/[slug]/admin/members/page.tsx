@@ -115,15 +115,8 @@ export default function MemberManagementPage() {
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const {
-        filter,
-        setFilter,
-        selectedIds,
-        toggleSelect,
-        selectAll,
-        clearSelection,
-        getFilteredInvites,
-    } = useMemberInviteStore();
+    const { filter, setFilter, selectedIds, toggleSelect, selectAll, clearSelection, getFilteredInvites } =
+        useMemberInviteStore();
 
     const filteredInvites = getFilteredInvites();
 
@@ -152,7 +145,7 @@ export default function MemberManagementPage() {
                 .select('*', { count: 'exact' })
                 .order('created_at', { ascending: false });
 
-            if (!isSystemAdmin && union?.id) {
+            if (union?.id) {
                 query = query.eq('union_id', union.id);
             }
 
@@ -338,7 +331,11 @@ export default function MemberManagementPage() {
                 });
 
                 if (errors.length > 0) {
-                    toast.error(`데이터 오류:\n${errors.slice(0, 5).join('\n')}${errors.length > 5 ? `\n외 ${errors.length - 5}건` : ''}`);
+                    toast.error(
+                        `데이터 오류:\n${errors.slice(0, 5).join('\n')}${
+                            errors.length > 5 ? `\n외 ${errors.length - 5}건` : ''
+                        }`
+                    );
                     return;
                 }
 
@@ -388,10 +385,8 @@ export default function MemberManagementPage() {
     };
 
     const handleSelectAllPending = () => {
-        const pendingIds = filteredInvites
-            .filter((invite) => invite.status === 'PENDING')
-            .map((invite) => invite.id);
-        
+        const pendingIds = filteredInvites.filter((invite) => invite.status === 'PENDING').map((invite) => invite.id);
+
         if (selectedIds.length === pendingIds.length) {
             clearSelection();
         } else {
@@ -547,7 +542,8 @@ export default function MemberManagementPage() {
                                 />
                             </div>
                             <p className="mt-3 text-xs text-gray-500">
-                                * 업로드 시 기존 데이터와 비교하여 자동으로 추가/삭제됩니다. 이미 수락한 조합원도 엑셀에 없으면 삭제됩니다.
+                                * 업로드 시 기존 데이터와 비교하여 자동으로 추가/삭제됩니다. 이미 수락한 조합원도 엑셀에
+                                없으면 삭제됩니다.
                             </p>
                         </div>
 
@@ -586,7 +582,9 @@ export default function MemberManagementPage() {
                                     <div className="text-center py-12">
                                         <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                                         <p className="text-gray-600">초대된 조합원이 없습니다</p>
-                                        <p className="text-sm text-gray-500 mt-1">엑셀 파일을 업로드하여 조합원을 추가하세요</p>
+                                        <p className="text-sm text-gray-500 mt-1">
+                                            엑셀 파일을 업로드하여 조합원을 추가하세요
+                                        </p>
                                     </div>
                                 ) : (
                                     <>
@@ -615,10 +613,7 @@ export default function MemberManagementPage() {
                                                 </thead>
                                                 <tbody className="divide-y divide-gray-100">
                                                     {filteredInvites.map((invite) => (
-                                                        <tr
-                                                            key={invite.id}
-                                                            className="hover:bg-gray-50"
-                                                        >
+                                                        <tr key={invite.id} className="hover:bg-gray-50">
                                                             <td className="py-3 px-4">
                                                                 <Checkbox
                                                                     checked={selectedIds.includes(invite.id)}
@@ -636,7 +631,9 @@ export default function MemberManagementPage() {
                                                                     {invite.property_address}
                                                                 </button>
                                                             </td>
-                                                            <td className="py-3 px-4">{getStatusBadge(invite.status)}</td>
+                                                            <td className="py-3 px-4">
+                                                                {getStatusBadge(invite.status)}
+                                                            </td>
                                                             <td className="py-3 px-4 text-center">
                                                                 <button
                                                                     onClick={() => setDeleteTarget(invite)}
@@ -762,7 +759,8 @@ export default function MemberManagementPage() {
                                                         key={userData.id}
                                                         className={cn(
                                                             'hover:bg-gray-50 cursor-pointer transition-colors',
-                                                            userData.user_status === 'PENDING_APPROVAL' && 'bg-yellow-50/50'
+                                                            userData.user_status === 'PENDING_APPROVAL' &&
+                                                                'bg-yellow-50/50'
                                                         )}
                                                         onClick={() => openUserDetailModal(userData)}
                                                     >
@@ -870,10 +868,7 @@ export default function MemberManagementPage() {
                 </AlertDialog>
 
                 {/* 초대 상세 모달 */}
-                <MemberDetailModal
-                    invite={detailTarget}
-                    onClose={() => setDetailTarget(null)}
-                />
+                <MemberDetailModal invite={detailTarget} onClose={() => setDetailTarget(null)} />
 
                 {/* 사용자 상세 모달 */}
                 {showDetailModal && selectedUser && (

@@ -2,8 +2,8 @@
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import React, { use } from 'react';
-import { useRouter } from 'next/navigation';
+import React from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import { useNotice, useIncrementNoticeViews, useDeleteNotice } from '@/app/_lib/features/notice/api/useNoticeHook';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import ConfirmModal from '@/app/_lib/widgets/modal/ConfirmModal';
@@ -12,16 +12,11 @@ import useModalStore from '@/app/_lib/shared/stores/modal/useModalStore';
 import { FileUploader } from '@/app/_lib/widgets/common/file-uploader/FileUploader';
 import { CommentSection } from '@/app/_lib/widgets/common/comment';
 
-interface NoticeDetailPageProps {
-    params: Promise<{
-        slug: string;
-        id: string;
-    }>;
-}
-
-const NoticeDetailPage = ({ params }: NoticeDetailPageProps) => {
+const NoticeDetailPage = () => {
     const router = useRouter();
-    const { slug, id } = use(params);
+    const params = useParams();
+    const slug = params.slug as string;
+    const id = params.id as string;
     const noticeId = parseInt(id);
     const { isLoading: isUnionLoading } = useSlug();
     

@@ -2,6 +2,9 @@ import type { Metadata } from 'next';
 import { Noto_Sans_KR } from 'next/font/google';
 import './globals.css';
 import { Providers } from '@/app/_lib/shared/tanstack/QueryProvider';
+import { ConfirmModal } from '@/app/_lib/widgets/modal';
+import { AlertModal } from '@/app/_lib/widgets/modal';
+import { Toaster } from 'react-hot-toast';
 
 const notoSansKR = Noto_Sans_KR({
     variable: '--font-noto-sans-kr',
@@ -22,7 +25,12 @@ export default function RootLayout({
     return (
         <html lang="ko">
             <body className={`${notoSansKR.variable} font-sans antialiased`}>
-                <Providers>{children}</Providers>
+                <Providers>
+                    {children}
+                    <ConfirmModal />
+                    <AlertModal />
+                    <Toaster />
+                </Providers>
             </body>
         </html>
     );
