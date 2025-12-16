@@ -16,7 +16,7 @@ export default function UnionHomePage() {
     const { isAuthenticated, isLoading: isAuthLoading, authUser, user } = useAuth();
     const { data: heroSlides, isLoading: isSlidesLoading } = useHeroSlides(union?.id);
     const { data: popupNotices } = usePopupNotices(union?.id);
-    
+
     // 로그인 성공 후 홈페이지로 전환하기 위한 상태
     const [forceShowHome, setForceShowHome] = useState(false);
 
@@ -50,12 +50,7 @@ export default function UnionHomePage() {
     // 비로그인 상태 또는 회원가입이 필요한 신규 사용자: 랜딩 페이지 표시
     // needsRegistration: authUser는 있지만 user가 없는 경우 (회원가입 모달 표시 필요)
     if ((!isAuthenticated || needsRegistration) && !forceShowHome) {
-        return (
-            <LandingPage
-                unionName={union.name}
-                onLoginSuccess={() => setForceShowHome(true)}
-            />
-        );
+        return <LandingPage unionName={union.name} onLoginSuccess={() => setForceShowHome(true)} />;
     }
 
     // 로그인 상태 또는 테스트 로그인 후: 기존 홈페이지 표시
