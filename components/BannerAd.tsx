@@ -19,7 +19,7 @@ interface BannerAdProps {
  * - 광고 없을 시 모집 문구 표시
  */
 export function BannerAd({ imageUrl, linkUrl, description }: BannerAdProps) {
-    const router = useRouter();
+    const _router = useRouter();
 
     const handleRecruitClick = () => {
         // 관리자 문의 또는 광고 안내 페이지로 이동 (추후 구현)

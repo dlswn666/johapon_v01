@@ -53,15 +53,14 @@ export default function UnionNavigation() {
         },
     ];
 
-    // 관리자 전용 메뉴
+    // 관리자 전용 메뉴 (회원/사용자 관리를 조합원 관리로 통합)
     const adminNavItem: NavItem = {
         id: 'admin',
         label: '관리자',
         subItems: [
             { href: `/${slug}/admin/slides`, label: '슬라이드 관리' },
             { href: `/${slug}/admin/alimtalk`, label: '알림톡 내역' },
-            { href: `/${slug}/admin/members`, label: '회원 관리' },
-            { href: `/${slug}/admin/users`, label: '사용자 관리' },
+            { href: `/${slug}/admin/members`, label: '조합원 관리' },
         ],
     };
 

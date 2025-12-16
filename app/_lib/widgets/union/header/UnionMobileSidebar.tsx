@@ -31,7 +31,7 @@ interface NavigationItem {
 
 export default function UnionMobileSidebar({ isOpen, onClose }: UnionMobileSidebarProps) {
     const { union } = useSlug();
-    const { user, isSystemAdmin, logout } = useAuth();
+    const { user, isAdmin, isSystemAdmin, logout } = useAuth();
     const router = useRouter();
     const pathname = usePathname();
 
@@ -60,26 +60,32 @@ export default function UnionMobileSidebar({ isOpen, onClose }: UnionMobileSideb
                 { label: '자유 게시판', href: `/${union?.slug || ''}/communication/free-board` },
             ],
         },
-        {
+    ];
+
+    // 관리자 메뉴 (조합 관리자 이상만 볼 수 있음)
+    if (isAdmin) {
+        navigationItems.push({
             id: 'admin',
             label: '관리자',
             href: `/${union?.slug || ''}/admin`,
             subItems: [
                 { label: '슬라이드 관리', href: `/${union?.slug || ''}/admin/slides` },
                 { label: '알림톡 내역', href: `/${union?.slug || ''}/admin/alimtalk` },
-                { label: '회원 관리', href: `/${union?.slug || ''}/admin/members` },
-                { label: '사용자 관리', href: `/${union?.slug || ''}/admin/users` },
+                { label: '조합원 관리', href: `/${union?.slug || ''}/admin/members` },
             ],
-        },
-    ];
+        });
+    }
 
-    // 시스템 관리자 메뉴 추가
+    // 시스템 관리자 메뉴 추가 (시스템 관리자만 볼 수 있음)
     if (isSystemAdmin) {
         navigationItems.push({
             id: 'system-admin',
             label: '시스템 관리',
-            href: '/admin/unions',
-            subItems: [{ label: '조합 관리', href: '/admin/unions' }],
+            href: '/systemAdmin',
+            subItems: [
+                { label: '대시보드', href: '/systemAdmin' },
+                { label: '조합 관리', href: '/systemAdmin/unions' },
+            ],
         });
     }
 
