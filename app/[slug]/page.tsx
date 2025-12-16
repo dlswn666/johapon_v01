@@ -23,8 +23,22 @@ export default function UnionHomePage() {
     // 신규 사용자: authUser는 있지만 user가 없는 경우 (회원가입 필요)
     const needsRegistration = !!authUser && !user;
 
+    // [DEBUG] 조합 페이지 렌더링 상태
+    console.log('[DEBUG] 🏠 UnionHomePage 렌더링');
+    console.log('[DEBUG] 상태:', {
+        isUnionLoading,
+        isAuthLoading,
+        isAuthenticated,
+        authUser: authUser ? { id: authUser.id, email: authUser.email } : 'null',
+        user: user ? { id: user.id, name: user.name, role: user.role } : 'null',
+        needsRegistration,
+        forceShowHome,
+        unionSlug: union?.slug || 'null',
+    });
+
     // 로딩 중
     if (isUnionLoading || isAuthLoading) {
+        console.log('[DEBUG] ⏳ 로딩 중...');
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-50">
                 <div className="flex flex-col items-center gap-3">
@@ -37,6 +51,7 @@ export default function UnionHomePage() {
 
     // 조합 정보 없음
     if (!union) {
+        console.log('[DEBUG] ❌ 조합 정보 없음');
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-50">
                 <div className="text-center space-y-4">
@@ -49,9 +64,20 @@ export default function UnionHomePage() {
 
     // 비로그인 상태 또는 회원가입이 필요한 신규 사용자: 랜딩 페이지 표시
     // needsRegistration: authUser는 있지만 user가 없는 경우 (회원가입 모달 표시 필요)
-    if ((!isAuthenticated || needsRegistration) && !forceShowHome) {
+    const showLandingPage = (!isAuthenticated || needsRegistration) && !forceShowHome;
+    console.log('[DEBUG] 랜딩 페이지 표시 조건:', {
+        '!isAuthenticated': !isAuthenticated,
+        needsRegistration,
+        forceShowHome,
+        showLandingPage,
+    });
+
+    if (showLandingPage) {
+        console.log('[DEBUG] 👉 LandingPage 렌더링 (회원가입 모달 포함)');
         return <LandingPage unionName={union.name} onLoginSuccess={() => setForceShowHome(true)} />;
     }
+
+    console.log('[DEBUG] 👉 홈페이지 렌더링 (로그인 완료)');
 
     // 로그인 상태 또는 테스트 로그인 후: 기존 홈페이지 표시
     return (

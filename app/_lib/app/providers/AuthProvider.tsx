@@ -164,8 +164,22 @@ export default function AuthProvider({ children }: AuthProviderProps) {
      */
     const handleSessionWithUser = useCallback(
         async (currentSession: Session | null, event: AuthChangeEvent): Promise<void> => {
+            console.log('[DEBUG] 🔄 handleSessionWithUser 호출');
+            console.log('[DEBUG] event:', event);
+            console.log(
+                '[DEBUG] currentSession:',
+                currentSession
+                    ? {
+                          user_id: currentSession.user?.id,
+                          email: currentSession.user?.email,
+                          provider: currentSession.user?.app_metadata?.provider,
+                      }
+                    : 'null'
+            );
+
             // 세션이 없으면 상태 초기화
             if (!currentSession?.user) {
+                console.log('[DEBUG] ⚠️ 세션이 없음 - 상태 초기화');
                 setSession(null);
                 setAuthUser(null);
                 setUser(null);
@@ -176,7 +190,7 @@ export default function AuthProvider({ children }: AuthProviderProps) {
 
             // 이미 같은 세션을 처리 중이면 중복 실행 방지
             if (processingSessionRef.current === sessionId) {
-                console.log(`Already processing session for user ${sessionId}, skipping...`);
+                console.log(`[DEBUG] ⏭️ Already processing session for user ${sessionId}, skipping...`);
                 return;
             }
 
@@ -184,25 +198,39 @@ export default function AuthProvider({ children }: AuthProviderProps) {
             setIsUserFetching(true);
 
             try {
-                console.log(`Processing session for event: ${event}, user: ${sessionId}`);
+                console.log(`[DEBUG] 🔍 Processing session for event: ${event}, user: ${sessionId}`);
 
                 const linkedUser = await fetchUserByAuthId(sessionId);
 
+                console.log(
+                    '[DEBUG] fetchUserByAuthId 결과:',
+                    linkedUser
+                        ? {
+                              id: linkedUser.id,
+                              name: linkedUser.name,
+                              role: linkedUser.role,
+                              user_status: linkedUser.user_status,
+                          }
+                        : 'null (연결된 사용자 없음)'
+                );
+
                 if (linkedUser) {
                     // 연결된 사용자가 있으면 정상 처리
+                    console.log('[DEBUG] ✅ 연결된 사용자 발견 - 정상 처리');
                     setSession(currentSession);
                     setAuthUser(currentSession.user);
                     setUser(linkedUser);
                 } else {
                     // 연결된 사용자가 없으면 세션은 유지하되 user만 null
                     // (회원가입 플로우를 위해 authUser는 설정)
-                    console.log(`${event}: No linked user found. Setting authUser without user...`);
+                    console.log(`[DEBUG] ⚠️ ${event}: No linked user found. Setting authUser without user...`);
+                    console.log('[DEBUG] 👉 회원가입 모달이 표시되어야 함');
                     setSession(currentSession);
                     setAuthUser(currentSession.user);
                     setUser(null);
                 }
             } catch (error) {
-                console.error(`Error handling session for ${event}:`, error);
+                console.error(`[DEBUG] ❌ Error handling session for ${event}:`, error);
                 // 에러 발생 시에도 세션 정보는 설정
                 setSession(currentSession);
                 setAuthUser(currentSession.user);
@@ -210,6 +238,7 @@ export default function AuthProvider({ children }: AuthProviderProps) {
             } finally {
                 setIsUserFetching(false);
                 processingSessionRef.current = null;
+                console.log('[DEBUG] handleSessionWithUser 완료');
             }
         },
         [fetchUserByAuthId]
@@ -233,27 +262,46 @@ export default function AuthProvider({ children }: AuthProviderProps) {
         const {
             data: { subscription },
         } = supabase.auth.onAuthStateChange(async (event, newSession) => {
-            console.log('Auth state changed:', event, newSession?.user?.id ?? 'no user');
+            console.log('[DEBUG] 🔔 onAuthStateChange 이벤트 발생');
+            console.log('[DEBUG] event:', event);
+            console.log(
+                '[DEBUG] newSession:',
+                newSession
+                    ? {
+                          user_id: newSession.user?.id,
+                          email: newSession.user?.email,
+                          provider: newSession.user?.app_metadata?.provider,
+                      }
+                    : 'null'
+            );
+            console.log('[DEBUG] isInitializedRef.current:', isInitializedRef.current);
 
             switch (event) {
                 case 'INITIAL_SESSION':
                     // 초기 세션 이벤트: 페이지 로드 시 첫 번째로 발생
                     // 이 이벤트에서 모든 초기화 처리
+                    console.log('[DEBUG] 📍 INITIAL_SESSION 처리 시작');
                     await handleSessionWithUser(newSession, event);
                     setIsLoading(false);
                     isInitializedRef.current = true;
+                    console.log('[DEBUG] ✅ INITIAL_SESSION 처리 완료');
                     break;
 
                 case 'SIGNED_IN':
                     // 로그인 이벤트: 실제 로그인 시에만 처리 (초기화 완료 후)
                     // INITIAL_SESSION 이후에 발생하는 SIGNED_IN만 처리
+                    console.log('[DEBUG] 📍 SIGNED_IN 이벤트');
                     if (isInitializedRef.current) {
+                        console.log('[DEBUG] isInitialized=true → handleSessionWithUser 호출');
                         await handleSessionWithUser(newSession, event);
+                    } else {
+                        console.log('[DEBUG] ⏭️ isInitialized=false → SIGNED_IN 스킵');
                     }
                     break;
 
                 case 'SIGNED_OUT':
                     // 로그아웃 이벤트
+                    console.log('[DEBUG] 📍 SIGNED_OUT 처리');
                     setSession(null);
                     setAuthUser(null);
                     setUser(null);
@@ -261,6 +309,7 @@ export default function AuthProvider({ children }: AuthProviderProps) {
 
                 case 'TOKEN_REFRESHED':
                     // 토큰 갱신 이벤트: 세션만 업데이트
+                    console.log('[DEBUG] 📍 TOKEN_REFRESHED 처리');
                     if (newSession) {
                         setSession(newSession);
                     }
@@ -268,6 +317,7 @@ export default function AuthProvider({ children }: AuthProviderProps) {
 
                 case 'USER_UPDATED':
                     // 사용자 정보 업데이트 이벤트
+                    console.log('[DEBUG] 📍 USER_UPDATED 처리');
                     if (newSession) {
                         setSession(newSession);
                         setAuthUser(newSession.user);
@@ -276,6 +326,7 @@ export default function AuthProvider({ children }: AuthProviderProps) {
 
                 case 'PASSWORD_RECOVERY':
                     // 비밀번호 복구 이벤트
+                    console.log('[DEBUG] 📍 PASSWORD_RECOVERY 처리');
                     if (newSession) {
                         setSession(newSession);
                         setAuthUser(newSession.user);
@@ -283,7 +334,7 @@ export default function AuthProvider({ children }: AuthProviderProps) {
                     break;
 
                 default:
-                    console.log('Unhandled auth event:', event);
+                    console.log('[DEBUG] ⚠️ Unhandled auth event:', event);
             }
         });
 

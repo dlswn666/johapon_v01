@@ -202,6 +202,9 @@ function SystemAdminLayoutContent({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const { isLoading, isUserFetching, isSystemAdmin, isAuthenticated } = useAuth();
 
+    // 개발 환경에서는 인증 체크 우회 (테스트용)
+    const isDevelopment = process.env.NODE_ENV === 'development';
+
     // 로그인 페이지는 레이아웃 체크 제외
     const isLoginPage = pathname === '/systemAdmin/login';
 
@@ -209,6 +212,12 @@ function SystemAdminLayoutContent({ children }: { children: React.ReactNode }) {
     const isFullLoading = isLoading || isUserFetching;
 
     useEffect(() => {
+        // 개발 환경에서는 인증 체크 우회
+        if (isDevelopment) {
+            console.log('[DEV] 개발 환경: 시스템 관리자 인증 체크 우회');
+            return;
+        }
+
         // 로딩 중이면 리다이렉트 하지 않음
         if (!isFullLoading && !isLoginPage) {
             if (!isAuthenticated) {
@@ -217,11 +226,26 @@ function SystemAdminLayoutContent({ children }: { children: React.ReactNode }) {
                 router.push('/systemAdmin/login');
             }
         }
-    }, [isFullLoading, isAuthenticated, isSystemAdmin, isLoginPage, router]);
+    }, [isFullLoading, isAuthenticated, isSystemAdmin, isLoginPage, router, isDevelopment]);
 
     // 로그인 페이지는 레이아웃 없이 렌더링 (로딩 상태와 관계없이)
     if (isLoginPage) {
         return <>{children}</>;
+    }
+
+    // 개발 환경에서는 로딩/인증 체크 우회
+    if (isDevelopment) {
+        return (
+            <div className="min-h-screen bg-slate-900">
+                <div className="bg-yellow-500/20 border-b border-yellow-500/30 px-4 py-2 text-center">
+                    <span className="text-yellow-400 text-sm font-medium">
+                        ⚠️ 개발 모드: 인증 체크 우회 중
+                    </span>
+                </div>
+                <SystemAdminHeader />
+                <main className="container mx-auto px-4 py-8">{children}</main>
+            </div>
+        );
     }
 
     // 초기 로딩 또는 user 정보 fetch 중
