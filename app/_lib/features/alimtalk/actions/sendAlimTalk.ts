@@ -102,7 +102,8 @@ async function generateProxyToken(unionId: string, userId: string): Promise<stri
 // 알림톡 버튼 인터페이스
 interface AlimtalkButton {
     name: string;
-    linkType: string; // WL: 웹링크
+    linkType: string; // WL: 웹링크, AL: 앱링크, DS: 배송조회, BK: 봇키워드, MD: 메시지전달
+    linkTypeName: string; // 웹링크, 앱링크, 배송조회, 봇키워드, 메시지전달
     linkMo: string; // 모바일 웹 링크
     linkPc?: string; // PC 웹 링크
 }
@@ -252,6 +253,7 @@ export async function sendAdminInviteAlimTalk(params: AdminInviteAlimTalkParams)
         {
             name: '관리자 등록하기',
             linkType: 'WL',
+            linkTypeName: '웹링크',
             linkMo: 'https://#{도메인}/invite/admin?token=#{초대토큰}',
             linkPc: '',
         },
