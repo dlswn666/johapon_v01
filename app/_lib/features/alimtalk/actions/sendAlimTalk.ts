@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@/app/_lib/shared/supabase/server';
+import { SignJWT } from 'jose';
 
 // ============================================================
 // 공통 타입 정의
@@ -26,7 +27,8 @@ interface AdminInviteAlimTalkParams {
     adminName: string;
     phoneNumber: string;
     email: string;
-    inviteUrl: string;
+    domain: string; // 도메인 (예: johapon.com)
+    inviteToken: string; // 초대 토큰
     expiresAt: string;
 }
 
@@ -66,7 +68,32 @@ interface AlimTalkResult {
 
 // 알림톡 프록시 서버 URL
 const PROXY_URL = process.env.ALIMTALK_PROXY_URL || 'http://localhost:3100';
-const PROXY_TOKEN = process.env.ALIMTALK_PROXY_TOKEN || '';
+
+// ============================================================
+// JWT 토큰 생성 (프록시 서버 인증용)
+// ============================================================
+
+/**
+ * 프록시 서버 인증을 위한 JWT 토큰 생성
+ * @param unionId 조합 ID
+ * @param userId 사용자 ID
+ * @returns JWT 토큰 문자열
+ */
+async function generateProxyToken(unionId: string, userId: string): Promise<string> {
+    const jwtSecret = process.env.JWT_SECRET;
+
+    if (!jwtSecret) {
+        throw new Error('JWT_SECRET 환경변수가 설정되지 않았습니다.');
+    }
+
+    const secret = new TextEncoder().encode(jwtSecret);
+
+    return await new SignJWT({ unionId, userId })
+        .setProtectedHeader({ alg: 'HS256' })
+        .setIssuedAt()
+        .setExpirationTime('5m') // 5분 후 만료
+        .sign(secret);
+}
 
 // ============================================================
 // 프록시 서버 호출 헬퍼
@@ -87,11 +114,14 @@ async function callProxyServer(payload: {
     }[];
 }): Promise<AlimTalkResult> {
     try {
+        // 동적 JWT 토큰 생성
+        const token = await generateProxyToken(payload.unionId, payload.senderId);
+
         const response = await fetch(`${PROXY_URL}/api/alimtalk/send`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${PROXY_TOKEN}`,
+                Authorization: `Bearer ${token}`,
             },
             body: JSON.stringify(payload),
         });
@@ -183,7 +213,7 @@ export async function sendAlimTalk(params: SendAlimTalkParams): Promise<AlimTalk
 // ============================================================
 
 export async function sendAdminInviteAlimTalk(params: AdminInviteAlimTalkParams): Promise<AlimTalkResult> {
-    const { unionId, unionName, adminName, phoneNumber, email, inviteUrl, expiresAt } = params;
+    const { unionId, unionName, adminName, phoneNumber, email, domain, inviteToken, expiresAt } = params;
 
     const supabase = await createClient();
     const {
@@ -194,24 +224,25 @@ export async function sendAdminInviteAlimTalk(params: AdminInviteAlimTalkParams)
         return { success: false, error: '인증되지 않은 사용자입니다.' };
     }
 
+    // 초대 URL 생성
+    const inviteUrl = `https://${domain}/invite/admin?token=${inviteToken}`;
+
     // 테스트 모드 체크
     const isTestMode = process.env.ALIMTALK_TEST_MODE === 'true';
 
     if (isTestMode) {
         console.log('\n' + '='.repeat(60));
-        console.log('📱 [알림톡 발송 예정] 관리자 초대');
+        console.log('📱 [알림톡 발송 예정] 관리자 초대 (UE_1877)');
         console.log('='.repeat(60));
         console.log('조합명:', unionName);
         console.log('수신자:', adminName);
         console.log('전화번호:', phoneNumber);
         console.log('이메일:', email);
+        console.log('도메인:', domain);
+        console.log('초대 토큰:', inviteToken);
         console.log('만료 시간:', new Date(expiresAt).toLocaleString('ko-KR'));
         console.log('-'.repeat(60));
-        console.log('📝 메시지 내용 (예시):');
-        console.log(`[${unionName}] 관리자 초대`);
-        console.log(`${adminName}님, ${unionName} 조합의 관리자로 초대되었습니다.`);
-        console.log(`아래 링크를 통해 가입을 완료해 주세요.`);
-        console.log(`${inviteUrl}`);
+        console.log('📝 초대 URL:', inviteUrl);
         console.log('-'.repeat(60));
         console.log('⚠️ 테스트 모드입니다. 실제 발송되지 않습니다.');
         console.log('='.repeat(60) + '\n');
@@ -231,18 +262,19 @@ export async function sendAdminInviteAlimTalk(params: AdminInviteAlimTalkParams)
     return callProxyServer({
         unionId,
         senderId: user.id,
-        templateCode: 'ADMIN_INVITE', // 템플릿 코드는 알리고에서 실제 등록된 코드로 변경 필요
+        templateCode: 'UE_1877',
         templateName: '관리자 초대',
-        title: `[${unionName}] 관리자 초대`,
+        title: `[${unionName}] 관리자 등록 안내`,
         recipients: [
             {
                 phoneNumber,
                 name: adminName,
                 variables: {
-                    unionName,
-                    adminName,
-                    inviteUrl,
-                    expiresAt: new Date(expiresAt).toLocaleString('ko-KR'),
+                    조합명: unionName,
+                    이름: adminName,
+                    만료시간: new Date(expiresAt).toLocaleString('ko-KR'),
+                    도메인: domain,
+                    초대토큰: inviteToken,
                 },
             },
         ],
@@ -418,11 +450,23 @@ export async function syncAlimtalkTemplates(): Promise<{
     };
 }> {
     try {
+        const supabase = await createClient();
+        const {
+            data: { user },
+        } = await supabase.auth.getUser();
+
+        if (!user) {
+            return { success: false, error: '인증되지 않은 사용자입니다.' };
+        }
+
+        // 시스템 관리자용 JWT 토큰 생성 (unionId는 'system'으로 설정)
+        const token = await generateProxyToken('system', user.id);
+
         const response = await fetch(`${PROXY_URL}/api/alimtalk/sync-templates`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${PROXY_TOKEN}`,
+                Authorization: `Bearer ${token}`,
             },
         });
 

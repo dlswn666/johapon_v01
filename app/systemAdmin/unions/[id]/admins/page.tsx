@@ -12,6 +12,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useUnion } from '@/app/_lib/features/union-management/api/useUnionManagementHook';
 import { useAdminInvites, useCreateAdminInvite, useDeleteAdminInvite, useUnionAdmins, useRevokeAdmin, useGenerateInviteLink } from '@/app/_lib/features/admin-invite/api/useAdminInviteHook';
 import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
+import { sendAdminInviteAlimTalk } from '@/app/_lib/features/alimtalk/actions/sendAlimTalk';
 
 export default function UnionAdminsPage() {
     const router = useRouter();
@@ -61,7 +62,25 @@ export default function UnionAdminsPage() {
             const link = generateLink(result.invite_token);
             await navigator.clipboard.writeText(link);
             
-            toast.success('초대 링크가 생성되어 클립보드에 복사되었습니다.');
+            // 알림톡 발송
+            const alimtalkResult = await sendAdminInviteAlimTalk({
+                unionId,
+                unionName: union?.name || '',
+                adminName: formData.name,
+                phoneNumber: formData.phoneNumber,
+                email: formData.email,
+                domain: window.location.host,
+                inviteToken: result.invite_token,
+                expiresAt: result.expires_at,
+            });
+
+            if (alimtalkResult.success) {
+                toast.success('초대 링크가 생성되고 알림톡이 발송되었습니다.');
+            } else {
+                toast.success('초대 링크가 생성되었습니다. (알림톡 발송 실패)');
+                console.error('알림톡 발송 실패:', alimtalkResult.error);
+            }
+            
             setFormData({ name: '', phoneNumber: '', email: '' });
         } catch (error) {
             console.error('Create invite error:', error);
