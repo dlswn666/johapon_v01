@@ -227,7 +227,7 @@ export const useUnionAdmins = (unionId: string | undefined, enabled: boolean = t
     });
 };
 
-// 관리자 권한 해제
+// 관리자 권한 해제 (role만 USER로 변경, union_id는 유지)
 export const useRevokeAdmin = () => {
     return useMutation({
         mutationFn: async ({ userId, unionId }: { userId: string; unionId: string }) => {
@@ -235,7 +235,6 @@ export const useRevokeAdmin = () => {
                 .from('users')
                 .update({
                     role: 'USER',
-                    union_id: null,
                 })
                 .eq('id', userId)
                 .eq('union_id', unionId)

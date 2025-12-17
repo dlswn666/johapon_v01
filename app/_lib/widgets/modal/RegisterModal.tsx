@@ -401,7 +401,27 @@ export function RegisterModal({
 
             // Union ID 조회
             let unionId = null;
-            if (slug) {
+
+            // 관리자 초대인 경우 admin_invites 테이블에서 union_id 조회
+            if (inviteData?.invite_type === 'admin' && inviteData?.invite_token) {
+                const { data: inviteInfo } = await supabase
+                    .from('admin_invites')
+                    .select('union_id')
+                    .eq('invite_token', inviteData.invite_token)
+                    .single();
+                unionId = inviteInfo?.union_id || null;
+            }
+            // 조합원 초대인 경우 member_invites 테이블에서 union_id 조회
+            else if (inviteData?.invite_type === 'member' && inviteData?.invite_token) {
+                const { data: inviteInfo } = await supabase
+                    .from('member_invites')
+                    .select('union_id')
+                    .eq('invite_token', inviteData.invite_token)
+                    .single();
+                unionId = inviteInfo?.union_id || null;
+            }
+            // 그 외의 경우 slug로 조회
+            else if (slug) {
                 const { data: unionData } = await supabase.from('unions').select('id').eq('slug', slug).single();
                 unionId = unionData?.id || null;
             }
