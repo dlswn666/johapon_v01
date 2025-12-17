@@ -22,10 +22,12 @@ export const useAdminInvites = (unionId: string | undefined, enabled: boolean = 
 
             const { data, error } = await supabase
                 .from('admin_invites')
-                .select(`
+                .select(
+                    `
                     *,
                     union:unions(id, name, slug)
-                `)
+                `
+                )
                 .eq('union_id', unionId)
                 .order('created_at', { ascending: false });
 
@@ -48,10 +50,12 @@ export const useAdminInviteByToken = (token: string | undefined, enabled: boolea
 
             const { data, error } = await supabase
                 .from('admin_invites')
-                .select(`
+                .select(
+                    `
                     *,
                     union:unions(id, name, slug)
-                `)
+                `
+                )
                 .eq('invite_token', token)
                 .single();
 
@@ -62,14 +66,11 @@ export const useAdminInviteByToken = (token: string | undefined, enabled: boolea
             // 만료 여부 확인
             const now = new Date();
             const expiresAt = new Date(data.expires_at);
-            
+
             if (data.status === 'PENDING' && now > expiresAt) {
                 // 만료된 경우 상태 업데이트
-                await supabase
-                    .from('admin_invites')
-                    .update({ status: 'EXPIRED' })
-                    .eq('id', data.id);
-                
+                await supabase.from('admin_invites').update({ status: 'EXPIRED' }).eq('id', data.id);
+
                 return { ...data, status: 'EXPIRED' } as AdminInviteWithUnion;
             }
 
@@ -107,10 +108,12 @@ export const useCreateAdminInvite = () => {
             const { data, error } = await supabase
                 .from('admin_invites')
                 .insert([newInvite])
-                .select(`
+                .select(
+                    `
                     *,
                     union:unions(id, name, slug)
-                `)
+                `
+                )
                 .single();
 
             if (error) {
@@ -121,10 +124,11 @@ export const useCreateAdminInvite = () => {
         },
         onSuccess: (data) => {
             // 테스트용: 생성된 초대 URL을 콘솔에 출력
-            const inviteUrl = typeof window !== 'undefined' 
-                ? `${window.location.origin}/invite/${data.invite_token}`
-                : `/invite/${data.invite_token}`;
-            
+            const inviteUrl =
+                typeof window !== 'undefined'
+                    ? `${window.location.origin}/invite/admin?token=${data.invite_token}`
+                    : `/invite/admin?token=${data.invite_token}`;
+
             console.log('='.repeat(60));
             console.log('🔗 [관리자 초대] 초대 URL이 생성되었습니다');
             console.log('='.repeat(60));
@@ -146,10 +150,7 @@ export const useCreateAdminInvite = () => {
 export const useDeleteAdminInvite = () => {
     return useMutation({
         mutationFn: async ({ inviteId, unionId }: { inviteId: string; unionId: string }) => {
-            const { error } = await supabase
-                .from('admin_invites')
-                .delete()
-                .eq('id', inviteId);
+            const { error } = await supabase.from('admin_invites').delete().eq('id', inviteId);
 
             if (error) {
                 throw error;
@@ -197,9 +198,9 @@ export const useAcceptAdminInvite = () => {
 export const useGenerateInviteLink = () => {
     return useCallback((token: string) => {
         if (typeof window !== 'undefined') {
-            return `${window.location.origin}/invite/${token}`;
+            return `${window.location.origin}/invite/admin?token=${token}`;
         }
-        return `/invite/${token}`;
+        return `/invite/admin?token=${token}`;
     }, []);
 };
 
@@ -252,4 +253,3 @@ export const useRevokeAdmin = () => {
         },
     });
 };
-

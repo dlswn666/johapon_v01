@@ -99,6 +99,14 @@ async function generateProxyToken(unionId: string, userId: string): Promise<stri
 // 프록시 서버 호출 헬퍼
 // ============================================================
 
+// 알림톡 버튼 인터페이스
+interface AlimtalkButton {
+    name: string;
+    linkType: string; // WL: 웹링크
+    linkMo: string; // 모바일 웹 링크
+    linkPc?: string; // PC 웹 링크
+}
+
 async function callProxyServer(payload: {
     unionId: string;
     senderId: string;
@@ -113,6 +121,8 @@ async function callProxyServer(payload: {
         variables?: Record<string, string>;
         failoverSubject?: string; // 대체 발송 제목 (LMS용)
         failoverMessage?: string; // 대체 발송 내용 (LMS용)
+        content?: string; // 템플릿 메시지 내용 (변수 포함)
+        buttons?: AlimtalkButton[]; // 버튼 정보
     }[];
 }): Promise<AlimTalkResult> {
     try {
@@ -232,6 +242,21 @@ export async function sendAdminInviteAlimTalk(params: AdminInviteAlimTalkParams)
     // 만료시간 포맷
     const formattedExpiresAt = new Date(expiresAt).toLocaleString('ko-KR');
 
+    // 알림톡 템플릿 내용 (DB에 등록된 UE_1877 템플릿과 정확히 일치해야 함)
+    // 변수: #{조합명}, #{이름}, #{만료시간}
+    const templateContent = `[#{조합명}] 관리자 가입 안내\r\n\r\n#{이름}님, 안녕하세요. 요청하신 [#{조합명}]의 관리자 권한 등록을 위해 본인 확인이 필요합니다.\r\n\r\n아래 버튼을 눌러 계정 생성을 완료해 주세요. \r\n(본 메시지는 관리자 권한 신청에 따라 \r\n발송되었습니다.)\r\n\r\n※ 본 링크는 #{만료시간} 까지 유효합니다.`;
+
+    // 버튼 정보 (템플릿에 등록된 버튼과 일치해야 함)
+    // 변수: #{도메인}, #{초대토큰}
+    const buttons: AlimtalkButton[] = [
+        {
+            name: '관리자 등록하기',
+            linkType: 'WL',
+            linkMo: 'https://#{도메인}/invite/admin?token=#{초대토큰}',
+            linkPc: '',
+        },
+    ];
+
     // 대체 발송 메시지 생성 (LMS)
     const failoverSubject = `[${unionName}] 관리자 등록 안내`;
     const failoverMessage = `[${unionName}] 관리자 가입 안내
@@ -261,6 +286,8 @@ ${adminName}님, 안녕하세요. 요청하신 [${unionName}]의 관리자 권�
         console.log('만료 시간:', formattedExpiresAt);
         console.log('-'.repeat(60));
         console.log('📝 초대 URL:', inviteUrl);
+        console.log('📝 템플릿 내용:', templateContent);
+        console.log('📝 버튼:', JSON.stringify(buttons, null, 2));
         console.log('-'.repeat(60));
         console.log('📝 대체 발송 메시지 (LMS):');
         console.log('제목:', failoverSubject);
@@ -298,6 +325,8 @@ ${adminName}님, 안녕하세요. 요청하신 [${unionName}]의 관리자 권�
                     도메인: domain,
                     초대토큰: inviteToken,
                 },
+                content: templateContent,
+                buttons,
                 failoverSubject,
                 failoverMessage,
             },
