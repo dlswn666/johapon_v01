@@ -111,6 +111,8 @@ async function callProxyServer(payload: {
         phoneNumber: string;
         name: string;
         variables?: Record<string, string>;
+        failoverSubject?: string; // 대체 발송 제목 (LMS용)
+        failoverMessage?: string; // 대체 발송 내용 (LMS용)
     }[];
 }): Promise<AlimTalkResult> {
     try {
@@ -227,6 +229,22 @@ export async function sendAdminInviteAlimTalk(params: AdminInviteAlimTalkParams)
     // 초대 URL 생성
     const inviteUrl = `https://${domain}/invite/admin?token=${inviteToken}`;
 
+    // 만료시간 포맷
+    const formattedExpiresAt = new Date(expiresAt).toLocaleString('ko-KR');
+
+    // 대체 발송 메시지 생성 (LMS)
+    const failoverSubject = `[${unionName}] 관리자 등록 안내`;
+    const failoverMessage = `[${unionName}] 관리자 가입 안내
+
+${adminName}님, 안녕하세요. 요청하신 [${unionName}]의 관리자 권한 등록을 위해 본인 확인이 필요합니다.
+
+아래 링크를 클릭하여 계정 생성을 완료해 주세요.
+(본 메시지는 관리자 권한 신청에 따라 발송되었습니다.)
+
+▶ 가입 링크: ${inviteUrl}
+
+※ 본 링크는 ${formattedExpiresAt} 까지 유효합니다.`;
+
     // 테스트 모드 체크
     const isTestMode = process.env.ALIMTALK_TEST_MODE === 'true';
 
@@ -240,9 +258,13 @@ export async function sendAdminInviteAlimTalk(params: AdminInviteAlimTalkParams)
         console.log('이메일:', email);
         console.log('도메인:', domain);
         console.log('초대 토큰:', inviteToken);
-        console.log('만료 시간:', new Date(expiresAt).toLocaleString('ko-KR'));
+        console.log('만료 시간:', formattedExpiresAt);
         console.log('-'.repeat(60));
         console.log('📝 초대 URL:', inviteUrl);
+        console.log('-'.repeat(60));
+        console.log('📝 대체 발송 메시지 (LMS):');
+        console.log('제목:', failoverSubject);
+        console.log('내용:', failoverMessage);
         console.log('-'.repeat(60));
         console.log('⚠️ 테스트 모드입니다. 실제 발송되지 않습니다.');
         console.log('='.repeat(60) + '\n');
@@ -272,10 +294,12 @@ export async function sendAdminInviteAlimTalk(params: AdminInviteAlimTalkParams)
                 variables: {
                     조합명: unionName,
                     이름: adminName,
-                    만료시간: new Date(expiresAt).toLocaleString('ko-KR'),
+                    만료시간: formattedExpiresAt,
                     도메인: domain,
                     초대토큰: inviteToken,
                 },
+                failoverSubject,
+                failoverMessage,
             },
         ],
     });
