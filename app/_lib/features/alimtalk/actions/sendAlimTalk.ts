@@ -244,16 +244,14 @@ export async function sendAdminInviteAlimTalk(params: AdminInviteAlimTalkParams)
     // 만료시간 포맷
     const formattedExpiresAt = new Date(expiresAt).toLocaleString('ko-KR');
 
-    // 강조표기형 서브타이틀 (템플릿에 등록된 서브타이틀과 일치해야 함)
-    // 변수: #{조합명}
-    const emtitle = `[#{조합명}] 관리자 등록 안내`;
-
     // 알림톡 템플릿 내용 (DB에 등록된 UE_1877 템플릿과 정확히 일치해야 함)
     // 변수: #{조합명}, #{이름}, #{만료시간}
+    // 참고: 강조표기형 서브타이틀(emtitle)은 서버에서 템플릿 정보를 조회하여 자동 적용됨
     const templateContent = `[#{조합명}] 관리자 가입 안내\r\n\r\n#{이름}님, 안녕하세요. 요청하신 [#{조합명}]의 관리자 권한 등록을 위해 본인 확인이 필요합니다.\r\n\r\n아래 버튼을 눌러 계정 생성을 완료해 주세요. \r\n(본 메시지는 관리자 권한 신청에 따라 \r\n발송되었습니다.)\r\n\r\n※ 본 링크는 #{만료시간} 까지 유효합니다.`;
 
     // 버튼 정보 (템플릿에 등록된 버튼과 일치해야 함)
     // 변수: #{도메인}, #{초대토큰}
+    // 참고: 버튼 정보가 없으면 서버에서 템플릿의 버튼 정보를 사용
     const buttons: AlimtalkButton[] = [
         {
             name: '관리자 등록하기',
@@ -293,8 +291,8 @@ ${adminName}님, 안녕하세요. 요청하신 [${unionName}]의 관리자 권�
         console.log('만료 시간:', formattedExpiresAt);
         console.log('-'.repeat(60));
         console.log('📝 초대 URL:', inviteUrl);
-        console.log('📝 서브타이틀 (emtitle):', emtitle);
         console.log('📝 템플릿 내용:', templateContent);
+        console.log('📝 서브타이틀 (emtitle): 서버에서 템플릿 정보로 자동 적용');
         console.log('📝 버튼:', JSON.stringify(buttons, null, 2));
         console.log('-'.repeat(60));
         console.log('📝 대체 발송 메시지 (LMS):');
@@ -316,6 +314,7 @@ ${adminName}님, 안녕하세요. 요청하신 [${unionName}]의 관리자 권�
     }
 
     // 프록시 서버 호출
+    // 참고: emtitle(강조표기형 서브타이틀)은 서버에서 템플릿 정보(template_em_type, template_title)를 조회하여 자동 적용
     return callProxyServer({
         unionId,
         senderId: user.id,
@@ -333,7 +332,6 @@ ${adminName}님, 안녕하세요. 요청하신 [${unionName}]의 관리자 권�
                     도메인: domain,
                     초대토큰: inviteToken,
                 },
-                emtitle, // 강조표기형 서브타이틀
                 content: templateContent,
                 buttons,
                 failoverSubject,
