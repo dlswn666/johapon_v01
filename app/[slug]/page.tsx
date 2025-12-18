@@ -10,6 +10,7 @@ import { HeroSlider } from '@/app/_lib/widgets/hero-slider';
 import { UnionNewsSection } from '@/app/_lib/widgets/union-news-section';
 import { NoticePopup } from '@/app/_lib/widgets/notice-popup';
 import { LandingPage } from '@/app/_lib/widgets/landing';
+import { UserStatusModal } from '@/app/_lib/widgets/modal';
 
 export default function UnionHomePage() {
     const { union, isLoading: isUnionLoading } = useSlug();
@@ -100,6 +101,9 @@ export default function UnionHomePage() {
             {popupNotices?.map((notice, index) => (
                 <NoticePopup key={notice.id} notice={notice} unionName={union.name} offsetIndex={index} />
             ))}
+
+            {/* 사용자 상태 모달 (승인 대기, 승인 거부) */}
+            <UserStatusModal />
         </>
     );
 }

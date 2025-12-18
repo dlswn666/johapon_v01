@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Clock } from 'lucide-react';
+import { Clock, Home } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ApprovalPendingModalProps {
@@ -55,16 +55,18 @@ export function ApprovalPendingModal({ isOpen, onClose, userName }: ApprovalPend
                         </p>
                     </div>
 
-                    {/* 확인 버튼 */}
+                    {/* 조합홈 페이지로 이동 버튼 */}
                     <button
                         onClick={onClose}
                         className={cn(
                             'w-full h-12 rounded-lg font-medium text-white',
                             'bg-blue-500 hover:bg-blue-600',
-                            'transition-colors'
+                            'transition-colors',
+                            'flex items-center justify-center gap-2'
                         )}
                     >
-                        확인
+                        <Home className="w-5 h-5" />
+                        조합홈 페이지로 이동
                     </button>
                 </div>
             </div>

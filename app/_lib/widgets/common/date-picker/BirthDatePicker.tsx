@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { ChevronDown } from 'lucide-react';
 
@@ -17,26 +17,33 @@ interface BirthDatePickerProps {
  * - 년도: 1900년 ~ 현재년도
  * - 월: 1월 ~ 12월
  * - 일: 선택된 년/월에 따라 동적 변경 (윤년 고려)
+ * - 어떤 순서로 선택해도 값이 유지됨 (로컬 상태 사용)
  */
 export function BirthDatePicker({ value, onChange, className, disabled = false }: BirthDatePickerProps) {
     const currentYear = new Date().getFullYear();
 
-    // value에서 년, 월, 일 파싱 (상태 대신 직접 계산)
-    const parsedDate = useMemo(() => {
+    // 로컬 상태: 부분 선택을 저장하기 위해 사용
+    const [localYear, setLocalYear] = useState<string>('');
+    const [localMonth, setLocalMonth] = useState<string>('');
+    const [localDay, setLocalDay] = useState<string>('');
+
+    // value prop이 변경되면 로컬 상태도 동기화
+    useEffect(() => {
         if (value) {
             const parts = value.split('-');
             if (parts.length === 3) {
-                return {
-                    year: parts[0],
-                    month: parts[1].replace(/^0/, ''), // 앞의 0 제거
-                    day: parts[2].replace(/^0/, ''), // 앞의 0 제거
-                };
+                // eslint-disable-next-line react-hooks/set-state-in-effect -- value prop 동기화 필요
+                setLocalYear(parts[0]);
+                setLocalMonth(parts[1].replace(/^0/, '')); // 앞의 0 제거
+                setLocalDay(parts[2].replace(/^0/, '')); // 앞의 0 제거
             }
+        } else {
+            // value가 비어있으면 로컬 상태도 초기화
+            setLocalYear('');
+            setLocalMonth('');
+            setLocalDay('');
         }
-        return { year: '', month: '', day: '' };
     }, [value]);
-
-    const { year, month, day } = parsedDate;
 
     // 년도 옵션 생성 (현재년도 ~ 1900년, 내림차순)
     const yearOptions = useMemo(() => {
@@ -69,18 +76,17 @@ export function BirthDatePicker({ value, onChange, className, disabled = false }
         [isLeapYear]
     );
 
-    // 일 옵션 생성 (선택된 년/월에 따라)
+    // 일 옵션 생성 (선택된 년/월에 따라 - 로컬 상태 사용)
     const dayOptions = useMemo(() => {
-        const y = parseInt(year) || currentYear;
-        const m = parseInt(month) || 1;
+        const y = parseInt(localYear) || currentYear;
+        const m = parseInt(localMonth) || 1;
         const maxDay = getDaysInMonth(y, m);
         return Array.from({ length: maxDay }, (_, i) => i + 1);
-    }, [year, month, currentYear, getDaysInMonth]);
+    }, [localYear, localMonth, currentYear, getDaysInMonth]);
 
-    // 값 변경 시 전체 날짜 업데이트
-    const handleChange = useCallback(
+    // 3개 값이 모두 있을 때 onChange 호출
+    const triggerOnChange = useCallback(
         (newYear: string, newMonth: string, newDay: string) => {
-            // 모든 값이 입력된 경우에만 onChange 호출
             if (newYear && newMonth && newDay) {
                 const formattedMonth = newMonth.padStart(2, '0');
 
@@ -95,36 +101,39 @@ export function BirthDatePicker({ value, onChange, className, disabled = false }
                 const finalDay = String(validDay).padStart(2, '0');
 
                 onChange(`${newYear}-${formattedMonth}-${finalDay}`);
-            } else if (!newYear && !newMonth && !newDay) {
-                // 모든 값이 비어있으면 빈 문자열 전달
-                onChange('');
             }
         },
         [getDaysInMonth, onChange]
     );
 
+    // 년도 변경 핸들러: 로컬 상태 업데이트 후 3개 모두 있으면 onChange 호출
     const handleYearChange = useCallback(
         (e: React.ChangeEvent<HTMLSelectElement>) => {
             const newYear = e.target.value;
-            handleChange(newYear, month, day);
+            setLocalYear(newYear);
+            triggerOnChange(newYear, localMonth, localDay);
         },
-        [handleChange, month, day]
+        [triggerOnChange, localMonth, localDay]
     );
 
+    // 월 변경 핸들러: 로컬 상태 업데이트 후 3개 모두 있으면 onChange 호출
     const handleMonthChange = useCallback(
         (e: React.ChangeEvent<HTMLSelectElement>) => {
             const newMonth = e.target.value;
-            handleChange(year, newMonth, day);
+            setLocalMonth(newMonth);
+            triggerOnChange(localYear, newMonth, localDay);
         },
-        [handleChange, year, day]
+        [triggerOnChange, localYear, localDay]
     );
 
+    // 일 변경 핸들러: 로컬 상태 업데이트 후 3개 모두 있으면 onChange 호출
     const handleDayChange = useCallback(
         (e: React.ChangeEvent<HTMLSelectElement>) => {
             const newDay = e.target.value;
-            handleChange(year, month, newDay);
+            setLocalDay(newDay);
+            triggerOnChange(localYear, localMonth, newDay);
         },
-        [handleChange, year, month]
+        [triggerOnChange, localYear, localMonth]
     );
 
     const selectClassName = cn(
@@ -143,7 +152,7 @@ export function BirthDatePicker({ value, onChange, className, disabled = false }
             {/* 년도 선택 */}
             <div className={selectWrapperClassName}>
                 <select
-                    value={year}
+                    value={localYear}
                     onChange={handleYearChange}
                     disabled={disabled}
                     className={cn(selectClassName, 'w-full')}
@@ -162,7 +171,7 @@ export function BirthDatePicker({ value, onChange, className, disabled = false }
             {/* 월 선택 */}
             <div className={selectWrapperClassName}>
                 <select
-                    value={month}
+                    value={localMonth}
                     onChange={handleMonthChange}
                     disabled={disabled}
                     className={cn(selectClassName, 'w-full')}
@@ -181,7 +190,7 @@ export function BirthDatePicker({ value, onChange, className, disabled = false }
             {/* 일 선택 */}
             <div className={selectWrapperClassName}>
                 <select
-                    value={day}
+                    value={localDay}
                     onChange={handleDayChange}
                     disabled={disabled}
                     className={cn(selectClassName, 'w-full')}
