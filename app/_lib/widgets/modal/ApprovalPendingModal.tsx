@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useRouter } from 'next/navigation';
 import { Clock, Home } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -15,6 +16,14 @@ interface ApprovalPendingModalProps {
  * 회원가입 신청 후 관리자 승인을 기다리는 사용자에게 표시
  */
 export function ApprovalPendingModal({ isOpen, onClose, userName }: ApprovalPendingModalProps) {
+    const router = useRouter();
+
+    // 조합온 마케팅 페이지로 이동
+    const handleGoToMarketing = () => {
+        onClose();
+        router.push('/');
+    };
+
     if (!isOpen) return null;
 
     return (
@@ -55,9 +64,9 @@ export function ApprovalPendingModal({ isOpen, onClose, userName }: ApprovalPend
                         </p>
                     </div>
 
-                    {/* 조합홈 페이지로 이동 버튼 */}
+                    {/* 조합온 마케팅 페이지로 이동 버튼 */}
                     <button
-                        onClick={onClose}
+                        onClick={handleGoToMarketing}
                         className={cn(
                             'w-full h-12 rounded-lg font-medium text-white',
                             'bg-blue-500 hover:bg-blue-600',
@@ -66,7 +75,7 @@ export function ApprovalPendingModal({ isOpen, onClose, userName }: ApprovalPend
                         )}
                     >
                         <Home className="w-5 h-5" />
-                        조합홈 페이지로 이동
+                        확인
                     </button>
                 </div>
             </div>
