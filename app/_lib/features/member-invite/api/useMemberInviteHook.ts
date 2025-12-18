@@ -116,6 +116,9 @@ export const useSyncMemberInvites = () => {
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: ['member-invites', variables.unionId] });
         },
+        meta: {
+            skipErrorToast: true, // 컴포넌트에서 직접 에러 처리하므로 전역 토스트 비활성화
+        },
     });
 };
 

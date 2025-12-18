@@ -28,12 +28,12 @@ const UnionInfoDetailPage = () => {
     const { mutate: deleteFile } = useDeleteUnionInfoFile();
     const { openConfirmModal, openAlertModal } = useModalStore();
 
-    // 조회수 증가 (컴포넌트 마운트 시 1회)
+    // 조회수 증가 (컴포넌트 마운트 시 1회, union 로드 완료 후)
     useEffect(() => {
-        if (postId) {
+        if (postId && !isUnionLoading) {
             incrementViews(postId);
         }
-    }, [postId, incrementViews]);
+    }, [postId, isUnionLoading, incrementViews]);
 
     const handleDelete = () => {
         openConfirmModal({

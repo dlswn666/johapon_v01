@@ -32,12 +32,12 @@ const QuestionDetailPage = () => {
     const [isAnswerMode, setIsAnswerMode] = useState(false);
     const [answerContent, setAnswerContent] = useState('');
 
-    // 조회수 증가 (컴포넌트 마운트 시 1회)
+    // 조회수 증가 (컴포넌트 마운트 시 1회, union 로드 완료 후)
     React.useEffect(() => {
-        if (questionId) {
+        if (questionId && !isUnionLoading) {
             incrementViews(questionId);
         }
-    }, [questionId, incrementViews]);
+    }, [questionId, isUnionLoading, incrementViews]);
 
     const handleDelete = () => {
         openConfirmModal({

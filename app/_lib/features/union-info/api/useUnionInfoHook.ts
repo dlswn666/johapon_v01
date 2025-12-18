@@ -252,7 +252,7 @@ export const useAddUnionInfo = () => {
                 message: '게시글이 성공적으로 등록되었습니다.',
                 type: 'success',
                 onOk: () => {
-                    const path = getUnionPath(slug, '/union-info');
+                    const path = getUnionPath(slug, '/communication/union-info');
                     router.push(path);
                 },
             });
@@ -338,7 +338,7 @@ export const useUpdateUnionInfo = () => {
                 message: '게시글이 성공적으로 수정되었습니다.',
                 type: 'success',
                 onOk: () => {
-                    const path = getUnionPath(slug, `/union-info/${data.id}`);
+                    const path = getUnionPath(slug, `/communication/union-info/${data.id}`);
                     router.push(path);
                 },
             });
@@ -405,7 +405,7 @@ export const useDeleteUnionInfo = () => {
             queryClient.removeQueries({ queryKey: ['union-info', 'detail', postId] });
             queryClient.removeQueries({ queryKey: ['union-info', 'list', union?.id] });
 
-            const path = getUnionPath(slug, '/union-info');
+            const path = getUnionPath(slug, '/communication/union-info');
             router.push(path);
 
             openAlertModal({

@@ -1,9 +1,37 @@
 'use client';
 
-import Link from 'next/link';
+import { useMemo } from 'react';
 import { Home, ArrowLeft } from 'lucide-react';
 
 export default function NotFoundPage() {
+    // 이전 페이지 URL에서 slug 추출하여 홈 URL 결정
+    const homeUrl = useMemo(() => {
+        if (typeof window !== 'undefined') {
+            const referrer = document.referrer;
+            if (referrer) {
+                try {
+                    const url = new URL(referrer);
+                    const pathParts = url.pathname.split('/').filter(Boolean);
+                    if (pathParts.length > 0) {
+                        const potentialSlug = pathParts[0];
+                        // 마케팅 페이지 경로가 아닌 경우에만 slug로 판단
+                        const marketingPaths = ['contact', 'privacy', 'terms', 'auth', 'api', 'invite', 'member-invite', 'systemAdmin', 'admin', 'swagger'];
+                        if (!marketingPaths.includes(potentialSlug) && !potentialSlug.startsWith('(')) {
+                            return `/${potentialSlug}`;
+                        }
+                    }
+                } catch {
+                    // referrer 파싱 실패 시 무시
+                }
+            }
+        }
+        return '/';
+    }, []);
+
+    const handleGoHome = () => {
+        window.location.href = homeUrl;
+    };
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
             <div className="max-w-lg w-full text-center">
@@ -38,13 +66,13 @@ export default function NotFoundPage() {
                         <ArrowLeft className="w-5 h-5" />
                         이전 페이지
                     </button>
-                    <Link
-                        href="/"
+                    <button
+                        onClick={handleGoHome}
                         className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 shadow-lg shadow-orange-500/25"
                     >
                         <Home className="w-5 h-5" />
                         홈으로 이동
-                    </Link>
+                    </button>
                 </div>
 
                 {/* 장식 요소 */}

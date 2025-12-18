@@ -248,7 +248,7 @@ export const useAddQuestion = () => {
                 message: '질문이 성공적으로 등록되었습니다.',
                 type: 'success',
                 onOk: () => {
-                    const path = getUnionPath(slug, '/qna');
+                    const path = getUnionPath(slug, '/news/qna');
                     router.push(path);
                 },
             });
@@ -308,7 +308,7 @@ export const useUpdateQuestion = () => {
                 message: '질문이 성공적으로 수정되었습니다.',
                 type: 'success',
                 onOk: () => {
-                    const path = getUnionPath(slug, `/qna/${data.id}`);
+                    const path = getUnionPath(slug, `/news/qna/${data.id}`);
                     router.push(path);
                 },
             });
@@ -361,7 +361,7 @@ export const useDeleteQuestion = () => {
             queryClient.removeQueries({ queryKey: ['questions', union?.id, questionId] });
             queryClient.removeQueries({ queryKey: ['questions', union?.id] });
 
-            const path = getUnionPath(slug, '/qna');
+            const path = getUnionPath(slug, '/news/qna');
             router.push(path);
 
             openAlertModal({

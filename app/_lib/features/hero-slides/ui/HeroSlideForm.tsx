@@ -83,8 +83,9 @@ export default function HeroSlideForm({ mode, initialData, onSubmit, isSubmittin
         e.preventDefault();
         if (isReadOnly || !onSubmit) return;
 
-        // 이미지 필수 검증
-        if (!pendingImageUrl && !formData.image_url) {
+        // 이미지 필수 검증: imageInfo가 있거나, pendingImageUrl이 있거나, formData.image_url이 있어야 함
+        const hasImage = imageInfo || pendingImageUrl || formData.image_url;
+        if (!hasImage) {
             openAlertModal({
                 title: '입력 오류',
                 message: '슬라이드 이미지를 등록해주세요.',

@@ -13,7 +13,7 @@ import toast from 'react-hot-toast';
  * - gcTime: 10분 (가비지 컬렉션 시간)
  * - retry: 4xx 에러는 재시도하지 않음, 최대 2번 재시도
  * - retryDelay: exponential backoff (최대 30초)
- * - refetchOnWindowFocus: 브라우저 포커스 시 자동 리페치
+ * - refetchOnWindowFocus: false (탭 전환 시 로딩 이슈 방지를 위해 비활성화)
  * - refetchOnReconnect: 네트워크 재접속 시 자동 리페치
  */
 
@@ -99,7 +99,7 @@ export const queryClient = new QueryClient({
             gcTime: 10 * 60 * 1000, // 10분 (구 cacheTime)
             retry: shouldRetry,
             retryDelay: getRetryDelay, // Exponential backoff
-            refetchOnWindowFocus: true,
+            refetchOnWindowFocus: false, // 탭 전환 시 자동 리페치 비활성화 (로딩 이슈 방지)
             refetchOnReconnect: true,
             refetchOnMount: true,
             // 네트워크 오프라인 시에도 캐시된 데이터 표시

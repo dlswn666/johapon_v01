@@ -8,6 +8,36 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 export default function ForbiddenPage() {
     const router = useRouter();
 
+    // URL에서 slug 추출 (예: /test-union/admin/... -> test-union)
+    const getHomeUrl = () => {
+        // 이전 페이지 URL에서 slug 추출 시도
+        if (typeof window !== 'undefined') {
+            const referrer = document.referrer;
+            if (referrer) {
+                try {
+                    const url = new URL(referrer);
+                    const pathParts = url.pathname.split('/').filter(Boolean);
+                    if (pathParts.length > 0) {
+                        const potentialSlug = pathParts[0];
+                        // 마케팅 페이지 경로가 아닌 경우에만 slug로 판단
+                        const marketingPaths = ['contact', 'privacy', 'terms', 'auth', 'api', 'invite', 'member-invite', 'systemAdmin', 'admin', 'swagger'];
+                        if (!marketingPaths.includes(potentialSlug) && !potentialSlug.startsWith('(')) {
+                            return `/${potentialSlug}`;
+                        }
+                    }
+                } catch {
+                    // referrer 파싱 실패 시 무시
+                }
+            }
+        }
+        return '/';
+    };
+
+    const handleGoHome = () => {
+        const homeUrl = getHomeUrl();
+        router.push(homeUrl);
+    };
+
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4">
             <Card className="w-full max-w-md bg-slate-800/80 backdrop-blur-sm border-slate-700 shadow-2xl">
@@ -26,7 +56,7 @@ export default function ForbiddenPage() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                     <Button
-                        onClick={() => router.push('/')}
+                        onClick={handleGoHome}
                         className="w-full bg-primary hover:bg-primary/90"
                     >
                         <Home className="w-4 h-4 mr-2" />
