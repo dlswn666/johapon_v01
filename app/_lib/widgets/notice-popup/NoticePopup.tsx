@@ -95,7 +95,7 @@ export function NoticePopup({
                 </h3>
                 <button
                     onClick={handleClose}
-                    className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+                    className="p-1 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
                     aria-label="팝업 닫기"
                 >
                     <X className="w-5 h-5 text-gray-500" />
@@ -131,7 +131,7 @@ export function NoticePopup({
                 {/* 닫기 버튼 */}
                 <button
                     onClick={handleClose}
-                    className="text-sm text-white hover:text-gray-300 transition-colors font-medium"
+                    className="text-sm text-white hover:text-gray-300 transition-colors font-medium cursor-pointer"
                 >
                     닫기
                 </button>

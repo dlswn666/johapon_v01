@@ -470,7 +470,7 @@ export default function MemberManagementPage() {
                             <button
                                 onClick={() => setActiveTab('invite')}
                                 className={cn(
-                                    'flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors',
+                                    'flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors cursor-pointer',
                                     activeTab === 'invite'
                                         ? 'border-[#4E8C6D] text-[#4E8C6D]'
                                         : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -482,7 +482,7 @@ export default function MemberManagementPage() {
                             <button
                                 onClick={() => setActiveTab('approval')}
                                 className={cn(
-                                    'flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors',
+                                    'flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors cursor-pointer',
                                     activeTab === 'approval'
                                         ? 'border-[#4E8C6D] text-[#4E8C6D]'
                                         : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -565,7 +565,7 @@ export default function MemberManagementPage() {
                                             <button
                                                 key={btn.key}
                                                 onClick={() => setFilter(btn.key)}
-                                                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                                                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors cursor-pointer ${
                                                     filter === btn.key
                                                         ? 'bg-[#4E8C6D] text-white'
                                                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -625,7 +625,7 @@ export default function MemberManagementPage() {
                                                             <td className="py-3 px-4">
                                                                 <button
                                                                     onClick={() => setDetailTarget(invite)}
-                                                                    className="text-gray-900 hover:text-[#4E8C6D] transition-colors flex items-center gap-2"
+                                                                    className="text-gray-900 hover:text-[#4E8C6D] transition-colors flex items-center gap-2 cursor-pointer"
                                                                 >
                                                                     <Eye className="w-4 h-4 text-gray-400" />
                                                                     {invite.property_address}
@@ -637,7 +637,7 @@ export default function MemberManagementPage() {
                                                             <td className="py-3 px-4 text-center">
                                                                 <button
                                                                     onClick={() => setDeleteTarget(invite)}
-                                                                    className="p-2 text-gray-500 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                                                    className="p-2 text-gray-500 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                                                                 >
                                                                     <Trash2 className="w-4 h-4" />
                                                                 </button>
@@ -816,7 +816,7 @@ export default function MemberManagementPage() {
                                                 <button
                                                     onClick={() => setPage((p) => Math.max(1, p - 1))}
                                                     disabled={page === 1}
-                                                    className="p-2 rounded-lg border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                                                    className="p-2 rounded-lg border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 cursor-pointer"
                                                 >
                                                     <ChevronLeft className="w-5 h-5" />
                                                 </button>
@@ -826,7 +826,7 @@ export default function MemberManagementPage() {
                                                 <button
                                                     onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                                                     disabled={page === totalPages}
-                                                    className="p-2 rounded-lg border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                                                    className="p-2 rounded-lg border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 cursor-pointer"
                                                 >
                                                     <ChevronRight className="w-5 h-5" />
                                                 </button>
@@ -956,7 +956,7 @@ export default function MemberManagementPage() {
                                                 })
                                             }
                                             disabled={newRole === selectedUser.role || updateRoleMutation.isPending}
-                                            className="px-6 h-12 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-[14px] font-medium"
+                                            className="px-6 h-12 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-[14px] font-medium cursor-pointer"
                                         >
                                             변경
                                         </button>
@@ -994,7 +994,7 @@ export default function MemberManagementPage() {
                                         setShowDetailModal(false);
                                         setSelectedUser(null);
                                     }}
-                                    className="flex-1 h-12 rounded-xl border border-gray-300 text-gray-700 hover:bg-gray-100 transition-colors text-[14px] font-medium"
+                                    className="flex-1 h-12 rounded-xl border border-gray-300 text-gray-700 hover:bg-gray-100 transition-colors text-[14px] font-medium cursor-pointer"
                                 >
                                     닫기
                                 </button>
@@ -1009,7 +1009,7 @@ export default function MemberManagementPage() {
                                                 })
                                             }
                                             disabled={rejectMutation.isPending}
-                                            className="flex-1 h-12 rounded-xl bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 text-[14px] font-medium"
+                                            className="flex-1 h-12 rounded-xl bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 text-[14px] font-medium cursor-pointer"
                                         >
                                             <XCircle className="w-5 h-5" />
                                             <span>반려</span>
@@ -1017,7 +1017,7 @@ export default function MemberManagementPage() {
                                         <button
                                             onClick={() => approveMutation.mutate(selectedUser.id)}
                                             disabled={approveMutation.isPending}
-                                            className="flex-1 h-12 rounded-xl bg-[#4E8C6D] text-white hover:bg-[#3d7058] transition-colors disabled:opacity-50 flex items-center justify-center gap-2 text-[14px] font-medium"
+                                            className="flex-1 h-12 rounded-xl bg-[#4E8C6D] text-white hover:bg-[#3d7058] transition-colors disabled:opacity-50 flex items-center justify-center gap-2 text-[14px] font-medium cursor-pointer"
                                         >
                                             <CheckCircle className="w-5 h-5" />
                                             <span>승인</span>

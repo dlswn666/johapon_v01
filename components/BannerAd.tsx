@@ -86,7 +86,7 @@ export function BannerAd({ imageUrl, linkUrl, description }: BannerAdProps) {
                     </div>
                     <button 
                         onClick={handleRecruitClick}
-                        className="w-full py-2.5 bg-[#4E8C6D] hover:bg-[#3d7a5c] text-white rounded-lg text-sm font-bold transition-colors shadow-sm flex items-center justify-center gap-1.5"
+                        className="w-full py-2.5 bg-[#4E8C6D] hover:bg-[#3d7a5c] text-white rounded-lg text-sm font-bold transition-colors shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
                     >
                         <span>문의하기</span>
                         <ExternalLink className="w-3.5 h-3.5" />
