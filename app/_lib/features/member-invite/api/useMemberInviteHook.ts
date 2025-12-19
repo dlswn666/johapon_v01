@@ -1,11 +1,12 @@
 'use client';
 
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 import { supabase } from '@/app/_lib/shared/supabase/client';
 import { queryClient } from '@/app/_lib/shared/tanstack/queryClient';
 import { MemberInvite, MemberInviteWithUnion, SyncMemberInvitesResult } from '@/app/_lib/shared/type/database.types';
 import useMemberInviteStore from '../model/useMemberInviteStore';
+import { sendBulkMemberInviteAlimTalk } from '@/app/_lib/features/alimtalk/actions/sendAlimTalk';
 
 // 조합별 조합원 초대 목록 조회
 export const useMemberInvites = (unionId: string | undefined, enabled: boolean = true) => {
@@ -211,5 +212,77 @@ export const useMemberInvite = (inviteId: string | undefined, enabled: boolean =
         },
         enabled: !!inviteId && enabled,
     });
+};
+
+// 일괄 알림톡 발송 Progress 타입
+export interface BulkSendProgress {
+    totalBatches: number;
+    completedBatches: number;
+    totalRecipients: number;
+    sentCount: number;
+    failCount: number;
+    kakaoCount: number;
+    smsCount: number;
+}
+
+// 조합원 일괄 알림톡 발송
+export const useSendBulkMemberAlimtalk = () => {
+    const [progress, setProgress] = useState<BulkSendProgress | null>(null);
+
+    const mutation = useMutation({
+        mutationFn: async (input: {
+            unionId: string;
+            unionName: string;
+            domain: string;
+            inviteIds: string[];
+        }) => {
+            // 선택된 초대 정보 조회
+            const { data: invites, error } = await supabase
+                .from('member_invites')
+                .select('*')
+                .in('id', input.inviteIds)
+                .eq('status', 'PENDING'); // PENDING 상태만 발송
+
+            if (error) {
+                throw new Error('초대 정보 조회에 실패했습니다.');
+            }
+
+            if (!invites || invites.length === 0) {
+                throw new Error('발송할 대상이 없습니다. (대기중 상태만 발송 가능)');
+            }
+
+            // 발송 대상 구성
+            const members = invites.map((invite) => ({
+                name: invite.name,
+                phoneNumber: invite.phone_number,
+                inviteToken: invite.invite_token,
+                expiresAt: invite.expires_at,
+            }));
+
+            // 알림톡 일괄 발송 (500건씩 배치 처리)
+            const result = await sendBulkMemberInviteAlimTalk(
+                {
+                    unionId: input.unionId,
+                    unionName: input.unionName,
+                    domain: input.domain,
+                    members,
+                },
+                (progressData) => {
+                    setProgress(progressData);
+                }
+            );
+
+            return result;
+        },
+        onSettled: () => {
+            // 발송 완료 후 progress 초기화 (약간의 딜레이)
+            setTimeout(() => setProgress(null), 2000);
+        },
+        meta: {
+            skipErrorToast: true, // 컴포넌트에서 직접 에러 처리
+        },
+    });
+
+    return { ...mutation, progress };
 };
 

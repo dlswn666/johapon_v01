@@ -37,21 +37,31 @@ interface MemberInviteAlimTalkParams {
     unionName: string;
     memberName: string;
     phoneNumber: string;
-    propertyAddress: string;
-    inviteUrl: string;
+    domain: string; // 도메인 (예: johapon.kr)
+    inviteToken: string;
     expiresAt: string;
 }
 
 interface BulkMemberInviteAlimTalkParams {
     unionId: string;
     unionName: string;
+    domain: string; // 도메인 (예: johapon.kr)
     members: {
         name: string;
         phoneNumber: string;
-        propertyAddress: string;
-        inviteUrl: string;
+        inviteToken: string;
         expiresAt: string;
     }[];
+}
+
+interface BulkSendProgress {
+    totalBatches: number;
+    completedBatches: number;
+    totalRecipients: number;
+    sentCount: number;
+    failCount: number;
+    kakaoCount: number;
+    smsCount: number;
 }
 
 interface AlimTalkResult {
@@ -342,11 +352,11 @@ ${adminName}님, 안녕하세요. 요청하신 [${unionName}]의 관리자 권�
 }
 
 // ============================================================
-// 조합원 초대 알림톡 발송 (단건)
+// 조합원 초대 알림톡 발송 (단건) - UE_1876 템플릿 사용
 // ============================================================
 
 export async function sendMemberInviteAlimTalk(params: MemberInviteAlimTalkParams): Promise<AlimTalkResult> {
-    const { unionId, unionName, memberName, phoneNumber, propertyAddress, inviteUrl, expiresAt } = params;
+    const { unionId, unionName, memberName, phoneNumber, domain, inviteToken, expiresAt } = params;
 
     const supabase = await createClient();
     const {
@@ -357,25 +367,60 @@ export async function sendMemberInviteAlimTalk(params: MemberInviteAlimTalkParam
         return { success: false, error: '인증되지 않은 사용자입니다.' };
     }
 
+    // 만료시간 포맷
+    const formattedExpiresAt = new Date(expiresAt).toLocaleString('ko-KR');
+
+    // 초대 URL 생성
+    const inviteUrl = `https://${domain}/member-invite/${inviteToken}`;
+
+    // 알림톡 템플릿 내용 (UE_1876 템플릿과 정확히 일치해야 함)
+    // 변수: #{조합명}, #{이름}, #{만료시간}, #{도메인}, #{초대토큰}
+    const templateContent = `[#{조합명}] 조합원 본인 확인 안내\r\n\r\n#{이름}님, 안녕하세요.\r\n#{조합명} 홈페이지를 통해 요청하신 소유주 본인 확인 및 정보 등록 인증 메시지입니다.\r\n\r\n아래 버튼을 눌러 본인 인증 및 가입 절차를 완료해 주세요.\r\n\r\n[인증 안내]\r\n* 본 메시지는 고객님의 본인 인증 요청에 따라 발송되었습니다.\r\n* 타인의 요청이거나 본인이 요청하지 않은 경우 무시하시기 바랍니다.\r\n\r\n유효 시간: #{만료시간} 까지`;
+
+    // 버튼 정보 (UE_1876 템플릿)
+    const buttons: AlimtalkButton[] = [
+        {
+            name: '가입하기',
+            linkType: 'WL',
+            linkTypeName: '웹링크',
+            linkMo: 'https://#{도메인}/member-invite/#{초대토큰}',
+            linkPc: '',
+        },
+    ];
+
+    // 대체 발송 메시지 생성 (LMS)
+    const failoverSubject = `[${unionName}] 조합원 본인 확인 안내`;
+    const failoverMessage = `[${unionName}] 조합원 본인 확인 안내
+
+${memberName}님, 안녕하세요.
+${unionName} 홈페이지를 통해 요청하신 소유주 본인 확인 및 정보 등록 인증 메시지입니다.
+
+아래 링크를 통해 본인 인증 및 가입 절차를 완료해 주세요.
+
+▶ 가입 링크: ${inviteUrl}
+
+[인증 안내]
+* 본 메시지는 고객님의 본인 인증 요청에 따라 발송되었습니다.
+* 타인의 요청이거나 본인이 요청하지 않은 경우 무시하시기 바랍니다.
+
+유효 시간: ${formattedExpiresAt} 까지`;
+
     // 테스트 모드 체크
     const isTestMode = process.env.ALIMTALK_TEST_MODE === 'true';
 
     if (isTestMode) {
         console.log('\n' + '='.repeat(60));
-        console.log('📱 [알림톡 발송 예정] 조합원 초대');
+        console.log('📱 [알림톡 발송 예정] 조합원 본인 확인 안내 (UE_1876)');
         console.log('='.repeat(60));
         console.log('조합명:', unionName);
         console.log('수신자:', memberName);
         console.log('전화번호:', phoneNumber);
-        console.log('물건지 주소:', propertyAddress);
-        console.log('만료 시간:', new Date(expiresAt).toLocaleString('ko-KR'));
+        console.log('도메인:', domain);
+        console.log('초대 토큰:', inviteToken.substring(0, 20) + '...');
+        console.log('만료 시간:', formattedExpiresAt);
         console.log('-'.repeat(60));
-        console.log('📝 메시지 내용 (예시):');
-        console.log(`[${unionName}] 조합원 가입 초대`);
-        console.log(`${memberName}님, ${unionName} 조합의 예비 조합원으로 초대되었습니다.`);
-        console.log(`물건지: ${propertyAddress}`);
-        console.log(`아래 링크를 통해 가입을 완료해 주세요.`);
-        console.log(`${inviteUrl}`);
+        console.log('📝 템플릿 내용:', templateContent);
+        console.log('📝 초대 URL:', inviteUrl);
         console.log('-'.repeat(60));
         console.log('⚠️ 테스트 모드입니다. 실제 발송되지 않습니다.');
         console.log('='.repeat(60) + '\n');
@@ -395,31 +440,40 @@ export async function sendMemberInviteAlimTalk(params: MemberInviteAlimTalkParam
     return callProxyServer({
         unionId,
         senderId: user.id,
-        templateCode: 'MEMBER_INVITE', // 템플릿 코드는 알리고에서 실제 등록된 코드로 변경 필요
-        templateName: '조합원 초대',
-        title: `[${unionName}] 조합원 가입 초대`,
+        templateCode: 'UE_1876',
+        templateName: '조합원 본인 확인 안내',
+        title: `[${unionName}] 조합원 본인 확인 안내`,
         recipients: [
             {
                 phoneNumber,
                 name: memberName,
                 variables: {
-                    unionName,
-                    memberName,
-                    propertyAddress,
-                    inviteUrl,
-                    expiresAt: new Date(expiresAt).toLocaleString('ko-KR'),
+                    조합명: unionName,
+                    이름: memberName,
+                    만료시간: formattedExpiresAt,
+                    도메인: domain,
+                    초대토큰: inviteToken,
                 },
+                content: templateContent,
+                buttons,
+                failoverSubject,
+                failoverMessage,
             },
         ],
     });
 }
 
 // ============================================================
-// 조합원 초대 알림톡 일괄 발송
+// 조합원 초대 알림톡 일괄 발송 (UE_1876 템플릿 사용, 500건씩 배치 처리)
 // ============================================================
 
-export async function sendBulkMemberInviteAlimTalk(params: BulkMemberInviteAlimTalkParams): Promise<AlimTalkResult> {
-    const { unionId, unionName, members } = params;
+const BATCH_SIZE = 500; // 배치당 최대 발송 건수
+
+export async function sendBulkMemberInviteAlimTalk(
+    params: BulkMemberInviteAlimTalkParams,
+    onProgress?: (progress: BulkSendProgress) => void
+): Promise<AlimTalkResult> {
+    const { unionId, unionName, domain, members } = params;
 
     if (members.length === 0) {
         return { success: false, error: '발송할 대상이 없습니다.' };
@@ -439,15 +493,17 @@ export async function sendBulkMemberInviteAlimTalk(params: BulkMemberInviteAlimT
 
     if (isTestMode) {
         console.log('\n' + '='.repeat(70));
-        console.log('📱 [알림톡 일괄 발송 예정] 조합원 초대');
+        console.log('📱 [알림톡 일괄 발송 예정] 조합원 본인 확인 안내 (UE_1876)');
         console.log('='.repeat(70));
         console.log('조합명:', unionName);
+        console.log('도메인:', domain);
         console.log(`총 발송 대상: ${members.length}명`);
+        console.log(`배치 수: ${Math.ceil(members.length / BATCH_SIZE)}개 (${BATCH_SIZE}건씩)`);
         console.log('-'.repeat(70));
 
         members.slice(0, 5).forEach((member, index) => {
             console.log(`[${index + 1}] ${member.name} (${member.phoneNumber})`);
-            console.log(`    주소: ${member.propertyAddress}`);
+            console.log(`    토큰: ${member.inviteToken.substring(0, 20)}...`);
         });
 
         if (members.length > 5) {
@@ -469,28 +525,132 @@ export async function sendBulkMemberInviteAlimTalk(params: BulkMemberInviteAlimT
         };
     }
 
-    // 수신자 목록 구성
-    const recipients = members.map((member) => ({
-        phoneNumber: member.phoneNumber,
-        name: member.name,
-        variables: {
-            unionName,
-            memberName: member.name,
-            propertyAddress: member.propertyAddress,
-            inviteUrl: member.inviteUrl,
-            expiresAt: new Date(member.expiresAt).toLocaleString('ko-KR'),
-        },
-    }));
+    // 500건씩 배치로 분리
+    const batches: typeof members[] = [];
+    for (let i = 0; i < members.length; i += BATCH_SIZE) {
+        batches.push(members.slice(i, i + BATCH_SIZE));
+    }
 
-    // 프록시 서버 호출
-    return callProxyServer({
-        unionId,
-        senderId: user.id,
-        templateCode: 'MEMBER_INVITE_BULK', // 템플릿 코드는 알리고에서 실제 등록된 코드로 변경 필요
-        templateName: '조합원 일괄 초대',
-        title: `[${unionName}] 조합원 가입 초대`,
-        recipients,
-    });
+    console.log(`알림톡 일괄 발송 시작: 총 ${members.length}명, ${batches.length}개 배치`);
+
+    // 결과 집계
+    let totalSentCount = 0;
+    let totalFailCount = 0;
+    let totalKakaoCount = 0;
+    let totalSmsCount = 0;
+    let totalEstimatedCost = 0;
+
+    // 배치별 순차 발송
+    for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+        const batch = batches[batchIndex];
+        console.log(`배치 ${batchIndex + 1}/${batches.length} 발송 중... (${batch.length}명)`);
+
+        // UE_1876 템플릿에 맞게 수신자 목록 구성
+        // 템플릿 변수: #{조합명}, #{이름}, #{만료시간}, #{도메인}, #{초대토큰}
+        const templateContent = `[#{조합명}] 조합원 본인 확인 안내\r\n\r\n#{이름}님, 안녕하세요.\r\n#{조합명} 홈페이지를 통해 요청하신 소유주 본인 확인 및 정보 등록 인증 메시지입니다.\r\n\r\n아래 버튼을 눌러 본인 인증 및 가입 절차를 완료해 주세요.\r\n\r\n[인증 안내]\r\n* 본 메시지는 고객님의 본인 인증 요청에 따라 발송되었습니다.\r\n* 타인의 요청이거나 본인이 요청하지 않은 경우 무시하시기 바랍니다.\r\n\r\n유효 시간: #{만료시간} 까지`;
+
+        // 버튼 정보 (UE_1876 템플릿)
+        const buttons: AlimtalkButton[] = [
+            {
+                name: '가입하기',
+                linkType: 'WL',
+                linkTypeName: '웹링크',
+                linkMo: 'https://#{도메인}/member-invite/#{초대토큰}',
+                linkPc: '',
+            },
+        ];
+
+        const recipients = batch.map((member) => {
+            const formattedExpiresAt = new Date(member.expiresAt).toLocaleString('ko-KR');
+            
+            // 대체 발송 메시지 (LMS)
+            const failoverSubject = `[${unionName}] 조합원 본인 확인 안내`;
+            const failoverMessage = `[${unionName}] 조합원 본인 확인 안내
+
+${member.name}님, 안녕하세요.
+${unionName} 홈페이지를 통해 요청하신 소유주 본인 확인 및 정보 등록 인증 메시지입니다.
+
+아래 링크를 통해 본인 인증 및 가입 절차를 완료해 주세요.
+
+▶ 가입 링크: https://${domain}/member-invite/${member.inviteToken}
+
+[인증 안내]
+* 본 메시지는 고객님의 본인 인증 요청에 따라 발송되었습니다.
+* 타인의 요청이거나 본인이 요청하지 않은 경우 무시하시기 바랍니다.
+
+유효 시간: ${formattedExpiresAt} 까지`;
+
+            return {
+                phoneNumber: member.phoneNumber,
+                name: member.name,
+                variables: {
+                    조합명: unionName,
+                    이름: member.name,
+                    만료시간: formattedExpiresAt,
+                    도메인: domain,
+                    초대토큰: member.inviteToken,
+                },
+                content: templateContent,
+                buttons,
+                failoverSubject,
+                failoverMessage,
+            };
+        });
+
+        // 프록시 서버 호출
+        const result = await callProxyServer({
+            unionId,
+            senderId: user.id,
+            templateCode: 'UE_1876',
+            templateName: '조합원 본인 확인 안내',
+            title: `[${unionName}] 조합원 본인 확인 안내`,
+            recipients,
+        });
+
+        // 결과 집계
+        if (result.success) {
+            totalSentCount += result.sentCount || 0;
+            totalFailCount += result.failCount || 0;
+            totalKakaoCount += result.kakaoCount || 0;
+            totalSmsCount += result.smsCount || 0;
+            totalEstimatedCost += result.estimatedCost || 0;
+        } else {
+            // 배치 실패 시 해당 배치 전체를 실패로 카운트
+            totalFailCount += batch.length;
+            console.error(`배치 ${batchIndex + 1} 발송 실패:`, result.error);
+        }
+
+        // 진행 상황 콜백
+        if (onProgress) {
+            onProgress({
+                totalBatches: batches.length,
+                completedBatches: batchIndex + 1,
+                totalRecipients: members.length,
+                sentCount: totalSentCount,
+                failCount: totalFailCount,
+                kakaoCount: totalKakaoCount,
+                smsCount: totalSmsCount,
+            });
+        }
+
+        // 배치 간 딜레이 (API 과부하 방지)
+        if (batchIndex < batches.length - 1) {
+            await new Promise((resolve) => setTimeout(resolve, 1000)); // 1초 대기
+        }
+    }
+
+    console.log(`알림톡 일괄 발송 완료: 성공 ${totalSentCount}, 실패 ${totalFailCount}, 비용 ${totalEstimatedCost}원`);
+
+    return {
+        success: totalSentCount > 0,
+        message: `알림톡 일괄 발송 완료 - 성공: ${totalSentCount}명, 실패: ${totalFailCount}명`,
+        sentCount: totalSentCount,
+        failCount: totalFailCount,
+        kakaoCount: totalKakaoCount,
+        smsCount: totalSmsCount,
+        estimatedCost: totalEstimatedCost,
+        channelName: '조합온',
+    };
 }
 
 // ============================================================

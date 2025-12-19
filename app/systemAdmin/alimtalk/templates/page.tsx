@@ -247,7 +247,11 @@ export default function SystemAdminTemplatesPage() {
                                     </TableHeader>
                                     <TableBody>
                                         {templates.map((template) => (
-                                            <TableRow key={template.id}>
+                                            <TableRow 
+                                                key={template.id}
+                                                className="hover:bg-gray-50 transition-colors cursor-pointer"
+                                                onClick={() => handleViewDetail(template)}
+                                            >
                                                 <TableCell className="font-mono">
                                                     {template.template_code}
                                                 </TableCell>
@@ -265,7 +269,11 @@ export default function SystemAdminTemplatesPage() {
                                                     <Button
                                                         variant="ghost"
                                                         size="sm"
-                                                        onClick={() => handleViewDetail(template)}
+                                                        className="text-[#4E8C6D] hover:text-[#3d7058] hover:bg-[#4E8C6D]/10"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleViewDetail(template);
+                                                        }}
                                                     >
                                                         상세
                                                     </Button>

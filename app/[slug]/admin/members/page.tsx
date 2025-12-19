@@ -45,6 +45,7 @@ import {
     useMemberInvites,
     useSyncMemberInvites,
     useDeleteMemberInvite,
+    useSendBulkMemberAlimtalk,
 } from '@/app/_lib/features/member-invite/api/useMemberInviteHook';
 import useMemberInviteStore, { MemberInviteFilter } from '@/app/_lib/features/member-invite/model/useMemberInviteStore';
 import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
@@ -112,6 +113,14 @@ export default function MemberManagementPage() {
     const { isLoading: invitesLoading } = useMemberInvites(unionId);
     const syncMutation = useSyncMemberInvites();
     const deleteMutation = useDeleteMemberInvite();
+    const {
+        mutateAsync: sendBulkAlimtalk,
+        isPending: isSendingAlimtalk,
+        progress: sendProgress,
+    } = useSendBulkMemberAlimtalk();
+
+    // 알림톡 발송 확인 다이얼로그 상태
+    const [showAlimtalkConfirm, setShowAlimtalkConfirm] = useState(false);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -395,9 +404,44 @@ export default function MemberManagementPage() {
     };
 
     const handleBulkInvite = () => {
-        toast('카카오톡 알림 기능은 추후 구현 예정입니다.', {
-            icon: '🚧',
-        });
+        if (selectedIds.length === 0) {
+            toast.error('발송할 대상을 선택해주세요.');
+            return;
+        }
+        setShowAlimtalkConfirm(true);
+    };
+
+    const handleConfirmBulkInvite = async () => {
+        if (!unionId || !union) return;
+
+        setShowAlimtalkConfirm(false);
+
+        try {
+            // 도메인 추출 (현재 호스트에서)
+            const domain = typeof window !== 'undefined' ? window.location.host : 'johapon.kr';
+
+            const result = await sendBulkAlimtalk({
+                unionId,
+                unionName: union.name,
+                domain,
+                inviteIds: selectedIds,
+            });
+
+            if (result.success) {
+                toast.success(
+                    `알림톡 발송 완료!\n카카오톡: ${result.kakaoCount || 0}건\n대체문자: ${result.smsCount || 0}건${
+                        result.failCount ? `\n실패: ${result.failCount}건` : ''
+                    }`,
+                    { duration: 5000 }
+                );
+                clearSelection();
+            } else {
+                toast.error(result.error || '알림톡 발송에 실패했습니다.');
+            }
+        } catch (error) {
+            console.error('알림톡 발송 오류:', error);
+            toast.error(error instanceof Error ? error.message : '알림톡 발송에 실패했습니다.');
+        }
     };
 
     const getStatusBadge = (status: string) => {
@@ -649,16 +693,26 @@ export default function MemberManagementPage() {
                                         </div>
 
                                         <div className="mt-4 flex justify-between items-center border-t pt-4">
-                                            <p className="text-sm text-gray-600">
+                                            <div className="text-sm text-gray-600">
                                                 {selectedIds.length > 0 && `${selectedIds.length}명 선택됨`}
-                                            </p>
+                                                {sendProgress && (
+                                                    <span className="ml-2 text-[#4E8C6D]">
+                                                        (발송중: {sendProgress.completedBatches}/
+                                                        {sendProgress.totalBatches} 배치)
+                                                    </span>
+                                                )}
+                                            </div>
                                             <Button
                                                 onClick={handleBulkInvite}
-                                                disabled={selectedIds.length === 0}
-                                                className="bg-amber-500 hover:bg-amber-600 text-white"
+                                                disabled={selectedIds.length === 0 || isSendingAlimtalk}
+                                                className="bg-[#4E8C6D] hover:bg-[#3d7058] text-white"
                                             >
-                                                <Send className="w-4 h-4 mr-2" />
-                                                일괄 초대 (추후 구현)
+                                                {isSendingAlimtalk ? (
+                                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                ) : (
+                                                    <Send className="w-4 h-4 mr-2" />
+                                                )}
+                                                {isSendingAlimtalk ? '발송 중...' : '알림톡 일괄 발송'}
                                             </Button>
                                         </div>
                                     </>
@@ -862,6 +916,40 @@ export default function MemberManagementPage() {
                                 className="bg-red-500 hover:bg-red-600 text-white"
                             >
                                 삭제
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+
+                {/* 알림톡 발송 확인 다이얼로그 */}
+                <AlertDialog open={showAlimtalkConfirm} onOpenChange={setShowAlimtalkConfirm}>
+                    <AlertDialogContent className="bg-white">
+                        <AlertDialogHeader>
+                            <AlertDialogTitle className="text-gray-900 flex items-center gap-2">
+                                <Send className="w-5 h-5 text-[#4E8C6D]" />
+                                알림톡 일괄 발송
+                            </AlertDialogTitle>
+                            <AlertDialogDescription className="text-gray-600">
+                                <span className="font-semibold text-[#4E8C6D]">{selectedIds.length}명</span>의
+                                조합원에게 본인 확인 안내 알림톡을 발송합니다.
+                                <br />
+                                <span className="text-sm text-gray-500 mt-2 block">
+                                    * 대기중 상태의 조합원에게만 발송됩니다.
+                                    <br />
+                                    * 카카오톡 발송 실패 시 대체 문자로 자동 발송됩니다.
+                                    <br />* 발송 비용이 발생합니다. (약 {selectedIds.length * 15}원 예상)
+                                </span>
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel className="border-gray-300 text-gray-700 hover:bg-gray-50">
+                                취소
+                            </AlertDialogCancel>
+                            <AlertDialogAction
+                                onClick={handleConfirmBulkInvite}
+                                className="bg-[#4E8C6D] hover:bg-[#3d7058] text-white"
+                            >
+                                발송하기
                             </AlertDialogAction>
                         </AlertDialogFooter>
                     </AlertDialogContent>
