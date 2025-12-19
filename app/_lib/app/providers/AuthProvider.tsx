@@ -130,6 +130,9 @@ export default function AuthProvider({ children }: AuthProviderProps) {
     const isInitializedRef = useRef(false);
     // 현재 처리 중인 세션을 추적하여 race condition 방지
     const processingSessionRef = useRef<string | null>(null);
+    // user 상태를 ref로 추적하여 클로저 문제 방지
+    const userRef = useRef(user);
+    userRef.current = user;
 
     /**
      * auth.users ID로 연결된 public.users 조회
@@ -318,14 +321,19 @@ export default function AuthProvider({ children }: AuthProviderProps) {
                     break;
 
                 case 'SIGNED_IN':
-                    // 로그인 이벤트: 실제 로그인 시에만 처리 (초기화 완료 후)
-                    // INITIAL_SESSION 이후에 발생하는 SIGNED_IN만 처리
+                    // 로그인 이벤트: 초기화 완료 후에만 처리
                     console.log('[DEBUG] 📍 SIGNED_IN 이벤트');
                     if (isInitializedRef.current) {
-                        console.log('[DEBUG] isInitialized=true → handleSessionWithUser 호출');
-                        await handleSessionWithUser(newSession, event);
+                        // 이미 user 정보가 있으면 스킵 (탭 복귀 시 로딩 방지)
+                        if (userRef.current) {
+                            console.log('[DEBUG] ⏭️ SIGNED_IN 스킵 (이미 user 있음)');
+                        } else {
+                            // user가 없으면 처리 (다른 탭에서 로그인한 경우 등)
+                            console.log('[DEBUG] 🔄 SIGNED_IN 처리 (user 없음)');
+                            await handleSessionWithUser(newSession, event);
+                        }
                     } else {
-                        console.log('[DEBUG] ⏭️ isInitialized=false → SIGNED_IN 스킵');
+                        console.log('[DEBUG] ⏭️ SIGNED_IN 스킵 (초기화 전)');
                     }
                     break;
 
