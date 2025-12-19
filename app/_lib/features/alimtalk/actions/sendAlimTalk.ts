@@ -712,3 +712,267 @@ export async function syncAlimtalkTemplates(): Promise<{
         };
     }
 }
+
+// ============================================================
+// 질문 게시판 등록 알림 (UE_3236) - 관리자에게 발송
+// ============================================================
+
+interface QuestionRegisteredAlimTalkParams {
+    unionId: string;
+    unionSlug: string;
+    unionName: string;
+    questionId: number;
+    questionTitle: string;
+    authorName: string;
+    createdAt: string;
+}
+
+export async function sendQuestionRegisteredAlimTalk(params: QuestionRegisteredAlimTalkParams): Promise<AlimTalkResult> {
+    const { unionId, unionSlug, unionName, questionId, questionTitle, authorName, createdAt } = params;
+
+    const supabase = await createClient();
+    const {
+        data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+        return { success: false, error: '인증되지 않은 사용자입니다.' };
+    }
+
+    // 해당 조합의 관리자 목록 조회 (ADMIN 역할)
+    const { data: admins, error: adminsError } = await supabase
+        .from('users')
+        .select('id, name, phone_number')
+        .eq('union_id', unionId)
+        .eq('role', 'ADMIN')
+        .not('phone_number', 'is', null);
+
+    if (adminsError) {
+        console.error('관리자 목록 조회 오류:', adminsError);
+        return { success: false, error: '관리자 목록을 조회할 수 없습니다.' };
+    }
+
+    if (!admins || admins.length === 0) {
+        console.log('알림톡을 발송할 관리자가 없습니다.');
+        return { success: true, message: '발송할 관리자가 없습니다.', sentCount: 0 };
+    }
+
+    // 등록일시 포맷
+    const formattedCreatedAt = new Date(createdAt).toLocaleString('ko-KR');
+
+    // 알림톡 템플릿 내용 (UE_3236)
+    const templateContent = `관리자님, 질문 게시판에 새로운 게시글이 등록되었습니다.\n내용을 확인 후 답변을 작성해 주세요.\n\n□ 게시판 : #{게시판명}\n□ 작성자 : #{작성자명}\n□ 제목 : #{글제목}\n□ 등록일시 : #{등록일시}`;
+
+    // 버튼 정보 (UE_3236 템플릿)
+    const buttons: AlimtalkButton[] = [
+        {
+            name: '질문보기',
+            linkType: 'WL',
+            linkTypeName: '웹링크',
+            linkMo: `https://johapon.kr/#{조합슬러그}/news/qna/#{질문ID}`,
+            linkPc: `https://johapon.kr/#{조합슬러그}/news/qna/#{질문ID}`,
+        },
+    ];
+
+    // 수신자 목록 구성
+    const recipients = admins.map((admin) => {
+        // 대체 발송 메시지 (LMS)
+        const failoverSubject = `[${unionName}] 질문 게시판 등록 알림`;
+        const failoverMessage = `관리자님, 질문 게시판에 새로운 게시글이 등록되었습니다.
+내용을 확인 후 답변을 작성해 주세요.
+
+□ 게시판 : 질문 게시판
+□ 작성자 : ${authorName}
+□ 제목 : ${questionTitle}
+□ 등록일시 : ${formattedCreatedAt}
+
+▶ 질문보기: https://johapon.kr/${unionSlug}/news/qna/${questionId}`;
+
+        return {
+            phoneNumber: admin.phone_number!,
+            name: admin.name,
+            variables: {
+                게시판명: '질문 게시판',
+                작성자명: authorName,
+                글제목: questionTitle,
+                등록일시: formattedCreatedAt,
+                조합슬러그: unionSlug,
+                질문ID: String(questionId),
+            },
+            content: templateContent,
+            buttons,
+            emtitle: '질문 등록 확인',
+            failoverSubject,
+            failoverMessage,
+        };
+    });
+
+    // 테스트 모드 체크
+    const isTestMode = process.env.ALIMTALK_TEST_MODE === 'true';
+
+    if (isTestMode) {
+        console.log('\n' + '='.repeat(60));
+        console.log('📱 [알림톡 발송 예정] 질문 게시판 등록 알림 (UE_3236)');
+        console.log('='.repeat(60));
+        console.log('조합명:', unionName);
+        console.log('질문 ID:', questionId);
+        console.log('질문 제목:', questionTitle);
+        console.log('작성자:', authorName);
+        console.log('관리자 수:', admins.length);
+        console.log('-'.repeat(60));
+        console.log('⚠️ 테스트 모드입니다. 실제 발송되지 않습니다.');
+        console.log('='.repeat(60) + '\n');
+
+        return {
+            success: true,
+            message: '알림톡 발송 (테스트 모드)',
+            sentCount: admins.length,
+            failCount: 0,
+            kakaoCount: admins.length,
+            smsCount: 0,
+            estimatedCost: admins.length * 15,
+        };
+    }
+
+    // 프록시 서버 호출
+    return callProxyServer({
+        unionId,
+        senderId: user.id,
+        templateCode: 'UE_3236',
+        templateName: '질문 게시판 등록 알림',
+        title: `[${unionName}] 질문 게시판 등록 알림`,
+        recipients,
+    });
+}
+
+// ============================================================
+// 질문 답변 완료 알림 (UE_3000) - 질문자에게 발송
+// ============================================================
+
+interface QuestionAnsweredAlimTalkParams {
+    unionId: string;
+    unionSlug: string;
+    unionName: string;
+    questionId: number;
+    questionTitle: string;
+    authorId: string;
+    answeredAt: string;
+}
+
+export async function sendQuestionAnsweredAlimTalk(params: QuestionAnsweredAlimTalkParams): Promise<AlimTalkResult> {
+    const { unionId, unionSlug, unionName, questionId, questionTitle, authorId, answeredAt } = params;
+
+    const supabase = await createClient();
+    const {
+        data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+        return { success: false, error: '인증되지 않은 사용자입니다.' };
+    }
+
+    // 질문 작성자 정보 조회
+    const { data: author, error: authorError } = await supabase
+        .from('users')
+        .select('id, name, phone_number')
+        .eq('id', authorId)
+        .single();
+
+    if (authorError || !author) {
+        console.error('질문 작성자 조회 오류:', authorError);
+        return { success: false, error: '질문 작성자를 찾을 수 없습니다.' };
+    }
+
+    if (!author.phone_number) {
+        console.log('질문 작성자의 전화번호가 없습니다.');
+        return { success: true, message: '질문 작성자의 전화번호가 없습니다.', sentCount: 0 };
+    }
+
+    // 답변일시 포맷
+    const formattedAnsweredAt = new Date(answeredAt).toLocaleString('ko-KR');
+
+    // 알림톡 템플릿 내용 (UE_3000)
+    const templateContent = `[#{사이트명}] 문의하신 내용에 답변이 등록되었습니다.\n\n#{회원명}님, 남겨주신 문의글에 관리자 답변이 완료되었습니다.\n아래 버튼을 눌러 답변 내용을 확인해 주세요.\n\n□ 문의제목 : #{글제목}\n□ 답변일시 : #{답변일시}`;
+
+    // 버튼 정보 (UE_3000 템플릿)
+    const buttons: AlimtalkButton[] = [
+        {
+            name: '답변 확인',
+            linkType: 'WL',
+            linkTypeName: '웹링크',
+            linkMo: `https://johapon.kr/#{조합슬러그}/news/qna/#{질문ID}`,
+            linkPc: `https://johapon.kr/#{조합슬러그}/news/qna/#{질문ID}`,
+        },
+    ];
+
+    // 대체 발송 메시지 (LMS)
+    const failoverSubject = `[${unionName}] 문의 답변 완료`;
+    const failoverMessage = `[${unionName}] 문의하신 내용에 답변이 등록되었습니다.
+
+${author.name}님, 남겨주신 문의글에 관리자 답변이 완료되었습니다.
+아래 링크를 통해 답변 내용을 확인해 주세요.
+
+□ 문의제목 : ${questionTitle}
+□ 답변일시 : ${formattedAnsweredAt}
+
+▶ 답변 확인: https://johapon.kr/${unionSlug}/news/qna/${questionId}`;
+
+    // 수신자 구성
+    const recipients = [
+        {
+            phoneNumber: author.phone_number,
+            name: author.name,
+            variables: {
+                사이트명: unionName,
+                회원명: author.name,
+                글제목: questionTitle,
+                답변일시: formattedAnsweredAt,
+                조합슬러그: unionSlug,
+                질문ID: String(questionId),
+            },
+            content: templateContent,
+            buttons,
+            emtitle: unionName,
+            failoverSubject,
+            failoverMessage,
+        },
+    ];
+
+    // 테스트 모드 체크
+    const isTestMode = process.env.ALIMTALK_TEST_MODE === 'true';
+
+    if (isTestMode) {
+        console.log('\n' + '='.repeat(60));
+        console.log('📱 [알림톡 발송 예정] 질문 답변 완료 알림 (UE_3000)');
+        console.log('='.repeat(60));
+        console.log('조합명:', unionName);
+        console.log('질문 ID:', questionId);
+        console.log('질문 제목:', questionTitle);
+        console.log('질문자:', author.name);
+        console.log('전화번호:', author.phone_number);
+        console.log('답변일시:', formattedAnsweredAt);
+        console.log('-'.repeat(60));
+        console.log('⚠️ 테스트 모드입니다. 실제 발송되지 않습니다.');
+        console.log('='.repeat(60) + '\n');
+
+        return {
+            success: true,
+            message: '알림톡 발송 (테스트 모드)',
+            sentCount: 1,
+            failCount: 0,
+            kakaoCount: 1,
+            smsCount: 0,
+            estimatedCost: 15,
+        };
+    }
+
+    // 프록시 서버 호출
+    return callProxyServer({
+        unionId,
+        senderId: user.id,
+        templateCode: 'UE_3000',
+        templateName: '질문 답변 완료 알림',
+        title: `[${unionName}] 문의 답변 완료`,
+        recipients,
+    });
+}

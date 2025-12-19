@@ -195,7 +195,7 @@ const QuestionDetailPage = () => {
                                                     setIsAnswerMode(false);
                                                     setAnswerContent('');
                                                 }}
-                                                className="border-[#CCCCCC] text-gray-600 hover:bg-gray-50 cursor-pointer"
+                                                className="border-[#CCCCCC] text-gray-600 hover:bg-gray-200 hover:border-gray-400 cursor-pointer"
                                             >
                                                 취소
                                             </Button>
@@ -207,8 +207,8 @@ const QuestionDetailPage = () => {
                                                 {isAnswering ? '등록 중...' : '답변 등록'}
                                             </Button>
                                         </div>
-                                        <div className="bg-[#FFF9E6] border border-[#F0AD4E] rounded-[8px] p-3">
-                                            <p className="text-[12px] text-[#8B6914]">
+                                        <div className="bg-[#E8F5EE] border border-[#4E8C6D] rounded-[8px] p-3">
+                                            <p className="text-[12px] text-[#3D7A5A]">
                                                 💡 답변이 등록되면 질문자에게 알림톡이 발송됩니다.
                                             </p>
                                         </div>

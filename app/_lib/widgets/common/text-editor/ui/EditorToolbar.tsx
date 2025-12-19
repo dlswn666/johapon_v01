@@ -37,7 +37,7 @@ export const EditorToolbar = ({ editor }: EditorToolbarProps) => {
                     variant="ghost"
                     size="icon"
                     onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-                    className={cn('h-8 w-8 cursor-pointer', editor.isActive('heading', { level: 1 }) && 'bg-muted')}
+                    className={cn('h-8 w-8 cursor-pointer', editor.isActive('heading', { level: 1 }) && 'bg-gray-200 text-gray-900')}
                     title="Heading 1"
                 >
                     <Heading1 className="h-4 w-4" />
@@ -47,7 +47,7 @@ export const EditorToolbar = ({ editor }: EditorToolbarProps) => {
                     variant="ghost"
                     size="icon"
                     onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-                    className={cn('h-8 w-8 cursor-pointer', editor.isActive('heading', { level: 2 }) && 'bg-muted')}
+                    className={cn('h-8 w-8 cursor-pointer', editor.isActive('heading', { level: 2 }) && 'bg-gray-200 text-gray-900')}
                     title="Heading 2"
                 >
                     <Heading2 className="h-4 w-4" />
@@ -57,7 +57,7 @@ export const EditorToolbar = ({ editor }: EditorToolbarProps) => {
                     variant="ghost"
                     size="icon"
                     onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-                    className={cn('h-8 w-8 cursor-pointer', editor.isActive('heading', { level: 3 }) && 'bg-muted')}
+                    className={cn('h-8 w-8 cursor-pointer', editor.isActive('heading', { level: 3 }) && 'bg-gray-200 text-gray-900')}
                     title="Heading 3"
                 >
                     <Heading3 className="h-4 w-4" />
@@ -72,7 +72,7 @@ export const EditorToolbar = ({ editor }: EditorToolbarProps) => {
                     size="icon"
                     onClick={() => editor.chain().focus().toggleBold().run()}
                     disabled={!editor.can().chain().focus().toggleBold().run()}
-                    className={cn('h-8 w-8 cursor-pointer', editor.isActive('bold') && 'bg-muted')}
+                    className={cn('h-8 w-8 cursor-pointer', editor.isActive('bold') && 'bg-gray-200 text-gray-900')}
                     title="Bold"
                 >
                     <Bold className="h-4 w-4" />
@@ -83,7 +83,7 @@ export const EditorToolbar = ({ editor }: EditorToolbarProps) => {
                     size="icon"
                     onClick={() => editor.chain().focus().toggleItalic().run()}
                     disabled={!editor.can().chain().focus().toggleItalic().run()}
-                    className={cn('h-8 w-8 cursor-pointer', editor.isActive('italic') && 'bg-muted')}
+                    className={cn('h-8 w-8 cursor-pointer', editor.isActive('italic') && 'bg-gray-200 text-gray-900')}
                     title="Italic"
                 >
                     <Italic className="h-4 w-4" />
@@ -97,7 +97,7 @@ export const EditorToolbar = ({ editor }: EditorToolbarProps) => {
                     variant="ghost"
                     size="icon"
                     onClick={() => editor.chain().focus().toggleBulletList().run()}
-                    className={cn('h-8 w-8 cursor-pointer', editor.isActive('bulletList') && 'bg-muted')}
+                    className={cn('h-8 w-8 cursor-pointer', editor.isActive('bulletList') && 'bg-gray-200 text-gray-900')}
                     title="Bullet List"
                 >
                     <List className="h-4 w-4" />
@@ -107,7 +107,7 @@ export const EditorToolbar = ({ editor }: EditorToolbarProps) => {
                     variant="ghost"
                     size="icon"
                     onClick={() => editor.chain().focus().toggleOrderedList().run()}
-                    className={cn('h-8 w-8 cursor-pointer', editor.isActive('orderedList') && 'bg-muted')}
+                    className={cn('h-8 w-8 cursor-pointer', editor.isActive('orderedList') && 'bg-gray-200 text-gray-900')}
                     title="Ordered List"
                 >
                     <ListOrdered className="h-4 w-4" />
@@ -117,7 +117,7 @@ export const EditorToolbar = ({ editor }: EditorToolbarProps) => {
                     variant="ghost"
                     size="icon"
                     onClick={() => editor.chain().focus().toggleBlockquote().run()}
-                    className={cn('h-8 w-8 cursor-pointer', editor.isActive('blockquote') && 'bg-muted')}
+                    className={cn('h-8 w-8 cursor-pointer', editor.isActive('blockquote') && 'bg-gray-200 text-gray-900')}
                     title="Blockquote"
                 >
                     <Quote className="h-4 w-4" />
@@ -131,7 +131,7 @@ export const EditorToolbar = ({ editor }: EditorToolbarProps) => {
                     variant="ghost"
                     size="icon"
                     onClick={() => editor.chain().focus().setTextAlign('left').run()}
-                    className={cn('h-8 w-8 cursor-pointer', editor.isActive({ textAlign: 'left' }) && 'bg-muted')}
+                    className={cn('h-8 w-8 cursor-pointer', editor.isActive({ textAlign: 'left' }) && 'bg-gray-200 text-gray-900')}
                     title="Align Left"
                 >
                     <AlignLeft className="h-4 w-4" />
@@ -141,7 +141,7 @@ export const EditorToolbar = ({ editor }: EditorToolbarProps) => {
                     variant="ghost"
                     size="icon"
                     onClick={() => editor.chain().focus().setTextAlign('center').run()}
-                    className={cn('h-8 w-8 cursor-pointer', editor.isActive({ textAlign: 'center' }) && 'bg-muted')}
+                    className={cn('h-8 w-8 cursor-pointer', editor.isActive({ textAlign: 'center' }) && 'bg-gray-200 text-gray-900')}
                     title="Align Center"
                 >
                     <AlignCenter className="h-4 w-4" />
@@ -151,7 +151,7 @@ export const EditorToolbar = ({ editor }: EditorToolbarProps) => {
                     variant="ghost"
                     size="icon"
                     onClick={() => editor.chain().focus().setTextAlign('right').run()}
-                    className={cn('h-8 w-8 cursor-pointer', editor.isActive({ textAlign: 'right' }) && 'bg-muted')}
+                    className={cn('h-8 w-8 cursor-pointer', editor.isActive({ textAlign: 'right' }) && 'bg-gray-200 text-gray-900')}
                     title="Align Right"
                 >
                     <AlignRight className="h-4 w-4" />

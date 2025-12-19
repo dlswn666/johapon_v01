@@ -121,8 +121,8 @@ const NewQuestionPage = () => {
                                 )}
                             />
 
-                            <div className="bg-[#FFF9E6] border border-[#F0AD4E] rounded-[12px] p-4">
-                                <p className="text-[14px] text-[#8B6914]">
+                            <div className="bg-[#E8F5EE] border border-[#4E8C6D] rounded-[12px] p-4">
+                                <p className="text-[14px] text-[#3D7A5A]">
                                     💡 질문이 등록되면 관리자에게 알림이 발송됩니다. 답변이 등록되면 알림톡으로 안내해 드립니다.
                                 </p>
                             </div>
@@ -132,7 +132,7 @@ const NewQuestionPage = () => {
                                     type="button" 
                                     variant="outline" 
                                     onClick={() => router.push(`/${slug}/news/qna`)}
-                                    className="h-[48px] px-8 text-[16px] border-[#CCCCCC] text-gray-600 hover:bg-gray-50 cursor-pointer"
+                                    className="h-[48px] px-8 text-[16px] border-[#CCCCCC] text-gray-600 hover:bg-gray-200 hover:border-gray-400 cursor-pointer"
                                 >
                                     취소
                                 </Button>

@@ -175,7 +175,7 @@ const EditQuestionPage = () => {
                                     type="button" 
                                     variant="outline" 
                                     onClick={() => router.push(`/${slug}/news/qna/${id}`)}
-                                    className="h-[48px] px-8 text-[16px] border-[#CCCCCC] text-gray-600 hover:bg-gray-50 cursor-pointer"
+                                    className="h-[48px] px-8 text-[16px] border-[#CCCCCC] text-gray-600 hover:bg-gray-200 hover:border-gray-400 cursor-pointer"
                                 >
                                     취소
                                 </Button>

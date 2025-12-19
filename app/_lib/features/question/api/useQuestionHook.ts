@@ -12,6 +12,7 @@ import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import { getUnionPath } from '@/app/_lib/shared/lib/utils/slug';
 import { fileApi } from '@/app/_lib/shared/hooks/file/fileApi';
+import { sendQuestionRegisteredAlimTalk, sendQuestionAnsweredAlimTalk } from '@/app/_lib/features/alimtalk/actions/sendAlimTalk';
 
 // ============================================
 // Query Hooks (조회)
@@ -189,7 +190,7 @@ const processEditorImages = async (
 };
 
 /**
- * 질문 등록 + 관리자에게 알림톡 발송 (Placeholder)
+ * 질문 등록 + 관리자에게 알림톡 발송
  */
 export const useAddQuestion = () => {
     const router = useRouter();
@@ -198,6 +199,7 @@ export const useAddQuestion = () => {
     const clearEditorImages = useQuestionStore((state) => state.clearEditorImages);
     const openAlertModal = useModalStore((state) => state.openAlertModal);
     const { union, slug } = useSlug();
+    const { user } = useAuth();
 
     return useMutation({
         mutationFn: async (newQuestion: NewQuestion) => {
@@ -231,9 +233,21 @@ export const useAddQuestion = () => {
                 else questionData.content = finalContent;
             }
 
-            // 4. 관리자들에게 알림톡 발송 (TODO: 실제 구현 필요)
-            console.log('TODO: Send AlimTalk to admins for new question', questionData.id);
-            // await sendQuestionAlimTalkToAdmins({ questionId: questionData.id, title: questionData.title });
+            // 4. 관리자들에게 알림톡 발송
+            try {
+                await sendQuestionRegisteredAlimTalk({
+                    unionId: union.id,
+                    unionSlug: slug,
+                    unionName: union.name,
+                    questionId: questionData.id,
+                    questionTitle: questionData.title,
+                    authorName: user?.name || '회원',
+                    createdAt: questionData.created_at,
+                });
+            } catch (alimTalkError) {
+                console.error('알림톡 발송 실패 (질문 등록):', alimTalkError);
+                // 알림톡 발송 실패해도 질문 등록은 성공으로 처리
+            }
 
             return questionData as Question;
         },
@@ -382,7 +396,7 @@ export const useDeleteQuestion = () => {
 };
 
 /**
- * 관리자 답변 등록 + 질문자에게 알림톡 발송 (Placeholder)
+ * 관리자 답변 등록 + 질문자에게 알림톡 발송
  */
 export const useAnswerQuestion = () => {
     const updateQuestion = useQuestionStore((state) => state.updateQuestion);
@@ -395,9 +409,12 @@ export const useAnswerQuestion = () => {
     return useMutation({
         mutationFn: async ({ questionId, answerContent }: { questionId: number; answerContent: string }) => {
             if (!user?.id) throw new Error('로그인이 필요합니다.');
+            if (!union?.id) throw new Error('Union context missing');
 
             // 1. 에디터 이미지 업로드 및 본문 URL 치환
             const finalContent = await processEditorImages(answerContent, answerEditorImages, slug, questionId);
+
+            const answeredAt = new Date().toISOString();
 
             // 2. 답변 저장
             const { data, error } = await supabase
@@ -405,7 +422,7 @@ export const useAnswerQuestion = () => {
                 .update({
                     answer_content: finalContent,
                     answer_author_id: user.id,
-                    answered_at: new Date().toISOString(),
+                    answered_at: answeredAt,
                 })
                 .eq('id', questionId)
                 .select()
@@ -413,9 +430,21 @@ export const useAnswerQuestion = () => {
 
             if (error) throw error;
 
-            // 3. 질문자에게 알림톡 발송 (TODO: 실제 구현 필요)
-            console.log('TODO: Send AlimTalk to question author', data.author_id);
-            // await sendAnswerAlimTalkToAuthor({ questionId: data.id, authorId: data.author_id });
+            // 3. 질문자에게 알림톡 발송
+            try {
+                await sendQuestionAnsweredAlimTalk({
+                    unionId: union.id,
+                    unionSlug: slug,
+                    unionName: union.name,
+                    questionId: data.id,
+                    questionTitle: data.title,
+                    authorId: data.author_id,
+                    answeredAt: answeredAt,
+                });
+            } catch (alimTalkError) {
+                console.error('알림톡 발송 실패 (답변 등록):', alimTalkError);
+                // 알림톡 발송 실패해도 답변 등록은 성공으로 처리
+            }
 
             return data as Question;
         },
