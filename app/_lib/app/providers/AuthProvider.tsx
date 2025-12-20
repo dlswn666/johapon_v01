@@ -151,11 +151,7 @@ export default function AuthProvider({ children }: AuthProviderProps) {
             // slug가 있으면 해당 조합의 union_id 조회
             let unionId: string | null = null;
             if (slug) {
-                const { data: unionData } = await supabase
-                    .from('unions')
-                    .select('id')
-                    .eq('slug', slug)
-                    .single();
+                const { data: unionData } = await supabase.from('unions').select('id').eq('slug', slug).single();
                 unionId = unionData?.id || null;
             }
 
@@ -169,7 +165,7 @@ export default function AuthProvider({ children }: AuthProviderProps) {
 
                 if (authLinks && authLinks.length > 0) {
                     // 해당 조합에 속한 user 찾기
-                    const userIds = authLinks.map(link => link.user_id);
+                    const userIds = authLinks.map((link) => link.user_id);
                     const { data: userData } = await supabase
                         .from('users')
                         .select('*')
@@ -286,7 +282,9 @@ export default function AuthProvider({ children }: AuthProviderProps) {
                 } else {
                     // 연결된 사용자가 없으면 세션은 유지하되 user만 null
                     // (회원가입 플로우를 위해 authUser는 설정)
-                    console.log(`[DEBUG] ⚠️ ${event}: No linked user found for slug: ${slug}. Setting authUser without user...`);
+                    console.log(
+                        `[DEBUG] ⚠️ ${event}: No linked user found for slug: ${slug}. Setting authUser without user...`
+                    );
                     console.log('[DEBUG] 👉 회원가입 모달이 표시되어야 함');
                     setSession(currentSession);
                     setAuthUser(currentSession.user);
@@ -550,30 +548,30 @@ export default function AuthProvider({ children }: AuthProviderProps) {
     useEffect(() => {
         // 초기화 완료 전이거나 authUser가 없으면 스킵
         if (!isInitializedRef.current || !authUser) return;
-        
+
         // Mock 인증 모드면 스킵
         if (useMockAuth) return;
 
         // 현재 user의 조합과 pathname의 조합이 다르면 user 다시 조회
         const fetchUserForCurrentSlug = async () => {
-            console.log('[DEBUG] 🔄 pathname 변경 감지 - user 다시 조회', { currentSlug, userUnionId: user?.union_id });
-            
+            // SYSTEM_ADMIN은 조합 변경 시에도 user를 유지 (모든 조합에 접근 가능)
+            if (user?.role === 'SYSTEM_ADMIN') {
+                console.log('[DEBUG] ⏭️ SYSTEM_ADMIN은 조합 변경 시 user 유지');
+                return;
+            }
+
             // slug가 없으면 (루트 페이지 등) 스킵
             if (!currentSlug) return;
-            
+
             // 현재 slug로 union_id 조회
-            const { data: unionData } = await supabase
-                .from('unions')
-                .select('id')
-                .eq('slug', currentSlug)
-                .single();
-            
+            const { data: unionData } = await supabase.from('unions').select('id').eq('slug', currentSlug).single();
+
             // 유효한 조합 slug가 아니면 스킵
             if (!unionData) return;
-            
+
             // 현재 user의 union_id와 같으면 스킵
             if (user?.union_id === unionData.id) return;
-            
+
             // 해당 조합의 user 조회
             const linkedUser = await fetchUserByAuthId(authUser.id, currentSlug);
             setUser(linkedUser);
