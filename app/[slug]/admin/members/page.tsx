@@ -84,6 +84,12 @@ const USER_ROLE_LABELS: Record<string, string> = {
     APPLICANT: '가입 신청자',
 };
 
+// 전화번호 마스킹 함수 (뒤 3자리를 ***로 표시)
+const maskPhoneNumber = (phone: string | null | undefined): string => {
+    if (!phone || phone.length < 4) return phone || '-';
+    return phone.slice(0, -3) + '***';
+};
+
 interface ExcelMember {
     name: string;
     phone_number: string;
@@ -832,7 +838,7 @@ export default function MemberManagementPage() {
                                                             {userData.name}
                                                         </td>
                                                         <td className="px-6 py-4 text-[14px] text-gray-600">
-                                                            {userData.phone_number}
+                                                            {maskPhoneNumber(userData.phone_number)}
                                                         </td>
                                                         <td className="px-6 py-4 text-[14px] text-gray-600 max-w-[200px] truncate">
                                                             {userData.property_address || '-'}
@@ -992,7 +998,7 @@ export default function MemberManagementPage() {
                                         <div>
                                             <p className="text-[12px] text-gray-500">전화번호</p>
                                             <p className="text-[16px] font-bold text-gray-900">
-                                                {selectedUser.phone_number}
+                                                {maskPhoneNumber(selectedUser.phone_number)}
                                             </p>
                                         </div>
                                     </div>

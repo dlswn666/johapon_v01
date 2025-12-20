@@ -73,6 +73,37 @@ export const useAlimtalkTemplate = (templateCode: string | undefined, enabled: b
     return queryResult;
 };
 
+// 템플릿 업데이트 (use_failover 등)
+export const useUpdateAlimtalkTemplate = () => {
+    const { updateTemplate } = useAlimtalkTemplateStore();
+
+    return useMutation({
+        mutationFn: async ({ id, updates }: { id: string; updates: Partial<AlimtalkTemplate> }) => {
+            const { data, error } = await supabase
+                .from('alimtalk_templates')
+                .update(updates)
+                .eq('id', id)
+                .select()
+                .single();
+
+            if (error) {
+                throw error;
+            }
+
+            return data as AlimtalkTemplate;
+        },
+        onSuccess: (data) => {
+            updateTemplate(data.id, data);
+            queryClient.invalidateQueries({ queryKey: ['alimtalk-templates'] });
+            toast.success('템플릿이 업데이트되었습니다.');
+        },
+        onError: (error: Error) => {
+            toast.error('템플릿 업데이트에 실패했습니다.');
+            console.error('Template update error:', error);
+        },
+    });
+};
+
 // 알리고 템플릿 동기화
 export const useSyncAlimtalkTemplates = () => {
     const { setIsSyncing, setLastSyncedAt } = useAlimtalkTemplateStore();

@@ -48,11 +48,17 @@ const useAlimtalkTemplateStore = create<AlimtalkTemplateStore>((set) => ({
             templates: [...state.templates, template],
         })),
 
-    updateTemplate: (templateCode, updatedTemplate) =>
+    updateTemplate: (idOrCode, updatedTemplate) =>
         set((state) => ({
             templates: state.templates.map((t) =>
-                t.template_code === templateCode ? { ...t, ...updatedTemplate } : t
+                t.id === idOrCode || t.template_code === idOrCode ? { ...t, ...updatedTemplate } : t
             ),
+            // selectedTemplate도 함께 업데이트
+            selectedTemplate:
+                state.selectedTemplate &&
+                (state.selectedTemplate.id === idOrCode || state.selectedTemplate.template_code === idOrCode)
+                    ? { ...state.selectedTemplate, ...updatedTemplate }
+                    : state.selectedTemplate,
         })),
 
     removeTemplate: (templateCode) =>

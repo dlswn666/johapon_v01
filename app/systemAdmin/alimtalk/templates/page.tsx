@@ -22,6 +22,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
     useAlimtalkTemplates,
     useSyncAlimtalkTemplates,
+    useUpdateAlimtalkTemplate,
 } from '@/app/_lib/features/alimtalk/api/useAlimtalkTemplateHook';
 import useAlimtalkTemplateStore from '@/app/_lib/features/alimtalk/model/useAlimtalkTemplateStore';
 import { AlimtalkTemplate } from '@/app/_lib/shared/type/database.types';
@@ -33,7 +34,9 @@ import {
     CheckCircle,
     Clock,
     XCircle,
+    MessageSquare,
 } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import Link from 'next/link';
 import { useState } from 'react';
 
@@ -127,6 +130,9 @@ export default function SystemAdminTemplatesPage() {
     // 동기화 mutation
     const syncMutation = useSyncAlimtalkTemplates();
 
+    // 템플릿 업데이트 mutation
+    const updateMutation = useUpdateAlimtalkTemplate();
+
     // 상세 모달 상태
     const [selectedTemplate, setSelectedTemplate] = useState<AlimtalkTemplate | null>(null);
     const [isDetailOpen, setIsDetailOpen] = useState(false);
@@ -145,6 +151,16 @@ export default function SystemAdminTemplatesPage() {
     const handleViewDetail = (template: AlimtalkTemplate) => {
         setSelectedTemplate(template);
         setIsDetailOpen(true);
+    };
+
+    // LMS 대체 발송 토글
+    const handleToggleFailover = (checked: boolean) => {
+        if (!selectedTemplate) return;
+        
+        updateMutation.mutate({
+            id: selectedTemplate.id,
+            updates: { use_failover: checked },
+        });
     };
 
     return (
@@ -344,6 +360,30 @@ export default function SystemAdminTemplatesPage() {
                                     </div>
                                 </div>
                             )}
+
+                            {/* LMS 대체 발송 설정 */}
+                            <div className="border-t pt-4 mt-4">
+                                <div className="flex items-center gap-3 p-4 bg-muted rounded-lg">
+                                    <Checkbox
+                                        id="use_failover"
+                                        checked={selectedTemplate.use_failover ?? false}
+                                        onCheckedChange={handleToggleFailover}
+                                        disabled={updateMutation.isPending}
+                                    />
+                                    <div className="flex-1">
+                                        <label
+                                            htmlFor="use_failover"
+                                            className="flex items-center gap-2 font-medium cursor-pointer"
+                                        >
+                                            <MessageSquare className="w-4 h-4 text-blue-500" />
+                                            LMS 대체 발송 사용
+                                        </label>
+                                        <p className="text-sm text-muted-foreground mt-1">
+                                            카카오톡 발송 실패 시 template_title과 template_content로 LMS 발송
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
 
                             <div className="pt-4 border-t">
                                 <p className="text-sm text-muted-foreground">마지막 동기화</p>
