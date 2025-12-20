@@ -19,11 +19,7 @@ interface CrossfadeBackgroundProps {
  * - 애니메이션은 한 번만 실행 (루프 없음)
  * - 첫 번째 이미지가 완전히 로드된 후에만 전환 타이머 시작
  */
-export function CrossfadeBackground({
-    className,
-    duration = 3000,
-    delay = 1000,
-}: CrossfadeBackgroundProps) {
+export function CrossfadeBackground({ className, duration = 8000, delay = 1000 }: CrossfadeBackgroundProps) {
     const [isTransitioned, setIsTransitioned] = useState(false);
     const [isBeforeImageLoaded, setIsBeforeImageLoaded] = useState(false);
 
@@ -82,4 +78,3 @@ export function CrossfadeBackground({
 }
 
 export default CrossfadeBackground;
-
