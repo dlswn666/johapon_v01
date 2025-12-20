@@ -109,6 +109,7 @@ export type Database = {
                     insp_status: string | null;
                     buttons: Json | null;
                     synced_at: string | null;
+                    use_failover: boolean;
                 };
                 Insert: {
                     id?: string;
@@ -119,6 +120,7 @@ export type Database = {
                     insp_status?: string | null;
                     buttons?: Json | null;
                     synced_at?: string | null;
+                    use_failover?: boolean;
                 };
                 Update: {
                     id?: string;
@@ -129,6 +131,7 @@ export type Database = {
                     insp_status?: string | null;
                     buttons?: Json | null;
                     synced_at?: string | null;
+                    use_failover?: boolean;
                 };
                 Relationships: [];
             };

@@ -272,20 +272,8 @@ export async function sendAdminInviteAlimTalk(params: AdminInviteAlimTalkParams)
         },
     ];
 
-    // 대체 발송 메시지 생성 (LMS)
-    const failoverSubject = `[${unionName}] 관리자 등록 안내`;
-    const failoverMessage = `[${unionName}] 관리자 가입 안내
-
-${adminName}님, 안녕하세요. 요청하신 [${unionName}]의 관리자 권한 등록을 위해 본인 확인이 필요합니다.
-
-아래 링크를 클릭하여 계정 생성을 완료해 주세요.
-(본 메시지는 관리자 권한 신청에 따라 발송되었습니다.)
-
-▶ 가입 링크: ${inviteUrl}
-
-※ 본 링크는 ${formattedExpiresAt} 까지 유효합니다.`;
-
     // 테스트 모드 체크
+    // 참고: 대체 발송(LMS)은 템플릿의 use_failover 설정에 따라 서버에서 자동 처리
     const isTestMode = process.env.ALIMTALK_TEST_MODE === 'true';
 
     if (isTestMode) {
@@ -304,10 +292,7 @@ ${adminName}님, 안녕하세요. 요청하신 [${unionName}]의 관리자 권�
         console.log('📝 템플릿 내용:', templateContent);
         console.log('📝 서브타이틀 (emtitle): 서버에서 템플릿 정보로 자동 적용');
         console.log('📝 버튼:', JSON.stringify(buttons, null, 2));
-        console.log('-'.repeat(60));
-        console.log('📝 대체 발송 메시지 (LMS):');
-        console.log('제목:', failoverSubject);
-        console.log('내용:', failoverMessage);
+        console.log('📝 대체 발송: 템플릿 use_failover 설정에 따라 서버에서 자동 처리');
         console.log('-'.repeat(60));
         console.log('⚠️ 테스트 모드입니다. 실제 발송되지 않습니다.');
         console.log('='.repeat(60) + '\n');
@@ -344,8 +329,7 @@ ${adminName}님, 안녕하세요. 요청하신 [${unionName}]의 관리자 권�
                 },
                 content: templateContent,
                 buttons,
-                failoverSubject,
-                failoverMessage,
+                // 대체 발송은 템플릿의 use_failover 설정에 따라 서버에서 자동 처리
             },
         ],
     });
@@ -388,24 +372,8 @@ export async function sendMemberInviteAlimTalk(params: MemberInviteAlimTalkParam
         },
     ];
 
-    // 대체 발송 메시지 생성 (LMS)
-    const failoverSubject = `[${unionName}] 조합원 본인 확인 안내`;
-    const failoverMessage = `[${unionName}] 조합원 본인 확인 안내
-
-${memberName}님, 안녕하세요.
-${unionName} 홈페이지를 통해 요청하신 소유주 본인 확인 및 정보 등록 인증 메시지입니다.
-
-아래 링크를 통해 본인 인증 및 가입 절차를 완료해 주세요.
-
-▶ 가입 링크: ${inviteUrl}
-
-[인증 안내]
-* 본 메시지는 고객님의 본인 인증 요청에 따라 발송되었습니다.
-* 타인의 요청이거나 본인이 요청하지 않은 경우 무시하시기 바랍니다.
-
-유효 시간: ${formattedExpiresAt} 까지`;
-
     // 테스트 모드 체크
+    // 참고: 대체 발송(LMS)은 템플릿의 use_failover 설정에 따라 서버에서 자동 처리
     const isTestMode = process.env.ALIMTALK_TEST_MODE === 'true';
 
     if (isTestMode) {
@@ -418,9 +386,8 @@ ${unionName} 홈페이지를 통해 요청하신 소유주 본인 확인 및 정
         console.log('도메인:', domain);
         console.log('초대 토큰:', inviteToken.substring(0, 20) + '...');
         console.log('만료 시간:', formattedExpiresAt);
-        console.log('-'.repeat(60));
-        console.log('📝 템플릿 내용:', templateContent);
         console.log('📝 초대 URL:', inviteUrl);
+        console.log('📝 대체 발송: 템플릿 use_failover 설정에 따라 서버에서 자동 처리');
         console.log('-'.repeat(60));
         console.log('⚠️ 테스트 모드입니다. 실제 발송되지 않습니다.');
         console.log('='.repeat(60) + '\n');
@@ -456,8 +423,7 @@ ${unionName} 홈페이지를 통해 요청하신 소유주 본인 확인 및 정
                 },
                 content: templateContent,
                 buttons,
-                failoverSubject,
-                failoverMessage,
+                // 대체 발송은 템플릿의 use_failover 설정에 따라 서버에서 자동 처리
             },
         ],
     });
@@ -560,25 +526,9 @@ export async function sendBulkMemberInviteAlimTalk(
             },
         ];
 
+        // 대체 발송(LMS)은 템플릿의 use_failover 설정에 따라 서버에서 자동 처리
         const recipients = batch.map((member) => {
             const formattedExpiresAt = new Date(member.expiresAt).toLocaleString('ko-KR');
-            
-            // 대체 발송 메시지 (LMS)
-            const failoverSubject = `[${unionName}] 조합원 본인 확인 안내`;
-            const failoverMessage = `[${unionName}] 조합원 본인 확인 안내
-
-${member.name}님, 안녕하세요.
-${unionName} 홈페이지를 통해 요청하신 소유주 본인 확인 및 정보 등록 인증 메시지입니다.
-
-아래 링크를 통해 본인 인증 및 가입 절차를 완료해 주세요.
-
-▶ 가입 링크: https://${domain}/member-invite/${member.inviteToken}
-
-[인증 안내]
-* 본 메시지는 고객님의 본인 인증 요청에 따라 발송되었습니다.
-* 타인의 요청이거나 본인이 요청하지 않은 경우 무시하시기 바랍니다.
-
-유효 시간: ${formattedExpiresAt} 까지`;
 
             return {
                 phoneNumber: member.phoneNumber,
@@ -592,8 +542,6 @@ ${unionName} 홈페이지를 통해 요청하신 소유주 본인 확인 및 정
                 },
                 content: templateContent,
                 buttons,
-                failoverSubject,
-                failoverMessage,
             };
         });
 
@@ -775,37 +723,22 @@ export async function sendQuestionRegisteredAlimTalk(params: QuestionRegisteredA
     ];
 
     // 수신자 목록 구성
-    const recipients = admins.map((admin) => {
-        // 대체 발송 메시지 (LMS)
-        const failoverSubject = `[${unionName}] 질문 게시판 등록 알림`;
-        const failoverMessage = `관리자님, 질문 게시판에 새로운 게시글이 등록되었습니다.
-내용을 확인 후 답변을 작성해 주세요.
-
-□ 게시판 : 질문 게시판
-□ 작성자 : ${authorName}
-□ 제목 : ${questionTitle}
-□ 등록일시 : ${formattedCreatedAt}
-
-▶ 질문보기: https://johapon.kr/${unionSlug}/news/qna/${questionId}`;
-
-        return {
-            phoneNumber: admin.phone_number!,
-            name: admin.name,
-            variables: {
-                게시판명: '질문 게시판',
-                작성자명: authorName,
-                글제목: questionTitle,
-                등록일시: formattedCreatedAt,
-                조합슬러그: unionSlug,
-                질문ID: String(questionId),
-            },
-            content: templateContent,
-            buttons,
-            emtitle: '질문 등록 확인',
-            failoverSubject,
-            failoverMessage,
-        };
-    });
+    // 대체 발송(LMS)은 템플릿의 use_failover 설정에 따라 서버에서 자동 처리
+    const recipients = admins.map((admin) => ({
+        phoneNumber: admin.phone_number!,
+        name: admin.name,
+        variables: {
+            게시판명: '질문 게시판',
+            작성자명: authorName,
+            글제목: questionTitle,
+            등록일시: formattedCreatedAt,
+            조합슬러그: unionSlug,
+            질문ID: String(questionId),
+        },
+        content: templateContent,
+        buttons,
+        emtitle: '질문 등록 확인',
+    }));
 
     // 테스트 모드 체크
     const isTestMode = process.env.ALIMTALK_TEST_MODE === 'true';
@@ -905,19 +838,8 @@ export async function sendQuestionAnsweredAlimTalk(params: QuestionAnsweredAlimT
         },
     ];
 
-    // 대체 발송 메시지 (LMS)
-    const failoverSubject = `[${unionName}] 문의 답변 완료`;
-    const failoverMessage = `[${unionName}] 문의하신 내용에 답변이 등록되었습니다.
-
-${author.name}님, 남겨주신 문의글에 관리자 답변이 완료되었습니다.
-아래 링크를 통해 답변 내용을 확인해 주세요.
-
-□ 문의제목 : ${questionTitle}
-□ 답변일시 : ${formattedAnsweredAt}
-
-▶ 답변 확인: https://johapon.kr/${unionSlug}/news/qna/${questionId}`;
-
     // 수신자 구성
+    // 대체 발송(LMS)은 템플릿의 use_failover 설정에 따라 서버에서 자동 처리
     const recipients = [
         {
             phoneNumber: author.phone_number,
@@ -933,8 +855,6 @@ ${author.name}님, 남겨주신 문의글에 관리자 답변이 완료되었습
             content: templateContent,
             buttons,
             emtitle: unionName,
-            failoverSubject,
-            failoverMessage,
         },
     ];
 

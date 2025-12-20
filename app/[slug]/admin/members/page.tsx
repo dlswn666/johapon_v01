@@ -86,6 +86,12 @@ const USER_ROLE_LABELS: Record<string, string> = {
     APPLICANT: '가입 신청자',
 };
 
+// 전화번호 마스킹 함수 (뒤 3자리를 ***로 표시)
+const maskPhoneNumber = (phone: string | null | undefined): string => {
+    if (!phone || phone.length < 4) return phone || '-';
+    return phone.slice(0, -3) + '***';
+};
+
 interface ExcelMember {
     name: string;
     phone_number: string;
@@ -121,10 +127,7 @@ export default function MemberManagementPage() {
     } = useSendBulkMemberAlimtalk();
 
     // 수동 회원 등록 훅
-    const {
-        mutateAsync: createManualInvites,
-        isPending: isCreatingManual,
-    } = useCreateManualInvites();
+    const { mutateAsync: createManualInvites, isPending: isCreatingManual } = useCreateManualInvites();
 
     // 알림톡 발송 확인 다이얼로그 상태
     const [showAlimtalkConfirm, setShowAlimtalkConfirm] = useState(false);
@@ -883,7 +886,7 @@ export default function MemberManagementPage() {
                                                         <td className="px-6 py-4 text-[14px] text-gray-900 font-medium whitespace-nowrap">
                                                             {userData.name}
                                                         </td>
-                                                        <td className="px-6 py-4 text-[14px] text-gray-600 whitespace-nowrap">
+                                                        <td className="px-6 py-4 text-[14px] text-gray-600  whitespace-nowrap">
                                                             {userData.phone_number}
                                                         </td>
                                                         <td className="px-6 py-4 text-[14px] text-gray-600 whitespace-nowrap">
@@ -1041,7 +1044,7 @@ export default function MemberManagementPage() {
                                         <div>
                                             <p className="text-[12px] text-gray-500">전화번호</p>
                                             <p className="text-[16px] font-bold text-gray-900">
-                                                {selectedUser.phone_number}
+                                                {maskPhoneNumber(selectedUser.phone_number)}
                                             </p>
                                         </div>
                                     </div>
@@ -1082,7 +1085,9 @@ export default function MemberManagementPage() {
                                                 { value: 'APPLICANT', label: '가입 신청자' },
                                                 { value: 'USER', label: '조합원' },
                                                 { value: 'ADMIN', label: '조합 관리자' },
-                                                ...(isSystemAdmin ? [{ value: 'SYSTEM_ADMIN', label: '시스템 관리자' }] : []),
+                                                ...(isSystemAdmin
+                                                    ? [{ value: 'SYSTEM_ADMIN', label: '시스템 관리자' }]
+                                                    : []),
                                             ]}
                                             className="flex-1"
                                         />
