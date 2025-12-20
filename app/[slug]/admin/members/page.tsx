@@ -23,7 +23,6 @@ import {
     Phone,
     MapPin,
     Calendar,
-    Edit,
     ChevronLeft,
     ChevronRight,
 } from 'lucide-react';
@@ -837,7 +836,7 @@ export default function MemberManagementPage() {
                             ) : (
                                 <>
                                     <div className="overflow-x-auto">
-                                        <table className="w-full">
+                                        <table className="w-full min-w-[800px]">
                                             <thead className="bg-gray-50 border-b border-gray-200">
                                                 <tr>
                                                     <th className="px-6 py-4 text-left text-[14px] font-bold text-gray-700">
@@ -858,9 +857,6 @@ export default function MemberManagementPage() {
                                                     <th className="px-6 py-4 text-left text-[14px] font-bold text-gray-700">
                                                         가입일
                                                     </th>
-                                                    <th className="px-6 py-4 text-center text-[14px] font-bold text-gray-700">
-                                                        관리
-                                                    </th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-gray-100">
@@ -874,7 +870,7 @@ export default function MemberManagementPage() {
                                                         )}
                                                         onClick={() => openUserDetailModal(userData)}
                                                     >
-                                                        <td className="px-6 py-4">
+                                                        <td className="px-6 py-4 whitespace-nowrap">
                                                             <span
                                                                 className={cn(
                                                                     'inline-flex items-center px-3 py-1 rounded-full text-[12px] font-medium',
@@ -884,31 +880,20 @@ export default function MemberManagementPage() {
                                                                 {USER_STATUS_LABELS[userData.user_status]}
                                                             </span>
                                                         </td>
-                                                        <td className="px-6 py-4 text-[14px] text-gray-900 font-medium">
+                                                        <td className="px-6 py-4 text-[14px] text-gray-900 font-medium whitespace-nowrap">
                                                             {userData.name}
                                                         </td>
-                                                        <td className="px-6 py-4 text-[14px] text-gray-600">
+                                                        <td className="px-6 py-4 text-[14px] text-gray-600 whitespace-nowrap">
                                                             {userData.phone_number}
                                                         </td>
-                                                        <td className="px-6 py-4 text-[14px] text-gray-600 max-w-[200px] truncate">
+                                                        <td className="px-6 py-4 text-[14px] text-gray-600 whitespace-nowrap">
                                                             {userData.property_address || '-'}
                                                         </td>
-                                                        <td className="px-6 py-4 text-[14px] text-gray-600">
+                                                        <td className="px-6 py-4 text-[14px] text-gray-600 whitespace-nowrap">
                                                             {USER_ROLE_LABELS[userData.role] || userData.role}
                                                         </td>
-                                                        <td className="px-6 py-4 text-[14px] text-gray-600">
+                                                        <td className="px-6 py-4 text-[14px] text-gray-600 whitespace-nowrap">
                                                             {new Date(userData.created_at).toLocaleDateString('ko-KR')}
-                                                        </td>
-                                                        <td className="px-6 py-4 text-center">
-                                                            <button
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    openUserDetailModal(userData);
-                                                                }}
-                                                                className="p-2 text-gray-400 hover:text-[#4E8C6D] hover:bg-green-50 rounded-lg transition-colors"
-                                                            >
-                                                                <Edit className="w-5 h-5" />
-                                                            </button>
                                                         </td>
                                                     </tr>
                                                 ))}
