@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
@@ -8,7 +8,7 @@ interface CrossfadeBackgroundProps {
     className?: string;
     /** 크로스페이드 애니메이션 지속 시간 (ms) */
     duration?: number;
-    /** 애니메이션 시작 전 대기 시간 (ms) */
+    /** 이미지 로드 완료 후 애니메이션 시작 전 대기 시간 (ms) */
     delay?: number;
 }
 
@@ -17,6 +17,7 @@ interface CrossfadeBackgroundProps {
  * - 이미지 1 (재개발 전)이 점점 희미해지고
  * - 이미지 2 (재개발 후)가 뚜렷해지는 효과
  * - 애니메이션은 한 번만 실행 (루프 없음)
+ * - 첫 번째 이미지가 완전히 로드된 후에만 전환 타이머 시작
  */
 export function CrossfadeBackground({
     className,
@@ -24,15 +25,24 @@ export function CrossfadeBackground({
     delay = 1000,
 }: CrossfadeBackgroundProps) {
     const [isTransitioned, setIsTransitioned] = useState(false);
+    const [isBeforeImageLoaded, setIsBeforeImageLoaded] = useState(false);
+
+    // 첫 번째 이미지(before) 로드 완료 핸들러
+    const handleBeforeImageLoad = useCallback(() => {
+        setIsBeforeImageLoaded(true);
+    }, []);
 
     useEffect(() => {
-        // 지정된 딜레이 후 크로스페이드 시작
+        // 첫 번째 이미지가 로드되지 않았으면 타이머 시작하지 않음
+        if (!isBeforeImageLoaded) return;
+
+        // 이미지 로드 완료 후 지정된 딜레이 후 크로스페이드 시작
         const timer = setTimeout(() => {
             setIsTransitioned(true);
         }, delay);
 
         return () => clearTimeout(timer);
-    }, [delay]);
+    }, [delay, isBeforeImageLoaded]);
 
     return (
         <div className={cn('absolute inset-0 overflow-hidden', className)}>
@@ -61,6 +71,7 @@ export function CrossfadeBackground({
                     fill
                     className="object-cover"
                     priority
+                    onLoad={handleBeforeImageLoad}
                 />
             </div>
 

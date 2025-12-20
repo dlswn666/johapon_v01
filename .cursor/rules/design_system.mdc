@@ -8,22 +8,22 @@
 
 ### ■ Primary Colors (메인 컬러)
 
-* **Primary 600**: #4E8C6D — 핵심 액센트 색상, 탭 활성, 버튼 강조 등
-* **Primary 500**: #5FA37C — 기본 액센트, 제목, 강조 텍스트
-* **Primary 400**: #6BAA89 — 배경 포인트, 라인, 보조 강조
+-   **Primary 600**: #4E8C6D — 핵심 액센트 색상, 탭 활성, 버튼 강조 등
+-   **Primary 500**: #5FA37C — 기본 액센트, 제목, 강조 텍스트
+-   **Primary 400**: #6BAA89 — 배경 포인트, 라인, 보조 강조
 
 ### ■ Neutral Colors (중립 색상)
 
-* **Gray 100**: #F5F5F5 — 전체 배경
-* **Gray 200**: #E6E6E6 — 카드 배경
-* **Gray 300**: #CCCCCC — Divider, Border
-* **Gray 400**: #AFAFAF — 비활성 텍스트
+-   **Gray 100**: #F5F5F5 — 전체 배경
+-   **Gray 200**: #E6E6E6 — 카드 배경
+-   **Gray 300**: #CCCCCC — Divider, Border
+-   **Gray 400**: #AFAFAF — 비활성 텍스트
 
 ### ■ Semantic Colors
 
-* **Error**: #D9534F
-* **Warning**: #F0AD4E
-* **Success**: #5CB85C
+-   **Error**: #D9534F
+-   **Warning**: #F0AD4E
+-   **Success**: #5CB85C
 
 ---
 
@@ -33,22 +33,22 @@
 
 ### ■ Font Family
 
-* **Noto Sans KR** (기본)
-* 또는 **맑은 고딕** (Fallback)
+-   **Noto Sans KR** (기본)
+-   또는 **맑은 고딕** (Fallback)
 
 ### ■ Font Scale (PC 기준)
 
-* **H1 (Hero Title)**: 48–64px / Bold
-* **H2 (Section Title)**: 28–32px / Bold
-* **H3 (Card Title)**: 20–22px / Medium–Bold
-* **Body Large**: 18–20px / Regular — 고령층 기본 본문
-* **Body Medium**: 16px / Regular — 일반 본문
-* **Body Small**: 14px / Regular — 부가 정보
+-   **H1 (Hero Title)**: 48–64px / Bold
+-   **H2 (Section Title)**: 28–32px / Bold
+-   **H3 (Card Title)**: 20–22px / Medium–Bold
+-   **Body Large**: 18–20px / Regular — 고령층 기본 본문
+-   **Body Medium**: 16px / Regular — 일반 본문
+-   **Body Small**: 14px / Regular — 부가 정보
 
 ### ■ Line Height
 
-* 본문: 1.5–1.7
-* 제목: 1.2–1.3
+-   본문: 1.5–1.7
+-   제목: 1.2–1.3
 
 ---
 
@@ -56,22 +56,22 @@
 
 ### ■ Grid & Spacing
 
-* 전체 콘텐츠 최대 너비: **1280px 고정 컨테이너**
-* 섹션 상하 간격: **80–120px**
-* 카드 간 간격: **24–32px**
-* 내부 패딩: **24px (카드), 48px(Hero)**
+-   전체 콘텐츠 최대 너비: **1280px 고정 컨테이너**
+-   섹션 상하 간격: **80–120px**
+-   카드 간 간격: **24–32px**
+-   내부 패딩: **24px (카드), 48px(Hero)**
 
 ### ■ Breakpoints (반응형 기준)
 
-* **Desktop**: 1200px 이상
-* **Tablet**: 768–1199px
-* **Mobile**: 767px 이하
+-   **Desktop**: 1200px 이상
+-   **Tablet**: 768–1199px
+-   **Mobile**: 767px 이하
 
 반응형 기본 원칙:
 
-* 텍스트 크기 10–20% 축소
-* 리스트 → 카드 아래로 단일 열 정렬
-* Hero 폰트는 모바일에서 30–40px로 축소
+-   텍스트 크기 10–20% 축소
+-   리스트 → 카드 아래로 단일 열 정렬
+-   Hero 폰트는 모바일에서 30–40px로 축소
 
 ---
 
@@ -79,25 +79,25 @@
 
 ### ⭐ Hero Section
 
-* 배경: 풀사이즈 이미지 (조망도)
-* 가운데 정렬 (display:flex; align-items:center; justify-content:center;)
-* 텍스트 대비를 위한 **어두운 반투명 오버레이 (#00000055)** 권장
-* 요소 간 간격: 16–24px
+-   배경: 풀사이즈 이미지 (조망도)
+-   가운데 정렬 (display:flex; align-items:center; justify-content:center;)
+-   텍스트 대비를 위한 **어두운 반투명 오버레이 (#00000055)** 권장
+-   요소 간 간격: 16–24px
 
 #### 텍스트 스타일
 
-* 조합명: H1 + White
-* 설명글: Body Large + Gray 100 (#F5F5F5)
+-   조합명: H1 + White
+-   설명글: Body Large + Gray 100 (#F5F5F5)
 
 ---
 
 ### ⭐ Tabs Component (공지/일반/질문)
 
-* 탭 활성: **Primary 600 밑줄 또는 배경 강조**
-* 탭 비활성: Gray 300 텍스트
-* 탭 간 간격: 24–40px
-* 탭 높이: 48–56px
-* 탭 밑줄 두께: 3–4px
+-   탭 활성: **Primary 600 밑줄 또는 배경 강조**
+-   탭 비활성: Gray 300 텍스트
+-   탭 간 간격: 24–40px
+-   탭 높이: 48–56px
+-   탭 밑줄 두께: 3–4px
 
 ---
 
@@ -105,34 +105,34 @@
 
 #### 1) Large Card (첫 게시글)
 
-* 배경: Gray 200
-* 패딩: 24–32px
-* 라운드: 12px
-* 텍스트 구조:
+-   배경: Gray 200
+-   패딩: 24–32px
+-   라운드: 12px
+-   텍스트 구조:
 
-  * 제목(H3) → 작성자/날짜(Body Small) → 본문 일부(Body Medium)
+    -   제목(H3) → 작성자/날짜(Body Small) → 본문 일부(Body Medium)
 
 #### 2) Small Card (나머지 3개)
 
-* 배경: Gray 200
-* 패딩: 16–20px
-* 아이템 간 Divider 사용(Gray 300)
+-   배경: Gray 200
+-   패딩: 16–20px
+-   아이템 간 Divider 사용(Gray 300)
 
 ---
 
 ## 5. 🧱 아이콘 & 시각 요소 규칙
 
-* 아이콘 스타일: 단순 라인형 (Stroke 2px)
-* 모서리 라운드: 8–12px 기본 적용
-* 섀도우는 최소화하여 안정적 느낌 강조
+-   아이콘 스타일: 단순 라인형 (Stroke 2px)
+-   모서리 라운드: 8–12px 기본 적용
+-   섀도우는 최소화하여 안정적 느낌 강조
 
 ---
 
 ## 6. 📸 이미지 사용 가이드
 
-* Hero 배경: 실제 조망도 또는 고급 일러스트
-* 색감: 초록 톤과 자연스럽게 어우러지는 밝은 톤
-* 대비 확보를 위해 필요 시 어두운 Overlay 적용
+-   Hero 배경: 실제 조망도 또는 고급 일러스트
+-   색감: 초록 톤과 자연스럽게 어우러지는 밝은 톤
+-   대비 확보를 위해 필요 시 어두운 Overlay 적용
 
 ---
 
@@ -143,14 +143,79 @@
 3. **텍스트 정보 계층 구조(제목 → 정보 → 본문)** 명확히
 4. **여백은 적게 주지 않는다.** 고령층을 고려해 최소 16px 이상
 5. **인터랙션(탭, hover)은 반드시 시각적으로 표현**
+6. **Input 영역(데이터 입력 영역) 배경색은 흰색(#FFFFFF)** 적용
+
+---
+
+## 7-1. 📝 Form 입력 영역 규칙
+
+### ■ Input 영역 배경색
+
+모든 데이터 입력 영역(Input, Textarea, TextEditor 등)의 배경색은 **흰색(#FFFFFF)**으로 통일합니다.
+
+-   **Input 필드**: `bg-white`
+-   **Textarea**: `bg-white`
+-   **TextEditor**: `bg-white`
+-   **Checkbox 카드 영역**: `bg-white`
+
+### ■ 테두리 및 라운드
+
+-   테두리: `border-[#CCCCCC]`
+-   라운드: `rounded-[12px]`
+-   높이: `h-[48px]` (표준 입력 필드)
+
+---
+
+## 7-2. 🔘 버튼 위젯 사용 가이드
+
+프로젝트 전체에서 일관된 버튼 디자인을 위해 `ActionButton` 위젯을 사용합니다.
+
+### ■ buttonType 프리셋
+
+| buttonType | 스타일                             | 용도                          |
+| ---------- | ---------------------------------- | ----------------------------- |
+| `submit`   | Primary 배경(#4E8C6D), 흰색 텍스트 | 등록, 저장, 확인 등 주요 액션 |
+| `cancel`   | Outline 스타일, 회색 테두리        | 취소, 닫기 등 보조 액션       |
+| `default`  | 기본 스타일                        | 일반 버튼                     |
+
+### ■ 버튼 크기
+
+| size | 높이 | 용도                   |
+| ---- | ---- | ---------------------- |
+| `sm` | 36px | 작은 버튼, 인라인 액션 |
+| `md` | 48px | 표준 폼 버튼 (기본값)  |
+| `lg` | 56px | 강조 버튼, 히어로 영역 |
+
+### ■ 로딩 상태
+
+`isLoading=true`일 때 텍스트는 숨기고 **Spinner만 중앙에 표시**합니다.
+
+---
+
+## 7-3. ⏳ 로딩 상태 가이드
+
+### ■ Skeleton (영역 로딩)
+
+페이지나 영역이 로딩 중일 때 사용합니다.
+
+-   색상: `bg-gray-300` (짙은 회색)
+-   애니메이션: `animate-pulse`
+-   위젯: `PageSkeleton`, `FormSkeleton`
+
+### ■ Spinner (버튼/인라인 로딩)
+
+버튼이나 작은 영역의 로딩 상태에 사용합니다.
+
+-   크기: `size-4` (기본), `size-5` (버튼 내)
+-   애니메이션: `animate-spin`
 
 ---
 
 ## 8. 📱 반응형 UX 가이드
 
-* 터치 타겟 최소 44px
-* 탭은 모바일에서 슬라이드 가능한 형태 고려
-* 긴 텍스트는 2–3줄 말줄임 처리
+-   터치 타겟 최소 44px
+-   탭은 모바일에서 슬라이드 가능한 형태 고려
+-   긴 텍스트는 2–3줄 말줄임 처리
 
 ---
 
@@ -158,26 +223,26 @@
 
 ```css
 :root {
-  /* Primary */
-  --primary-600: #4E8C6D;
-  --primary-500: #5FA37C;
-  --primary-400: #6BAA89;
+    /* Primary */
+    --primary-600: #4e8c6d;
+    --primary-500: #5fa37c;
+    --primary-400: #6baa89;
 
-  /* Neutral */
-  --gray-100: #F5F5F5;
-  --gray-200: #E6E6E6;
-  --gray-300: #CCCCCC;
-  --gray-400: #AFAFAF;
+    /* Neutral */
+    --gray-100: #f5f5f5;
+    --gray-200: #e6e6e6;
+    --gray-300: #cccccc;
+    --gray-400: #afafaf;
 
-  /* Typography */
-  --font-h1: 56px;
-  --font-h2: 32px;
-  --font-h3: 20px;
-  --font-body-lg: 20px;
-  --font-body-md: 16px;
-  --font-body-sm: 14px;
+    /* Typography */
+    --font-h1: 56px;
+    --font-h2: 32px;
+    --font-h3: 20px;
+    --font-body-lg: 20px;
+    --font-body-md: 16px;
+    --font-body-sm: 14px;
 
-  --radius-card: 12px;
+    --radius-card: 12px;
 }
 ```
 

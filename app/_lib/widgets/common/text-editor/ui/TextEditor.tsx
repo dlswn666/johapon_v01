@@ -65,9 +65,9 @@ export const TextEditor = ({
     }
 
     return (
-        <div className={cn("border border-input rounded-md bg-background shadow-sm w-full overflow-hidden", className)}>
+        <div className={cn("border border-input rounded-md bg-white shadow-sm w-full overflow-hidden", className)}>
             <EditorToolbar editor={editor} />
-            <EditorContent editor={editor} />
+            <EditorContent editor={editor} className="bg-white" />
         </div>
     );
 };

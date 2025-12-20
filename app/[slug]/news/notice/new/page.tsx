@@ -1,6 +1,5 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -8,9 +7,6 @@ import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-// import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
 import { useAddNotice } from '@/app/_lib/features/notice/api/useNoticeHook';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import AlertModal from '@/app/_lib/widgets/modal/AlertModal';
@@ -19,6 +15,9 @@ import { TextEditor } from '@/app/_lib/widgets/common/text-editor';
 import useNoticeStore from '@/app/_lib/features/notice/model/useNoticeStore';
 import { useFileStore } from '@/app/_lib/shared/stores/file/useFileStore';
 import { StartEndPicker } from '@/app/_lib/widgets/common/date-picker';
+import { FormInputField } from '@/app/_lib/widgets/common/form';
+import { FormCheckboxField } from '@/app/_lib/widgets/common/form';
+import { ActionButton } from '@/app/_lib/widgets/common/button';
 
 const formSchema = z.object({
     title: z.string().min(1, '제목을 입력해주세요.'),
@@ -29,12 +28,11 @@ const formSchema = z.object({
     end_date: z.date().nullable().optional(),
 });
 
-
 const NewNoticePage = () => {
     const router = useRouter();
     const { slug, union } = useSlug();
     const { mutate: addNotice, isPending } = useAddNotice();
-    
+
     // Store cleanup actions
     const clearEditorImages = useNoticeStore((state) => state.clearEditorImages);
     const clearTempFiles = useFileStore((state) => state.clearTempFiles);
@@ -92,49 +90,26 @@ const NewNoticePage = () => {
 
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-                            <FormField
+                            <FormInputField
                                 control={form.control}
                                 name="title"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel className="text-[16px] font-bold text-[#5FA37C]">제목</FormLabel>
-                                        <FormControl>
-                                            <Input placeholder="제목을 입력해주세요" {...field} className="h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]" />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
+                                label="제목"
+                                placeholder="제목을 입력해주세요"
                             />
 
                             <div className="flex gap-4">
-                                <FormField
+                                <FormCheckboxField
                                     control={form.control}
                                     name="is_popup"
-                                    render={({ field }) => (
-                                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-[12px] border border-[#CCCCCC] bg-[#F5F5F5] p-6 flex-1 cursor-pointer">
-                                            <FormControl>
-                                                <Checkbox checked={field.value} onCheckedChange={field.onChange} className="data-[state=checked]:bg-[#4E8C6D] border-[#AFAFAF] cursor-pointer" />
-                                            </FormControl>
-                                            <div className="space-y-1 leading-none">
-                                                <FormLabel className="text-[16px] text-gray-700 font-medium cursor-pointer">팝업으로 표시</FormLabel>
-                                            </div>
-                                        </FormItem>
-                                    )}
+                                    label="팝업으로 표시"
+                                    variant="card"
                                 />
 
-                                <FormField
+                                <FormCheckboxField
                                     control={form.control}
                                     name="send_alimtalk"
-                                    render={({ field }) => (
-                                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-[12px] border border-[#CCCCCC] bg-[#F5F5F5] p-6 flex-1 cursor-pointer">
-                                            <FormControl>
-                                                <Checkbox checked={field.value} onCheckedChange={field.onChange} className="data-[state=checked]:bg-[#4E8C6D] border-[#AFAFAF] cursor-pointer" />
-                                            </FormControl>
-                                            <div className="space-y-1 leading-none">
-                                                <FormLabel className="text-[16px] text-gray-700 font-medium cursor-pointer">알림톡 발송</FormLabel>
-                                            </div>
-                                        </FormItem>
-                                    )}
+                                    label="알림톡 발송"
+                                    variant="card"
                                 />
                             </div>
 
@@ -142,9 +117,7 @@ const NewNoticePage = () => {
                             <div
                                 className={cn(
                                     'overflow-hidden transition-all duration-300 ease-out',
-                                    isPopup
-                                        ? 'max-h-[200px] opacity-100'
-                                        : 'max-h-0 opacity-0'
+                                    isPopup ? 'max-h-[200px] opacity-100' : 'max-h-0 opacity-0'
                                 )}
                             >
                                 <div className="rounded-[12px] border border-[#CCCCCC] bg-[#F9F9F9] p-6">
@@ -189,21 +162,12 @@ const NewNoticePage = () => {
                             />
 
                             <div className="flex justify-end gap-3 pt-6 border-t border-[#CCCCCC]">
-                                <Button 
-                                    type="button" 
-                                    variant="outline" 
-                                    onClick={() => router.push(`/${slug}/news/notice`)}
-                                    className="h-[48px] px-8 text-[16px] border-[#CCCCCC] text-gray-600 hover:bg-gray-50 cursor-pointer"
-                                >
+                                <ActionButton buttonType="cancel" onClick={() => router.push(`/${slug}/news/notice`)}>
                                     취소
-                                </Button>
-                                <Button 
-                                    type="submit" 
-                                    disabled={isPending}
-                                    className="h-[48px] px-8 text-[16px] bg-[#4E8C6D] hover:bg-[#5FA37C] text-white cursor-pointer"
-                                >
-                                    {isPending ? '등록 중...' : '등록'}
-                                </Button>
+                                </ActionButton>
+                                <ActionButton buttonType="submit" type="submit" isLoading={isPending}>
+                                    등록
+                                </ActionButton>
                             </div>
                         </form>
                     </Form>
@@ -216,4 +180,3 @@ const NewNoticePage = () => {
 };
 
 export default NewNoticePage;
-
