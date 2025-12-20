@@ -91,7 +91,7 @@ export const useSyncMemberInvites = () => {
             unionId: string;
             createdBy: string;
             expiresHours: number;
-            members: { name: string; phone_number: string; property_address: string }[];
+            members: { name: string; phone_number: string; property_address?: string }[];
         }) => {
             // API Route를 통해 동기화 (auth.users 삭제 처리를 위해)
             const response = await fetch('/api/member-invite/sync', {
@@ -280,6 +280,107 @@ export const useSendBulkMemberAlimtalk = () => {
         },
         meta: {
             skipErrorToast: true, // 컴포넌트에서 직접 에러 처리
+        },
+    });
+
+    return { ...mutation, progress };
+};
+
+// UUID 생성 헬퍼 (crypto.randomUUID 대체)
+const generateUUID = (): string => {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+        const r = (Math.random() * 16) | 0;
+        const v = c === 'x' ? r : (r & 0x3) | 0x8;
+        return v.toString(16);
+    });
+};
+
+// 수동 회원 등록 및 알림톡 발송
+export const useCreateManualInvites = () => {
+    const addMemberInvites = useMemberInviteStore((state) => state.addMemberInvites);
+    const [progress, setProgress] = useState<BulkSendProgress | null>(null);
+
+    const mutation = useMutation({
+        mutationFn: async (input: {
+            unionId: string;
+            unionName: string;
+            domain: string;
+            createdBy: string;
+            members: { name: string; phone_number: string }[];
+        }) => {
+            const { unionId, unionName, domain, createdBy, members } = input;
+
+            if (members.length === 0) {
+                throw new Error('등록할 회원이 없습니다.');
+            }
+
+            // 만료 시간: 1년 후
+            const expiresAt = new Date();
+            expiresAt.setFullYear(expiresAt.getFullYear() + 1);
+
+            // 초대 데이터 생성
+            const invitesToInsert = members.map((member) => ({
+                union_id: unionId,
+                name: member.name,
+                phone_number: member.phone_number,
+                property_address: '', // 물건지 정보 없이 등록
+                invite_token: generateUUID(),
+                status: 'PENDING' as const,
+                created_by: createdBy,
+                expires_at: expiresAt.toISOString(),
+            }));
+
+            // Bulk INSERT
+            const { data: insertedInvites, error: insertError } = await supabase
+                .from('member_invites')
+                .insert(invitesToInsert)
+                .select();
+
+            if (insertError) {
+                throw new Error(`회원 등록에 실패했습니다: ${insertError.message}`);
+            }
+
+            if (!insertedInvites || insertedInvites.length === 0) {
+                throw new Error('회원 등록에 실패했습니다.');
+            }
+
+            // Store 업데이트
+            addMemberInvites(insertedInvites);
+
+            // 알림톡 발송 대상 구성
+            const alimtalkMembers = insertedInvites.map((invite) => ({
+                name: invite.name,
+                phoneNumber: invite.phone_number,
+                inviteToken: invite.invite_token,
+                expiresAt: invite.expires_at,
+            }));
+
+            // 알림톡 일괄 발송
+            const alimtalkResult = await sendBulkMemberInviteAlimTalk(
+                {
+                    unionId,
+                    unionName,
+                    domain,
+                    members: alimtalkMembers,
+                },
+                (progressData) => {
+                    setProgress(progressData);
+                }
+            );
+
+            return {
+                insertedCount: insertedInvites.length,
+                alimtalkResult,
+            };
+        },
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['member-invites', variables.unionId] });
+        },
+        onSettled: () => {
+            setTimeout(() => setProgress(null), 2000);
+        },
+        meta: {
+            skipErrorToast: true,
         },
     });
 

@@ -23,7 +23,6 @@ import {
     Phone,
     MapPin,
     Calendar,
-    Edit,
     ChevronLeft,
     ChevronRight,
 } from 'lucide-react';
@@ -46,6 +45,7 @@ import {
     useSyncMemberInvites,
     useDeleteMemberInvite,
     useSendBulkMemberAlimtalk,
+    useCreateManualInvites,
 } from '@/app/_lib/features/member-invite/api/useMemberInviteHook';
 import useMemberInviteStore, { MemberInviteFilter } from '@/app/_lib/features/member-invite/model/useMemberInviteStore';
 import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
@@ -54,7 +54,9 @@ import { MemberInvite, User, UserStatus } from '@/app/_lib/shared/type/database.
 import { supabase } from '@/app/_lib/shared/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import MemberDetailModal from './MemberDetailModal';
+import ManualInviteModal from './ManualInviteModal';
 import { cn } from '@/lib/utils';
+import { SelectBox } from '@/app/_lib/widgets/common/select-box';
 
 // 탭 타입
 type TabType = 'invite' | 'approval';
@@ -93,7 +95,6 @@ const maskPhoneNumber = (phone: string | null | undefined): string => {
 interface ExcelMember {
     name: string;
     phone_number: string;
-    property_address: string;
 }
 
 export default function MemberManagementPage() {
@@ -125,8 +126,13 @@ export default function MemberManagementPage() {
         progress: sendProgress,
     } = useSendBulkMemberAlimtalk();
 
+    // 수동 회원 등록 훅
+    const { mutateAsync: createManualInvites, isPending: isCreatingManual } = useCreateManualInvites();
+
     // 알림톡 발송 확인 다이얼로그 상태
     const [showAlimtalkConfirm, setShowAlimtalkConfirm] = useState(false);
+    // 수동 회원 등록 모달 상태
+    const [showManualInviteModal, setShowManualInviteModal] = useState(false);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -285,15 +291,21 @@ export default function MemberManagementPage() {
     // ====== 초대 관리 핸들러 ======
     const handleDownloadTemplate = useCallback(() => {
         const templateData = [
-            { 이름: '홍길동', 핸드폰번호: '010-1234-5678', 물건지주소: '서울시 강남구 역삼동 123-45' },
-            { 이름: '김철수', 핸드폰번호: '010-9876-5432', 물건지주소: '서울시 서초구 서초동 456-78' },
+            { 이름: '홍길동', 핸드폰번호: '010-1234-5678' },
+            { 이름: '김철수', 핸드폰번호: '010-9876-5432' },
         ];
 
         const worksheet = XLSX.utils.json_to_sheet(templateData);
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, '예비조합원명부');
 
-        worksheet['!cols'] = [{ wch: 15 }, { wch: 20 }, { wch: 40 }];
+        // 컬럼 너비 설정
+        worksheet['!cols'] = [{ wch: 15 }, { wch: 20 }];
+
+        // 핸드폰번호 컬럼을 텍스트 형식으로 설정 (0으로 시작하는 숫자 유지)
+        // B2, B3 셀에 텍스트 형식 적용
+        if (worksheet['B2']) worksheet['B2'].t = 's';
+        if (worksheet['B3']) worksheet['B3'].t = 's';
 
         XLSX.writeFile(workbook, '예비조합원_템플릿.xlsx');
         toast.success('템플릿이 다운로드되었습니다.');
@@ -322,26 +334,22 @@ export default function MemberManagementPage() {
 
                 jsonData.forEach((row, index) => {
                     const name = row['이름']?.toString().trim();
-                    const phoneNumber = row['핸드폰번호']?.toString().trim();
-                    const propertyAddress = row['물건지주소']?.toString().trim();
+                    // 핸드폰번호 처리: 하이픈 제거 및 숫자만 추출
+                    let phoneNumber = row['핸드폰번호']?.toString().trim() || '';
+                    phoneNumber = phoneNumber.replace(/[^\d]/g, ''); // 숫자만 추출
 
                     if (!name) {
                         errors.push(`${index + 2}행: 이름이 비어있습니다.`);
                         return;
                     }
-                    if (!phoneNumber) {
-                        errors.push(`${index + 2}행: 핸드폰번호가 비어있습니다.`);
-                        return;
-                    }
-                    if (!propertyAddress) {
-                        errors.push(`${index + 2}행: 물건지주소가 비어있습니다.`);
+                    if (!phoneNumber || phoneNumber.length < 10) {
+                        errors.push(`${index + 2}행: 핸드폰번호가 올바르지 않습니다.`);
                         return;
                     }
 
                     members.push({
                         name,
                         phone_number: phoneNumber,
-                        property_address: propertyAddress,
                     });
                 });
 
@@ -450,6 +458,39 @@ export default function MemberManagementPage() {
         }
     };
 
+    // 수동 회원 등록 핸들러
+    const handleManualInvite = async (members: { name: string; phone_number: string }[]) => {
+        if (!unionId || !union || !user?.id) {
+            toast.error('조합 정보를 불러올 수 없습니다.');
+            return;
+        }
+
+        try {
+            const domain = typeof window !== 'undefined' ? window.location.host : 'johapon.kr';
+
+            const result = await createManualInvites({
+                unionId,
+                unionName: union.name,
+                domain,
+                createdBy: user.id,
+                members,
+            });
+
+            if (result.alimtalkResult.success) {
+                toast.success(
+                    `등록 완료! ${result.insertedCount}명\n알림톡 발송: ${result.alimtalkResult.sentCount || 0}건`,
+                    { duration: 5000 }
+                );
+                setShowManualInviteModal(false);
+            } else {
+                toast.error(result.alimtalkResult.error || '알림톡 발송에 실패했습니다.');
+            }
+        } catch (error) {
+            console.error('수동 회원 등록 오류:', error);
+            toast.error(error instanceof Error ? error.message : '회원 등록에 실패했습니다.');
+        }
+    };
+
     const getStatusBadge = (status: string) => {
         switch (status) {
             case 'USED':
@@ -551,16 +592,25 @@ export default function MemberManagementPage() {
                     <>
                         {/* 엑셀 업로드 카드 */}
                         <div className="bg-white rounded-xl shadow-sm p-6">
-                            <div className="flex items-center gap-3 mb-4">
-                                <div className="w-10 h-10 bg-[#4E8C6D]/10 rounded-xl flex items-center justify-center">
-                                    <FileSpreadsheet className="w-5 h-5 text-[#4E8C6D]" />
+                            <div className="flex items-center justify-between mb-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-[#4E8C6D]/10 rounded-xl flex items-center justify-center">
+                                        <FileSpreadsheet className="w-5 h-5 text-[#4E8C6D]" />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-lg font-semibold text-gray-900">회원 등록</h2>
+                                        <p className="text-sm text-gray-600">
+                                            엑셀 업로드 또는 수동 등록으로 예비 조합원을 추가합니다
+                                        </p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <h2 className="text-lg font-semibold text-gray-900">엑셀 업로드</h2>
-                                    <p className="text-sm text-gray-600">
-                                        예비 조합원 명부를 엑셀로 업로드하면 DB와 동기화됩니다
-                                    </p>
-                                </div>
+                                <Button
+                                    onClick={() => setShowManualInviteModal(true)}
+                                    className="bg-[#4E8C6D] hover:bg-[#3d7058] text-white"
+                                >
+                                    <UserPlus className="w-4 h-4 mr-2" />
+                                    수동 등록
+                                </Button>
                             </div>
                             <div className="flex flex-wrap gap-4">
                                 <Button
@@ -572,9 +622,10 @@ export default function MemberManagementPage() {
                                     템플릿 다운로드
                                 </Button>
                                 <Button
+                                    variant="outline"
                                     onClick={() => fileInputRef.current?.click()}
                                     disabled={isUploading || syncMutation.isPending}
-                                    className="bg-[#4E8C6D] hover:bg-[#3d7058] text-white"
+                                    className="border-gray-300 text-gray-700 hover:bg-gray-50"
                                 >
                                     {isUploading || syncMutation.isPending ? (
                                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -592,8 +643,7 @@ export default function MemberManagementPage() {
                                 />
                             </div>
                             <p className="mt-3 text-xs text-gray-500">
-                                * 업로드 시 기존 데이터와 비교하여 자동으로 추가/삭제됩니다. 이미 수락한 조합원도 엑셀에
-                                없으면 삭제됩니다.
+                                * 엑셀 업로드 시 기존 데이터와 비교하여 자동으로 추가/삭제됩니다.
                             </p>
                         </div>
 
@@ -746,35 +796,37 @@ export default function MemberManagementPage() {
                                     />
                                 </div>
 
-                                <select
+                                <SelectBox
                                     value={statusFilter}
-                                    onChange={(e) => {
-                                        setStatusFilter(e.target.value as UserStatusFilter);
+                                    onChange={(value) => {
+                                        setStatusFilter(value as UserStatusFilter);
                                         setPage(1);
                                     }}
-                                    className="h-12 px-4 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4E8C6D] focus:border-transparent text-[16px]"
-                                >
-                                    <option value="ALL">전체 상태</option>
-                                    <option value="PENDING_APPROVAL">승인 대기</option>
-                                    <option value="APPROVED">승인됨</option>
-                                    <option value="REJECTED">반려됨</option>
-                                    <option value="PENDING_PROFILE">프로필 미입력</option>
-                                </select>
+                                    options={[
+                                        { value: 'ALL', label: '전체 상태' },
+                                        { value: 'PENDING_APPROVAL', label: '승인 대기' },
+                                        { value: 'APPROVED', label: '승인됨' },
+                                        { value: 'REJECTED', label: '반려됨' },
+                                        { value: 'PENDING_PROFILE', label: '프로필 미입력' },
+                                    ]}
+                                    className="min-w-[140px]"
+                                />
 
-                                <select
+                                <SelectBox
                                     value={roleFilter}
-                                    onChange={(e) => {
-                                        setRoleFilter(e.target.value as UserRoleFilter);
+                                    onChange={(value) => {
+                                        setRoleFilter(value as UserRoleFilter);
                                         setPage(1);
                                     }}
-                                    className="h-12 px-4 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4E8C6D] focus:border-transparent text-[16px]"
-                                >
-                                    <option value="ALL">전체 등급</option>
-                                    <option value="USER">조합원</option>
-                                    <option value="ADMIN">조합 관리자</option>
-                                    <option value="APPLICANT">가입 신청자</option>
-                                    {isSystemAdmin && <option value="SYSTEM_ADMIN">시스템 관리자</option>}
-                                </select>
+                                    options={[
+                                        { value: 'ALL', label: '전체 등급' },
+                                        { value: 'USER', label: '조합원' },
+                                        { value: 'ADMIN', label: '조합 관리자' },
+                                        { value: 'APPLICANT', label: '가입 신청자' },
+                                        ...(isSystemAdmin ? [{ value: 'SYSTEM_ADMIN', label: '시스템 관리자' }] : []),
+                                    ]}
+                                    className="min-w-[140px]"
+                                />
                             </div>
                         </div>
 
@@ -787,7 +839,7 @@ export default function MemberManagementPage() {
                             ) : (
                                 <>
                                     <div className="overflow-x-auto">
-                                        <table className="w-full">
+                                        <table className="w-full min-w-[800px]">
                                             <thead className="bg-gray-50 border-b border-gray-200">
                                                 <tr>
                                                     <th className="px-6 py-4 text-left text-[14px] font-bold text-gray-700">
@@ -808,9 +860,6 @@ export default function MemberManagementPage() {
                                                     <th className="px-6 py-4 text-left text-[14px] font-bold text-gray-700">
                                                         가입일
                                                     </th>
-                                                    <th className="px-6 py-4 text-center text-[14px] font-bold text-gray-700">
-                                                        관리
-                                                    </th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-gray-100">
@@ -824,7 +873,7 @@ export default function MemberManagementPage() {
                                                         )}
                                                         onClick={() => openUserDetailModal(userData)}
                                                     >
-                                                        <td className="px-6 py-4">
+                                                        <td className="px-6 py-4 whitespace-nowrap">
                                                             <span
                                                                 className={cn(
                                                                     'inline-flex items-center px-3 py-1 rounded-full text-[12px] font-medium',
@@ -834,31 +883,20 @@ export default function MemberManagementPage() {
                                                                 {USER_STATUS_LABELS[userData.user_status]}
                                                             </span>
                                                         </td>
-                                                        <td className="px-6 py-4 text-[14px] text-gray-900 font-medium">
+                                                        <td className="px-6 py-4 text-[14px] text-gray-900 font-medium whitespace-nowrap">
                                                             {userData.name}
                                                         </td>
-                                                        <td className="px-6 py-4 text-[14px] text-gray-600">
-                                                            {maskPhoneNumber(userData.phone_number)}
+                                                        <td className="px-6 py-4 text-[14px] text-gray-600  whitespace-nowrap">
+                                                            {userData.phone_number}
                                                         </td>
-                                                        <td className="px-6 py-4 text-[14px] text-gray-600 max-w-[200px] truncate">
+                                                        <td className="px-6 py-4 text-[14px] text-gray-600 whitespace-nowrap">
                                                             {userData.property_address || '-'}
                                                         </td>
-                                                        <td className="px-6 py-4 text-[14px] text-gray-600">
+                                                        <td className="px-6 py-4 text-[14px] text-gray-600 whitespace-nowrap">
                                                             {USER_ROLE_LABELS[userData.role] || userData.role}
                                                         </td>
-                                                        <td className="px-6 py-4 text-[14px] text-gray-600">
+                                                        <td className="px-6 py-4 text-[14px] text-gray-600 whitespace-nowrap">
                                                             {new Date(userData.created_at).toLocaleDateString('ko-KR')}
-                                                        </td>
-                                                        <td className="px-6 py-4 text-center">
-                                                            <button
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    openUserDetailModal(userData);
-                                                                }}
-                                                                className="p-2 text-gray-400 hover:text-[#4E8C6D] hover:bg-green-50 rounded-lg transition-colors"
-                                                            >
-                                                                <Edit className="w-5 h-5" />
-                                                            </button>
                                                         </td>
                                                     </tr>
                                                 ))}
@@ -964,6 +1002,14 @@ export default function MemberManagementPage() {
                 {/* 초대 상세 모달 */}
                 <MemberDetailModal invite={detailTarget} onClose={() => setDetailTarget(null)} />
 
+                {/* 수동 회원 등록 모달 */}
+                <ManualInviteModal
+                    isOpen={showManualInviteModal}
+                    onClose={() => setShowManualInviteModal(false)}
+                    onSubmit={handleManualInvite}
+                    isSubmitting={isCreatingManual}
+                />
+
                 {/* 사용자 상세 모달 */}
                 {showDetailModal && selectedUser && (
                     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -1032,16 +1078,19 @@ export default function MemberManagementPage() {
                                 <div className="space-y-2">
                                     <label className="block text-[14px] font-medium text-gray-700">등급</label>
                                     <div className="flex gap-2">
-                                        <select
+                                        <SelectBox
                                             value={newRole}
-                                            onChange={(e) => setNewRole(e.target.value)}
-                                            className="flex-1 h-12 px-4 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4E8C6D] focus:border-transparent text-[14px]"
-                                        >
-                                            <option value="APPLICANT">가입 신청자</option>
-                                            <option value="USER">조합원</option>
-                                            <option value="ADMIN">조합 관리자</option>
-                                            {isSystemAdmin && <option value="SYSTEM_ADMIN">시스템 관리자</option>}
-                                        </select>
+                                            onChange={(value) => setNewRole(value)}
+                                            options={[
+                                                { value: 'APPLICANT', label: '가입 신청자' },
+                                                { value: 'USER', label: '조합원' },
+                                                { value: 'ADMIN', label: '조합 관리자' },
+                                                ...(isSystemAdmin
+                                                    ? [{ value: 'SYSTEM_ADMIN', label: '시스템 관리자' }]
+                                                    : []),
+                                            ]}
+                                            className="flex-1"
+                                        />
                                         <button
                                             onClick={() =>
                                                 updateRoleMutation.mutate({
