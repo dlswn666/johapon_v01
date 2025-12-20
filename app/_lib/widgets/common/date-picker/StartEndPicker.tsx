@@ -71,7 +71,7 @@ export function StartEndPicker({
                             variant="outline"
                             disabled={disabled}
                             className={cn(
-                                'w-full h-[40px] sm:h-[48px] justify-start text-left font-normal rounded-[8px] sm:rounded-[12px] border-[#CCCCCC] px-2 sm:px-4',
+                                'w-full h-[40px] sm:h-[48px] justify-start text-left font-normal rounded-[8px] sm:rounded-[12px] border-[#CCCCCC] px-2 sm:px-4 hover:bg-gray-200',
                                 !startDate && 'text-muted-foreground'
                             )}
                         >
@@ -114,7 +114,7 @@ export function StartEndPicker({
                             variant="outline"
                             disabled={disabled}
                             className={cn(
-                                'w-full h-[40px] sm:h-[48px] justify-start text-left font-normal rounded-[8px] sm:rounded-[12px] border-[#CCCCCC] px-2 sm:px-4',
+                                'w-full h-[40px] sm:h-[48px] justify-start text-left font-normal rounded-[8px] sm:rounded-[12px] border-[#CCCCCC] px-2 sm:px-4 hover:bg-gray-200',
                                 !endDate && 'text-muted-foreground'
                             )}
                         >

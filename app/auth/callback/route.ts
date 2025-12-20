@@ -87,44 +87,107 @@ export async function GET(request: NextRequest) {
         })),
     });
 
-    // user_auth_links에서 이미 연결된 public.users가 있는지 확인
-    console.log('[DEBUG] user_auth_links 조회 중... (auth_user_id:', authUser.id, ')');
-    const { data: authLink, error: authLinkError } = await supabase
+    // 현재 접근 중인 조합(slug)의 union_id 조회
+    let currentUnionId: string | null = null;
+    if (slug) {
+        console.log('[DEBUG] 현재 조합(slug) 조회 중...', slug);
+        const { data: currentUnion } = await supabase
+            .from('unions')
+            .select('id')
+            .eq('slug', slug)
+            .single();
+        currentUnionId = currentUnion?.id || null;
+        console.log('[DEBUG] 현재 조합 ID:', currentUnionId || 'null');
+    }
+
+    // user_auth_links에서 해당 조합에 대한 멤버십 확인
+    // 다중 조합 지원: auth_user_id + union_id로 조회
+    console.log('[DEBUG] user_auth_links 조회 중... (auth_user_id:', authUser.id, ', union_id:', currentUnionId, ')');
+    
+    // 해당 조합에 대한 멤버십 확인 (auth_user_id + union_id)
+    interface ExistingUserType {
+        id: string;
+        name: string;
+        role: string;
+        user_status: string;
+        union_id: string | null;
+        union?: { id: string; slug: string } | null;
+    }
+    let existingUser: ExistingUserType | null = null;
+    
+    if (currentUnionId) {
+        // 먼저 auth_user_id로 연결된 user_ids 조회
+        const { data: authLinks } = await supabase
+            .from('user_auth_links')
+            .select('user_id')
+            .eq('auth_user_id', authUser.id);
+        
+        if (authLinks && authLinks.length > 0) {
+            const userIds = authLinks.map(link => link.user_id);
+            // 해당 조합에 속한 user 조회
+            const { data: userData } = await supabase
+                .from('users')
+                .select('id, name, role, user_status, union_id, union:unions(id, slug)')
+                .in('id', userIds)
+                .eq('union_id', currentUnionId)
+                .single();
+            
+            if (userData) {
+                existingUser = {
+                    id: userData.id,
+                    name: userData.name,
+                    role: userData.role,
+                    user_status: userData.user_status,
+                    union_id: userData.union_id,
+                    union: Array.isArray(userData.union) ? userData.union[0] : userData.union,
+                };
+            }
+        }
+    }
+
+    console.log('[DEBUG] 해당 조합 멤버십 조회 결과:', existingUser ? {
+        userId: existingUser.id,
+        name: existingUser.name,
+        role: existingUser.role,
+        userStatus: existingUser.user_status,
+    } : 'null (해당 조합에 미가입)');
+
+    if (existingUser) {
+        console.log('[DEBUG] ✅ 해당 조합에 이미 가입된 사용자 발견!');
+
+        // 해당 조합에 이미 가입됨 - 사용자 상태에 따라 리다이렉트
+        const userUnionSlug = existingUser.union?.slug || slug;
+        const redirectUrl = getRedirectByUserStatus(origin, slug, existingUser.user_status, userUnionSlug);
+        console.log('[DEBUG] 기존 사용자 리다이렉트:', {
+            userId: existingUser.id,
+            name: existingUser.name,
+            role: existingUser.role,
+            userStatus: existingUser.user_status,
+            redirectUrl,
+        });
+        console.log('='.repeat(60));
+        return NextResponse.redirect(redirectUrl);
+    }
+
+    // 해당 조합에 미가입 - 다른 조합에 가입되어 있는지 확인 (로깅용)
+    const { data: otherLinks } = await supabase
         .from('user_auth_links')
         .select('user_id')
-        .eq('auth_user_id', authUser.id)
-        .single();
-
-    console.log('[DEBUG] user_auth_links 조회 결과:', {
-        authLink: authLink || 'null',
-        authLinkError: authLinkError?.message || 'null',
-    });
-
-    if (authLink) {
-        console.log('[DEBUG] ⚠️ 기존 연결된 사용자 발견! user_id:', authLink.user_id);
-
-        // 기존 연결된 사용자가 있음 - 해당 사용자의 상태에 따라 리다이렉트
-        // unions 테이블을 JOIN하여 사용자의 조합 slug 정보도 함께 조회
-        const { data: existingUser } = await supabase
+        .eq('auth_user_id', authUser.id);
+    
+    if (otherLinks && otherLinks.length > 0) {
+        // 다른 조합에 가입된 사용자 정보 조회
+        const userIds = otherLinks.map(link => link.user_id);
+        const { data: otherUsers } = await supabase
             .from('users')
-            .select('*, union:unions(id, slug)')
-            .eq('id', authLink.user_id)
-            .single();
-
-        if (existingUser) {
-            // 사용자의 조합 slug를 우선 사용, 없으면 URL의 slug 사용
-            const userUnionSlug = existingUser.union?.slug || '';
-            const redirectUrl = getRedirectByUserStatus(origin, slug, existingUser.user_status, userUnionSlug);
-            console.log('[DEBUG] 기존 사용자 리다이렉트:', {
-                userId: existingUser.id,
-                name: existingUser.name,
-                role: existingUser.role,
-                userStatus: existingUser.user_status,
-                redirectUrl,
-            });
-            console.log('='.repeat(60));
-            return NextResponse.redirect(redirectUrl);
+            .select('id, name, union_id')
+            .in('id', userIds);
+        
+        if (otherUsers && otherUsers.length > 0) {
+            console.log('[DEBUG] ℹ️ 다른 조합에 가입된 사용자:', otherUsers.length, '명');
+            console.log('[DEBUG] userIds:', otherUsers.map(u => u.id));
         }
+        console.log('[DEBUG] 👉 새 조합 가입 플로우 진행 (회원가입 모달 표시)');
     }
 
     // 초대 토큰이 있는 경우 - prefill 데이터를 쿠키에 저장하고 메인 페이지로 이동

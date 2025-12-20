@@ -261,7 +261,7 @@ export const useAddNotice = () => {
                 message: '공지사항이 성공적으로 등록되었습니다.',
                 type: 'success',
                 onOk: () => {
-                    const path = getUnionPath(slug, '/notice');
+                    const path = getUnionPath(slug, `/news/notice/${data.id}`);
                     router.push(path);
                 },
             });

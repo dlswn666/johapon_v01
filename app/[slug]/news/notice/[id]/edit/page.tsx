@@ -197,7 +197,7 @@ const EditNoticePage = () => {
                                     isPopup ? 'max-h-[200px] opacity-100' : 'max-h-0 opacity-0'
                                 )}
                             >
-                                <div className="rounded-[12px] border border-[#CCCCCC] bg-[#F9F9F9] p-6">
+                                <div className="rounded-[12px] border border-[#CCCCCC] bg-white p-6">
                                     <h4 className="text-[14px] font-bold text-[#5FA37C] mb-4">팝업 표시 기간</h4>
                                     <StartEndPicker
                                         startDate={startDate ?? undefined}

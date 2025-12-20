@@ -308,15 +308,21 @@ export function RegisterModal({
         }
     }, [currentStep]);
 
-    // 중복 사용자 확인
-    const checkDuplicateUser = async (): Promise<User | null> => {
-        const { data, error } = await supabase
+    // 중복 사용자 확인 (같은 조합 내에서만 체크)
+    const checkDuplicateUser = async (unionId: string | null): Promise<User | null> => {
+        let query = supabase
             .from('users')
             .select('*')
             .eq('phone_number', formData.phone_number)
             .eq('name', formData.name)
-            .eq('property_address', formData.property_address)
-            .single();
+            .eq('property_address', formData.property_address);
+        
+        // union_id가 있으면 같은 조합 내에서만 중복 체크
+        if (unionId) {
+            query = query.eq('union_id', unionId);
+        }
+
+        const { data, error } = await query.single();
 
         if (error || !data) return null;
         return data as User;
@@ -381,25 +387,7 @@ export function RegisterModal({
         setIsLoading(true);
 
         try {
-            // 중복 사용자 확인
-            const duplicate = await checkDuplicateUser();
-            if (duplicate) {
-                const { data: existingLink } = await supabase
-                    .from('user_auth_links')
-                    .select('provider')
-                    .eq('user_id', duplicate.id)
-                    .single();
-
-                if (existingLink) {
-                    setExistingUser(duplicate);
-                    setExistingProvider(existingLink.provider);
-                    setShowDuplicateModal(true);
-                    setIsLoading(false);
-                    return;
-                }
-            }
-
-            // Union ID 조회
+            // Union ID 먼저 조회 (중복 체크에 필요)
             let unionId = null;
 
             // 관리자 초대인 경우 admin_invites 테이블에서 union_id 조회
@@ -426,13 +414,32 @@ export function RegisterModal({
                 unionId = unionData?.id || null;
             }
 
+            // 중복 사용자 확인 (같은 조합 내에서만)
+            const duplicate = await checkDuplicateUser(unionId);
+            if (duplicate) {
+                const { data: existingLink } = await supabase
+                    .from('user_auth_links')
+                    .select('provider')
+                    .eq('user_id', duplicate.id)
+                    .single();
+
+                if (existingLink) {
+                    setExistingUser(duplicate);
+                    setExistingProvider(existingLink.provider);
+                    setShowDuplicateModal(true);
+                    setIsLoading(false);
+                    return;
+                }
+            }
+
             // 초대 링크인 경우 역할 및 상태 결정
             const isInvite = !!inviteData?.invite_token;
             const role = isInvite && inviteData?.invite_type === 'admin' ? 'ADMIN' : isInvite ? 'USER' : 'APPLICANT';
             const userStatus = isInvite ? 'APPROVED' : 'PENDING_APPROVAL';
 
-            // 새 사용자 생성
-            const newUserId = authUserId; // auth.users ID를 public.users ID로 사용
+            // 새 사용자 생성 (다중 조합 지원: 조합마다 별도의 users 레코드 생성)
+            // UUID 생성: crypto.randomUUID() 사용
+            const newUserId = crypto.randomUUID();
             const newUser: NewUser = {
                 id: newUserId,
                 name: formData.name,
@@ -680,12 +687,16 @@ export function RegisterModal({
                                 </div>
 
                                 {/* 약관 동의 */}
-                                <div className="mt-6 p-4 bg-gray-50 rounded-xl">
+                                <div 
+                                    className="mt-6 p-4 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-200 transition-colors"
+                                    onClick={() => setAgreedToTerms(!agreedToTerms)}
+                                >
                                     <label className="flex items-start gap-3 cursor-pointer">
                                         <input
                                             type="checkbox"
                                             checked={agreedToTerms}
                                             onChange={(e) => setAgreedToTerms(e.target.checked)}
+                                            onClick={(e) => e.stopPropagation()}
                                             className="w-5 h-5 mt-0.5 rounded border-gray-300 text-[#4E8C6D] focus:ring-[#4E8C6D]"
                                         />
                                         <span className="text-base text-gray-700">
@@ -693,7 +704,10 @@ export function RegisterModal({
                                         </span>
                                     </label>
                                     <button
-                                        onClick={() => setShowTermsModal(true)}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setShowTermsModal(true);
+                                        }}
                                         className="mt-2 ml-8 text-sm text-[#4E8C6D] underline hover:text-[#3d7058]"
                                     >
                                         약관 전문 보기

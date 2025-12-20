@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
+import { usePathname } from 'next/navigation';
 import { supabase } from '@/app/_lib/shared/supabase/client';
 import { User, UserStatus } from '@/app/_lib/shared/type/database.types';
 import { Session, User as SupabaseUser, AuthChangeEvent } from '@supabase/supabase-js';
@@ -117,6 +118,7 @@ interface AuthProviderProps {
 }
 
 export default function AuthProvider({ children }: AuthProviderProps) {
+    const pathname = usePathname();
     const [user, setUser] = useState<User | null>(null);
     const [authUser, setAuthUser] = useState<SupabaseUser | null>(null);
     const [session, setSession] = useState<Session | null>(null);
@@ -134,28 +136,75 @@ export default function AuthProvider({ children }: AuthProviderProps) {
     const userRef = useRef(user);
     userRef.current = user;
 
+    // 현재 pathname에서 slug 추출 (예: /mia2/news -> mia2)
+    const currentSlug = pathname?.split('/')[1] || null;
+    // slug를 ref로도 관리하여 클로저 문제 방지
+    const currentSlugRef = useRef(currentSlug);
+    currentSlugRef.current = currentSlug;
+
     /**
      * auth.users ID로 연결된 public.users 조회
+     * 다중 조합 지원: 현재 slug에 해당하는 조합의 user를 조회
      */
-    const fetchUserByAuthId = useCallback(async (authUserId: string): Promise<User | null> => {
+    const fetchUserByAuthId = useCallback(async (authUserId: string, slug?: string | null): Promise<User | null> => {
         try {
-            // user_auth_links에서 연결된 user_id 조회
-            const { data: authLink, error: linkError } = await supabase
+            // slug가 있으면 해당 조합의 union_id 조회
+            let unionId: string | null = null;
+            if (slug) {
+                const { data: unionData } = await supabase
+                    .from('unions')
+                    .select('id')
+                    .eq('slug', slug)
+                    .single();
+                unionId = unionData?.id || null;
+            }
+
+            // 조합별 멤버십 조회 (다중 조합 지원)
+            if (unionId) {
+                // 해당 조합에 대한 멤버십 확인: user_auth_links와 users를 조인
+                const { data: authLinks } = await supabase
+                    .from('user_auth_links')
+                    .select('user_id')
+                    .eq('auth_user_id', authUserId);
+
+                if (authLinks && authLinks.length > 0) {
+                    // 해당 조합에 속한 user 찾기
+                    const userIds = authLinks.map(link => link.user_id);
+                    const { data: userData } = await supabase
+                        .from('users')
+                        .select('*')
+                        .in('id', userIds)
+                        .eq('union_id', unionId)
+                        .single();
+
+                    if (userData) {
+                        console.log('[DEBUG] 조합별 user 조회 성공:', { slug, unionId, userId: userData.id });
+                        return userData as User;
+                    }
+                }
+
+                // 해당 조합에 멤버십이 없음
+                console.log('[DEBUG] 해당 조합에 멤버십 없음:', { slug, unionId });
+                return null;
+            }
+
+            // slug가 없거나 유효하지 않은 경우: 연결된 첫 번째 user 반환
+            // (시스템 관리자 페이지 등에서 사용)
+            const { data: authLinks } = await supabase
                 .from('user_auth_links')
                 .select('user_id')
-                .eq('auth_user_id', authUserId)
-                .single();
+                .eq('auth_user_id', authUserId);
 
-            if (linkError || !authLink) {
+            if (!authLinks || authLinks.length === 0) {
                 console.log('No linked user found for auth_user_id:', authUserId);
                 return null;
             }
 
-            // public.users에서 사용자 정보 조회
+            // 첫 번째 연결된 user 조회
             const { data: userData, error: userError } = await supabase
                 .from('users')
                 .select('*')
-                .eq('id', authLink.user_id)
+                .eq('id', authLinks[0].user_id)
                 .single();
 
             if (userError || !userData) {
@@ -173,11 +222,12 @@ export default function AuthProvider({ children }: AuthProviderProps) {
     /**
      * 세션에서 사용자 정보 처리 (공통 로직)
      * INITIAL_SESSION, SIGNED_IN 이벤트에서 공통으로 사용
+     * 다중 조합 지원: 현재 slug에 해당하는 조합의 user를 조회
      */
     const handleSessionWithUser = useCallback(
-        async (currentSession: Session | null, event: AuthChangeEvent): Promise<void> => {
+        async (currentSession: Session | null, event: AuthChangeEvent, slug?: string | null): Promise<void> => {
             console.log('[DEBUG] 🔄 handleSessionWithUser 호출');
-            console.log('[DEBUG] event:', event);
+            console.log('[DEBUG] event:', event, 'slug:', slug);
             console.log(
                 '[DEBUG] currentSession:',
                 currentSession
@@ -210,9 +260,9 @@ export default function AuthProvider({ children }: AuthProviderProps) {
             setIsUserFetching(true);
 
             try {
-                console.log(`[DEBUG] 🔍 Processing session for event: ${event}, user: ${sessionId}`);
+                console.log(`[DEBUG] 🔍 Processing session for event: ${event}, user: ${sessionId}, slug: ${slug}`);
 
-                const linkedUser = await fetchUserByAuthId(sessionId);
+                const linkedUser = await fetchUserByAuthId(sessionId, slug);
 
                 console.log(
                     '[DEBUG] fetchUserByAuthId 결과:',
@@ -222,8 +272,9 @@ export default function AuthProvider({ children }: AuthProviderProps) {
                               name: linkedUser.name,
                               role: linkedUser.role,
                               user_status: linkedUser.user_status,
+                              union_id: linkedUser.union_id,
                           }
-                        : 'null (연결된 사용자 없음)'
+                        : 'null (해당 조합에 멤버십 없음)'
                 );
 
                 if (linkedUser) {
@@ -235,7 +286,7 @@ export default function AuthProvider({ children }: AuthProviderProps) {
                 } else {
                     // 연결된 사용자가 없으면 세션은 유지하되 user만 null
                     // (회원가입 플로우를 위해 authUser는 설정)
-                    console.log(`[DEBUG] ⚠️ ${event}: No linked user found. Setting authUser without user...`);
+                    console.log(`[DEBUG] ⚠️ ${event}: No linked user found for slug: ${slug}. Setting authUser without user...`);
                     console.log('[DEBUG] 👉 회원가입 모달이 표시되어야 함');
                     setSession(currentSession);
                     setAuthUser(currentSession.user);
@@ -278,7 +329,7 @@ export default function AuthProvider({ children }: AuthProviderProps) {
                     const {
                         data: { session: manualSession },
                     } = await supabase.auth.getSession();
-                    await handleSessionWithUser(manualSession, 'INITIAL_SESSION');
+                    await handleSessionWithUser(manualSession, 'INITIAL_SESSION', currentSlugRef.current);
                 } catch (error) {
                     console.error('[DEBUG] ❌ 수동 세션 체크 실패:', error);
                 } finally {
@@ -294,7 +345,7 @@ export default function AuthProvider({ children }: AuthProviderProps) {
             data: { subscription },
         } = supabase.auth.onAuthStateChange(async (event, newSession) => {
             console.log('[DEBUG] 🔔 onAuthStateChange 이벤트 발생');
-            console.log('[DEBUG] event:', event);
+            console.log('[DEBUG] event:', event, 'currentSlug:', currentSlugRef.current);
             console.log(
                 '[DEBUG] newSession:',
                 newSession
@@ -312,7 +363,7 @@ export default function AuthProvider({ children }: AuthProviderProps) {
                     // 초기 세션 이벤트: 페이지 로드 시 첫 번째로 발생
                     // 이 이벤트에서 모든 초기화 처리
                     console.log('[DEBUG] 📍 INITIAL_SESSION 처리 시작');
-                    await handleSessionWithUser(newSession, event);
+                    await handleSessionWithUser(newSession, event, currentSlugRef.current);
                     setIsLoading(false);
                     isInitializedRef.current = true;
                     // 정상 처리 시 타임아웃 취소
@@ -330,7 +381,7 @@ export default function AuthProvider({ children }: AuthProviderProps) {
                         } else {
                             // user가 없으면 처리 (다른 탭에서 로그인한 경우 등)
                             console.log('[DEBUG] 🔄 SIGNED_IN 처리 (user 없음)');
-                            await handleSessionWithUser(newSession, event);
+                            await handleSessionWithUser(newSession, event, currentSlugRef.current);
                         }
                     } else {
                         console.log('[DEBUG] ⏭️ SIGNED_IN 스킵 (초기화 전)');
@@ -432,8 +483,8 @@ export default function AuthProvider({ children }: AuthProviderProps) {
                     return { success: false, error: '로그인에 실패했습니다.' };
                 }
 
-                // 연결된 public.users 조회
-                const linkedUser = await fetchUserByAuthId(data.user.id);
+                // 연결된 public.users 조회 (시스템 관리자: slug 없이 조회)
+                const linkedUser = await fetchUserByAuthId(data.user.id, null);
 
                 if (!linkedUser) {
                     // 연결된 사용자가 없으면 로그아웃
@@ -483,14 +534,54 @@ export default function AuthProvider({ children }: AuthProviderProps) {
     }, [useMockAuth]);
 
     /**
-     * 사용자 정보 새로고침
+     * 사용자 정보 새로고침 (현재 조합 기준)
      */
     const refreshUser = useCallback(async () => {
         if (authUser) {
-            const linkedUser = await fetchUserByAuthId(authUser.id);
+            const linkedUser = await fetchUserByAuthId(authUser.id, currentSlugRef.current);
             setUser(linkedUser);
         }
     }, [authUser, fetchUserByAuthId]);
+
+    /**
+     * pathname (조합) 변경 시 user 다시 조회
+     * 다중 조합 지원: 다른 조합 페이지로 이동하면 해당 조합의 멤버십으로 전환
+     */
+    useEffect(() => {
+        // 초기화 완료 전이거나 authUser가 없으면 스킵
+        if (!isInitializedRef.current || !authUser) return;
+        
+        // Mock 인증 모드면 스킵
+        if (useMockAuth) return;
+
+        // 현재 user의 조합과 pathname의 조합이 다르면 user 다시 조회
+        const fetchUserForCurrentSlug = async () => {
+            console.log('[DEBUG] 🔄 pathname 변경 감지 - user 다시 조회', { currentSlug, userUnionId: user?.union_id });
+            
+            // slug가 없으면 (루트 페이지 등) 스킵
+            if (!currentSlug) return;
+            
+            // 현재 slug로 union_id 조회
+            const { data: unionData } = await supabase
+                .from('unions')
+                .select('id')
+                .eq('slug', currentSlug)
+                .single();
+            
+            // 유효한 조합 slug가 아니면 스킵
+            if (!unionData) return;
+            
+            // 현재 user의 union_id와 같으면 스킵
+            if (user?.union_id === unionData.id) return;
+            
+            // 해당 조합의 user 조회
+            const linkedUser = await fetchUserByAuthId(authUser.id, currentSlug);
+            setUser(linkedUser);
+            console.log('[DEBUG] ✅ 조합 변경에 따른 user 업데이트:', linkedUser ? linkedUser.name : 'null');
+        };
+
+        fetchUserForCurrentSlug();
+    }, [currentSlug, authUser, user?.union_id, useMockAuth, fetchUserByAuthId]);
 
     /**
      * 개발용: Mock 사용자 전환
