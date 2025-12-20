@@ -148,69 +148,54 @@ export default function AuthProvider({ children }: AuthProviderProps) {
      */
     const fetchUserByAuthId = useCallback(async (authUserId: string, slug?: string | null): Promise<User | null> => {
         try {
-            // slug가 있으면 해당 조합의 union_id 조회
+            // 1. 먼저 이 authUserId와 연결된 모든 유저 레코드를 가져옵니다.
+            const { data: authLinks } = await supabase
+                .from('user_auth_links')
+                .select('user_id')
+                .eq('auth_user_id', authUserId);
+
+            if (!authLinks || authLinks.length === 0) return null;
+            const userIds = authLinks.map((link) => link.user_id);
+
+            // 2. [추가] 가져온 ID 중 시스템 관리자가 있는지 먼저 확인합니다.
+            // 시스템 관리자는 union_id와 상관없이 어디든 접근 가능해야 하기 때문입니다.
+            const { data: globalAdmin } = await supabase
+                .from('users')
+                .select('*')
+                .in('id', userIds)
+                .eq('role', 'SYSTEM_ADMIN')
+                .single();
+
+            if (globalAdmin) {
+                console.log('[DEBUG] 시스템 관리자 세션 유지');
+                return globalAdmin as User;
+            }
+
+            // 3. 시스템 관리자가 아니라면 기존처럼 조합별 멤버십을 체크합니다.
             let unionId: string | null = null;
             if (slug) {
                 const { data: unionData } = await supabase.from('unions').select('id').eq('slug', slug).single();
                 unionId = unionData?.id || null;
             }
 
-            // 조합별 멤버십 조회 (다중 조합 지원)
             if (unionId) {
-                // 해당 조합에 대한 멤버십 확인: user_auth_links와 users를 조인
-                const { data: authLinks } = await supabase
-                    .from('user_auth_links')
-                    .select('user_id')
-                    .eq('auth_user_id', authUserId);
+                const { data: userData } = await supabase
+                    .from('users')
+                    .select('*')
+                    .in('id', userIds)
+                    .eq('union_id', unionId)
+                    .single();
 
-                if (authLinks && authLinks.length > 0) {
-                    // 해당 조합에 속한 user 찾기
-                    const userIds = authLinks.map((link) => link.user_id);
-                    const { data: userData } = await supabase
-                        .from('users')
-                        .select('*')
-                        .in('id', userIds)
-                        .eq('union_id', unionId)
-                        .single();
-
-                    if (userData) {
-                        console.log('[DEBUG] 조합별 user 조회 성공:', { slug, unionId, userId: userData.id });
-                        return userData as User;
-                    }
-                }
-
-                // 해당 조합에 멤버십이 없음
-                console.log('[DEBUG] 해당 조합에 멤버십 없음:', { slug, unionId });
-                return null;
+                if (userData) return userData as User;
+                return null; // 해당 조합 멤버가 아님
             }
 
-            // slug가 없거나 유효하지 않은 경우: 연결된 첫 번째 user 반환
-            // (시스템 관리자 페이지 등에서 사용)
-            const { data: authLinks } = await supabase
-                .from('user_auth_links')
-                .select('user_id')
-                .eq('auth_user_id', authUserId);
+            // 4. slug가 없는 경우 (예: 시스템 관리자 페이지) 첫 번째 연결된 유저 반환
+            const { data: firstUser } = await supabase.from('users').select('*').in('id', userIds).single();
 
-            if (!authLinks || authLinks.length === 0) {
-                console.log('No linked user found for auth_user_id:', authUserId);
-                return null;
-            }
-
-            // 첫 번째 연결된 user 조회
-            const { data: userData, error: userError } = await supabase
-                .from('users')
-                .select('*')
-                .eq('id', authLinks[0].user_id)
-                .single();
-
-            if (userError || !userData) {
-                console.error('Failed to fetch user:', userError);
-                return null;
-            }
-
-            return userData as User;
+            return firstUser as User;
         } catch (error) {
-            console.error('Error fetching user by auth ID:', error);
+            console.error('Error fetching user:', error);
             return null;
         }
     }, []);
@@ -541,45 +526,39 @@ export default function AuthProvider({ children }: AuthProviderProps) {
         }
     }, [authUser, fetchUserByAuthId]);
 
-    /**
-     * pathname (조합) 변경 시 user 다시 조회
-     * 다중 조합 지원: 다른 조합 페이지로 이동하면 해당 조합의 멤버십으로 전환
-     */
     useEffect(() => {
-        // 초기화 완료 전이거나 authUser가 없으면 스킵
+        // 초기화 전이거나 세션이 없으면 무시
         if (!isInitializedRef.current || !authUser) return;
-
-        // Mock 인증 모드면 스킵
         if (useMockAuth) return;
 
-        // 현재 user의 조합과 pathname의 조합이 다르면 user 다시 조회
-        const fetchUserForCurrentSlug = async () => {
-            // SYSTEM_ADMIN은 조합 변경 시에도 user를 유지 (모든 조합에 접근 가능)
-            if (user?.role === 'SYSTEM_ADMIN') {
-                console.log('[DEBUG] ⏭️ SYSTEM_ADMIN은 조합 변경 시 user 유지');
-                return;
-            }
+        const handleNavigationSecurity = async () => {
+            // 1. 시스템 관리자는 무조건 패스
+            if (user?.role === 'SYSTEM_ADMIN') return;
 
-            // slug가 없으면 (루트 페이지 등) 스킵
             if (!currentSlug) return;
 
-            // 현재 slug로 union_id 조회
             const { data: unionData } = await supabase.from('unions').select('id').eq('slug', currentSlug).single();
 
-            // 유효한 조합 slug가 아니면 스킵
             if (!unionData) return;
 
-            // 현재 user의 union_id와 같으면 스킵
-            if (user?.union_id === unionData.id) return;
+            /**
+             * 2. 핵심 수정:
+             * user가 null인 경우에도 authUser(세션)가 있다면 체크해야 합니다.
+             * 타 조합 유저가 현재 조합 페이지에 들어오면 fetchUserByAuthId가 null을 뱉으므로
+             * 이때 강제로 logout()을 시켜서 세션을 파기합니다.
+             */
+            const isWrongUnion = user && user.union_id !== unionData.id;
+            const isAuthenticatedButNoProfile = !user && authUser;
 
-            // 해당 조합의 user 조회
-            const linkedUser = await fetchUserByAuthId(authUser.id, currentSlug);
-            setUser(linkedUser);
-            console.log('[DEBUG] ✅ 조합 변경에 따른 user 업데이트:', linkedUser ? linkedUser.name : 'null');
+            if (isWrongUnion || isAuthenticatedButNoProfile) {
+                console.log('[DEBUG] ⚠️ 권한 없는 조합 접근 감지: 강제 세션 파기');
+                await logout();
+                // 세션이 파기되면 로그인 페이지나 메인으로 튕기게 됩니다.
+            }
         };
 
-        fetchUserForCurrentSlug();
-    }, [currentSlug, authUser, user?.union_id, useMockAuth, fetchUserByAuthId]);
+        handleNavigationSecurity();
+    }, [currentSlug, authUser, user, useMockAuth, logout]);
 
     /**
      * 개발용: Mock 사용자 전환
