@@ -22,10 +22,10 @@ interface ManualInviteModalProps {
 const formatPhoneNumber = (value: string): string => {
     // 숫자만 추출
     const numbers = value.replace(/[^\d]/g, '');
-    
+
     // 11자리까지만 허용
     const trimmed = numbers.slice(0, 11);
-    
+
     // 포맷팅
     if (trimmed.length <= 3) {
         return trimmed;
@@ -46,32 +46,22 @@ const generateId = (): string => {
     return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 };
 
-export default function ManualInviteModal({
-    isOpen,
-    onClose,
-    onSubmit,
-    isSubmitting,
-}: ManualInviteModalProps) {
-    const [members, setMembers] = useState<MemberInput[]>([
-        { id: generateId(), name: '', phoneNumber: '' },
-    ]);
+export default function ManualInviteModal({ isOpen, onClose, onSubmit, isSubmitting }: ManualInviteModalProps) {
+    const [members, setMembers] = useState<MemberInput[]>([{ id: generateId(), name: '', phoneNumber: '' }]);
 
     // 입력값 변경 핸들러
-    const handleInputChange = useCallback(
-        (id: string, field: 'name' | 'phoneNumber', value: string) => {
-            setMembers((prev) =>
-                prev.map((member) => {
-                    if (member.id !== id) return member;
-                    
-                    if (field === 'phoneNumber') {
-                        return { ...member, phoneNumber: formatPhoneNumber(value) };
-                    }
-                    return { ...member, [field]: value };
-                })
-            );
-        },
-        []
-    );
+    const handleInputChange = useCallback((id: string, field: 'name' | 'phoneNumber', value: string) => {
+        setMembers((prev) =>
+            prev.map((member) => {
+                if (member.id !== id) return member;
+
+                if (field === 'phoneNumber') {
+                    return { ...member, phoneNumber: formatPhoneNumber(value) };
+                }
+                return { ...member, [field]: value };
+            })
+        );
+    }, []);
 
     // 행 추가
     const handleAddRow = useCallback(() => {
@@ -169,10 +159,7 @@ export default function ManualInviteModal({
 
                         {/* 입력 행들 */}
                         {members.map((member) => (
-                            <div
-                                key={member.id}
-                                className="grid grid-cols-[1fr_1fr_40px] gap-3 items-center"
-                            >
+                            <div key={member.id} className="grid grid-cols-[1fr_1fr_40px] gap-3 items-center">
                                 <input
                                     type="text"
                                     value={member.name}
@@ -184,9 +171,7 @@ export default function ManualInviteModal({
                                 <input
                                     type="tel"
                                     value={member.phoneNumber}
-                                    onChange={(e) =>
-                                        handleInputChange(member.id, 'phoneNumber', e.target.value)
-                                    }
+                                    onChange={(e) => handleInputChange(member.id, 'phoneNumber', e.target.value)}
                                     placeholder="010-1234-5678"
                                     disabled={isSubmitting}
                                     className="h-12 px-4 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4E8C6D] focus:border-transparent text-[14px] disabled:bg-gray-100 disabled:cursor-not-allowed"
@@ -244,4 +229,3 @@ export default function ManualInviteModal({
         </div>
     );
 }
-
