@@ -20,7 +20,11 @@ export async function GET(request: NextRequest) {
     const memberInviteToken = searchParams.get('member_invite_token');
 
     // #region agent log
-    console.log('[JOHAPON_DEBUG][auth/callback][F] OAuth Callback 호출', { fullUrl: request.url, slug: slug || '(empty)', hasCode: !!code });
+    console.log('[JOHAPON_DEBUG][auth/callback][F] OAuth Callback 호출', {
+        fullUrl: request.url,
+        slug: slug || '(empty)',
+        hasCode: !!code,
+    });
     // #endregion
 
     // [DEBUG] OAuth 콜백 시작
@@ -95,11 +99,7 @@ export async function GET(request: NextRequest) {
     let currentUnionId: string | null = null;
     if (slug) {
         console.log('[DEBUG] 현재 조합(slug) 조회 중...', slug);
-        const { data: currentUnion } = await supabase
-            .from('unions')
-            .select('id')
-            .eq('slug', slug)
-            .single();
+        const { data: currentUnion } = await supabase.from('unions').select('id').eq('slug', slug).single();
         currentUnionId = currentUnion?.id || null;
         console.log('[DEBUG] 현재 조합 ID:', currentUnionId || 'null');
     }
@@ -107,7 +107,7 @@ export async function GET(request: NextRequest) {
     // user_auth_links에서 해당 조합에 대한 멤버십 확인
     // 다중 조합 지원: auth_user_id + union_id로 조회
     console.log('[DEBUG] user_auth_links 조회 중... (auth_user_id:', authUser.id, ', union_id:', currentUnionId, ')');
-    
+
     // 해당 조합에 대한 멤버십 확인 (auth_user_id + union_id)
     interface ExistingUserType {
         id: string;
@@ -118,16 +118,16 @@ export async function GET(request: NextRequest) {
         union?: { id: string; slug: string } | null;
     }
     let existingUser: ExistingUserType | null = null;
-    
+
     if (currentUnionId) {
         // 먼저 auth_user_id로 연결된 user_ids 조회
         const { data: authLinks } = await supabase
             .from('user_auth_links')
             .select('user_id')
             .eq('auth_user_id', authUser.id);
-        
+
         if (authLinks && authLinks.length > 0) {
-            const userIds = authLinks.map(link => link.user_id);
+            const userIds = authLinks.map((link) => link.user_id);
             // 해당 조합에 속한 user 조회
             const { data: userData } = await supabase
                 .from('users')
@@ -135,7 +135,7 @@ export async function GET(request: NextRequest) {
                 .in('id', userIds)
                 .eq('union_id', currentUnionId)
                 .single();
-            
+
             if (userData) {
                 existingUser = {
                     id: userData.id,
@@ -149,12 +149,17 @@ export async function GET(request: NextRequest) {
         }
     }
 
-    console.log('[DEBUG] 해당 조합 멤버십 조회 결과:', existingUser ? {
-        userId: existingUser.id,
-        name: existingUser.name,
-        role: existingUser.role,
-        userStatus: existingUser.user_status,
-    } : 'null (해당 조합에 미가입)');
+    console.log(
+        '[DEBUG] 해당 조합 멤버십 조회 결과:',
+        existingUser
+            ? {
+                  userId: existingUser.id,
+                  name: existingUser.name,
+                  role: existingUser.role,
+                  userStatus: existingUser.user_status,
+              }
+            : 'null (해당 조합에 미가입)'
+    );
 
     if (existingUser) {
         console.log('[DEBUG] ✅ 해당 조합에 이미 가입된 사용자 발견!');
@@ -178,18 +183,18 @@ export async function GET(request: NextRequest) {
         .from('user_auth_links')
         .select('user_id')
         .eq('auth_user_id', authUser.id);
-    
+
     if (otherLinks && otherLinks.length > 0) {
         // 다른 조합에 가입된 사용자 정보 조회
-        const userIds = otherLinks.map(link => link.user_id);
-        const { data: otherUsers } = await supabase
-            .from('users')
-            .select('id, name, union_id')
-            .in('id', userIds);
-        
+        const userIds = otherLinks.map((link) => link.user_id);
+        const { data: otherUsers } = await supabase.from('users').select('id, name, union_id').in('id', userIds);
+
         if (otherUsers && otherUsers.length > 0) {
             console.log('[DEBUG] ℹ️ 다른 조합에 가입된 사용자:', otherUsers.length, '명');
-            console.log('[DEBUG] userIds:', otherUsers.map(u => u.id));
+            console.log(
+                '[DEBUG] userIds:',
+                otherUsers.map((u) => u.id)
+            );
         }
         console.log('[DEBUG] 👉 새 조합 가입 플로우 진행 (회원가입 모달 표시)');
     }
