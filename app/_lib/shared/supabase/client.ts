@@ -22,9 +22,22 @@ import { createBrowserClient } from '@supabase/ssr';
  *   .insert({ name: 'John' });
  * ```
  */
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+console.log('[SUPABASE_DEBUG] Client Initialization:', {
+    hasUrl: !!supabaseUrl,
+    urlPrefix: supabaseUrl ? supabaseUrl.substring(0, 10) + '...' : 'none',
+    hasKey: !!supabaseAnonKey,
+});
+
+if (!supabaseUrl || !supabaseAnonKey) {
+    console.error('[SUPABASE_DEBUG] ❌ Missing Supabase environment variables!');
+}
+
 export const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    supabaseUrl!,
+    supabaseAnonKey!
 );
 
 export default supabase;

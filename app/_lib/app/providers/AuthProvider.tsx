@@ -112,11 +112,21 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     useEffect(() => {
         const initAuth = async () => {
             console.log('[AUTH_DEBUG] 🚀 initAuth 시작');
+            
+            // 타임아웃 헬퍼 (5초)
+            const timeout = (ms: number) => new Promise((_, reject) => 
+                setTimeout(() => reject(new Error(`Timeout after ${ms}ms`)), ms)
+            );
+
             try {
+                console.log('[AUTH_DEBUG] ⏳ getSession 호출 중...');
                 const {
                     data: { session: initSession },
                     error
-                } = await supabase.auth.getSession();
+                } = await Promise.race([
+                    supabase.auth.getSession(),
+                    timeout(5000) as Promise<any>
+                ]);
 
                 if (error) {
                     console.error('[AUTH_DEBUG] ❌ 세션 조회 에러:', error);
@@ -128,12 +138,15 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
 
                 if (initSession?.user) {
                     console.log('[AUTH_DEBUG] 🔍 프로필 조회 시작 (initAuth)');
-                    const profile = await resolveUserProfile(initSession.user.id, currentSlug);
+                    const profile = await Promise.race([
+                        resolveUserProfile(initSession.user.id, currentSlug),
+                        timeout(3000) as Promise<any>
+                    ]);
                     console.log('[AUTH_DEBUG] ✅ 프로필 조회 완료 (initAuth):', profile ? '성공' : '없음');
                     setUser(profile);
                 }
             } catch (err) {
-                console.error('[AUTH_DEBUG] 💥 initAuth 치명적 에러:', err);
+                console.error('[AUTH_DEBUG] 💥 initAuth 에러 (타임아웃 포함):', err);
             } finally {
                 setIsLoading(false);
                 console.log('[AUTH_DEBUG] 🔚 initAuth 종료 (isLoading: false)');

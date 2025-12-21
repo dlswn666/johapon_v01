@@ -36,8 +36,18 @@ export default function SlugProvider({ children, slug }: SlugProviderProps) {
             console.log('[SLUG_DEBUG] 🚀 fetchUnion 시작:', slug);
             setIsLoading(true);
             setLoading(true);
+
+            // 타임아웃 헬퍼 (5초)
+            const timeout = (ms: number) => new Promise((_, reject) => 
+                setTimeout(() => reject(new Error(`Timeout after ${ms}ms`)), ms)
+            );
+
             try {
-                const data = await getUnionBySlug(slug);
+                console.log('[SLUG_DEBUG] ⏳ getUnionBySlug 호출 중...');
+                const data = await Promise.race([
+                    getUnionBySlug(slug),
+                    timeout(5000) as Promise<any>
+                ]);
                 console.log('[SLUG_DEBUG] 📦 조회 결과:', data ? '성공' : '실패');
                 
                 if (!data) {
@@ -51,7 +61,7 @@ export default function SlugProvider({ children, slug }: SlugProviderProps) {
                 setCurrentUnion(data);
                 setError(null);
             } catch (err) {
-                console.error('[SLUG_DEBUG] 💥 fetchUnion 치명적 에러:', err);
+                console.error('[SLUG_DEBUG] 💥 fetchUnion 에러 (타임아웃 포함):', err);
                 setError(err instanceof Error ? err : new Error('Unknown error'));
                 router.replace('/not-found');
             } finally {
