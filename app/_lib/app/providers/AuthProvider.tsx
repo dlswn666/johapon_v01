@@ -111,17 +111,33 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
      */
     useEffect(() => {
         const initAuth = async () => {
-            const {
-                data: { session: initSession },
-            } = await supabase.auth.getSession();
-            setSession(initSession);
-            setAuthUser(initSession?.user ?? null);
+            console.log('[AUTH_DEBUG] 🚀 initAuth 시작');
+            try {
+                const {
+                    data: { session: initSession },
+                    error
+                } = await supabase.auth.getSession();
 
-            if (initSession?.user) {
-                const profile = await resolveUserProfile(initSession.user.id, currentSlug);
-                setUser(profile);
+                if (error) {
+                    console.error('[AUTH_DEBUG] ❌ 세션 조회 에러:', error);
+                }
+
+                console.log('[AUTH_DEBUG] 📦 초기 세션:', initSession ? '있음' : '없음');
+                setSession(initSession);
+                setAuthUser(initSession?.user ?? null);
+
+                if (initSession?.user) {
+                    console.log('[AUTH_DEBUG] 🔍 프로필 조회 시작 (initAuth)');
+                    const profile = await resolveUserProfile(initSession.user.id, currentSlug);
+                    console.log('[AUTH_DEBUG] ✅ 프로필 조회 완료 (initAuth):', profile ? '성공' : '없음');
+                    setUser(profile);
+                }
+            } catch (err) {
+                console.error('[AUTH_DEBUG] 💥 initAuth 치명적 에러:', err);
+            } finally {
+                setIsLoading(false);
+                console.log('[AUTH_DEBUG] 🔚 initAuth 종료 (isLoading: false)');
             }
-            setIsLoading(false);
         };
 
         initAuth();
@@ -129,25 +145,38 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
         const {
             data: { subscription },
         } = supabase.auth.onAuthStateChange(async (event, newSession) => {
-            console.log(`[AUTH_EVENT] ${event}`);
-            setSession(newSession);
-            setAuthUser(newSession?.user ?? null);
+            console.log(`[AUTH_DEBUG] 🔔 [AUTH_EVENT] ${event}`);
+            
+            try {
+                setSession(newSession);
+                setAuthUser(newSession?.user ?? null);
 
-            if (event === 'SIGNED_OUT') {
-                setUser(null);
-            } else if (newSession?.user) {
-                // 불필요한 반복 호출 방지
-                const taskKey = `${newSession.user.id}-${currentSlug}`;
-                if (processingRef.current === taskKey) return;
-                processingRef.current = taskKey;
+                if (event === 'SIGNED_OUT') {
+                    setUser(null);
+                } else if (newSession?.user) {
+                    // 불필요한 반복 호출 방지
+                    const taskKey = `${newSession.user.id}-${currentSlug}`;
+                    if (processingRef.current === taskKey) {
+                        console.log('[AUTH_DEBUG] ⏩ 중복 처리 건너뜀:', taskKey);
+                        return;
+                    }
+                    processingRef.current = taskKey;
 
-                const profile = await resolveUserProfile(newSession.user.id, currentSlug);
-                setUser(profile);
-                processingRef.current = null;
+                    console.log('[AUTH_DEBUG] 🔍 프로필 조회 시작 (onAuthStateChange)');
+                    const profile = await resolveUserProfile(newSession.user.id, currentSlug);
+                    console.log('[AUTH_DEBUG] ✅ 프로필 조회 완료 (onAuthStateChange):', profile ? '성공' : '없음');
+                    setUser(profile);
+                    processingRef.current = null;
+                }
+            } catch (err) {
+                console.error('[AUTH_DEBUG] 💥 onAuthStateChange 에러:', err);
             }
         });
 
-        return () => subscription.unsubscribe();
+        return () => {
+            console.log('[AUTH_DEBUG] 🔌 AuthProvider useEffect Cleanup');
+            subscription.unsubscribe();
+        };
     }, [currentSlug, resolveUserProfile]);
 
     /**

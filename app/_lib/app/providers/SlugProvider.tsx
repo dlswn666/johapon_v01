@@ -33,13 +33,15 @@ export default function SlugProvider({ children, slug }: SlugProviderProps) {
 
     useEffect(() => {
         const fetchUnion = async () => {
+            console.log('[SLUG_DEBUG] 🚀 fetchUnion 시작:', slug);
             setIsLoading(true);
             setLoading(true);
             try {
                 const data = await getUnionBySlug(slug);
+                console.log('[SLUG_DEBUG] 📦 조회 결과:', data ? '성공' : '실패');
                 
                 if (!data) {
-                    // 유효하지 않은 slug인 경우 404 페이지로 리다이렉트
+                    console.warn('[SLUG_DEBUG] ⚠️ Union not found, redirecting...');
                     setError(new Error('Union not found'));
                     router.replace('/not-found');
                     return;
@@ -49,13 +51,13 @@ export default function SlugProvider({ children, slug }: SlugProviderProps) {
                 setCurrentUnion(data);
                 setError(null);
             } catch (err) {
-                console.error('Error in SlugProvider:', err);
+                console.error('[SLUG_DEBUG] 💥 fetchUnion 치명적 에러:', err);
                 setError(err instanceof Error ? err : new Error('Unknown error'));
-                // 에러 발생 시에도 404로 리다이렉트
                 router.replace('/not-found');
             } finally {
                 setIsLoading(false);
                 setLoading(false);
+                console.log('[SLUG_DEBUG] 🔚 fetchUnion 종료 (isLoading: false)');
             }
         };
 
