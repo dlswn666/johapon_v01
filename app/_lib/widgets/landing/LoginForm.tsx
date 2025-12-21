@@ -17,7 +17,7 @@ interface LoginFormProps {
  * - 개발용 테스트 로그인
  */
 export function LoginForm({ className, unionName, onLoginSuccess }: LoginFormProps) {
-    const { login, switchUser } = useAuth();
+    const { login } = useAuth();
     const { slug } = useSlug();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
@@ -50,10 +50,6 @@ export function LoginForm({ className, unionName, onLoginSuccess }: LoginFormPro
         }
     };
 
-    const handleTestLogin = () => {
-        switchUser('systemAdmin');
-        onLoginSuccess?.();
-    };
 
     return (
         <div className={cn('w-full max-w-[400px] bg-white rounded-xl shadow-2xl p-8', 'mx-4 md:mx-0', className)}>
@@ -147,23 +143,6 @@ export function LoginForm({ className, unionName, onLoginSuccess }: LoginFormPro
                 </p>
             </div>
 
-            {/* 개발용 테스트 로그인 버튼 */}
-            {process.env.NEXT_PUBLIC_USE_MOCK_AUTH === 'true' && (
-                <div className="mt-4 pt-4 border-t border-gray-200">
-                    <button
-                        type="button"
-                        onClick={handleTestLogin}
-                        className={cn(
-                            'w-full h-10 rounded-lg text-sm font-medium',
-                            'bg-gray-100 text-gray-600',
-                            'hover:bg-gray-200',
-                            'transition-colors cursor-pointer'
-                        )}
-                    >
-                        🔧 테스트 로그인 (관리자 권한)
-                    </button>
-                </div>
-            )}
         </div>
     );
 }

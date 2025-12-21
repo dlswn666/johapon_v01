@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 export default function AdminHeader() {
     const pathname = usePathname();
-    const { user, switchUser, mockUsers } = useAuth();
+    const { user } = useAuth();
 
     const navItems = [{ href: '/admin/unions', label: '조합 관리', icon: Building2 }];
 
@@ -52,22 +52,6 @@ export default function AdminHeader() {
 
                     {/* 사용자 정보 & 개발 도구 */}
                     <div className="flex items-center gap-4">
-                        {/* 개발용 사용자 전환 (개발 환경에서만 표시) */}
-                        <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-lg">
-                            <span className="text-xs font-medium text-amber-700">DEV:</span>
-                            <Select value={user?.id || ''} onValueChange={(userId) => switchUser(userId)}>
-                                <SelectTrigger className="h-7 w-40 text-xs border-0 bg-transparent">
-                                    <SelectValue placeholder="사용자 선택" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {mockUsers.map((mockUser) => (
-                                        <SelectItem key={mockUser.id} value={mockUser.id} className="text-xs">
-                                            {mockUser.name} ({mockUser.role})
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
 
                         {/* 현재 사용자 */}
                         <div className="flex items-center gap-3">

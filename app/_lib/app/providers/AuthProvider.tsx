@@ -166,22 +166,22 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     }, []);
 
     const loginWithEmail = useCallback(async (email: string, password: string) => {
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) return { success: false, error: error.message };
         return { success: true };
     }, []);
 
-    const logout = async () => {
+    const logout = useCallback(async () => {
         await supabase.auth.signOut();
         setUser(null);
         setAuthUser(null);
         setSession(null);
         router.push('/');
-    };
+    }, [router]);
 
-    const refreshUser = async () => {
+    const refreshUser = useCallback(async () => {
         if (authUser) setUser(await resolveUserProfile(authUser.id, currentSlug));
-    };
+    }, [authUser, currentSlug, resolveUserProfile]);
 
     // 파생 상태 계산
     const isSystemAdmin = user?.role === 'SYSTEM_ADMIN';
@@ -217,6 +217,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
             isAdmin,
             login,
             loginWithEmail,
+            logout,
             refreshUser,
         ]
     );
