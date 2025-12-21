@@ -701,6 +701,12 @@ export default function MemberManagementPage() {
                                                             />
                                                         </th>
                                                         <th className="py-3 px-4 text-left text-sm font-medium text-gray-700">
+                                                            이름
+                                                        </th>
+                                                        <th className="py-3 px-4 text-left text-sm font-medium text-gray-700">
+                                                            핸드폰번호
+                                                        </th>
+                                                        <th className="py-3 px-4 text-left text-sm font-medium text-gray-700">
                                                             물건지 주소
                                                         </th>
                                                         <th className="py-3 px-4 text-left text-sm font-medium text-gray-700">
@@ -721,6 +727,12 @@ export default function MemberManagementPage() {
                                                                     disabled={invite.status !== 'PENDING'}
                                                                     className="border-gray-300"
                                                                 />
+                                                            </td>
+                                                            <td className="py-3 px-4 text-sm text-gray-900">
+                                                                {invite.name}
+                                                            </td>
+                                                            <td className="py-3 px-4 text-sm text-gray-600">
+                                                                {maskPhoneNumber(invite.phone_number)}
                                                             </td>
                                                             <td className="py-3 px-4">
                                                                 <button
@@ -887,7 +899,7 @@ export default function MemberManagementPage() {
                                                             {userData.name}
                                                         </td>
                                                         <td className="px-6 py-4 text-[14px] text-gray-600  whitespace-nowrap">
-                                                            {userData.phone_number}
+                                                            {maskPhoneNumber(userData.phone_number)}
                                                         </td>
                                                         <td className="px-6 py-4 text-[14px] text-gray-600 whitespace-nowrap">
                                                             {userData.property_address || '-'}
@@ -1044,7 +1056,7 @@ export default function MemberManagementPage() {
                                         <div>
                                             <p className="text-[12px] text-gray-500">전화번호</p>
                                             <p className="text-[16px] font-bold text-gray-900">
-                                                {maskPhoneNumber(selectedUser.phone_number)}
+                                                {selectedUser.phone_number}
                                             </p>
                                         </div>
                                     </div>
