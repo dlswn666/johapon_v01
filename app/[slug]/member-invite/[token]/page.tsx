@@ -13,12 +13,13 @@ export default function MemberInvitePage() {
     const params = useParams();
     const router = useRouter();
     const token = params.token as string;
+    const slug = params.slug as string;
 
     const { data: invite, isLoading, error } = useMemberInviteByToken(token);
 
     const handleKakaoLogin = async () => {
-        // 카카오 로그인 시 state에 member_invite_token 포함
-        const redirectTo = `${window.location.origin}/auth/callback?member_invite_token=${token}`;
+        // 카카오 로그인 시 slug와 member_invite_token 포함
+        const redirectTo = `${window.location.origin}/auth/callback?slug=${slug}&member_invite_token=${token}`;
 
         const { error } = await supabase.auth.signInWithOAuth({
             provider: 'kakao',
@@ -37,8 +38,8 @@ export default function MemberInvitePage() {
     };
 
     const handleNaverLogin = async () => {
-        // 네이버 로그인 시 state에 member_invite_token 포함
-        const redirectTo = `${window.location.origin}/auth/callback?member_invite_token=${token}`;
+        // 네이버 로그인 시 slug와 member_invite_token 포함
+        const redirectTo = `${window.location.origin}/auth/callback?slug=${slug}&member_invite_token=${token}`;
 
         const { error } = await supabase.auth.signInWithOAuth({
             provider: 'naver' as 'kakao', // 타입 우회
@@ -80,10 +81,10 @@ export default function MemberInvitePage() {
                     </CardHeader>
                     <CardContent className="text-center">
                         <Button
-                            onClick={() => router.push('/')}
+                            onClick={() => router.push(`/${slug}`)}
                             className="bg-blue-600 hover:bg-blue-700"
                         >
-                            홈으로 이동
+                            조합 홈으로 이동
                         </Button>
                     </CardContent>
                 </Card>
@@ -109,7 +110,7 @@ export default function MemberInvitePage() {
                     </CardHeader>
                     <CardContent className="text-center">
                         <Button
-                            onClick={() => router.push(`/${invite.union?.slug || ''}`)}
+                            onClick={() => router.push(`/${slug}`)}
                             className="bg-blue-600 hover:bg-blue-700"
                         >
                             조합 홈으로 이동
@@ -140,10 +141,10 @@ export default function MemberInvitePage() {
                     </CardHeader>
                     <CardContent className="text-center">
                         <Button
-                            onClick={() => router.push('/')}
+                            onClick={() => router.push(`/${slug}`)}
                             className="bg-blue-600 hover:bg-blue-700"
                         >
-                            홈으로 이동
+                            조합 홈으로 이동
                         </Button>
                     </CardContent>
                 </Card>
@@ -229,3 +230,4 @@ export default function MemberInvitePage() {
             </div>
     );
 }
+

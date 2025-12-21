@@ -180,11 +180,11 @@ export const useAcceptMemberInvite = () => {
 
 // 초대 링크 생성 헬퍼
 export const useGenerateMemberInviteLink = () => {
-    return useCallback((token: string) => {
+    return useCallback((token: string, slug: string) => {
         if (typeof window !== 'undefined') {
-            return `${window.location.origin}/member-invite/${token}`;
+            return `${window.location.origin}/${slug}/member-invite/${token}`;
         }
-        return `/member-invite/${token}`;
+        return `/${slug}/member-invite/${token}`;
     }, []);
 };
 
@@ -223,6 +223,7 @@ export const useSendBulkMemberAlimtalk = () => {
         mutationFn: async (input: {
             unionId: string;
             unionName: string;
+            unionSlug: string;
             domain: string;
             inviteIds: string[];
         }) => {
@@ -253,6 +254,7 @@ export const useSendBulkMemberAlimtalk = () => {
                         이름: invite.name,
                         만료시간: new Date(invite.expires_at).toLocaleString('ko-KR'),
                         도메인: input.domain,
+                        slug: input.unionSlug,
                         초대토큰: invite.invite_token,
                     },
                 })),
@@ -288,11 +290,12 @@ export const useCreateManualInvites = () => {
         mutationFn: async (input: {
             unionId: string;
             unionName: string;
+            unionSlug: string;
             domain: string;
             createdBy: string;
             members: { name: string; phone_number: string }[];
         }) => {
-            const { unionId, unionName, domain, createdBy, members } = input;
+            const { unionId, unionName, unionSlug, domain, createdBy, members } = input;
 
             if (members.length === 0) {
                 throw new Error('등록할 회원이 없습니다.');
@@ -343,6 +346,7 @@ export const useCreateManualInvites = () => {
                         이름: invite.name,
                         만료시간: new Date(invite.expires_at).toLocaleString('ko-KR'),
                         도메인: domain,
+                        slug: unionSlug,
                         초대토큰: invite.invite_token,
                     },
                 })),

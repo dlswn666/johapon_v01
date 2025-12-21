@@ -436,6 +436,7 @@ export default function MemberManagementPage() {
             const result = await sendBulkAlimtalk({
                 unionId,
                 unionName: union.name,
+                unionSlug: union.slug,
                 domain,
                 inviteIds: selectedIds,
             });
@@ -470,6 +471,7 @@ export default function MemberManagementPage() {
             const result = await createManualInvites({
                 unionId,
                 unionName: union.name,
+                unionSlug: union.slug,
                 domain,
                 createdBy: user.id,
                 members,
