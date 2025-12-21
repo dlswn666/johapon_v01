@@ -531,34 +531,98 @@ export default function AuthProvider({ children }: AuthProviderProps) {
         if (!isInitializedRef.current || !authUser) return;
         if (useMockAuth) return;
 
+        // [Race Condition 방지] user 정보를 fetch 중이면 보안 체크 스킵
+        // isUserFetching이 true면 아직 user 정보가 로딩 중이므로 판단 보류
+        if (isUserFetching) {
+            console.log('[DEBUG] ⏳ isUserFetching=true, 보안 체크 대기 중...');
+            return;
+        }
+
         const handleNavigationSecurity = async () => {
-            // 1. 시스템 관리자는 무조건 패스
-            if (user?.role === 'SYSTEM_ADMIN') return;
+            console.log('[DEBUG] 🔒 handleNavigationSecurity 실행');
+            console.log('[DEBUG] 현재 상태:', {
+                currentSlug,
+                user: user
+                    ? { id: user.id, role: user.role, union_id: user.union_id, user_status: user.user_status }
+                    : 'null',
+                authUser: authUser ? { id: authUser.id, email: authUser.email } : 'null',
+            });
 
-            if (!currentSlug) return;
+            // 1. 시스템 관리자는 어디서든 접근 가능
+            if (user?.role === 'SYSTEM_ADMIN') {
+                console.log('[DEBUG] ✅ 시스템 관리자 - 접근 허용');
+                return;
+            }
 
+            // 2. slug가 없으면 (시스템 페이지 등) 체크 불필요
+            if (!currentSlug) {
+                console.log('[DEBUG] ⏭️ slug 없음 - 체크 스킵');
+                return;
+            }
+
+            // 3. 현재 조합 정보 조회
             const { data: unionData } = await supabase.from('unions').select('id').eq('slug', currentSlug).single();
+            if (!unionData) {
+                console.log('[DEBUG] ⏭️ 조합 정보 없음 - 체크 스킵');
+                return;
+            }
+            const currentUnionId = unionData.id;
 
-            if (!unionData) return;
+            // 4. user가 있는 경우: 현재 조합 회원인지 확인
+            if (user) {
+                if (user.union_id === currentUnionId) {
+                    // 현재 조합 회원 → 상태에 따라 처리 (APPROVED, PENDING_APPROVAL, REJECTED)
+                    // UserStatusModal에서 상태별 UI 처리
+                    console.log('[DEBUG] ✅ 현재 조합 회원 - 상태:', user.user_status);
+                    return;
+                } else {
+                    // 다른 조합 회원이 현재 조합에 접근
+                    console.log('[DEBUG] ⚠️ 다른 조합 회원의 접근 감지: 강제 세션 파기');
+                    await logout();
+                    return;
+                }
+            }
 
-            /**
-             * 2. 핵심 수정:
-             * user가 null인 경우에도 authUser(세션)가 있다면 체크해야 합니다.
-             * 타 조합 유저가 현재 조합 페이지에 들어오면 fetchUserByAuthId가 null을 뱉으므로
-             * 이때 강제로 logout()을 시켜서 세션을 파기합니다.
-             */
-            const isWrongUnion = user && user.union_id !== unionData.id;
-            const isAuthenticatedButNoProfile = !user && authUser;
+            // 5. user가 없고 authUser만 있는 경우: 신규 사용자인지, 다른 조합 회원인지 확인
+            if (!user && authUser) {
+                // user_auth_links에서 해당 auth_user_id로 연결된 user들 조회
+                const { data: authLinks } = await supabase
+                    .from('user_auth_links')
+                    .select('user_id')
+                    .eq('auth_user_id', authUser.id);
 
-            if (isWrongUnion || isAuthenticatedButNoProfile) {
-                console.log('[DEBUG] ⚠️ 권한 없는 조합 접근 감지: 강제 세션 파기');
-                await logout();
-                // 세션이 파기되면 로그인 페이지나 메인으로 튕기게 됩니다.
+                if (!authLinks || authLinks.length === 0) {
+                    // 어떤 조합에도 미가입된 신규 사용자 → 회원가입 플로우 허용
+                    console.log('[DEBUG] ✅ 신규 사용자 - 회원가입 플로우 허용');
+                    return;
+                }
+
+                // 연결된 user들 중 현재 조합에 가입된 user가 있는지 확인
+                const userIds = authLinks.map((link) => link.user_id);
+                const { data: currentUnionUser } = await supabase
+                    .from('users')
+                    .select('id, user_status')
+                    .in('id', userIds)
+                    .eq('union_id', currentUnionId)
+                    .single();
+
+                if (currentUnionUser) {
+                    // 현재 조합에도 가입되어 있음 → 다른 조합에서 로그인된 상태
+                    // 로그아웃 후 현재 조합으로 재로그인 유도
+                    console.log('[DEBUG] ⚠️ 다른 조합에서 로그인됨, 현재 조합에도 가입됨 → 재로그인 유도');
+                    await logout();
+                    return;
+                } else {
+                    // 다른 조합에만 가입됨, 현재 조합은 미가입 → 로그아웃 후 회원가입 유도
+                    console.log('[DEBUG] ⚠️ 다른 조합 회원, 현재 조합 미가입 → 회원가입 유도');
+                    await logout();
+                    return;
+                }
             }
         };
 
         handleNavigationSecurity();
-    }, [currentSlug, authUser, user, useMockAuth, logout]);
+    }, [currentSlug, authUser, user, useMockAuth, logout, isUserFetching]);
 
     /**
      * 개발용: Mock 사용자 전환

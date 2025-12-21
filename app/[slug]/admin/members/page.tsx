@@ -123,7 +123,6 @@ export default function MemberManagementPage() {
     const {
         mutateAsync: sendBulkAlimtalk,
         isPending: isSendingAlimtalk,
-        progress: sendProgress,
     } = useSendBulkMemberAlimtalk();
 
     // 수동 회원 등록 훅
@@ -763,12 +762,6 @@ export default function MemberManagementPage() {
                                         <div className="mt-4 flex justify-between items-center border-t pt-4">
                                             <div className="text-sm text-gray-600">
                                                 {selectedIds.length > 0 && `${selectedIds.length}명 선택됨`}
-                                                {sendProgress && (
-                                                    <span className="ml-2 text-[#4E8C6D]">
-                                                        (발송중: {sendProgress.completedBatches}/
-                                                        {sendProgress.totalBatches} 배치)
-                                                    </span>
-                                                )}
                                             </div>
                                             <Button
                                                 onClick={handleBulkInvite}

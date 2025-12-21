@@ -2,17 +2,45 @@
 
 import React, { useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, Users, UserPlus, Copy, Check, Trash2, Clock, Mail, Phone, Loader2, AlertCircle } from 'lucide-react';
+import {
+    ArrowLeft,
+    Users,
+    UserPlus,
+    Copy,
+    Check,
+    Trash2,
+    Clock,
+    Mail,
+    Phone,
+    Loader2,
+    AlertCircle,
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { useUnion } from '@/app/_lib/features/union-management/api/useUnionManagementHook';
-import { useAdminInvites, useCreateAdminInvite, useDeleteAdminInvite, useUnionAdmins, useRevokeAdmin, useGenerateInviteLink } from '@/app/_lib/features/admin-invite/api/useAdminInviteHook';
+import {
+    useAdminInvites,
+    useCreateAdminInvite,
+    useDeleteAdminInvite,
+    useUnionAdmins,
+    useRevokeAdmin,
+    useGenerateInviteLink,
+} from '@/app/_lib/features/admin-invite/api/useAdminInviteHook';
 import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
-import { sendAdminInviteAlimTalk } from '@/app/_lib/features/alimtalk/actions/sendAlimTalk';
+import { sendAlimTalk } from '@/app/_lib/features/alimtalk/actions/sendAlimTalk';
 
 export default function UnionAdminsPage() {
     const router = useRouter();
@@ -61,17 +89,25 @@ export default function UnionAdminsPage() {
 
             const link = generateLink(result.invite_token);
             await navigator.clipboard.writeText(link);
-            
-            // 알림톡 발송
-            const alimtalkResult = await sendAdminInviteAlimTalk({
+
+            // 알림톡 발송 (통합 함수 사용)
+            const expiresDate = new Date(result.expires_at);
+            const alimtalkResult = await sendAlimTalk({
                 unionId,
-                unionName: union?.name || '',
-                adminName: formData.name,
-                phoneNumber: formData.phoneNumber,
-                email: formData.email,
-                domain: window.location.host,
-                inviteToken: result.invite_token,
-                expiresAt: result.expires_at,
+                templateCode: 'UE_1877', // 관리자 초대 템플릿
+                recipients: [
+                    {
+                        phoneNumber: formData.phoneNumber,
+                        name: formData.name,
+                        variables: {
+                            조합명: union?.name || '',
+                            관리자명: formData.name,
+                            만료시간: expiresDate.toLocaleString('ko-KR'),
+                            도메인: window.location.host,
+                            초대토큰: result.invite_token,
+                        },
+                    },
+                ],
             });
 
             if (alimtalkResult.success) {
@@ -80,7 +116,7 @@ export default function UnionAdminsPage() {
                 toast.success('초대 링크가 생성되었습니다. (알림톡 발송 실패)');
                 console.error('알림톡 발송 실패:', alimtalkResult.error);
             }
-            
+
             setFormData({ name: '', phoneNumber: '', email: '' });
         } catch (error) {
             console.error('Create invite error:', error);
@@ -129,14 +165,22 @@ export default function UnionAdminsPage() {
     const getStatusBadge = (status: string, expiresAt: string) => {
         const now = new Date();
         const expires = new Date(expiresAt);
-        
+
         if (status === 'USED') {
-            return <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-400">사용됨</span>;
+            return (
+                <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-400">
+                    사용됨
+                </span>
+            );
         }
         if (status === 'EXPIRED' || now > expires) {
-            return <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-red-500/20 text-red-400">만료됨</span>;
+            return (
+                <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-red-500/20 text-red-400">만료됨</span>
+            );
         }
-        return <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-400">대기중</span>;
+        return (
+            <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-400">대기중</span>
+        );
     };
 
     const formatDate = (dateString: string) => {
@@ -171,11 +215,12 @@ export default function UnionAdminsPage() {
         );
     }
 
-    const pendingInvites = invites?.filter((inv) => {
-        const now = new Date();
-        const expires = new Date(inv.expires_at);
-        return inv.status === 'PENDING' && now <= expires;
-    }) || [];
+    const pendingInvites =
+        invites?.filter((inv) => {
+            const now = new Date();
+            const expires = new Date(inv.expires_at);
+            return inv.status === 'PENDING' && now <= expires;
+        }) || [];
 
     return (
         <div className="space-y-8">
@@ -267,9 +312,7 @@ export default function UnionAdminsPage() {
                                 )}
                                 초대 링크 생성
                             </Button>
-                            <p className="text-xs text-slate-500 text-center">
-                                초대 링크는 24시간 동안 유효합니다
-                            </p>
+                            <p className="text-xs text-slate-500 text-center">초대 링크는 24시간 동안 유효합니다</p>
                         </form>
                     </CardContent>
                 </Card>
@@ -374,7 +417,8 @@ export default function UnionAdminsPage() {
                                                 </span>
                                             </div>
                                             <p className="text-xs text-slate-500 mt-1">
-                                                생성: {formatDate(invite.created_at)} / 만료: {formatDate(invite.expires_at)}
+                                                생성: {formatDate(invite.created_at)} / 만료:{' '}
+                                                {formatDate(invite.expires_at)}
                                             </p>
                                         </div>
                                     </div>
@@ -416,7 +460,8 @@ export default function UnionAdminsPage() {
                     <AlertDialogHeader>
                         <AlertDialogTitle className="text-white">초대 취소</AlertDialogTitle>
                         <AlertDialogDescription className="text-slate-400">
-                            <span className="text-red-400 font-semibold">&quot;{deleteTarget?.name}&quot;</span> 님의 초대를 취소하시겠습니까?
+                            <span className="text-red-400 font-semibold">&quot;{deleteTarget?.name}&quot;</span> 님의
+                            초대를 취소하시겠습니까?
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -439,7 +484,8 @@ export default function UnionAdminsPage() {
                     <AlertDialogHeader>
                         <AlertDialogTitle className="text-white">관리자 권한 해제</AlertDialogTitle>
                         <AlertDialogDescription className="text-slate-400">
-                            <span className="text-red-400 font-semibold">&quot;{revokeTarget?.name}&quot;</span> 님의 관리자 권한을 해제하시겠습니까?
+                            <span className="text-red-400 font-semibold">&quot;{revokeTarget?.name}&quot;</span> 님의
+                            관리자 권한을 해제하시겠습니까?
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -458,4 +504,3 @@ export default function UnionAdminsPage() {
         </div>
     );
 }
-
