@@ -6,7 +6,6 @@ import { usePathname } from 'next/navigation';
 import { Building2, Home, Users } from 'lucide-react';
 import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function AdminHeader() {
     const pathname = usePathname();

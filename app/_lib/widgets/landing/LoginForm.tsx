@@ -16,7 +16,7 @@ interface LoginFormProps {
  * - 카카오/네이버 소셜 로그인
  * - 개발용 테스트 로그인
  */
-export function LoginForm({ className, unionName, onLoginSuccess }: LoginFormProps) {
+export function LoginForm({ className, unionName, onLoginSuccess: _onLoginSuccess }: LoginFormProps) {
     const { login } = useAuth();
     const { slug } = useSlug();
     const [isLoading, setIsLoading] = useState(false);

@@ -46,7 +46,7 @@ export default function SlugProvider({ children, slug }: SlugProviderProps) {
                 console.log('[SLUG_DEBUG] ⏳ getUnionBySlug 호출 중...');
                 const data = await Promise.race([
                     getUnionBySlug(slug),
-                    timeout(5000) as Promise<any>
+                    timeout(5000) as Promise<never>
                 ]);
                 console.log('[SLUG_DEBUG] 📦 조회 결과:', data ? '성공' : '실패');
                 

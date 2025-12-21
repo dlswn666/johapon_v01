@@ -125,7 +125,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
                     error
                 } = await Promise.race([
                     supabase.auth.getSession(),
-                    timeout(5000) as Promise<any>
+                    timeout(5000) as Promise<never>
                 ]);
 
                 if (error) {
@@ -140,7 +140,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
                     console.log('[AUTH_DEBUG] 🔍 프로필 조회 시작 (initAuth)');
                     const profile = await Promise.race([
                         resolveUserProfile(initSession.user.id, currentSlug),
-                        timeout(3000) as Promise<any>
+                        timeout(3000) as Promise<never>
                     ]);
                     console.log('[AUTH_DEBUG] ✅ 프로필 조회 완료 (initAuth):', profile ? '성공' : '없음');
                     setUser(profile);
