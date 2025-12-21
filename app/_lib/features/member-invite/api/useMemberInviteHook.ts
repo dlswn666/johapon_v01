@@ -19,10 +19,12 @@ export const useMemberInvites = (unionId: string | undefined, enabled: boolean =
 
             const { data, error } = await supabase
                 .from('member_invites')
-                .select(`
+                .select(
+                    `
                     *,
                     union:unions(id, name, slug)
-                `)
+                `
+                )
                 .eq('union_id', unionId)
                 .order('created_at', { ascending: false });
 
@@ -53,10 +55,12 @@ export const useMemberInviteByToken = (token: string | undefined, enabled: boole
 
             const { data, error } = await supabase
                 .from('member_invites')
-                .select(`
+                .select(
+                    `
                     *,
                     union:unions(id, name, slug)
-                `)
+                `
+                )
                 .eq('invite_token', token)
                 .single();
 
@@ -67,14 +71,11 @@ export const useMemberInviteByToken = (token: string | undefined, enabled: boole
             // 만료 여부 확인
             const now = new Date();
             const expiresAt = new Date(data.expires_at);
-            
+
             if (data.status === 'PENDING' && now > expiresAt) {
                 // 만료된 경우 상태 업데이트
-                await supabase
-                    .from('member_invites')
-                    .update({ status: 'EXPIRED' })
-                    .eq('id', data.id);
-                
+                await supabase.from('member_invites').update({ status: 'EXPIRED' }).eq('id', data.id);
+
                 return { ...data, status: 'EXPIRED' } as MemberInviteWithUnion;
             }
 
@@ -129,10 +130,7 @@ export const useDeleteMemberInvite = () => {
 
     return useMutation({
         mutationFn: async ({ inviteId, unionId }: { inviteId: string; unionId: string }) => {
-            const { error } = await supabase
-                .from('member_invites')
-                .delete()
-                .eq('id', inviteId);
+            const { error } = await supabase.from('member_invites').delete().eq('id', inviteId);
 
             if (error) {
                 throw error;
@@ -197,10 +195,12 @@ export const useMemberInvite = (inviteId: string | undefined, enabled: boolean =
 
             const { data, error } = await supabase
                 .from('member_invites')
-                .select(`
+                .select(
+                    `
                     *,
                     union:unions(id, name, slug)
-                `)
+                `
+                )
                 .eq('id', inviteId)
                 .single();
 
@@ -253,8 +253,7 @@ export const useSendBulkMemberAlimtalk = () => {
                         조합명: input.unionName,
                         이름: invite.name,
                         만료시간: new Date(invite.expires_at).toLocaleString('ko-KR'),
-                        도메인: input.domain,
-                        slug: input.unionSlug,
+                        도메인: `${input.domain}/${input.unionSlug}`,
                         초대토큰: invite.invite_token,
                     },
                 })),
@@ -345,8 +344,7 @@ export const useCreateManualInvites = () => {
                         조합명: unionName,
                         이름: invite.name,
                         만료시간: new Date(invite.expires_at).toLocaleString('ko-KR'),
-                        도메인: domain,
-                        slug: unionSlug,
+                        도메인: `${domain}/${unionSlug}`,
                         초대토큰: invite.invite_token,
                     },
                 })),
