@@ -19,6 +19,10 @@ export async function GET(request: NextRequest) {
     const inviteToken = searchParams.get('invite_token');
     const memberInviteToken = searchParams.get('member_invite_token');
 
+    // #region agent log
+    console.log('[JOHAPON_DEBUG][auth/callback][F] OAuth Callback 호출', { fullUrl: request.url, slug: slug || '(empty)', hasCode: !!code });
+    // #endregion
+
     // [DEBUG] OAuth 콜백 시작
     console.log('='.repeat(60));
     console.log('[DEBUG] 🔄 OAuth Callback 시작');

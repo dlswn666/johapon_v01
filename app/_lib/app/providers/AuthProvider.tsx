@@ -147,12 +147,22 @@ export default function AuthProvider({ children }: AuthProviderProps) {
      * 다중 조합 지원: 현재 slug에 해당하는 조합의 user를 조회
      */
     const fetchUserByAuthId = useCallback(async (authUserId: string, slug?: string | null): Promise<User | null> => {
+        // #region agent log
+        console.log('[JOHAPON_DEBUG][fetchUserByAuthId:start][A] fetchUserByAuthId 호출', { authUserId, slug });
+        // #endregion
         try {
             // 1. 먼저 이 authUserId와 연결된 모든 유저 레코드를 가져옵니다.
             const { data: authLinks } = await supabase
                 .from('user_auth_links')
                 .select('user_id')
                 .eq('auth_user_id', authUserId);
+
+            // #region agent log
+            console.log('[JOHAPON_DEBUG][fetchUserByAuthId:authLinks][A,E] user_auth_links 조회 결과', {
+                authLinks,
+                authLinksLength: authLinks?.length || 0,
+            });
+            // #endregion
 
             if (!authLinks || authLinks.length === 0) return null;
             const userIds = authLinks.map((link) => link.user_id);
@@ -185,6 +195,16 @@ export default function AuthProvider({ children }: AuthProviderProps) {
                     .in('id', userIds)
                     .eq('union_id', unionId)
                     .single();
+
+                // #region agent log
+                console.log('[JOHAPON_DEBUG][fetchUserByAuthId:unionUser][A,E] 조합별 유저 조회 결과', {
+                    unionId,
+                    userIds,
+                    userData: userData
+                        ? { id: userData.id, user_status: userData.user_status, union_id: userData.union_id }
+                        : null,
+                });
+                // #endregion
 
                 if (userData) return userData as User;
                 return null; // 해당 조합 멤버가 아님
@@ -346,6 +366,12 @@ export default function AuthProvider({ children }: AuthProviderProps) {
                     // 초기 세션 이벤트: 페이지 로드 시 첫 번째로 발생
                     // 이 이벤트에서 모든 초기화 처리
                     console.log('[DEBUG] 📍 INITIAL_SESSION 처리 시작');
+                    // #region agent log
+                    console.log('[JOHAPON_DEBUG][INITIAL_SESSION][B] INITIAL_SESSION 이벤트 발생', {
+                        currentSlug: currentSlugRef.current,
+                        hasSession: !!newSession,
+                    });
+                    // #endregion
                     await handleSessionWithUser(newSession, event, currentSlugRef.current);
                     setIsLoading(false);
                     isInitializedRef.current = true;
@@ -357,6 +383,13 @@ export default function AuthProvider({ children }: AuthProviderProps) {
                 case 'SIGNED_IN':
                     // 로그인 이벤트: 초기화 완료 후에만 처리
                     console.log('[DEBUG] 📍 SIGNED_IN 이벤트');
+                    // #region agent log
+                    console.log('[JOHAPON_DEBUG][SIGNED_IN][C] SIGNED_IN 이벤트 발생', {
+                        isInitialized: isInitializedRef.current,
+                        hasUserRef: !!userRef.current,
+                        currentSlug: currentSlugRef.current,
+                    });
+                    // #endregion
                     if (isInitializedRef.current) {
                         // 이미 user 정보가 있으면 스킵 (탭 복귀 시 로딩 방지)
                         if (userRef.current) {
@@ -364,6 +397,12 @@ export default function AuthProvider({ children }: AuthProviderProps) {
                         } else {
                             // user가 없으면 처리 (다른 탭에서 로그인한 경우 등)
                             console.log('[DEBUG] 🔄 SIGNED_IN 처리 (user 없음)');
+                            // #region agent log
+                            console.log(
+                                '[JOHAPON_DEBUG][SIGNED_IN:processing][C] SIGNED_IN에서 handleSessionWithUser 호출',
+                                { currentSlug: currentSlugRef.current }
+                            );
+                            // #endregion
                             await handleSessionWithUser(newSession, event, currentSlugRef.current);
                         }
                     } else {
@@ -420,9 +459,15 @@ export default function AuthProvider({ children }: AuthProviderProps) {
      * 소셜 로그인
      */
     const login = useCallback(async (provider: 'kakao' | 'naver', slug?: string) => {
+        // #region agent log
+        console.log('[JOHAPON_DEBUG][login][F] login 함수 호출', { provider, slug: slug || '(undefined)' });
+        // #endregion
         if (provider === 'kakao') {
             // 카카오는 Supabase 공식 지원 (카카오싱크 간편 로그인)
             const redirectTo = `${window.location.origin}/auth/callback${slug ? `?slug=${slug}` : ''}`;
+            // #region agent log
+            console.log('[JOHAPON_DEBUG][login:kakao][F] 카카오 로그인 redirectTo', { redirectTo });
+            // #endregion
 
             const { error } = await supabase.auth.signInWithOAuth({
                 provider: 'kakao',
@@ -498,6 +543,11 @@ export default function AuthProvider({ children }: AuthProviderProps) {
      * 로그아웃
      */
     const logout = useCallback(async () => {
+        // #region agent log
+        console.log('[JOHAPON_DEBUG][logout][D] logout 함수 호출됨!', {
+            stack: new Error().stack?.split('\n').slice(0, 5),
+        });
+        // #endregion
         if (useMockAuth) {
             setUser(null);
             localStorage.removeItem('mock_user_id');
@@ -539,6 +589,15 @@ export default function AuthProvider({ children }: AuthProviderProps) {
         }
 
         const handleNavigationSecurity = async () => {
+            // #region agent log
+            console.log('[JOHAPON_DEBUG][handleNavigationSecurity:start][D] handleNavigationSecurity 시작', {
+                currentSlug,
+                hasUser: !!user,
+                userUnionId: user?.union_id,
+                userStatus: user?.user_status,
+                authUserId: authUser?.id,
+            });
+            // #endregion
             console.log('[DEBUG] 🔒 handleNavigationSecurity 실행');
             console.log('[DEBUG] 현재 상태:', {
                 currentSlug,
@@ -570,6 +629,14 @@ export default function AuthProvider({ children }: AuthProviderProps) {
 
             // 4. user가 있는 경우: 현재 조합 회원인지 확인
             if (user) {
+                // #region agent log
+                console.log('[JOHAPON_DEBUG][handleNavigationSecurity:userCheck][D] user 존재 분기', {
+                    userUnionId: user.union_id,
+                    currentUnionId,
+                    isMatch: user.union_id === currentUnionId,
+                    userStatus: user.user_status,
+                });
+                // #endregion
                 if (user.union_id === currentUnionId) {
                     // 현재 조합 회원 → 상태에 따라 처리 (APPROVED, PENDING_APPROVAL, REJECTED)
                     // UserStatusModal에서 상태별 UI 처리
@@ -577,6 +644,12 @@ export default function AuthProvider({ children }: AuthProviderProps) {
                     return;
                 } else {
                     // 다른 조합 회원이 현재 조합에 접근
+                    // #region agent log
+                    console.log(
+                        '[JOHAPON_DEBUG][handleNavigationSecurity:unionMismatch][D] 조합 불일치 - logout 호출 예정',
+                        { userUnionId: user.union_id, currentUnionId }
+                    );
+                    // #endregion
                     console.log('[DEBUG] ⚠️ 다른 조합 회원의 접근 감지: 강제 세션 파기');
                     await logout();
                     return;
@@ -585,14 +658,33 @@ export default function AuthProvider({ children }: AuthProviderProps) {
 
             // 5. user가 없고 authUser만 있는 경우: 신규 사용자인지, 다른 조합 회원인지 확인
             if (!user && authUser) {
+                // #region agent log
+                console.log('[JOHAPON_DEBUG][handleNavigationSecurity:noUserPath][D] user없음+authUser있음 분기 진입', {
+                    authUserId: authUser.id,
+                    currentUnionId,
+                });
+                // #endregion
+
                 // user_auth_links에서 해당 auth_user_id로 연결된 user들 조회
                 const { data: authLinks } = await supabase
                     .from('user_auth_links')
                     .select('user_id')
                     .eq('auth_user_id', authUser.id);
 
+                // #region agent log
+                console.log(
+                    '[JOHAPON_DEBUG][handleNavigationSecurity:authLinksCheck][D,E] handleNavigationSecurity에서 authLinks 조회',
+                    { authLinks, authLinksLength: authLinks?.length || 0 }
+                );
+                // #endregion
+
                 if (!authLinks || authLinks.length === 0) {
                     // 어떤 조합에도 미가입된 신규 사용자 → 회원가입 플로우 허용
+                    // #region agent log
+                    console.log(
+                        '[JOHAPON_DEBUG][handleNavigationSecurity:newUser][D,E] 신규 사용자로 판단됨 (authLinks 비어있음)'
+                    );
+                    // #endregion
                     console.log('[DEBUG] ✅ 신규 사용자 - 회원가입 플로우 허용');
                     return;
                 }
@@ -606,14 +698,33 @@ export default function AuthProvider({ children }: AuthProviderProps) {
                     .eq('union_id', currentUnionId)
                     .single();
 
+                // #region agent log
+                console.log(
+                    '[JOHAPON_DEBUG][handleNavigationSecurity:currentUnionUserCheck][D,E] 현재 조합 유저 조회 결과',
+                    { userIds, currentUnionId, currentUnionUser }
+                );
+                // #endregion
+
                 if (currentUnionUser) {
                     // 현재 조합에도 가입되어 있음 → 다른 조합에서 로그인된 상태
                     // 로그아웃 후 현재 조합으로 재로그인 유도
+                    // #region agent log
+                    console.log(
+                        '[JOHAPON_DEBUG][handleNavigationSecurity:logoutCase1][D] 로그아웃 호출 - 다른 조합에서 로그인됨',
+                        { currentUnionUser }
+                    );
+                    // #endregion
                     console.log('[DEBUG] ⚠️ 다른 조합에서 로그인됨, 현재 조합에도 가입됨 → 재로그인 유도');
                     await logout();
                     return;
                 } else {
                     // 다른 조합에만 가입됨, 현재 조합은 미가입 → 로그아웃 후 회원가입 유도
+                    // #region agent log
+                    console.log(
+                        '[JOHAPON_DEBUG][handleNavigationSecurity:logoutCase2][D] 로그아웃 호출 - 다른 조합 회원, 현재 조합 미가입',
+                        { userIds, currentUnionId }
+                    );
+                    // #endregion
                     console.log('[DEBUG] ⚠️ 다른 조합 회원, 현재 조합 미가입 → 회원가입 유도');
                     await logout();
                     return;
