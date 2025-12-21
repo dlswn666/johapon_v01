@@ -120,10 +120,7 @@ export default function MemberManagementPage() {
     const { isLoading: invitesLoading } = useMemberInvites(unionId);
     const syncMutation = useSyncMemberInvites();
     const deleteMutation = useDeleteMemberInvite();
-    const {
-        mutateAsync: sendBulkAlimtalk,
-        isPending: isSendingAlimtalk,
-    } = useSendBulkMemberAlimtalk();
+    const { mutateAsync: sendBulkAlimtalk, isPending: isSendingAlimtalk } = useSendBulkMemberAlimtalk();
 
     // 수동 회원 등록 훅
     const { mutateAsync: createManualInvites, isPending: isCreatingManual } = useCreateManualInvites();
@@ -155,6 +152,7 @@ export default function MemberManagementPage() {
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [rejectionReason, setRejectionReason] = useState('');
     const [newRole, setNewRole] = useState<string>('');
+    const [showRejectModal, setShowRejectModal] = useState(false);
 
     // 사용자 목록 조회
     const { data: usersData, isLoading: usersLoading } = useQuery({
@@ -270,6 +268,32 @@ export default function MemberManagementPage() {
         },
         onError: () => {
             toast.error('역할 변경 중 오류가 발생했습니다.');
+        },
+    });
+
+    // 반려 취소 mutation (REJECTED → PENDING_APPROVAL)
+    const cancelRejectionMutation = useMutation({
+        mutationFn: async (userId: string) => {
+            const { error } = await supabase
+                .from('users')
+                .update({
+                    user_status: 'PENDING_APPROVAL',
+                    rejected_reason: null,
+                    rejected_at: null,
+                    updated_at: new Date().toISOString(),
+                })
+                .eq('id', userId);
+
+            if (error) throw error;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+            toast.success('반려가 취소되었습니다. 다시 승인 대기 상태입니다.');
+            setShowDetailModal(false);
+            setSelectedUser(null);
+        },
+        onError: () => {
+            toast.error('반려 취소 중 오류가 발생했습니다.');
         },
     });
 
@@ -1089,7 +1113,6 @@ export default function MemberManagementPage() {
                                             value={newRole}
                                             onChange={(value) => setNewRole(value)}
                                             options={[
-                                                { value: 'APPLICANT', label: '가입 신청자' },
                                                 { value: 'USER', label: '조합원' },
                                                 { value: 'ADMIN', label: '조합 관리자' },
                                                 ...(isSystemAdmin
@@ -1112,21 +1135,6 @@ export default function MemberManagementPage() {
                                         </button>
                                     </div>
                                 </div>
-
-                                {selectedUser.user_status === 'PENDING_APPROVAL' && (
-                                    <div className="space-y-2">
-                                        <label className="block text-[14px] font-medium text-gray-700">
-                                            반려 사유 (반려 시 입력)
-                                        </label>
-                                        <textarea
-                                            value={rejectionReason}
-                                            onChange={(e) => setRejectionReason(e.target.value)}
-                                            placeholder="반려 사유를 입력하세요..."
-                                            rows={3}
-                                            className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4E8C6D] focus:border-transparent resize-none text-[14px]"
-                                        />
-                                    </div>
-                                )}
 
                                 {selectedUser.user_status === 'REJECTED' && selectedUser.rejected_reason && (
                                     <div className="bg-red-50 border border-red-200 rounded-xl p-5">
@@ -1152,12 +1160,7 @@ export default function MemberManagementPage() {
                                 {selectedUser.user_status === 'PENDING_APPROVAL' && (
                                     <>
                                         <button
-                                            onClick={() =>
-                                                rejectMutation.mutate({
-                                                    userId: selectedUser.id,
-                                                    reason: rejectionReason || '관리자에 의해 반려되었습니다.',
-                                                })
-                                            }
+                                            onClick={() => setShowRejectModal(true)}
                                             disabled={rejectMutation.isPending}
                                             className="flex-1 h-12 rounded-xl bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 text-[14px] font-medium cursor-pointer"
                                         >
@@ -1174,6 +1177,85 @@ export default function MemberManagementPage() {
                                         </button>
                                     </>
                                 )}
+
+                                {selectedUser.user_status === 'REJECTED' && (
+                                    <button
+                                        onClick={() => cancelRejectionMutation.mutate(selectedUser.id)}
+                                        disabled={cancelRejectionMutation.isPending}
+                                        className="flex-1 h-12 rounded-xl bg-amber-500 text-white hover:bg-amber-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 text-[14px] font-medium cursor-pointer"
+                                    >
+                                        {cancelRejectionMutation.isPending ? (
+                                            <Loader2 className="w-5 h-5 animate-spin" />
+                                        ) : (
+                                            <Clock className="w-5 h-5" />
+                                        )}
+                                        <span>반려 취소</span>
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* 반려 사유 입력 모달 */}
+                {showRejectModal && selectedUser && (
+                    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+                        <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
+                            <div className="p-6 border-b border-gray-100">
+                                <h3 className="text-[18px] font-bold text-gray-900">반려 사유 입력</h3>
+                                <p className="text-[14px] text-gray-500 mt-1">
+                                    {selectedUser.name}님의 가입 신청을 반려합니다.
+                                </p>
+                            </div>
+
+                            <div className="p-6 space-y-4">
+                                <div className="space-y-2">
+                                    <label className="block text-[14px] font-medium text-gray-700">
+                                        반려 사유 <span className="text-red-500">*</span>
+                                    </label>
+                                    <textarea
+                                        value={rejectionReason}
+                                        onChange={(e) => setRejectionReason(e.target.value)}
+                                        placeholder="반려 사유를 입력하세요..."
+                                        rows={4}
+                                        className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none text-[14px]"
+                                    />
+                                    {rejectionReason.trim().length === 0 && (
+                                        <p className="text-[12px] text-red-500">
+                                            반려 사유를 입력해야 반려할 수 있습니다.
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="p-6 border-t border-gray-100 bg-gray-50 flex gap-4">
+                                <button
+                                    onClick={() => {
+                                        setShowRejectModal(false);
+                                        setRejectionReason('');
+                                    }}
+                                    className="flex-1 h-12 rounded-xl border border-gray-300 text-gray-700 hover:bg-gray-100 transition-colors text-[14px] font-medium cursor-pointer"
+                                >
+                                    취소
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        rejectMutation.mutate({
+                                            userId: selectedUser.id,
+                                            reason: rejectionReason,
+                                        });
+                                        setShowRejectModal(false);
+                                    }}
+                                    disabled={rejectionReason.trim().length === 0 || rejectMutation.isPending}
+                                    className="flex-1 h-12 rounded-xl bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-[14px] font-medium cursor-pointer"
+                                >
+                                    {rejectMutation.isPending ? (
+                                        <Loader2 className="w-5 h-5 animate-spin" />
+                                    ) : (
+                                        <XCircle className="w-5 h-5" />
+                                    )}
+                                    <span>반려 확인</span>
+                                </button>
                             </div>
                         </div>
                     </div>

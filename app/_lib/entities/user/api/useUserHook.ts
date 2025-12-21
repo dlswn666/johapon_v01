@@ -386,6 +386,100 @@ export const useReapplyUser = () => {
 };
 
 // ========================================
+// Mutation: 반려 취소 (REJECTED → PENDING_APPROVAL)
+// 관리자가 잘못 반려한 경우 취소하여 다시 승인 대기 상태로 복구
+// ========================================
+export const useCancelRejection = () => {
+    const updateUser = useUserStore((state) => state.updateUser);
+
+    return useMutation({
+        mutationFn: async (userId: string) => {
+            const { data, error } = await supabase
+                .from('users')
+                .update({
+                    user_status: 'PENDING_APPROVAL',
+                    rejected_reason: null,
+                    rejected_at: null,
+                    updated_at: new Date().toISOString(),
+                })
+                .eq('id', userId)
+                .select()
+                .single();
+
+            if (error) {
+                throw error;
+            }
+
+            return data as User;
+        },
+        onSuccess: (data) => {
+            updateUser(data.id, data);
+            queryClient.invalidateQueries({ queryKey: ['users'] });
+            queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+            toast.success('반려가 취소되었습니다. 다시 승인 대기 상태입니다.');
+        },
+        onError: (error: Error) => {
+            toast.error('반려 취소에 실패했습니다.');
+            console.error('Cancel rejection error:', error);
+        },
+    });
+};
+
+// ========================================
+// Mutation: 재신청 시 정보 업데이트
+// 반려된 사용자가 정보를 수정하고 다시 승인 요청
+// ========================================
+export interface ReapplyWithUpdateInput {
+    userId: string;
+    name: string;
+    phone_number: string;
+    birth_date: string;
+    property_zonecode?: string;
+    property_address_road?: string;
+    property_address_jibun?: string;
+    property_address_detail?: string;
+}
+
+export const useReapplyWithUpdate = () => {
+    const updateUser = useUserStore((state) => state.updateUser);
+
+    return useMutation({
+        mutationFn: async (input: ReapplyWithUpdateInput) => {
+            const { userId, ...updates } = input;
+
+            const { data, error } = await supabase
+                .from('users')
+                .update({
+                    ...updates,
+                    property_address: updates.property_address_road, // 기존 호환성
+                    user_status: 'PENDING_APPROVAL',
+                    rejected_reason: null,
+                    rejected_at: null,
+                    updated_at: new Date().toISOString(),
+                })
+                .eq('id', userId)
+                .select()
+                .single();
+
+            if (error) {
+                throw error;
+            }
+
+            return data as User;
+        },
+        onSuccess: (data) => {
+            updateUser(data.id, data);
+            queryClient.invalidateQueries({ queryKey: ['users'] });
+            toast.success('재신청이 완료되었습니다. 관리자 승인을 기다려주세요.');
+        },
+        onError: (error: Error) => {
+            toast.error('재신청에 실패했습니다.');
+            console.error('Reapply with update error:', error);
+        },
+    });
+};
+
+// ========================================
 // Mutation: 소셜 계정 연결
 // ========================================
 export const useLinkAuthUser = () => {

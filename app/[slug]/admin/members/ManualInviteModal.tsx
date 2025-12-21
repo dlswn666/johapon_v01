@@ -221,7 +221,7 @@ export default function ManualInviteModal({ isOpen, onClose, onSubmit, isSubmitt
                                 등록 중...
                             </>
                         ) : (
-                            <>등록하기 ({members.length}명)</>
+                            <>발송하기 ({members.length}명)</>
                         )}
                     </Button>
                 </div>
