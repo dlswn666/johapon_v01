@@ -178,7 +178,39 @@ const QuestionDetailPage = () => {
                             💬 관리자 답변
                         </h3>
 
-                        {question.answered_at && question.answer_content ? (
+                        {isAnswerMode ? (
+                            <div className="bg-[#F5F5F5] rounded-[12px] p-6 space-y-4">
+                                <TextEditor
+                                    content={answerContent}
+                                    onChange={setAnswerContent}
+                                    placeholder="답변 내용을 입력해주세요. 이미지를 첨부할 수 있습니다."
+                                />
+                                <div className="flex justify-end gap-3">
+                                    <ActionButton
+                                        buttonType="cancel"
+                                        onClick={() => {
+                                            setIsAnswerMode(false);
+                                            setAnswerContent('');
+                                        }}
+                                    >
+                                        취소
+                                    </ActionButton>
+                                    <ActionButton
+                                        buttonType="submit"
+                                        onClick={handleSubmitAnswer}
+                                        isLoading={isAnswering}
+                                        disabled={!answerContent.trim()}
+                                    >
+                                        답변 등록
+                                    </ActionButton>
+                                </div>
+                                <div className="bg-[#E8F5EE] border border-[#4E8C6D] rounded-[8px] p-3">
+                                    <p className="text-[12px] text-[#3D7A5A]">
+                                        💡 답변이 등록되면 질문자에게 알림톡이 발송됩니다.
+                                    </p>
+                                </div>
+                            </div>
+                        ) : question.answered_at && question.answer_content ? (
                             <div className="bg-[#F0F7F4] rounded-[12px] p-6 relative group">
                                 <div className="flex items-center justify-between mb-4">
                                     <div className="flex items-center gap-4 text-[14px] text-[#5FA37C]">
@@ -208,53 +240,17 @@ const QuestionDetailPage = () => {
                                 />
                             </div>
                         ) : (
-                            <>
-                                {!isAnswerMode ? (
-                                    <div className="bg-[#F5F5F5] rounded-[12px] p-6 text-center">
-                                        <p className="text-[#AFAFAF] text-[16px] mb-4">아직 답변이 등록되지 않았습니다.</p>
-                                        {canAnswer && (
-                                            <ActionButton
-                                                buttonType="submit"
-                                                onClick={() => setIsAnswerMode(true)}
-                                            >
-                                                답변 작성하기
-                                            </ActionButton>
-                                        )}
-                                    </div>
-                                ) : (
-                                    <div className="bg-[#F5F5F5] rounded-[12px] p-6 space-y-4">
-                                        <TextEditor
-                                            content={answerContent}
-                                            onChange={setAnswerContent}
-                                            placeholder="답변 내용을 입력해주세요. 이미지를 첨부할 수 있습니다."
-                                        />
-                                        <div className="flex justify-end gap-3">
-                                            <ActionButton
-                                                buttonType="cancel"
-                                                onClick={() => {
-                                                    setIsAnswerMode(false);
-                                                    setAnswerContent('');
-                                                }}
-                                            >
-                                                취소
-                                            </ActionButton>
-                                            <ActionButton
-                                                buttonType="submit"
-                                                onClick={handleSubmitAnswer}
-                                                isLoading={isAnswering}
-                                                disabled={!answerContent.trim()}
-                                            >
-                                                답변 등록
-                                            </ActionButton>
-                                        </div>
-                                        <div className="bg-[#E8F5EE] border border-[#4E8C6D] rounded-[8px] p-3">
-                                            <p className="text-[12px] text-[#3D7A5A]">
-                                                💡 답변이 등록되면 질문자에게 알림톡이 발송됩니다.
-                                            </p>
-                                        </div>
-                                    </div>
+                            <div className="bg-[#F5F5F5] rounded-[12px] p-6 text-center">
+                                <p className="text-[#AFAFAF] text-[16px] mb-4">아직 답변이 등록되지 않았습니다.</p>
+                                {canAnswer && (
+                                    <ActionButton
+                                        buttonType="submit"
+                                        onClick={() => setIsAnswerMode(true)}
+                                    >
+                                        답변 작성하기
+                                    </ActionButton>
                                 )}
-                            </>
+                            </div>
                         )}
                     </div>
                 </div>
