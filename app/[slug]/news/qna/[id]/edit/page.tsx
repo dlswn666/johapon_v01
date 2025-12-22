@@ -1,6 +1,5 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import React, { useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -16,6 +15,7 @@ import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import AlertModal from '@/app/_lib/widgets/modal/AlertModal';
 import { TextEditor } from '@/app/_lib/widgets/common/text-editor';
 import useQuestionStore from '@/app/_lib/features/question/model/useQuestionStore';
+import { ActionButton } from '@/app/_lib/widgets/common/button';
 
 const formSchema = z.object({
     title: z.string().min(1, '제목을 입력해주세요.'),
@@ -171,21 +171,19 @@ const EditQuestionPage = () => {
                             />
 
                             <div className="flex justify-end gap-3 pt-6 border-t border-[#CCCCCC]">
-                                <Button 
-                                    type="button" 
-                                    variant="outline" 
+                                <ActionButton 
+                                    buttonType="cancel" 
                                     onClick={() => router.push(`/${slug}/news/qna/${id}`)}
-                                    className="h-[48px] px-8 text-[16px] border-[#CCCCCC] text-gray-600 hover:bg-gray-200 hover:border-gray-400 cursor-pointer"
                                 >
                                     취소
-                                </Button>
-                                <Button 
+                                </ActionButton>
+                                <ActionButton 
                                     type="submit" 
-                                    disabled={isPending}
-                                    className="h-[48px] px-8 text-[16px] bg-[#4E8C6D] hover:bg-[#5FA37C] text-white cursor-pointer"
+                                    buttonType="submit"
+                                    isLoading={isPending}
                                 >
-                                    {isPending ? '수정 중...' : '수정 완료'}
-                                </Button>
+                                    수정 완료
+                                </ActionButton>
                             </div>
                         </form>
                     </Form>
@@ -198,4 +196,3 @@ const EditQuestionPage = () => {
 };
 
 export default EditQuestionPage;
-

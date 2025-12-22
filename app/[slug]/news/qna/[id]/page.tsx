@@ -1,6 +1,5 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import React, { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -12,6 +11,7 @@ import AlertModal from '@/app/_lib/widgets/modal/AlertModal';
 import useModalStore from '@/app/_lib/shared/stores/modal/useModalStore';
 import { TextEditor } from '@/app/_lib/widgets/common/text-editor';
 import { Lock, CheckCircle, User } from 'lucide-react';
+import { ActionButton } from '@/app/_lib/widgets/common/button';
 
 const QuestionDetailPage = () => {
     const router = useRouter();
@@ -109,26 +109,29 @@ const QuestionDetailPage = () => {
                         <div className="flex gap-2">
                             {canEdit && (
                                 <>
-                                    <Button 
-                                        className="bg-white border border-[#4E8C6D] text-[#4E8C6D] hover:bg-[#F5F5F5] cursor-pointer" 
+                                    <ActionButton 
+                                        variant="outline" 
                                         onClick={() => router.push(`/${slug}/news/qna/${id}/edit`)}
+                                        className="h-[40px] px-4 border-[#4E8C6D] text-[#4E8C6D] hover:bg-[#F5F5F5]"
                                     >
                                         수정
-                                    </Button>
-                                    <Button 
-                                        className="bg-[#D9534F] text-white hover:bg-[#D9534F]/90 cursor-pointer" 
+                                    </ActionButton>
+                                    <ActionButton 
+                                        variant="destructive" 
                                         onClick={handleDelete}
+                                        className="h-[40px] px-4"
                                     >
                                         삭제
-                                    </Button>
+                                    </ActionButton>
                                 </>
                             )}
-                            <Button 
-                                className="bg-[#E6E6E6] text-[#5FA37C] hover:bg-[#E6E6E6]/80 cursor-pointer" 
+                            <ActionButton 
+                                buttonType="cancel" 
                                 onClick={() => router.push(`/${slug}/news/qna`)}
+                                className="h-[40px] px-4"
                             >
                                 목록
-                            </Button>
+                            </ActionButton>
                         </div>
                     </div>
 
@@ -173,12 +176,12 @@ const QuestionDetailPage = () => {
                                     <div className="bg-[#F5F5F5] rounded-[12px] p-6 text-center">
                                         <p className="text-[#AFAFAF] text-[16px] mb-4">아직 답변이 등록되지 않았습니다.</p>
                                         {canAnswer && (
-                                            <Button
+                                            <ActionButton
+                                                buttonType="submit"
                                                 onClick={() => setIsAnswerMode(true)}
-                                                className="bg-[#4E8C6D] hover:bg-[#5FA37C] text-white cursor-pointer"
                                             >
                                                 답변 작성하기
-                                            </Button>
+                                            </ActionButton>
                                         )}
                                     </div>
                                 ) : (
@@ -189,23 +192,23 @@ const QuestionDetailPage = () => {
                                             placeholder="답변 내용을 입력해주세요. 이미지를 첨부할 수 있습니다."
                                         />
                                         <div className="flex justify-end gap-3">
-                                            <Button
-                                                variant="outline"
+                                            <ActionButton
+                                                buttonType="cancel"
                                                 onClick={() => {
                                                     setIsAnswerMode(false);
                                                     setAnswerContent('');
                                                 }}
-                                                className="border-[#CCCCCC] text-gray-600 hover:bg-gray-200 hover:border-gray-400 cursor-pointer"
                                             >
                                                 취소
-                                            </Button>
-                                            <Button
+                                            </ActionButton>
+                                            <ActionButton
+                                                buttonType="submit"
                                                 onClick={handleSubmitAnswer}
-                                                disabled={isAnswering || !answerContent.trim()}
-                                                className="bg-[#4E8C6D] hover:bg-[#5FA37C] text-white cursor-pointer"
+                                                isLoading={isAnswering}
+                                                disabled={!answerContent.trim()}
                                             >
-                                                {isAnswering ? '등록 중...' : '답변 등록'}
-                                            </Button>
+                                                답변 등록
+                                            </ActionButton>
                                         </div>
                                         <div className="bg-[#E8F5EE] border border-[#4E8C6D] rounded-[8px] p-3">
                                             <p className="text-[12px] text-[#3D7A5A]">
@@ -227,4 +230,3 @@ const QuestionDetailPage = () => {
 };
 
 export default QuestionDetailPage;
-

@@ -236,23 +236,22 @@ export const useAddQuestion = () => {
 
             // 4. 관리자들에게 알림톡 발송
             try {
-                // 조합 관리자들 조회
+                // 조합 관리자들 조회 (users 테이블에서 해당 조합의 관리자 또는 시스템 관리자 조회)
                 const { data: admins } = await supabaseClient
-                    .from('union_user_roles')
-                    .select('user_id, users!inner(phone_number, name)')
-                    .eq('union_id', union.id)
-                    .in('role', ['SUPER_ADMIN', 'ADMIN']);
+                    .from('users')
+                    .select('phone_number, name')
+                    .or(`union_id.eq.${union.id},role.eq.SYSTEM_ADMIN`)
+                    .in('role', ['SUPER_ADMIN', 'ADMIN', 'SYSTEM_ADMIN']);
 
                 if (admins && admins.length > 0) {
                     const createdDate = new Date(questionData.created_at);
                     await sendAlimTalk({
                         unionId: union.id,
                         templateCode: 'UE_3236', // 질문 등록 알림 템플릿
-                        recipients: admins.map((admin) => {
-                            const adminUser = admin.users as unknown as { phone_number: string; name: string };
+                        recipients: (admins || []).map((admin) => {
                             return {
-                                phoneNumber: adminUser.phone_number,
-                                name: adminUser.name,
+                                phoneNumber: admin.phone_number,
+                                name: admin.name,
                                 variables: {
                                     사이트명: union.name,
                                     회원명: user?.name || '회원',
