@@ -200,7 +200,7 @@ function SystemAdminHeader() {
 function SystemAdminLayoutContent({ children }: { children: React.ReactNode }) {
     const router = useRouter();
     const pathname = usePathname();
-    const { isLoading, isUserFetching, isSystemAdmin } = useAuth();
+    const { isLoading, isUserFetching, isSystemAdmin, user } = useAuth();
 
     // 테스트 모드 상태 (인증 우회)
     const [isTestMode, setIsTestMode] = useState(false);
@@ -208,8 +208,13 @@ function SystemAdminLayoutContent({ children }: { children: React.ReactNode }) {
     // 로그인 페이지는 레이아웃 체크 제외
     const isLoginPage = pathname === '/systemAdmin/login';
 
-    // 전체 로딩 상태 (초기 로딩 + user 정보 fetch 중)
-    const isFullLoading = isLoading || isUserFetching;
+    // 전체 로딩 상태
+    // - isLoading: 최초 세션 확인 중 (필수 대기)
+    // - isUserFetching: 사용자 프로필 조회 중
+    // 
+    // 개선: 이미 user 정보가 있고 isUserFetching인 경우는 백그라운드 갱신이므로
+    // 전체 화면 로딩을 띄우지 않고 기존 UI를 유지합니다.
+    const isFullLoading = isLoading || (!user && isUserFetching);
 
     // 테스트 모드나 인증 실패 시 리다이렉트하지 않고 "접근 권한 없음" 화면 표시
     // (테스트 모드 진입 버튼을 사용할 수 있도록)

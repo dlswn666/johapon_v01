@@ -61,8 +61,8 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
      * 사용자의 계정 ID와 현재 Slug를 기반으로 최적의 프로필(User)을 결정
      */
     const resolveUserProfile = useCallback(
-        async (authUserId: string, slug: string | null): Promise<User | null> => {
-            setIsUserFetching(true);
+        async (authUserId: string, slug: string | null, silent = false): Promise<User | null> => {
+            if (!silent) setIsUserFetching(true);
             try {
                 // 1. 계정에 연결된 모든 프로필 ID 조회
                 const { data: links } = await supabase
@@ -139,7 +139,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
                 if (initSession?.user) {
                     console.log('[AUTH_DEBUG] 🔍 프로필 조회 시작 (initAuth)');
                     const profile = await Promise.race([
-                        resolveUserProfile(initSession.user.id, currentSlug),
+                        resolveUserProfile(initSession.user.id, currentSlug, false),
                         timeout(3000) as Promise<never>
                     ]);
                     console.log('[AUTH_DEBUG] ✅ 프로필 조회 완료 (initAuth):', profile ? '성공' : '없음');
@@ -167,16 +167,21 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
                 if (event === 'SIGNED_OUT') {
                     setUser(null);
                 } else if (newSession?.user) {
-                    // 불필요한 반복 호출 방지
+                    // 사용자 ID가 변경된 경우에만 로딩 표시와 함께 프로필 재갱신
+                    // 단순 세션 갱신(TOKEN_REFRESHED 등)이거나 포커스 이벤트로 인한 중복 호출이면 무시
+                    const isUserChanged = authUser?.id !== newSession.user.id;
                     const taskKey = `${newSession.user.id}-${currentSlug}`;
-                    if (processingRef.current === taskKey) {
-                        console.log('[AUTH_DEBUG] ⏩ 중복 처리 건너뜀:', taskKey);
+                    
+                    if (!isUserChanged && processingRef.current === taskKey) {
+                        console.log('[AUTH_DEBUG] ⏩ 신규 유저가 아니고 처리 중인 태스크가 동일함:', taskKey);
                         return;
                     }
+                    
                     processingRef.current = taskKey;
 
-                    console.log('[AUTH_DEBUG] 🔍 프로필 조회 시작 (onAuthStateChange)');
-                    const profile = await resolveUserProfile(newSession.user.id, currentSlug);
+                    console.log(`[AUTH_DEBUG] 🔍 프로필 조회 시작 (onAuthStateChange), Silent: ${!isUserChanged}`);
+                    // 유저가 바뀌지 않았다면 로딩바 없이 조용히 갱신
+                    const profile = await resolveUserProfile(newSession.user.id, currentSlug, !isUserChanged);
                     console.log('[AUTH_DEBUG] ✅ 프로필 조회 완료 (onAuthStateChange):', profile ? '성공' : '없음');
                     setUser(profile);
                     processingRef.current = null;
@@ -190,7 +195,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
             console.log('[AUTH_DEBUG] 🔌 AuthProvider useEffect Cleanup');
             subscription.unsubscribe();
         };
-    }, [currentSlug, resolveUserProfile]);
+    }, [currentSlug, resolveUserProfile, authUser?.id]);
 
     /**
      * 로그인/로그아웃 함수들

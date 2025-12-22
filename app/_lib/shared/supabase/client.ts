@@ -25,19 +25,19 @@ import { createBrowserClient } from '@supabase/ssr';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-console.log('[SUPABASE_DEBUG] Client Initialization:', {
-    hasUrl: !!supabaseUrl,
-    urlPrefix: supabaseUrl ? supabaseUrl.substring(0, 10) + '...' : 'none',
-    hasKey: !!supabaseAnonKey,
+console.log('[SUPABASE_DEBUG] Client Init Details:', {
+    url: supabaseUrl ? `${supabaseUrl.substring(0, 15)}...${supabaseUrl.substring(supabaseUrl.length - 5)}` : 'MISSING',
+    keyLength: supabaseAnonKey?.length || 0,
+    isLocalhost: typeof window !== 'undefined' ? window.location.hostname === 'localhost' : 'N/A',
 });
 
 if (!supabaseUrl || !supabaseAnonKey) {
-    console.error('[SUPABASE_DEBUG] ❌ Missing Supabase environment variables!');
+    console.error('[SUPABASE_DEBUG] ❌ 필수 환경 변수가 누락되었습니다!');
 }
 
 export const supabase = createBrowserClient(
-    supabaseUrl!,
-    supabaseAnonKey!
+    supabaseUrl || '',
+    supabaseAnonKey || ''
 );
 
 export default supabase;
