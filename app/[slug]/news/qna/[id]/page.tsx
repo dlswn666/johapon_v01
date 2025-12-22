@@ -186,16 +186,16 @@ const QuestionDetailPage = () => {
                                         <span>답변일: {new Date(question.answered_at).toLocaleDateString('ko-KR')}</span>
                                     </div>
                                     {isAdmin && (
-                                        <div className="flex gap-2">
+                                        <div className="flex gap-4">
                                             <button 
                                                 onClick={handleEditAnswer}
-                                                className="text-[12px] text-[#4E8C6D] hover:underline"
+                                                className="text-[14px] font-medium text-[#4E8C6D] hover:underline cursor-pointer"
                                             >
                                                 수정
                                             </button>
                                             <button 
                                                 onClick={handleDeleteAnswer}
-                                                className="text-[12px] text-[#D9534F] hover:underline"
+                                                className="text-[14px] font-medium text-[#D9534F] hover:underline cursor-pointer"
                                             >
                                                 삭제
                                             </button>
