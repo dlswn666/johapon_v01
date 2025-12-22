@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/app/_lib/shared/supabase/client';
 import useUnionInfoStore from '@/app/_lib/features/union-info/model/useUnionInfoStore';
 import useModalStore from '@/app/_lib/shared/stores/modal/useModalStore';
+import { useFileStore } from '@/app/_lib/shared/stores/file/useFileStore';
 import { queryClient } from '@/app/_lib/shared/tanstack/queryClient';
 import { UnionInfo, NewUnionInfo, UpdateUnionInfo, UnionInfoWithFiles, UnionInfoWithAuthor } from '@/app/_lib/shared/type/database.types';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
@@ -179,9 +180,8 @@ export const useAddUnionInfo = () => {
     const router = useRouter();
     const addPost = useUnionInfoStore((state) => state.addPost);
     const editorImages = useUnionInfoStore((state) => state.editorImages);
-    const tempFiles = useUnionInfoStore((state) => state.tempFiles);
+    const { tempFiles, confirmFiles, clearTempFiles } = useFileStore();
     const clearEditorImages = useUnionInfoStore((state) => state.clearEditorImages);
-    const clearTempFiles = useUnionInfoStore((state) => state.clearTempFiles);
     const openAlertModal = useModalStore((state) => state.openAlertModal);
     const { union, slug } = useSlug();
     const { user } = useAuth();
@@ -210,31 +210,26 @@ export const useAddUnionInfo = () => {
             const finalContent = await processEditorImages(newPost.content || '', editorImages, slug, postData.id);
 
             // 3. 첨부파일 확정 (임시 -> 영구)
-            if (tempFiles.length > 0) {
-                await fileApi.confirmFiles({
-                    files: tempFiles,
-                    targetId: String(postData.id),
-                    targetType: 'UNION_INFO',
-                    unionSlug: slug,
-                    uploaderId: user.id,
-                });
-            }
+            await confirmFiles({
+                targetId: String(postData.id),
+                targetType: 'UNION_INFO',
+                unionSlug: slug,
+                uploaderId: user.id,
+            });
 
-            // 4. 본문 및 첨부파일 여부 업데이트
-            const needsUpdate = finalContent !== newPost.content || tempFiles.length > 0;
+            // 4. 본문 업데이트
+            const needsUpdate = finalContent !== newPost.content;
             if (needsUpdate) {
                 const { error: updateError } = await supabase
                     .from('union_info')
                     .update({
                         content: finalContent,
-                        has_attachments: tempFiles.length > 0,
                     })
                     .eq('id', postData.id);
 
-                if (updateError) console.error('Failed to update content/attachments', updateError);
+                if (updateError) console.error('Failed to update content', updateError);
                 else {
                     postData.content = finalContent;
-                    postData.has_attachments = tempFiles.length > 0;
                 }
             }
 
@@ -275,9 +270,8 @@ export const useUpdateUnionInfo = () => {
     const router = useRouter();
     const updatePost = useUnionInfoStore((state) => state.updatePost);
     const editorImages = useUnionInfoStore((state) => state.editorImages);
-    const tempFiles = useUnionInfoStore((state) => state.tempFiles);
+    const { tempFiles, confirmFiles, clearTempFiles } = useFileStore();
     const clearEditorImages = useUnionInfoStore((state) => state.clearEditorImages);
-    const clearTempFiles = useUnionInfoStore((state) => state.clearTempFiles);
     const openAlertModal = useModalStore((state) => state.openAlertModal);
     const { union, slug } = useSlug();
     const { user } = useAuth();
@@ -292,26 +286,15 @@ export const useUpdateUnionInfo = () => {
             }
 
             // 2. 새 첨부파일 확정 (임시 -> 영구)
-            if (tempFiles.length > 0) {
-                await fileApi.confirmFiles({
-                    files: tempFiles,
-                    targetId: String(id),
-                    targetType: 'UNION_INFO',
-                    unionSlug: slug,
-                    uploaderId: user?.id,
-                });
-            }
+            await confirmFiles({
+                targetId: String(id),
+                targetType: 'UNION_INFO',
+                unionSlug: slug,
+                uploaderId: user?.id,
+            });
 
-            // 3. 기존 첨부파일 수 확인 (다형성 연관 관계)
-            const { count: existingFileCount } = await supabase
-                .from('files')
-                .select('*', { count: 'exact', head: true })
-                .eq('attachable_type', 'union_info')
-                .eq('attachable_id', id);
-
-            // has_attachments 업데이트
-            const totalFiles = (existingFileCount || 0) + tempFiles.length;
-            finalUpdates.has_attachments = totalFiles > 0;
+            // Note: has_attachments flag could be updated via a trigger or manually if needed, 
+            // but for consistency with free-board, we might not need to manually check here if we refresh detail.
 
             // 4. 게시글 업데이트
             const { data, error } = await supabase

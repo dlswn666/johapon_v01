@@ -11,11 +11,13 @@ import useUnionInfoStore from '@/app/_lib/features/union-info/model/useUnionInfo
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import ConfirmModal from '@/app/_lib/widgets/modal/ConfirmModal';
 import AlertModal from '@/app/_lib/widgets/modal/AlertModal';
-import { ListCard, ListCardItem } from '@/app/_lib/widgets/common/list-card';
+import { BoardListCard, ListCardItem } from '@/app/_lib/widgets/common/list-card';
+import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 
 const UnionInfoListPage = () => {
     const router = useRouter();
     const { slug, isLoading: isUnionLoading } = useSlug();
+    const { user } = useAuth();
     const { filters, setFilters, totalCount } = useUnionInfoStore();
     
     const [keywordInput, setKeywordInput] = useState(filters.keyword);
@@ -63,7 +65,8 @@ const UnionInfoListPage = () => {
 
     // 조합 정보 데이터를 ListCardItem 형태로 변환
     const listItems: ListCardItem[] = posts.map((post) => {
-        const authorName = (post.author as { name: string } | null)?.name || '알 수 없음';
+        const isMine = post.author_id === user?.id;
+        const authorName = (post.author as { name: string } | null)?.name || post.author_id || '알 수 없음';
 
         return {
             id: post.id,
@@ -73,6 +76,7 @@ const UnionInfoListPage = () => {
             views: post.views,
             hasAttachment: post.has_attachments,
             thumbnailUrl: post.thumbnail_url,
+            isMine,
         };
     });
 
@@ -120,7 +124,7 @@ const UnionInfoListPage = () => {
                     </Button>
                 </div>
 
-                <ListCard
+                <BoardListCard
                     items={listItems}
                     onItemClick={(id) => router.push(`/${slug}/communication/union-info/${id}`)}
                     emptyMessage={filters.keyword || filters.author ? '검색 결과가 없습니다.' : '등록된 게시글이 없습니다.'}

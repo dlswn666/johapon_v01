@@ -15,7 +15,7 @@ import ConfirmModal from '@/app/_lib/widgets/modal/ConfirmModal';
 import AlertModal from '@/app/_lib/widgets/modal/AlertModal';
 import UnionNavigation from '@/app/_lib/widgets/union/navigation/Navigation';
 import UnionHeader from '@/app/_lib/widgets/union/header/UnionHeader';
-import { ListCard, ListCardItem } from '@/app/_lib/widgets/common/list-card';
+import { BoardListCard, ListCardItem } from '@/app/_lib/widgets/common/list-card';
 
 const FreeBoardPage = () => {
     const router = useRouter();
@@ -101,16 +101,6 @@ const FreeBoardPage = () => {
         };
     });
 
-    // 내 글 표시 렌더링
-    const renderTitleSuffix = (item: ListCardItem) => {
-        if (!item.isMine) return null;
-
-        return (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-[#5FA37C] text-white text-[10px] rounded-full shrink-0">
-                <User className="h-3 w-3" />내 글
-            </span>
-        );
-    };
 
     return (
         <>
@@ -154,11 +144,10 @@ const FreeBoardPage = () => {
                     </Button>
                 </div>
 
-                <ListCard
+                <BoardListCard
                     items={listItems}
                     onItemClick={(id) => router.push(`/${slug}/free-board/${id}`)}
                     emptyMessage={searchQuery ? '검색 결과가 없습니다.' : '등록된 게시글이 없습니다.'}
-                    renderTitleSuffix={renderTitleSuffix}
                 />
 
                 {/* 페이지네이션 */}

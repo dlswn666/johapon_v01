@@ -16,6 +16,7 @@ import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import AlertModal from '@/app/_lib/widgets/modal/AlertModal';
 import { TextEditor } from '@/app/_lib/widgets/common/text-editor';
 import { FileUploader } from '@/app/_lib/widgets/common/file-uploader/FileUploader';
+import { useFileStore } from '@/app/_lib/shared/stores/file/useFileStore';
 
 const formSchema = z.object({
     title: z.string().min(1, '제목을 입력해주세요.'),
@@ -30,7 +31,7 @@ const NewUnionInfoPage = () => {
     
     // Store cleanup actions
     const clearEditorImages = useUnionInfoStore((state) => state.clearEditorImages);
-    const clearTempFiles = useUnionInfoStore((state) => state.clearTempFiles);
+    const { clearTempFiles } = useFileStore();
 
     // Mount/Unmount cleanup
     useEffect(() => {
@@ -86,6 +87,21 @@ const NewUnionInfoPage = () => {
                                 )}
                             />
 
+                            {/* 파일 업로더 */}
+                            <div>
+                                <label className="text-[16px] font-bold text-[#5FA37C] block mb-2">첨부파일</label>
+                                <FileUploader
+                                    unionSlug={slug}
+                                    targetType="UNION_INFO"
+                                    readOnly={false}
+                                />
+                                <div className="mt-2 bg-[#FFF9E6] border border-[#F0AD4E] rounded-[12px] p-4">
+                                    <p className="text-[14px] text-[#8B6914]">
+                                        💡 이미지는 본문 에디터에 직접 첨부할 수 있으며, 별도 파일은 위 파일 첨부 영역을 이용해주세요.
+                                    </p>
+                                </div>
+                            </div>
+
                             <FormField
                                 control={form.control}
                                 name="content"
@@ -103,22 +119,6 @@ const NewUnionInfoPage = () => {
                                     </FormItem>
                                 )}
                             />
-
-                            {/* 파일 업로더 */}
-                            <div>
-                                <label className="text-[16px] font-bold text-[#5FA37C] block mb-2">첨부파일</label>
-                                <FileUploader
-                                    unionSlug={slug}
-                                    targetType="UNION_INFO"
-                                    readOnly={false}
-                                />
-                            </div>
-
-                            <div className="bg-[#FFF9E6] border border-[#F0AD4E] rounded-[12px] p-4">
-                                <p className="text-[14px] text-[#8B6914]">
-                                    💡 이미지는 본문 에디터에 직접 첨부할 수 있으며, 별도 파일은 아래 파일 첨부 영역을 이용해주세요.
-                                </p>
-                            </div>
 
                             <div className="flex justify-end gap-3 pt-6 border-t border-[#CCCCCC]">
                                 <Button 

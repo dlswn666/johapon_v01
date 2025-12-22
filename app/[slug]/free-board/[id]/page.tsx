@@ -18,7 +18,7 @@ import useModalStore from '@/app/_lib/shared/stores/modal/useModalStore';
 import UnionNavigation from '@/app/_lib/widgets/union/navigation/Navigation';
 import UnionHeader from '@/app/_lib/widgets/union/header/UnionHeader';
 import { FileUploader } from '@/app/_lib/widgets/common/file-uploader/FileUploader';
-import { CommentSection } from '@/app/_lib/widgets/common/comment';
+import { BoardComment } from '@/app/_lib/widgets/common/comment';
 
 const FreeBoardDetailPage = () => {
     const router = useRouter();
@@ -135,8 +135,8 @@ const FreeBoardDetailPage = () => {
                     </div>
 
                     {/* 댓글 영역 */}
-                    <div className="mt-8 bg-[#F5F5F5] rounded-[12px] p-6">
-                        <CommentSection entityType="free_board" entityId={freeBoardId} />
+                    <div className="mt-8 bg-[#F5F5F5] rounded-[12px] p-0">
+                        <BoardComment entityType="free_board" entityId={freeBoardId} />
                     </div>
                 </div>
             </div>

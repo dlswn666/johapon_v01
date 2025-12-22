@@ -22,8 +22,6 @@ interface UnionInfoStore {
     // 에디터 이미지 관리
     editorImages: Record<string, File>;
 
-    // 임시 업로드 파일 관리
-    tempFiles: { path: string; name: string; size: number; type: string }[];
 
     // 액션 - 목록
     setPosts: (posts: UnionInfo[]) => void;
@@ -45,11 +43,6 @@ interface UnionInfoStore {
     removeEditorImage: (blobUrl: string) => void;
     clearEditorImages: () => void;
 
-    // 액션 - 임시 파일
-    setTempFiles: (files: { path: string; name: string; size: number; type: string }[]) => void;
-    addTempFile: (file: { path: string; name: string; size: number; type: string }) => void;
-    removeTempFile: (path: string) => void;
-    clearTempFiles: () => void;
 
     // 전체 리셋
     reset: () => void;
@@ -68,7 +61,6 @@ const initialState = {
     filters: initialFilters,
     selectedPost: null,
     editorImages: {},
-    tempFiles: [],
 };
 
 const useUnionInfoStore = create<UnionInfoStore>((set) => ({
@@ -130,21 +122,6 @@ const useUnionInfoStore = create<UnionInfoStore>((set) => ({
         }),
 
     clearEditorImages: () => set({ editorImages: {} }),
-
-    // 임시 파일
-    setTempFiles: (files) => set({ tempFiles: files }),
-
-    addTempFile: (file) =>
-        set((state) => ({
-            tempFiles: [...state.tempFiles, file],
-        })),
-
-    removeTempFile: (path) =>
-        set((state) => ({
-            tempFiles: state.tempFiles.filter((f) => f.path !== path),
-        })),
-
-    clearTempFiles: () => set({ tempFiles: [] }),
 
     // 전체 리셋
     reset: () => set(initialState),

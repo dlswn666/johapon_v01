@@ -10,7 +10,9 @@ import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import ConfirmModal from '@/app/_lib/widgets/modal/ConfirmModal';
 import AlertModal from '@/app/_lib/widgets/modal/AlertModal';
 import useModalStore from '@/app/_lib/shared/stores/modal/useModalStore';
-import { User, Eye, Calendar, Paperclip, Download, Trash2 } from 'lucide-react';
+import { User, Eye, Calendar } from 'lucide-react';
+import { FileUploader } from '@/app/_lib/widgets/common/file-uploader/FileUploader';
+import { BoardComment } from '@/app/_lib/widgets/common/comment';
 import { fileApi } from '@/app/_lib/shared/hooks/file/fileApi';
 
 const UnionInfoDetailPage = () => {
@@ -161,56 +163,19 @@ const UnionInfoDetailPage = () => {
                     />
 
                     {/* 첨부파일 영역 */}
-                    {post.files && post.files.length > 0 && (
-                        <div className="mt-8 border border-[#CCCCCC] rounded-[12px] p-6">
-                            <h3 className="text-[18px] font-bold text-[#5FA37C] mb-4 flex items-center gap-2">
-                                <Paperclip className="h-5 w-5" />
-                                첨부파일 ({post.files.length})
-                            </h3>
-                            <div className="space-y-2">
-                                {post.files.map((file) => (
-                                    <div
-                                        key={file.id}
-                                        className="flex items-center justify-between p-3 border rounded-[8px] bg-[#F5F5F5] hover:bg-[#E6E6E6] transition-colors"
-                                    >
-                                        <div className="flex items-center gap-3 overflow-hidden">
-                                            <Paperclip className="h-4 w-4 text-[#5FA37C] shrink-0" />
-                                            <div className="min-w-0">
-                                                <p className="font-medium truncate text-[14px] text-gray-800">{file.name}</p>
-                                                <p className="text-[12px] text-gray-500">
-                                                    {formatFileSize(file.size)}
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-1">
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-8 w-8 cursor-pointer"
-                                                onClick={() => handleFileDownload(file.path, file.name)}
-                                                title="다운로드"
-                                            >
-                                                <Download className="h-4 w-4 text-gray-600" />
-                                            </Button>
-                                            {canEdit && (
-                                                <Button
-                                                    type="button"
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50 cursor-pointer"
-                                                    onClick={() => handleFileDelete(file.id, file.path)}
-                                                    title="삭제"
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
-                                            )}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
+                    <div className="mt-8">
+                        <FileUploader
+                            targetId={id}
+                            targetType="UNION_INFO"
+                            unionSlug={slug}
+                            readOnly={true}
+                        />
+                    </div>
+
+                    {/* 댓글 영역 */}
+                    <div className="mt-8 bg-[#F5F5F5] rounded-[12px] p-0">
+                        <BoardComment entityType="union_info" entityId={postId} />
+                    </div>
                 </div>
             </div>
 

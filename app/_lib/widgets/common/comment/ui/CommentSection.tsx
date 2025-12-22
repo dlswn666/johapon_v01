@@ -15,6 +15,8 @@ interface CommentSectionProps {
     entityId: number;
     className?: string;
     title?: string;
+    noPadding?: boolean;
+    noBorder?: boolean;
 }
 
 /**
@@ -33,6 +35,8 @@ export function CommentSection({
     entityId,
     className,
     title = '댓글',
+    noPadding = false,
+    noBorder = false,
 }: CommentSectionProps) {
     // TODO: 실제 로그인 시스템 연동 시 아래 주석 해제
     // const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -52,8 +56,12 @@ export function CommentSection({
     );
 
     return (
-        <Card className={cn('w-full', className)}>
-            <CardHeader className="pb-3">
+        <Card className={cn(
+            'w-full',
+            noBorder && 'border-none shadow-none bg-transparent',
+            className
+        )}>
+            <CardHeader className={cn('pb-3', noPadding && 'px-0 pt-0')}>
                 <CardTitle className="flex items-center gap-2 text-lg">
                     <MessageSquare className="size-5" />
                     {title}
@@ -64,7 +72,7 @@ export function CommentSection({
                     )}
                 </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className={cn('space-y-4', noPadding && 'p-0')}>
                 {/* 댓글 입력 폼 */}
                 <CommentForm
                     entityType={entityType}

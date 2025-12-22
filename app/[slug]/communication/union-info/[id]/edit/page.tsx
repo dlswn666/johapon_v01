@@ -21,6 +21,7 @@ import ConfirmModal from '@/app/_lib/widgets/modal/ConfirmModal';
 import useModalStore from '@/app/_lib/shared/stores/modal/useModalStore';
 import { TextEditor } from '@/app/_lib/widgets/common/text-editor';
 import { FileUploader } from '@/app/_lib/widgets/common/file-uploader/FileUploader';
+import { useFileStore } from '@/app/_lib/shared/stores/file/useFileStore';
 import { Download, Trash2, Paperclip } from 'lucide-react';
 import { fileApi } from '@/app/_lib/shared/hooks/file/fileApi';
 
@@ -45,7 +46,7 @@ const EditUnionInfoPage = () => {
 
     // Store cleanup actions
     const clearEditorImages = useUnionInfoStore((state) => state.clearEditorImages);
-    const clearTempFiles = useUnionInfoStore((state) => state.clearTempFiles);
+    const { clearTempFiles } = useFileStore();
 
     // Mount/Unmount cleanup
     useEffect(() => {
@@ -163,6 +164,22 @@ const EditUnionInfoPage = () => {
                                 )}
                             />
 
+                            {/* 첨부파일 영역 */}
+                            <div>
+                                <label className="text-[16px] font-bold text-[#5FA37C] block mb-2">첨부파일</label>
+                                <FileUploader
+                                    targetId={id}
+                                    targetType="UNION_INFO"
+                                    unionSlug={slug}
+                                    readOnly={false}
+                                />
+                                <div className="mt-2 bg-[#FFF9E6] border border-[#F0AD4E] rounded-[12px] p-4">
+                                    <p className="text-[14px] text-[#8B6914]">
+                                        💡 이미지는 본문 에디터에 직접 첨부할 수 있으며, 별도 파일은 위 파일 첨부 영역을 이용해주세요.
+                                    </p>
+                                </div>
+                            </div>
+
                             <FormField
                                 control={form.control}
                                 name="content"
@@ -180,73 +197,6 @@ const EditUnionInfoPage = () => {
                                     </FormItem>
                                 )}
                             />
-
-                            {/* 기존 첨부파일 목록 */}
-                            {post.files && post.files.length > 0 && (
-                                <div className="border border-[#CCCCCC] rounded-[12px] p-6">
-                                    <h3 className="text-[16px] font-bold text-[#5FA37C] mb-4 flex items-center gap-2">
-                                        <Paperclip className="h-5 w-5" />
-                                        기존 첨부파일 ({post.files.length})
-                                    </h3>
-                                    <div className="space-y-2">
-                                        {post.files.map((file) => (
-                                            <div
-                                                key={file.id}
-                                                className="flex items-center justify-between p-3 border rounded-[8px] bg-[#F5F5F5] hover:bg-[#E6E6E6] transition-colors"
-                                            >
-                                                <div className="flex items-center gap-3 overflow-hidden">
-                                                    <Paperclip className="h-4 w-4 text-[#5FA37C] shrink-0" />
-                                                    <div className="min-w-0">
-                                                        <p className="font-medium truncate text-[14px] text-gray-800">
-                                                            {file.name}
-                                                        </p>
-                                                        <p className="text-[12px] text-gray-500">
-                                                            {formatFileSize(file.size)}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-center gap-1">
-                                                    <Button
-                                                        type="button"
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        className="h-8 w-8 cursor-pointer"
-                                                        onClick={() => handleFileDownload(file.path, file.name)}
-                                                        title="다운로드"
-                                                    >
-                                                        <Download className="h-4 w-4 text-gray-600" />
-                                                    </Button>
-                                                    <Button
-                                                        type="button"
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50 cursor-pointer"
-                                                        onClick={() => handleFileDelete(file.id, file.path)}
-                                                        title="삭제"
-                                                    >
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </Button>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* 새 파일 업로더 */}
-                            <div>
-                                <label className="text-[16px] font-bold text-[#5FA37C] block mb-2">
-                                    새 첨부파일 추가
-                                </label>
-                                <FileUploader unionSlug={slug} targetType="UNION_INFO" readOnly={false} />
-                            </div>
-
-                            <div className="bg-[#FFF9E6] border border-[#F0AD4E] rounded-[12px] p-4">
-                                <p className="text-[14px] text-[#8B6914]">
-                                    💡 이미지는 본문 에디터에 직접 첨부할 수 있으며, 별도 파일은 아래 파일 첨부 영역을
-                                    이용해주세요.
-                                </p>
-                            </div>
 
                             <div className="flex justify-end gap-3 pt-6 border-t border-[#CCCCCC]">
                                 <Button
