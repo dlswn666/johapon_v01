@@ -47,6 +47,7 @@ import {
     useCreateManualInvites,
 } from '@/app/_lib/features/member-invite/api/useMemberInviteHook';
 import useMemberInviteStore, { MemberInviteFilter } from '@/app/_lib/features/member-invite/model/useMemberInviteStore';
+import { sendAlimTalk } from '@/app/_lib/features/alimtalk/actions/sendAlimTalk';
 import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import { MemberInvite, User, UserStatus } from '@/app/_lib/shared/type/database.types';
@@ -218,12 +219,11 @@ export default function MemberManagementPage() {
             setShowDetailModal(false);
             setSelectedUser(null);
 
-            // TODO: 승인 안내 알림톡 발송 (추후 템플릿 코드 추가)
-            /*
+            // 승인 안내 알림톡 발송
             if (selectedUser) {
                 sendAlimTalk({
                     unionId: unionId!,
-                    templateCode: 'APPROVAL_TEMPLATE_CODE', // 승인 템플릿 코드
+                    templateCode: 'UE-3602', // 승인 템플릿 코드
                     recipients: [{
                         phoneNumber: selectedUser.phone_number,
                         name: selectedUser.name,
@@ -234,7 +234,6 @@ export default function MemberManagementPage() {
                     }]
                 });
             }
-            */
         },
         onError: () => {
             toast.error('승인 처리 중 오류가 발생했습니다.');
@@ -264,12 +263,11 @@ export default function MemberManagementPage() {
             setSelectedUser(null);
             setRejectionReason('');
 
-            // TODO: 반려 안내 알림톡 발송 (추후 템플릿 코드 추가)
-            /*
+            // 반려 안내 알림톡 발송
             if (selectedUser) {
                 sendAlimTalk({
                     unionId: unionId!,
-                    templateCode: 'REJECTION_TEMPLATE_CODE', // 반려 템플릿 코드
+                    templateCode: 'UE-3603', // 반려 템플릿 코드
                     recipients: [{
                         phoneNumber: selectedUser.phone_number,
                         name: selectedUser.name,
@@ -281,7 +279,6 @@ export default function MemberManagementPage() {
                     }]
                 });
             }
-            */
         },
         onError: () => {
             toast.error('반려 처리 중 오류가 발생했습니다.');
