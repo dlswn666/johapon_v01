@@ -128,7 +128,6 @@ const UnionInfoListPage = () => {
                     items={listItems}
                     onItemClick={(id) => router.push(`/${slug}/communication/union-info/${id}`)}
                     emptyMessage={filters.keyword || filters.author ? '검색 결과가 없습니다.' : '등록된 게시글이 없습니다.'}
-                    showThumbnail={true}
                 />
 
                 {/* 페이지네이션 */}
