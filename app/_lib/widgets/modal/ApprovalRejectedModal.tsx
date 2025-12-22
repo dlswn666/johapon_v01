@@ -37,9 +37,9 @@ export function ApprovalRejectedModal({
     userName,
     rejectedReason,
 }: ApprovalRejectedModalProps) {
-    const { user, refreshUser } = useAuth();
+    const { user, refreshUser, isLoading: authLoading } = useAuth();
     const [mode, setMode] = useState<ModalMode>('rejected');
-    const [isLoading, setIsLoading] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState('');
     
     // 폼 상태
@@ -114,8 +114,14 @@ export function ApprovalRejectedModal({
 
     // 수정 완료 및 재신청 제출
     const handleSubmit = async () => {
+        if (!user && authLoading) {
+            return; // 아직 로딩 중이면 대기
+        }
+
         if (!user?.id) {
-            setError('사용자 정보를 찾을 수 없습니다.');
+            setError('사용자 정보를 찾을 수 없습니다. 다시 로그인해주세요.');
+            // 강제로 새로고침 시도
+            refreshUser();
             return;
         }
 
@@ -137,7 +143,7 @@ export function ApprovalRejectedModal({
             return;
         }
 
-        setIsLoading(true);
+        setIsSubmitting(true);
         setError('');
 
         try {
@@ -173,7 +179,7 @@ export function ApprovalRejectedModal({
             console.error('Reapply error:', err);
             setError('재신청 처리 중 오류가 발생했습니다.');
         } finally {
-            setIsLoading(false);
+            setIsSubmitting(false);
         }
     };
 
@@ -374,7 +380,7 @@ export function ApprovalRejectedModal({
                 <div className="flex gap-3 mt-6">
                     <button
                         onClick={() => setMode('rejected')}
-                        disabled={isLoading}
+                        disabled={isSubmitting}
                         className={cn(
                             'flex-1 h-12 rounded-lg font-medium',
                             'border border-gray-300 text-gray-700',
@@ -387,7 +393,7 @@ export function ApprovalRejectedModal({
                     </button>
                     <button
                         onClick={handleSubmit}
-                        disabled={isLoading}
+                        disabled={isSubmitting}
                         className={cn(
                             'flex-1 h-12 rounded-lg font-medium text-white',
                             'bg-[#4E8C6D] hover:bg-[#3d7058]',
@@ -396,7 +402,7 @@ export function ApprovalRejectedModal({
                             'flex items-center justify-center gap-2'
                         )}
                     >
-                        {isLoading ? (
+                        {isSubmitting ? (
                             <>
                                 <Loader2 className="w-4 h-4 animate-spin" />
                                 <span>처리 중...</span>

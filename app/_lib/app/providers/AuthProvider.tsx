@@ -351,8 +351,12 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     }, [router]);
 
     const refreshUser = useCallback(async () => {
-        if (authUser) setUser(await resolveUserProfile(authUser.id, currentSlug));
-    }, [authUser, currentSlug, resolveUserProfile]);
+        const { data: { user: latestAuthUser } } = await supabase.auth.getUser();
+        if (latestAuthUser) {
+            setAuthUser(latestAuthUser);
+            setUser(await resolveUserProfile(latestAuthUser.id, currentSlug));
+        }
+    }, [currentSlug, resolveUserProfile]);
 
     // 파생 상태 계산
     const isSystemAdmin = user?.role === 'SYSTEM_ADMIN';

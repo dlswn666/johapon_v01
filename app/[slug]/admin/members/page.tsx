@@ -212,7 +212,8 @@ export default function MemberManagementPage() {
             if (error) throw error;
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+            queryClient.invalidateQueries({ queryKey: ['admin-users', unionId] });
+            queryClient.refetchQueries({ queryKey: ['admin-users', unionId] });
             toast.success('사용자가 승인되었습니다.');
             setShowDetailModal(false);
             setSelectedUser(null);
@@ -256,7 +257,8 @@ export default function MemberManagementPage() {
             if (error) throw error;
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+            queryClient.invalidateQueries({ queryKey: ['admin-users', unionId] });
+            queryClient.refetchQueries({ queryKey: ['admin-users', unionId] });
             toast.success('사용자가 반려되었습니다.');
             setShowDetailModal(false);
             setSelectedUser(null);
@@ -300,7 +302,8 @@ export default function MemberManagementPage() {
             if (error) throw error;
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+            queryClient.invalidateQueries({ queryKey: ['admin-users', unionId] });
+            queryClient.refetchQueries({ queryKey: ['admin-users', unionId] });
             toast.success('역할이 변경되었습니다.');
         },
         onError: () => {
@@ -324,7 +327,8 @@ export default function MemberManagementPage() {
             if (error) throw error;
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+            queryClient.invalidateQueries({ queryKey: ['admin-users', unionId] });
+            queryClient.refetchQueries({ queryKey: ['admin-users', unionId] });
             toast.success('반려가 취소되었습니다. 다시 승인 대기 상태입니다.');
             setShowDetailModal(false);
             setSelectedUser(null);
@@ -588,17 +592,7 @@ export default function MemberManagementPage() {
     const pendingCount = filteredInvites.filter((i) => i.status === 'PENDING').length;
     const allPendingSelected = pendingCount > 0 && selectedIds.length === pendingCount;
 
-    const isLoading = unionLoading || (activeTab === 'invite' ? invitesLoading : usersLoading);
-
-    if (isLoading) {
-        return (
-            <div className="flex items-center justify-center min-h-[400px]">
-                <Loader2 className="w-8 h-8 animate-spin text-[#4E8C6D]" />
-            </div>
-        );
-    }
-
-    if (!union) {
+    if (!union && !unionLoading) {
         return (
             <div className="text-center py-12">
                 <AlertCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
@@ -613,7 +607,7 @@ export default function MemberManagementPage() {
                 {/* 페이지 헤더 */}
                 <div className="mb-8">
                     <h1 className="text-2xl font-bold text-gray-900 mb-2">조합원 관리</h1>
-                    <p className="text-gray-600">{union.name} 조합의 조합원을 관리합니다</p>
+                    <p className="text-gray-600">{union?.name} 조합의 조합원을 관리합니다</p>
                 </div>
 
                 {/* 탭 네비게이션 */}
@@ -739,8 +733,16 @@ export default function MemberManagementPage() {
                                     </div>
                                 </div>
                             </div>
-                            <div className="p-6">
-                                {filteredInvites.length === 0 ? (
+                            <div className="p-6 relative min-h-[300px]">
+                                {invitesLoading && (
+                                    <div className="absolute inset-x-6 top-6 bottom-6 bg-white/60 backdrop-blur-[1px] z-10 flex items-center justify-center">
+                                        <div className="flex flex-col items-center gap-2">
+                                            <Loader2 className="w-8 h-8 animate-spin text-[#4E8C6D]" />
+                                            <p className="text-sm font-medium text-gray-500">데이터를 불러오는 중...</p>
+                                        </div>
+                                    </div>
+                                )}
+                                {filteredInvites.length === 0 && !invitesLoading ? (
                                     <div className="text-center py-12">
                                         <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                                         <p className="text-gray-600">초대된 조합원이 없습니다</p>
@@ -901,10 +903,16 @@ export default function MemberManagementPage() {
                         </div>
 
                         {/* 사용자 목록 */}
-                        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-                            {usersLoading ? (
-                                <div className="p-8 text-center text-gray-500 text-[18px]">로딩 중...</div>
-                            ) : usersData?.users.length === 0 ? (
+                        <div className="bg-white rounded-xl shadow-sm overflow-hidden relative min-h-[300px]">
+                            {usersLoading && (
+                                <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] z-10 flex items-center justify-center">
+                                    <div className="flex flex-col items-center gap-2">
+                                        <Loader2 className="w-8 h-8 animate-spin text-[#4E8C6D]" />
+                                        <p className="text-sm font-medium text-gray-500">데이터를 불러오는 중...</p>
+                                    </div>
+                                </div>
+                            )}
+                            {usersData?.users.length === 0 && !usersLoading ? (
                                 <div className="p-8 text-center text-gray-500 text-[18px]">검색 결과가 없습니다.</div>
                             ) : (
                                 <>
