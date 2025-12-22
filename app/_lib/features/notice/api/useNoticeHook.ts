@@ -12,6 +12,7 @@ import { Notice, NewNotice, UpdateNotice } from '@/app/_lib/shared/type/database
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import { getUnionPath } from '@/app/_lib/shared/lib/utils/slug';
 import { fileApi } from '@/app/_lib/shared/hooks/file/fileApi';
+import { sendAlimTalk } from '@/app/_lib/features/alimtalk/actions/sendAlimTalk';
 
 // ============================================
 // Query Hooks (조회)
@@ -240,11 +241,38 @@ export const useAddNotice = () => {
             });
 
             // 5. 알림톡 발송 로직
-            // TODO: 알림톡 발송 기능은 별도 구현 필요
-            // SendAlimTalkParams에 필요한 파라미터: unionId, templateCode, templateName, recipients
             if (send_alimtalk) {
-                console.log('AlimTalk sending requested for notice:', noticeData.id);
-                // 알림톡 발송은 별도 관리자 페이지에서 처리
+                try {
+                    // 해당 조합의 모든 '승인됨' 상태의 조합원 조회 (수신 대상)
+                    const { data: approvedMembers } = await supabase
+                        .from('users')
+                        .select('phone_number, name')
+                        .eq('union_id', union.id)
+                        .eq('user_status', 'APPROVED');
+
+                    if (approvedMembers && approvedMembers.length > 0) {
+                        const createdDate = new Date(noticeData.created_at);
+                        await sendAlimTalk({
+                            unionId: union.id,
+                            templateCode: 'UE_2827', // 공지사항 등록 알림 템플릿
+                            recipients: approvedMembers.map((member) => ({
+                                phoneNumber: member.phone_number,
+                                name: member.name,
+                                variables: {
+                                    조합명: union.name,
+                                    공지제목: noticeData.title,
+                                    등록일시: createdDate.toLocaleString('ko-KR'),
+                                    조합슬러그: slug,
+                                },
+                            })),
+                            noticeId: noticeData.id,
+                        });
+                        console.log(`[공지사항 알림톡] ${approvedMembers.length}명에게 발송 요청 완료`);
+                    }
+                } catch (alimTalkError) {
+                    console.error('알림톡 발송 실패 (공지사항 등록):', alimTalkError);
+                    // 알림톡 발송 실패해도 공지사항 등록은 성공으로 처리
+                }
             }
 
             return noticeData as Notice;

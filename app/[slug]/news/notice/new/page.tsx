@@ -9,6 +9,7 @@ import * as z from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useAddNotice } from '@/app/_lib/features/notice/api/useNoticeHook';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
+import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import AlertModal from '@/app/_lib/widgets/modal/AlertModal';
 import { FileUploader } from '@/app/_lib/widgets/common/file-uploader/FileUploader';
 import { TextEditor } from '@/app/_lib/widgets/common/text-editor';
@@ -31,6 +32,7 @@ const formSchema = z.object({
 const NewNoticePage = () => {
     const router = useRouter();
     const { slug, union } = useSlug();
+    const { user } = useAuth();
     const { mutate: addNotice, isPending } = useAddNotice();
 
     // Store cleanup actions
@@ -68,7 +70,7 @@ const NewNoticePage = () => {
     const endDate = useWatch({ control: form.control, name: 'end_date' });
 
     function onSubmit(values: z.infer<typeof formSchema>) {
-        if (!union) return;
+        if (!union || !user) return;
 
         addNotice({
             title: values.title,
@@ -77,7 +79,7 @@ const NewNoticePage = () => {
             send_alimtalk: values.send_alimtalk,
             start_date: values.start_date ? values.start_date.toISOString() : null,
             end_date: values.end_date ? values.end_date.toISOString() : null,
-            author_id: 'systemAdmin', // TODO: 실제 로그인 유저 ID로 변경
+            author_id: user.id,
             views: 0,
         });
     }
