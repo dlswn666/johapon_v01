@@ -63,6 +63,18 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
         });
     }, []);
 
+    // isUserFetching 워치독 (무한 로딩 방지용)
+    useEffect(() => {
+        if (isUserFetching) {
+            const timer = setTimeout(() => {
+                console.warn('[DEBUG] 🚨 Watchdog: isUserFetching is stuck for 15s. Force resetting loading states.');
+                setIsUserFetching(false);
+                setIsLoading(false);
+            }, 15000);
+            return () => clearTimeout(timer);
+        }
+    }, [isUserFetching]);
+
     const currentSlug = pathname?.split('/')[1] || null;
 
     // 캐싱 및 레이스 컨디션 방지용 Refs
@@ -90,13 +102,22 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
         async (authUserId: string, slug: string | null): Promise<User | null> => {
             console.log('[DEBUG] resolveUserProfile 시작', { authUserId, slug });
             setIsUserFetching(true);
+
+            // 타임아웃 헬퍼 (5초)
+            const queryTimeout = (ms: number = 5000) => new Promise((_, reject) => 
+                setTimeout(() => reject(new Error(`Query timeout after ${ms}ms`)), ms)
+            );
+
             try {
                 // 1. 계정에 연결된 모든 프로필 ID 조회
                 console.log('[DEBUG] 1. user_auth_links 조회 시작');
-                const { data: links, error: linksError } = await supabase
-                    .from('user_auth_links')
-                    .select('user_id')
-                    .eq('auth_user_id', authUserId);
+                const { data: links, error: linksError } = await Promise.race([
+                    supabase
+                        .from('user_auth_links')
+                        .select('user_id')
+                        .eq('auth_user_id', authUserId),
+                    queryTimeout() as Promise<never>
+                ]);
                 
                 if (linksError) {
                     console.error('[DEBUG] ❌ user_auth_links 조회 에러:', linksError);
@@ -113,12 +134,15 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
 
                 // 2. 시스템 관리자 권한 확인 (전역 권한)
                 console.log('[DEBUG] 2. SYSTEM_ADMIN 권한 확인 시작');
-                const { data: systemAdmin, error: adminError } = await supabase
-                    .from('users')
-                    .select('*')
-                    .in('id', userIds)
-                    .eq('role', 'SYSTEM_ADMIN')
-                    .maybeSingle();
+                const { data: systemAdmin, error: adminError } = await Promise.race([
+                    supabase
+                        .from('users')
+                        .select('*')
+                        .in('id', userIds)
+                        .eq('role', 'SYSTEM_ADMIN')
+                        .maybeSingle(),
+                    queryTimeout() as Promise<never>
+                ]);
                 
                 if (adminError) {
                     console.error('[DEBUG] ❌ SYSTEM_ADMIN 확인 중 에러:', adminError);
@@ -130,17 +154,21 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
                 }
 
                 // 3. 현재 접속한 조합(Slug)에 맞는 프로필 확인
-                if (slug) {
+                const RESERVED_SLUGS = ['systemAdmin', 'auth', 'api', 'admin', 'not-found', 'login'];
+                if (slug && !RESERVED_SLUGS.includes(slug)) {
                     console.log('[DEBUG] 3. 현재 조합 프로필 확인 시작', { slug });
                     const unionId = await getUnionIdBySlug(slug);
                     if (unionId) {
                         console.log('[DEBUG] 🔍 unionId 발견:', unionId);
-                        const { data: unionUser, error: unionUserError } = await supabase
-                            .from('users')
-                            .select('*')
-                            .in('id', userIds)
-                            .eq('union_id', unionId)
-                            .maybeSingle();
+                        const { data: unionUser, error: unionUserError } = await Promise.race([
+                            supabase
+                                .from('users')
+                                .select('*')
+                                .in('id', userIds)
+                                .eq('union_id', unionId)
+                                .maybeSingle(),
+                            queryTimeout() as Promise<never>
+                        ]);
                         
                         if (unionUserError) {
                             console.error('[DEBUG] ❌ 조합 프로필 확인 중 에러:', unionUserError);
@@ -155,6 +183,8 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
                     } else {
                         console.log('[DEBUG] ⚠️ 해당 slug에 대한 조합 ID를 찾을 수 없음');
                     }
+                } else if (slug) {
+                    console.log('[DEBUG] ⏭️ Reserved slug 스킵:', slug);
                 }
 
                 console.log('[DEBUG] 🤷‍♀️ 적절한 프로필을 찾을 수 없음');
@@ -236,13 +266,8 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
                 setAuthUser(initSession?.user ?? null);
 
                 if (initSession?.user) {
-                    console.log('[AUTH_DEBUG] 🔍 프로필 조회 시작 (initAuth)');
-                    const profile = await Promise.race([
-                        resolveUserProfile(initSession.user.id, currentSlug),
-                        timeout(3000) as Promise<never>
-                    ]);
-                    console.log('[AUTH_DEBUG] ✅ 프로필 조회 완료 (initAuth):', profile ? '성공' : '없음');
-                    setUser(profile);
+                    console.log('[AUTH_DEBUG] 🔄 handleSessionWithUser 호출 (initAuth)');
+                    await handleSessionWithUser(initSession, 'INITIAL_SESSION');
                 }
             } catch (err) {
                 console.error('[AUTH_DEBUG] 💥 initAuth 에러 (타임아웃 포함):', err);
