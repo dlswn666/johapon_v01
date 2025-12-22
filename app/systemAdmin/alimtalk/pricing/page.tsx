@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { ActionButton } from '@/app/_lib/widgets/common/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -307,12 +308,13 @@ export default function SystemAdminPricingPage() {
                         <Button variant="outline" onClick={() => setIsEditOpen(false)}>
                             취소
                         </Button>
-                        <Button
+                        <ActionButton
                             onClick={handleSave}
-                            disabled={updateMutation.isPending || !newPrice || !effectiveDate}
+                            isLoading={updateMutation.isPending}
+                            disabled={!newPrice || !effectiveDate}
                         >
-                            {updateMutation.isPending ? '저장 중...' : '저장'}
-                        </Button>
+                            저장
+                        </ActionButton>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

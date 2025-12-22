@@ -12,6 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import { useNotice, useUpdateNotice } from '@/app/_lib/features/notice/api/useNoticeHook';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
+import { ActionButton } from '@/app/_lib/widgets/common/button';
 import AlertModal from '@/app/_lib/widgets/modal/AlertModal';
 import { TextEditor } from '@/app/_lib/widgets/common/text-editor';
 import { FileUploader } from '@/app/_lib/widgets/common/file-uploader/FileUploader';
@@ -234,22 +235,20 @@ const EditNoticePage = () => {
                                 )}
                             />
 
-                            <div className="flex justify-end gap-3 pt-6 border-t border-[#CCCCCC]">
-                                <Button
-                                    type="button"
-                                    variant="outline"
+                             <div className="flex justify-end gap-3 pt-6 border-t border-[#CCCCCC]">
+                                <ActionButton
+                                    buttonType="cancel"
                                     onClick={() => router.back()}
-                                    className="h-[48px] px-8 text-[16px] border-[#CCCCCC] text-gray-600 hover:bg-gray-50 cursor-pointer"
                                 >
                                     취소
-                                </Button>
-                                <Button
+                                </ActionButton>
+                                <ActionButton
                                     type="submit"
-                                    disabled={isPending}
-                                    className="h-[48px] px-8 text-[16px] bg-[#4E8C6D] hover:bg-[#5FA37C] text-white cursor-pointer"
+                                    buttonType="submit"
+                                    isLoading={isPending}
                                 >
-                                    {isPending ? '수정 중...' : '수정'}
-                                </Button>
+                                    수정
+                                </ActionButton>
                             </div>
                         </form>
                     </Form>

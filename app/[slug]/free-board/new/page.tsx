@@ -14,6 +14,7 @@ import { useAddFreeBoard } from '@/app/_lib/features/free-board/api/useFreeBoard
 import useFreeBoardStore from '@/app/_lib/features/free-board/model/useFreeBoardStore';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
+import { ActionButton } from '@/app/_lib/widgets/common/button';
 import AlertModal from '@/app/_lib/widgets/modal/AlertModal';
 import UnionNavigation from '@/app/_lib/widgets/union/navigation/Navigation';
 import UnionHeader from '@/app/_lib/widgets/union/header/UnionHeader';
@@ -125,22 +126,20 @@ const NewFreeBoardPage = () => {
                                 )}
                             />
 
-                            <div className="flex justify-end gap-3 pt-6 border-t border-[#CCCCCC]">
-                                <Button
-                                    type="button"
-                                    variant="outline"
+                             <div className="flex justify-end gap-3 pt-6 border-t border-[#CCCCCC]">
+                                <ActionButton
+                                    buttonType="cancel"
                                     onClick={() => router.push(`/${slug}/free-board`)}
-                                    className="h-[48px] px-8 text-[16px] border-[#CCCCCC] text-gray-600 hover:bg-gray-50 cursor-pointer"
                                 >
                                     취소
-                                </Button>
-                                <Button
+                                </ActionButton>
+                                <ActionButton
                                     type="submit"
-                                    disabled={isPending}
-                                    className="h-[48px] px-8 text-[16px] bg-[#4E8C6D] hover:bg-[#5FA37C] text-white cursor-pointer"
+                                    buttonType="submit"
+                                    isLoading={isPending}
                                 >
-                                    {isPending ? '등록 중...' : '등록'}
-                                </Button>
+                                    등록
+                                </ActionButton>
                             </div>
                         </form>
                     </Form>

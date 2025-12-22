@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
+import { ActionButton } from '@/app/_lib/widgets/common/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -300,18 +301,14 @@ export default function UnionAdminsPage() {
                                     className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-500"
                                 />
                             </div>
-                            <Button
+                            <ActionButton
                                 type="submit"
-                                disabled={createInviteMutation.isPending}
+                                isLoading={createInviteMutation.isPending}
                                 className="w-full bg-blue-600 hover:bg-blue-700"
                             >
-                                {createInviteMutation.isPending ? (
-                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                ) : (
-                                    <UserPlus className="w-4 h-4 mr-2" />
-                                )}
+                                <UserPlus className="w-4 h-4 mr-2" />
                                 초대 링크 생성
-                            </Button>
+                            </ActionButton>
                             <p className="text-xs text-slate-500 text-center">초대 링크는 24시간 동안 유효합니다</p>
                         </form>
                     </CardContent>

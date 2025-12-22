@@ -67,7 +67,7 @@ const EditQuestionPage = () => {
     }, [question, form]);
 
     // 권한 체크
-    const canEdit = question && (question.author_id === user?.id || isAdmin);
+    const canEdit = question && (question.author_id === user?.id);
 
     function onSubmit(values: z.infer<typeof formSchema>) {
         if (!union || !canEdit) return;

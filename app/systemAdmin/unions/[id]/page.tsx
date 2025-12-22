@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
+import { ActionButton } from '@/app/_lib/widgets/common/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -536,18 +537,14 @@ export default function UnionDetailPage() {
                                 >
                                     취소
                                 </Button>
-                                <Button
+                                <ActionButton
                                     type="submit"
-                                    disabled={isSubmitting}
+                                    isLoading={isSubmitting}
                                     className="bg-blue-600 hover:bg-blue-700"
                                 >
-                                    {isSubmitting ? (
-                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                    ) : (
-                                        <Save className="w-4 h-4 mr-2" />
-                                    )}
+                                    <Save className="w-4 h-4 mr-2" />
                                     저장
-                                </Button>
+                                </ActionButton>
                             </div>
                         )}
                     </form>
@@ -599,18 +596,14 @@ export default function UnionDetailPage() {
                         >
                             취소
                         </Button>
-                        <Button
+                        <ActionButton
                             onClick={handleRegisterSenderKey}
-                            disabled={registerSenderKeyMutation.isPending}
+                            isLoading={registerSenderKeyMutation.isPending}
                             className="bg-blue-600 hover:bg-blue-700"
                         >
-                            {registerSenderKeyMutation.isPending ? (
-                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            ) : (
-                                <Key className="w-4 h-4 mr-2" />
-                            )}
+                            <Key className="w-4 h-4 mr-2" />
                             등록
-                        </Button>
+                        </ActionButton>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

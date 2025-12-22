@@ -13,6 +13,7 @@ import { useAddUnionInfo } from '@/app/_lib/features/union-info/api/useUnionInfo
 import useUnionInfoStore from '@/app/_lib/features/union-info/model/useUnionInfoStore';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
+import { ActionButton } from '@/app/_lib/widgets/common/button';
 import AlertModal from '@/app/_lib/widgets/modal/AlertModal';
 import { TextEditor } from '@/app/_lib/widgets/common/text-editor';
 import { FileUploader } from '@/app/_lib/widgets/common/file-uploader/FileUploader';
@@ -120,22 +121,20 @@ const NewUnionInfoPage = () => {
                                 )}
                             />
 
-                            <div className="flex justify-end gap-3 pt-6 border-t border-[#CCCCCC]">
-                                <Button 
-                                    type="button" 
-                                    variant="outline" 
+                             <div className="flex justify-end gap-3 pt-6 border-t border-[#CCCCCC]">
+                                <ActionButton
+                                    buttonType="cancel"
                                     onClick={() => router.push(`/${slug}/communication/union-info`)}
-                                    className="h-[48px] px-8 text-[16px] border-[#CCCCCC] text-gray-600 hover:bg-gray-50 cursor-pointer"
                                 >
                                     취소
-                                </Button>
-                                <Button 
-                                    type="submit" 
-                                    disabled={isPending}
-                                    className="h-[48px] px-8 text-[16px] bg-[#4E8C6D] hover:bg-[#5FA37C] text-white cursor-pointer"
+                                </ActionButton>
+                                <ActionButton
+                                    type="submit"
+                                    buttonType="submit"
+                                    isLoading={isPending}
                                 >
-                                    {isPending ? '등록 중...' : '등록'}
-                                </Button>
+                                    등록
+                                </ActionButton>
                             </div>
                         </form>
                     </Form>

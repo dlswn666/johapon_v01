@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { ActionButton } from '@/app/_lib/widgets/common/button';
 import toast from 'react-hot-toast';
 
 export default function SystemAdminUnionsPage() {
@@ -305,11 +306,15 @@ export default function SystemAdminUnionsPage() {
                             취소
                         </AlertDialogCancel>
                         <AlertDialogAction
-                            onClick={handleDelete}
-                            className="bg-red-600 hover:bg-red-700 text-white"
-                            disabled={deleteMutation.isPending}
+                            asChild
                         >
-                            {deleteMutation.isPending ? '삭제 중...' : '삭제'}
+                            <ActionButton
+                                onClick={handleDelete}
+                                isLoading={deleteMutation.isPending}
+                                className="bg-red-600 hover:bg-red-700 text-white"
+                            >
+                                삭제
+                            </ActionButton>
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
@@ -338,17 +343,18 @@ export default function SystemAdminUnionsPage() {
                             취소
                         </AlertDialogCancel>
                         <AlertDialogAction
-                            onClick={handleToggleActive}
-                            className={toggleTarget?.currentStatus 
-                                ? "bg-amber-600 hover:bg-amber-700 text-white"
-                                : "bg-emerald-600 hover:bg-emerald-700 text-white"
-                            }
-                            disabled={toggleActiveMutation.isPending}
+                            asChild
                         >
-                            {toggleActiveMutation.isPending 
-                                ? '처리 중...' 
-                                : toggleTarget?.currentStatus ? '비활성화' : '활성화'
-                            }
+                            <ActionButton
+                                onClick={handleToggleActive}
+                                isLoading={toggleActiveMutation.isPending}
+                                className={toggleTarget?.currentStatus 
+                                    ? "bg-amber-600 hover:bg-amber-700 text-white"
+                                    : "bg-emerald-600 hover:bg-emerald-700 text-white"
+                                }
+                            >
+                                {toggleTarget?.currentStatus ? '비활성화' : '활성화'}
+                            </ActionButton>
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>

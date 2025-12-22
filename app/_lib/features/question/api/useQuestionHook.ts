@@ -510,6 +510,56 @@ export const useAnswerQuestion = () => {
 };
 
 /**
+ * 관리자 답변 삭제
+ */
+export const useDeleteAnswer = () => {
+    const updateQuestion = useQuestionStore((state) => state.updateQuestion);
+    const openAlertModal = useModalStore((state) => state.openAlertModal);
+    const { union, slug } = useSlug();
+
+    return useMutation({
+        mutationFn: async (questionId: number) => {
+            if (!union?.id) throw new Error('Union context missing');
+
+            // 답변 관련 필드 초기화
+            const { data, error } = await supabase
+                .from('questions')
+                .update({
+                    answer_content: null,
+                    answer_author_id: null,
+                    answered_at: null,
+                })
+                .eq('id', questionId)
+                .select()
+                .single();
+
+            if (error) throw error;
+
+            return data as Question;
+        },
+        onSuccess: (data) => {
+            updateQuestion(data.id, data);
+            queryClient.invalidateQueries({ queryKey: ['questions', union?.id] });
+            queryClient.invalidateQueries({ queryKey: ['questions', union?.id, data.id] });
+
+            openAlertModal({
+                title: '삭제 완료',
+                message: '답변이 성공적으로 삭제되었습니다.',
+                type: 'success',
+            });
+        },
+        onError: (error: Error) => {
+            console.error('Delete answer error:', error);
+            openAlertModal({
+                title: '삭제 실패',
+                message: '답변 삭제에 실패했습니다. 다시 시도해주세요.',
+                type: 'error',
+            });
+        },
+    });
+};
+
+/**
  * 조회수 증가
  */
 export const useIncrementQuestionViews = () => {

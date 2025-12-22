@@ -16,6 +16,7 @@ import {
 } from '@/app/_lib/features/union-info/api/useUnionInfoHook';
 import useUnionInfoStore from '@/app/_lib/features/union-info/model/useUnionInfoStore';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
+import { ActionButton } from '@/app/_lib/widgets/common/button';
 import AlertModal from '@/app/_lib/widgets/modal/AlertModal';
 import ConfirmModal from '@/app/_lib/widgets/modal/ConfirmModal';
 import useModalStore from '@/app/_lib/shared/stores/modal/useModalStore';
@@ -162,22 +163,20 @@ const EditUnionInfoPage = () => {
                                 )}
                             />
 
-                            <div className="flex justify-end gap-3 pt-6 border-t border-[#CCCCCC]">
-                                <Button
-                                    type="button"
-                                    variant="outline"
+                             <div className="flex justify-end gap-3 pt-6 border-t border-[#CCCCCC]">
+                                <ActionButton
+                                    buttonType="cancel"
                                     onClick={() => router.push(`/${slug}/communication/union-info/${id}`)}
-                                    className="h-[48px] px-8 text-[16px] border-[#CCCCCC] text-gray-600 hover:bg-gray-50 cursor-pointer"
                                 >
                                     취소
-                                </Button>
-                                <Button
+                                </ActionButton>
+                                <ActionButton
                                     type="submit"
-                                    disabled={isPending}
-                                    className="h-[48px] px-8 text-[16px] bg-[#4E8C6D] hover:bg-[#5FA37C] text-white cursor-pointer"
+                                    buttonType="submit"
+                                    isLoading={isPending}
                                 >
-                                    {isPending ? '수정 중...' : '수정'}
-                                </Button>
+                                    수정
+                                </ActionButton>
                             </div>
                         </form>
                     </Form>

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, Upload, X, Loader2, Building2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
+import { ActionButton } from '@/app/_lib/widgets/common/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -325,14 +326,13 @@ export default function NewUnionPage() {
                             >
                                 취소
                             </Button>
-                            <Button
+                            <ActionButton
                                 type="submit"
-                                disabled={isSubmitting}
+                                isLoading={isSubmitting}
                                 className="bg-blue-600 hover:bg-blue-700"
                             >
-                                {isSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                                 등록
-                            </Button>
+                            </ActionButton>
                         </div>
                     </form>
                 </CardContent>

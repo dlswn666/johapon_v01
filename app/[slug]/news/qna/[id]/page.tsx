@@ -3,7 +3,7 @@
 import { cn } from '@/lib/utils';
 import React, { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useQuestion, useIncrementQuestionViews, useDeleteQuestion, useAnswerQuestion } from '@/app/_lib/features/question/api/useQuestionHook';
+import { useQuestion, useIncrementQuestionViews, useDeleteQuestion, useAnswerQuestion, useDeleteAnswer } from '@/app/_lib/features/question/api/useQuestionHook';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import ConfirmModal from '@/app/_lib/widgets/modal/ConfirmModal';
@@ -26,6 +26,7 @@ const QuestionDetailPage = () => {
     const { mutate: incrementViews } = useIncrementQuestionViews();
     const { mutate: deleteQuestion } = useDeleteQuestion();
     const { mutate: answerQuestion, isPending: isAnswering } = useAnswerQuestion();
+    const { mutate: deleteAnswer } = useDeleteAnswer();
     const openConfirmModal = useModalStore((state) => state.openConfirmModal);
 
     // 답변 작성 모드
@@ -47,20 +48,38 @@ const QuestionDetailPage = () => {
         });
     };
 
-    const handleSubmitAnswer = () => {
+    const handleSubmitAnswer = async () => {
         if (!answerContent.trim()) {
             return;
         }
-        answerQuestion({
+        
+        // mutateAsync를 사용하여 처리가 완료될 때까지 대기
+        await answerQuestion({
             questionId,
             answerContent,
+        }, {
+            onSuccess: () => {
+                setIsAnswerMode(false);
+                setAnswerContent('');
+            }
         });
-        setIsAnswerMode(false);
-        setAnswerContent('');
+    };
+
+    const handleEditAnswer = () => {
+        setAnswerContent(question?.answer_content || '');
+        setIsAnswerMode(true);
+    };
+
+    const handleDeleteAnswer = () => {
+        openConfirmModal({
+            title: '답변 삭제',
+            message: '정말로 답변을 삭제하시겠습니까?',
+            onConfirm: () => deleteAnswer(questionId),
+        });
     };
 
     const isMine = question?.author_id === user?.id;
-    const canEdit = isMine || isAdmin;
+    const canEdit = isMine;
     const canAnswer = isAdmin && !question?.answered_at;
 
     if (isUnionLoading || isLoading) {
@@ -160,10 +179,28 @@ const QuestionDetailPage = () => {
                         </h3>
 
                         {question.answered_at && question.answer_content ? (
-                            <div className="bg-[#F0F7F4] rounded-[12px] p-6">
-                                <div className="flex items-center gap-4 mb-4 text-[14px] text-[#5FA37C]">
-                                    <span className="font-medium">답변자: {answerAuthorName}</span>
-                                    <span>답변일: {new Date(question.answered_at).toLocaleDateString('ko-KR')}</span>
+                            <div className="bg-[#F0F7F4] rounded-[12px] p-6 relative group">
+                                <div className="flex items-center justify-between mb-4">
+                                    <div className="flex items-center gap-4 text-[14px] text-[#5FA37C]">
+                                        <span className="font-medium">답변자: {answerAuthorName}</span>
+                                        <span>답변일: {new Date(question.answered_at).toLocaleDateString('ko-KR')}</span>
+                                    </div>
+                                    {isAdmin && (
+                                        <div className="flex gap-2">
+                                            <button 
+                                                onClick={handleEditAnswer}
+                                                className="text-[12px] text-[#4E8C6D] hover:underline"
+                                            >
+                                                수정
+                                            </button>
+                                            <button 
+                                                onClick={handleDeleteAnswer}
+                                                className="text-[12px] text-[#D9534F] hover:underline"
+                                            >
+                                                삭제
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                                 <div 
                                     className="prose prose-lg max-w-none text-[16px] leading-relaxed text-gray-800"
