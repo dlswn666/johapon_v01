@@ -11,7 +11,7 @@ import ConfirmModal from '@/app/_lib/widgets/modal/ConfirmModal';
 import AlertModal from '@/app/_lib/widgets/modal/AlertModal';
 import useModalStore from '@/app/_lib/shared/stores/modal/useModalStore';
 import { FileUploader } from '@/app/_lib/widgets/common/file-uploader/FileUploader';
-import { CommentSection } from '@/app/_lib/widgets/common/comment';
+import { BoardComment } from '@/app/_lib/widgets/common/comment';
 
 const NoticeDetailPage = () => {
     const router = useRouter();
@@ -113,8 +113,8 @@ const NoticeDetailPage = () => {
                     </div>
 
                     {/* 댓글 영역 */}
-                    <div className="mt-8 bg-[#F5F5F5] rounded-[12px] p-0">
-                        <CommentSection
+                    <div className="mt-8 bg-white rounded-[12px] p-0">
+                        <BoardComment
                             entityType="notice"
                             entityId={noticeId}
                         />

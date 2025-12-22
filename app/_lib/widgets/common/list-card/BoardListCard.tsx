@@ -9,6 +9,7 @@ interface BoardListCardProps {
     onItemClick: (id: number | string) => void;
     emptyMessage?: string;
     showThumbnail?: boolean;
+    renderTitleSuffix?: (item: ListCardItem) => React.ReactNode;
 }
 
 /**
@@ -20,15 +21,19 @@ export function BoardListCard({
     onItemClick,
     emptyMessage,
     showThumbnail = false,
+    renderTitleSuffix: customRenderTitleSuffix,
 }: BoardListCardProps) {
-    // 내 글 표시 렌더링
-    const renderTitleSuffix = (item: ListCardItem) => {
-        if (!item.isMine) return null;
-
+    // 내부 렌더링 로직 (내 글 표시 + 커스텀 Suffix 머지)
+    const renderCombinedTitleSuffix = (item: ListCardItem) => {
         return (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-[#5FA37C] text-white text-[10px] rounded-full shrink-0">
-                <UserIcon className="h-3 w-3" />내 글
-            </span>
+            <div className="flex items-center gap-2">
+                {customRenderTitleSuffix && customRenderTitleSuffix(item)}
+                {item.isMine && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-[#5FA37C] text-white text-[10px] rounded-full shrink-0">
+                        <UserIcon className="h-3 w-3" />내 글
+                    </span>
+                )}
+            </div>
         );
     };
 
@@ -38,7 +43,7 @@ export function BoardListCard({
             onItemClick={onItemClick}
             emptyMessage={emptyMessage}
             showThumbnail={showThumbnail}
-            renderTitleSuffix={renderTitleSuffix}
+            renderTitleSuffix={renderCombinedTitleSuffix}
         />
     );
 }

@@ -10,12 +10,13 @@ import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import ConfirmModal from '@/app/_lib/widgets/modal/ConfirmModal';
 import AlertModal from '@/app/_lib/widgets/modal/AlertModal';
-import { ListCard, ListCardItem } from '@/app/_lib/widgets/common/list-card';
+import { ListCardItem } from '@/app/_lib/widgets/common/list-card';
+import { BoardListCard } from '@/app/_lib/widgets/common/list-card/BoardListCard';
 
 const NoticePage = () => {
     const router = useRouter();
     const { slug, isLoading: isUnionLoading } = useSlug();
-    const { isAdmin, isSystemAdmin } = useAuth();
+    const { user, isAdmin, isSystemAdmin } = useAuth();
     const { data: notices, isLoading, error } = useNotices(!isUnionLoading);
 
     if (isUnionLoading || isLoading) {
@@ -39,14 +40,15 @@ const NoticePage = () => {
     }
 
     // 공지사항 데이터를 ListCardItem 형태로 변환
-    const listItems: ListCardItem[] = (notices || []).map((notice) => ({
+    const listItems: ListCardItem[] = (notices || []).map((notice: any) => ({
         id: notice.id,
         title: notice.title,
-        author: notice.author_id,
+        author: notice.author?.name || notice.author_id,
         date: new Date(notice.created_at).toLocaleDateString('ko-KR'),
         views: notice.views,
         commentCount: notice.comment_count,
         hasAttachment: notice.file_count > 0,
+        isMine: notice.author_id === user?.id,
     }));
 
     // 커스텀 아이콘 렌더링 (팝업/알림톡)
@@ -79,7 +81,7 @@ const NoticePage = () => {
                     )}
                 </div>
 
-                <ListCard
+                <BoardListCard
                     items={listItems}
                     onItemClick={(id) => router.push(`/${slug}/news/notice/${id}`)}
                     emptyMessage="등록된 공지사항이 없습니다."
