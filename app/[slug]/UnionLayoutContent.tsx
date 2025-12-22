@@ -89,7 +89,7 @@ export default function UnionLayoutContent({ children }: UnionLayoutContentProps
                 </aside>
 
                 {/* B 영역 - 메인 콘텐츠 */}
-                <main className="w-full md:w-[60%] order-2 min-h-[600px]">{children}</main>
+                <main className="w-full md:w-[60%] order-2 min-h-[1200px]">{children}</main>
 
                 {/* C 영역 - 오른쪽 광고 */}
                 <aside className="w-full md:w-[20%] bg-gray-100 p-4 order-3">
