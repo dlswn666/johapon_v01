@@ -103,11 +103,11 @@ export function ListItem({
                                 {item.title}
                             </h2>
                             {renderTitleSuffix && renderTitleSuffix(item)}
-                            {item.commentCount && item.commentCount > 0 && (
+                            {/* {item.commentCount && item.commentCount > 0 && (
                                 <span className="text-xs text-[#4E8C6D] font-bold shrink-0">
                                     [{item.commentCount}]
                                 </span>
-                            )}
+                            )} */}
                             {item.hasAttachment && (
                                 <Paperclip className="h-4 w-4 text-gray-400 shrink-0" />
                             )}

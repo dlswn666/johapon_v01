@@ -64,7 +64,7 @@ const UnionInfoListPage = () => {
     const posts = data?.data || [];
 
     // 조합 정보 데이터를 ListCardItem 형태로 변환
-    const listItems: ListCardItem[] = posts.map((post) => {
+    const listItems: ListCardItem[] = posts.map((post: any) => {
         const isMine = post.author_id === user?.id;
         const authorName = (post.author as { name: string } | null)?.name || post.author_id || '알 수 없음';
 
@@ -74,8 +74,8 @@ const UnionInfoListPage = () => {
             author: authorName,
             date: new Date(post.created_at).toLocaleDateString('ko-KR'),
             views: post.views,
-            hasAttachment: post.has_attachments,
-            thumbnailUrl: post.thumbnail_url,
+            commentCount: post.comment_count,
+            hasAttachment: post.file_count > 0 || post.has_attachments,
             isMine,
         };
     });

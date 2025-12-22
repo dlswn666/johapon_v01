@@ -60,7 +60,57 @@ export const useUnionInfos = (enabled: boolean = true) => {
                 throw error;
             }
 
-            let filteredData = data || [];
+            if (!data || data.length === 0) {
+                return { data: [], count: 0 };
+            }
+
+            const postIds = data.map((p) => p.id);
+
+            // 파일 수 조회 (다형성 연관 관계)
+            const { data: fileCounts, error: filesError } = await supabase
+                .from('files')
+                .select('attachable_id')
+                .eq('attachable_type', 'union_info')
+                .in('attachable_id', postIds);
+
+            if (filesError) {
+                console.error('Failed to fetch file counts:', filesError);
+            }
+
+            // 파일 수 집계
+            const fileCountMap: Record<number, number> = {};
+            if (fileCounts) {
+                fileCounts.forEach((f) => {
+                    if (f.attachable_id) {
+                        fileCountMap[f.attachable_id] = (fileCountMap[f.attachable_id] || 0) + 1;
+                    }
+                });
+            }
+
+            // 댓글 수 조회
+            const { data: commentCounts, error: commentsError } = await supabase
+                .from('comments')
+                .select('entity_id')
+                .eq('entity_type', 'union_info')
+                .in('entity_id', postIds);
+
+            if (commentsError) {
+                console.error('Failed to fetch comment counts:', commentsError);
+            }
+
+            // 댓글 수 집계
+            const commentCountMap: Record<number, number> = {};
+            if (commentCounts) {
+                commentCounts.forEach((c) => {
+                    commentCountMap[c.entity_id] = (commentCountMap[c.entity_id] || 0) + 1;
+                });
+            }
+
+            let filteredData = data.map((post) => ({
+                ...post,
+                file_count: fileCountMap[post.id] || 0,
+                comment_count: commentCountMap[post.id] || 0,
+            }));
 
             // 작성자 검색 (프론트에서 추가 필터링)
             if (author && author.trim()) {
@@ -72,7 +122,10 @@ export const useUnionInfos = (enabled: boolean = true) => {
             }
 
             return {
-                data: filteredData as UnionInfoWithAuthor[],
+                data: filteredData as (UnionInfoWithAuthor & {
+                    file_count: number;
+                    comment_count: number;
+                })[],
                 count: count || 0,
             };
         },
