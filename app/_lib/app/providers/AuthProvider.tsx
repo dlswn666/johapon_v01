@@ -88,45 +88,82 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
      */
     const resolveUserProfile = useCallback(
         async (authUserId: string, slug: string | null): Promise<User | null> => {
+            console.log('[DEBUG] resolveUserProfile 시작', { authUserId, slug });
             setIsUserFetching(true);
             try {
                 // 1. 계정에 연결된 모든 프로필 ID 조회
-                const { data: links } = await supabase
+                console.log('[DEBUG] 1. user_auth_links 조회 시작');
+                const { data: links, error: linksError } = await supabase
                     .from('user_auth_links')
                     .select('user_id')
                     .eq('auth_user_id', authUserId);
-                if (!links || links.length === 0) return null;
+                
+                if (linksError) {
+                    console.error('[DEBUG] ❌ user_auth_links 조회 에러:', linksError);
+                    return null;
+                }
+                
+                if (!links || links.length === 0) {
+                    console.log('[DEBUG] ⚠️ No links found for auth user');
+                    return null;
+                }
+                
                 const userIds = links.map((l) => l.user_id);
+                console.log('[DEBUG] 📦 연동된 userIds:', userIds);
 
                 // 2. 시스템 관리자 권한 확인 (전역 권한)
-                const { data: systemAdmin } = await supabase
+                console.log('[DEBUG] 2. SYSTEM_ADMIN 권한 확인 시작');
+                const { data: systemAdmin, error: adminError } = await supabase
                     .from('users')
                     .select('*')
                     .in('id', userIds)
                     .eq('role', 'SYSTEM_ADMIN')
-                    .single();
-                if (systemAdmin) return systemAdmin as User;
+                    .maybeSingle();
+                
+                if (adminError) {
+                    console.error('[DEBUG] ❌ SYSTEM_ADMIN 확인 중 에러:', adminError);
+                }
+
+                if (systemAdmin) {
+                    console.log('[DEBUG] ✅ SYSTEM_ADMIN 발견');
+                    return systemAdmin as User;
+                }
 
                 // 3. 현재 접속한 조합(Slug)에 맞는 프로필 확인
                 if (slug) {
+                    console.log('[DEBUG] 3. 현재 조합 프로필 확인 시작', { slug });
                     const unionId = await getUnionIdBySlug(slug);
                     if (unionId) {
-                        const { data: unionUser } = await supabase
+                        console.log('[DEBUG] 🔍 unionId 발견:', unionId);
+                        const { data: unionUser, error: unionUserError } = await supabase
                             .from('users')
                             .select('*')
                             .in('id', userIds)
                             .eq('union_id', unionId)
-                            .single();
-                        if (unionUser) return unionUser as User;
+                            .maybeSingle();
+                        
+                        if (unionUserError) {
+                            console.error('[DEBUG] ❌ 조합 프로필 확인 중 에러:', unionUserError);
+                        }
+
+                        if (unionUser) {
+                            console.log('[DEBUG] ✅ 조합 프로필 발견');
+                            return unionUser as User;
+                        } else {
+                            console.log('[DEBUG] ⚠️ 해당 조합에 프로필 없음');
+                        }
+                    } else {
+                        console.log('[DEBUG] ⚠️ 해당 slug에 대한 조합 ID를 찾을 수 없음');
                     }
                 }
 
+                console.log('[DEBUG] 🤷‍♀️ 적절한 프로필을 찾을 수 없음');
                 return null; // 맞는 프로필 없음 (신규 유저 혹은 타 조합원)
             } catch (error) {
-                console.error('Profile resolution error:', error);
+                console.error('[DEBUG] 💥 Profile resolution error:', error);
                 return null;
             } finally {
-                console.log('[DEBUG] resolveUserProfile finally block - setting isUserFetching(false)');
+                console.log('[DEBUG] resolveUserProfile 종료 - isUserFetching(false)');
                 setIsUserFetching(false);
             }
         },
@@ -175,7 +212,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
         const initAuth = async () => {
             console.log('[AUTH_DEBUG] 🚀 initAuth 시작');
             
-            // 타임아웃 헬퍼 (5초)
+            // 타임아웃 헬퍼 (10초로 증설)
             const timeout = (ms: number) => new Promise((_, reject) => 
                 setTimeout(() => reject(new Error(`Timeout after ${ms}ms`)), ms)
             );
@@ -187,7 +224,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
                     error
                 } = await Promise.race([
                     supabase.auth.getSession(),
-                    timeout(5000) as Promise<never>
+                    timeout(10000) as Promise<never>
                 ]);
 
                 if (error) {
