@@ -13,7 +13,6 @@ import {
     Trash2,
     CheckCircle2,
     Clock,
-    Eye,
     UserCheck,
     UserPlus,
     Search,
@@ -142,6 +141,7 @@ export default function MemberManagementPage() {
     const [isUploading, setIsUploading] = useState(false);
 
     // ====== 승인 관리 관련 상태 ======
+    const [searchInput, setSearchInput] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState<UserStatusFilter>('ALL');
     const [roleFilter, setRoleFilter] = useState<UserRoleFilter>('ALL');
@@ -216,6 +216,24 @@ export default function MemberManagementPage() {
             toast.success('사용자가 승인되었습니다.');
             setShowDetailModal(false);
             setSelectedUser(null);
+
+            // TODO: 승인 안내 알림톡 발송 (추후 템플릿 코드 추가)
+            /*
+            if (selectedUser) {
+                sendAlimTalk({
+                    unionId: unionId!,
+                    templateCode: 'APPROVAL_TEMPLATE_CODE', // 승인 템플릿 코드
+                    recipients: [{
+                        phoneNumber: selectedUser.phone_number,
+                        name: selectedUser.name,
+                        variables: {
+                            조합명: union?.name || '',
+                            이름: selectedUser.name
+                        }
+                    }]
+                });
+            }
+            */
         },
         onError: () => {
             toast.error('승인 처리 중 오류가 발생했습니다.');
@@ -243,6 +261,25 @@ export default function MemberManagementPage() {
             setShowDetailModal(false);
             setSelectedUser(null);
             setRejectionReason('');
+
+            // TODO: 반려 안내 알림톡 발송 (추후 템플릿 코드 추가)
+            /*
+            if (selectedUser) {
+                sendAlimTalk({
+                    unionId: unionId!,
+                    templateCode: 'REJECTION_TEMPLATE_CODE', // 반려 템플릿 코드
+                    recipients: [{
+                        phoneNumber: selectedUser.phone_number,
+                        name: selectedUser.name,
+                        variables: {
+                            조합명: union?.name || '',
+                            이름: selectedUser.name,
+                            사유: rejectionReason
+                        }
+                    }]
+                });
+            }
+            */
         },
         onError: () => {
             toast.error('반려 처리 중 오류가 발생했습니다.');
@@ -534,9 +571,9 @@ export default function MemberManagementPage() {
                 );
             default:
                 return (
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
-                        <Clock className="w-3 h-3 mr-1" />
-                        대기중
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                        <Send className="w-3 h-3 mr-1" />
+                        발송완료
                     </span>
                 );
         }
@@ -544,7 +581,7 @@ export default function MemberManagementPage() {
 
     const filterButtons: { key: MemberInviteFilter; label: string }[] = [
         { key: 'all', label: '전체' },
-        { key: 'pending', label: '대기중' },
+        { key: 'pending', label: '발송완료' },
         { key: 'used', label: '수락됨' },
     ];
 
@@ -732,9 +769,6 @@ export default function MemberManagementPage() {
                                                             핸드폰번호
                                                         </th>
                                                         <th className="py-3 px-4 text-left text-sm font-medium text-gray-700">
-                                                            물건지 주소
-                                                        </th>
-                                                        <th className="py-3 px-4 text-left text-sm font-medium text-gray-700">
                                                             상태
                                                         </th>
                                                         <th className="py-3 px-4 text-center text-sm font-medium text-gray-700">
@@ -758,15 +792,6 @@ export default function MemberManagementPage() {
                                                             </td>
                                                             <td className="py-3 px-4 text-sm text-gray-600">
                                                                 {maskPhoneNumber(invite.phone_number)}
-                                                            </td>
-                                                            <td className="py-3 px-4">
-                                                                <button
-                                                                    onClick={() => setDetailTarget(invite)}
-                                                                    className="text-gray-900 hover:text-[#4E8C6D] transition-colors flex items-center gap-2 cursor-pointer"
-                                                                >
-                                                                    <Eye className="w-4 h-4 text-gray-400" />
-                                                                    {invite.property_address}
-                                                                </button>
                                                             </td>
                                                             <td className="py-3 px-4">
                                                                 {getStatusBadge(invite.status)}
@@ -813,18 +838,32 @@ export default function MemberManagementPage() {
                         {/* 검색 및 필터 */}
                         <div className="bg-white rounded-xl shadow-sm p-6">
                             <div className="flex flex-col md:flex-row gap-4">
-                                <div className="flex-1 relative">
-                                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                                    <input
-                                        type="text"
-                                        value={searchQuery}
-                                        onChange={(e) => {
-                                            setSearchQuery(e.target.value);
+                                <div className="flex-1 relative flex gap-2">
+                                    <div className="relative flex-1">
+                                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                                        <input
+                                            type="text"
+                                            value={searchInput}
+                                            onChange={(e) => setSearchInput(e.target.value)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    setSearchQuery(searchInput);
+                                                    setPage(1);
+                                                }
+                                            }}
+                                            placeholder="이름, 전화번호, 물건지로 검색..."
+                                            className="w-full h-12 pl-12 pr-4 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4E8C6D] focus:border-transparent text-[16px]"
+                                        />
+                                    </div>
+                                    <Button
+                                        onClick={() => {
+                                            setSearchQuery(searchInput);
                                             setPage(1);
                                         }}
-                                        placeholder="이름, 전화번호, 물건지로 검색..."
-                                        className="w-full h-12 pl-12 pr-4 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4E8C6D] focus:border-transparent text-[16px]"
-                                    />
+                                        className="h-12 bg-[#4E8C6D] hover:bg-[#3d7058] text-white px-6 rounded-xl"
+                                    >
+                                        검색
+                                    </Button>
                                 </div>
 
                                 <SelectBox
@@ -920,8 +959,13 @@ export default function MemberManagementPage() {
                                                         <td className="px-6 py-4 text-[14px] text-gray-600  whitespace-nowrap">
                                                             {maskPhoneNumber(userData.phone_number)}
                                                         </td>
-                                                        <td className="px-6 py-4 text-[14px] text-gray-600 whitespace-nowrap">
-                                                            {userData.property_address || '-'}
+                                                        <td className="px-6 py-4 text-[14px] text-gray-600">
+                                                            <div>{userData.property_address_road || '-'}</div>
+                                                            {userData.property_address_jibun && (
+                                                                <div className="text-[12px] text-gray-400 mt-1">
+                                                                    (지번) {userData.property_address_jibun}
+                                                                </div>
+                                                            )}
                                                         </td>
                                                         <td className="px-6 py-4 text-[14px] text-gray-600 whitespace-nowrap">
                                                             {USER_ROLE_LABELS[userData.role] || userData.role}
@@ -1009,8 +1053,6 @@ export default function MemberManagementPage() {
                                 조합원에게 본인 확인 안내 알림톡을 발송합니다.
                                 <br />
                                 <span className="text-sm text-gray-500 mt-2 block">
-                                    * 대기중 상태의 조합원에게만 발송됩니다.
-                                    <br />
                                     * 카카오톡 발송 실패 시 대체 문자로 자동 발송됩니다.
                                     <br />* 발송 비용이 발생합니다. (약 {selectedIds.length * 15}원 예상)
                                 </span>
@@ -1092,16 +1134,22 @@ export default function MemberManagementPage() {
                                     )}
                                     <div className="flex items-start gap-4 p-4 bg-gray-50 rounded-xl">
                                         <MapPin className="w-6 h-6 text-gray-400 mt-1" />
-                                        <div>
+                                        <div className="flex-1">
                                             <p className="text-[12px] text-gray-500">물건지</p>
-                                            <p className="text-[16px] font-bold text-gray-900">
-                                                {selectedUser.property_address || '-'}
-                                                {selectedUser.property_address_detail && (
-                                                    <span className="text-gray-600 font-normal block mt-1">
-                                                        {selectedUser.property_address_detail}
-                                                    </span>
+                                            <div className="text-[16px] font-bold text-gray-900">
+                                                <div>{selectedUser.property_address_road || '-'}</div>
+                                                {selectedUser.property_address_jibun && (
+                                                    <div className="text-[14px] font-normal text-gray-500 mt-1">
+                                                        <span className="text-[12px] bg-gray-200 px-1 rounded mr-1">지번</span>
+                                                        {selectedUser.property_address_jibun}
+                                                    </div>
                                                 )}
-                                            </p>
+                                                {selectedUser.property_address_detail && (
+                                                    <div className="text-gray-600 font-normal mt-1 border-t border-gray-200 pt-1">
+                                                        {selectedUser.property_address_detail}
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -1157,7 +1205,7 @@ export default function MemberManagementPage() {
                                     닫기
                                 </button>
 
-                                {selectedUser.user_status === 'PENDING_APPROVAL' && (
+                                {(selectedUser.user_status === 'PENDING_APPROVAL' || selectedUser.user_status === 'APPROVED') && (
                                     <>
                                         <button
                                             onClick={() => setShowRejectModal(true)}
@@ -1167,14 +1215,16 @@ export default function MemberManagementPage() {
                                             <XCircle className="w-5 h-5" />
                                             <span>반려</span>
                                         </button>
-                                        <button
-                                            onClick={() => approveMutation.mutate(selectedUser.id)}
-                                            disabled={approveMutation.isPending}
-                                            className="flex-1 h-12 rounded-xl bg-[#4E8C6D] text-white hover:bg-[#3d7058] transition-colors disabled:opacity-50 flex items-center justify-center gap-2 text-[14px] font-medium cursor-pointer"
-                                        >
-                                            <CheckCircle className="w-5 h-5" />
-                                            <span>승인</span>
-                                        </button>
+                                        {selectedUser.user_status === 'PENDING_APPROVAL' && (
+                                            <button
+                                                onClick={() => approveMutation.mutate(selectedUser.id)}
+                                                disabled={approveMutation.isPending}
+                                                className="flex-1 h-12 rounded-xl bg-[#4E8C6D] text-white hover:bg-[#3d7058] transition-colors disabled:opacity-50 flex items-center justify-center gap-2 text-[14px] font-medium cursor-pointer"
+                                            >
+                                                <CheckCircle className="w-5 h-5" />
+                                                <span>승인</span>
+                                            </button>
+                                        )}
                                     </>
                                 )}
 

@@ -79,7 +79,6 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
 
     // 캐싱 및 레이스 컨디션 방지용 Refs
     const unionCache = useRef<Record<string, string>>({});
-    const processingRef = useRef<string | null>(null);
     const processingSessionRef = useRef<string | null>(null); // 세션 처리 중복 방지
 
     /**
@@ -291,8 +290,6 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
                     setAuthUser(null);
                     setSession(null);
                     processingSessionRef.current = null; // Clear any pending processing
-                } else if (event === 'SIGNED_IN') {
-                    const sessionId = newSession?.user?.id || 'no-session-id';
                     if (userRef.current) {
                         console.log('[DEBUG] ⏭️ SIGNED_IN 스킵 (이미 user 있음)');
                     } else if (isUserFetchingRef.current) {
@@ -322,7 +319,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
             console.log('[AUTH_DEBUG] 🔌 AuthProvider useEffect Cleanup');
             subscription.unsubscribe();
         };
-    }, [currentSlug, resolveUserProfile]);
+    }, [currentSlug, resolveUserProfile, handleSessionWithUser]);
 
     /**
      * 로그인/로그아웃 함수들
