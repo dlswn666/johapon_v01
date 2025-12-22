@@ -173,7 +173,7 @@ const UnionInfoDetailPage = () => {
                     </div>
 
                     {/* 댓글 영역 */}
-                    <div className="mt-8 bg-[#F5F5F5] rounded-[12px] p-0">
+                    <div className="mt-8 bg-white rounded-[12px] p-0">
                         <BoardComment entityType="union_info" entityId={postId} />
                     </div>
                 </div>

@@ -69,7 +69,7 @@ export function CommentForm({
                 placeholder={placeholder}
                 disabled={isSubmitting}
                 autoFocus={autoFocus}
-                className="min-h-[80px] resize-none"
+                className="min-h-[100px] resize-none rounded-[12px] border-[#CCCCCC] focus-visible:ring-[#4E8C6D] text-[16px] p-4"
             />
             <div className="flex justify-end gap-2">
                 {onCancel && (
@@ -86,13 +86,12 @@ export function CommentForm({
                 )}
                 <Button
                     type="submit"
-                    size="sm"
                     disabled={!content.trim() || isSubmitting}
-                    className="cursor-pointer"
+                    className="h-[44px] px-6 rounded-[8px] bg-[#4E8C6D] hover:bg-[#5FA37C] text-white text-[15px] cursor-pointer"
                 >
                     {isSubmitting ? (
                         <>
-                            <Loader2 className="size-4 animate-spin" />
+                            <Loader2 className="size-4 animate-spin mr-2" />
                             등록 중...
                         </>
                     ) : (
