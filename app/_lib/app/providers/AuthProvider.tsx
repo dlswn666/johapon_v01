@@ -38,11 +38,37 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     const [isLoading, setIsLoading] = useState(true);
     const [isUserFetching, setIsUserFetching] = useState(false);
 
+    // user 상태를 ref로 추적하여 클로저 문제 방지
+    const userRef = useRef<User | null>(user);
+    const isLoadingRef = useRef<boolean>(isLoading);
+    const isUserFetchingRef = useRef<boolean>(isUserFetching);
+
+    // ref 동기화
+    useEffect(() => {
+        userRef.current = user;
+    }, [user]);
+
+    useEffect(() => {
+        isLoadingRef.current = isLoading;
+    }, [isLoading]);
+
+    useEffect(() => {
+        isUserFetchingRef.current = isUserFetching;
+    }, [isUserFetching]);
+
+    // 마운트 로그
+    useEffect(() => {
+        console.log('[DEBUG] 🚀 AuthProvider mounted', {
+            timestamp: new Date().toISOString()
+        });
+    }, []);
+
     const currentSlug = pathname?.split('/')[1] || null;
 
     // 캐싱 및 레이스 컨디션 방지용 Refs
     const unionCache = useRef<Record<string, string>>({});
     const processingRef = useRef<string | null>(null);
+    const processingSessionRef = useRef<string | null>(null); // 세션 처리 중복 방지
 
     /**
      * Slug로 Union ID 조회 (캐싱 적용)
@@ -100,11 +126,47 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
                 console.error('Profile resolution error:', error);
                 return null;
             } finally {
+                console.log('[DEBUG] resolveUserProfile finally block - setting isUserFetching(false)');
                 setIsUserFetching(false);
             }
         },
         [getUnionIdBySlug]
     );
+
+    const handleSessionWithUser = useCallback(async (newSession: Session | null, event: string) => {
+        const sessionId = newSession?.user?.id || 'no-session-id';
+
+        if (processingSessionRef.current === sessionId) {
+            console.log(`[DEBUG] ⏭️ Already processing session for user ${sessionId}, skipping...`);
+            return;
+        }
+
+        console.log(`[DEBUG] ⏳ Setting isUserFetching(true) for user ${sessionId}`);
+        processingSessionRef.current = sessionId;
+        setIsUserFetching(true);
+
+        try {
+            setSession(newSession);
+            setAuthUser(newSession?.user ?? null);
+
+            if (newSession?.user) {
+                console.log(`[DEBUG] 🔍 Resolving profile for user ${newSession.user.id} (event: ${event})`);
+                const profile = await resolveUserProfile(newSession.user.id, currentSlug);
+                console.log(`[DEBUG] ✅ Profile resolved for user ${newSession.user.id}:`, profile ? '성공' : '없음');
+                setUser(profile);
+            } else {
+                console.log('[DEBUG] 🗑️ No user in session, clearing user profile.');
+                setUser(null);
+            }
+        } catch (err) {
+            console.error(`[DEBUG] 💥 Error handling session for user ${sessionId}:`, err);
+        } finally {
+            console.log(`[DEBUG] 🏁 Finishing session processing for user ${sessionId}`);
+            setIsUserFetching(false);
+            processingSessionRef.current = null;
+            console.log('[DEBUG] handleSessionWithUser 완료');
+        }
+    }, [currentSlug, resolveUserProfile]);
 
     /**
      * 초기 세션 로드 및 상태 변경 감지
@@ -161,25 +223,33 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
             console.log(`[AUTH_DEBUG] 🔔 [AUTH_EVENT] ${event}`);
             
             try {
-                setSession(newSession);
-                setAuthUser(newSession?.user ?? null);
-
                 if (event === 'SIGNED_OUT') {
+                    console.log('[DEBUG] 🗑️ SIGNED_OUT 처리');
                     setUser(null);
-                } else if (newSession?.user) {
-                    // 불필요한 반복 호출 방지
-                    const taskKey = `${newSession.user.id}-${currentSlug}`;
-                    if (processingRef.current === taskKey) {
-                        console.log('[AUTH_DEBUG] ⏩ 중복 처리 건너뜀:', taskKey);
-                        return;
+                    setAuthUser(null);
+                    setSession(null);
+                    processingSessionRef.current = null; // Clear any pending processing
+                } else if (event === 'SIGNED_IN') {
+                    const sessionId = newSession?.user?.id || 'no-session-id';
+                    if (userRef.current) {
+                        console.log('[DEBUG] ⏭️ SIGNED_IN 스킵 (이미 user 있음)');
+                    } else if (isUserFetchingRef.current) {
+                        console.log('[DEBUG] ⏭️ SIGNED_IN 스킵 (이미 user fetch 중)');
+                    } else {
+                        // user가 없으면 처리 (다른 탭에서 로그인한 경우 등)
+                        console.log('[DEBUG] 🔄 SIGNED_IN 처리 (user 없음)');
+                        await handleSessionWithUser(newSession, event);
                     }
-                    processingRef.current = taskKey;
-
-                    console.log('[AUTH_DEBUG] 🔍 프로필 조회 시작 (onAuthStateChange)');
-                    const profile = await resolveUserProfile(newSession.user.id, currentSlug);
-                    console.log('[AUTH_DEBUG] ✅ 프로필 조회 완료 (onAuthStateChange):', profile ? '성공' : '없음');
-                    setUser(profile);
-                    processingRef.current = null;
+                } else if (newSession?.user) {
+                    // For other events like 'USER_UPDATED', 'PASSWORD_RECOVERY', etc.
+                    // Or if session exists but user state needs to be re-evaluated
+                    console.log(`[DEBUG] 🔄 Handling session for event: ${event}`);
+                    await handleSessionWithUser(newSession, event);
+                } else {
+                    console.log(`[DEBUG] 🤷‍♀️ Unhandled auth event or no user in session: ${event}`);
+                    setUser(null);
+                    setAuthUser(null);
+                    setSession(null);
                 }
             } catch (err) {
                 console.error('[AUTH_DEBUG] 💥 onAuthStateChange 에러:', err);

@@ -33,25 +33,16 @@ export default function SlugProvider({ children, slug }: SlugProviderProps) {
 
     useEffect(() => {
         const fetchUnion = async () => {
-            console.log('[SLUG_DEBUG] 🚀 fetchUnion 시작:', slug);
+            console.log('[SlugProvider] 🔍 Fetching union for slug:', slug);
             setIsLoading(true);
             setLoading(true);
-
-            // 타임아웃 헬퍼 (5초)
-            const timeout = (ms: number) => new Promise((_, reject) => 
-                setTimeout(() => reject(new Error(`Timeout after ${ms}ms`)), ms)
-            );
-
             try {
-                console.log('[SLUG_DEBUG] ⏳ getUnionBySlug 호출 중...');
-                const data = await Promise.race([
-                    getUnionBySlug(slug),
-                    timeout(5000) as Promise<never>
-                ]);
-                console.log('[SLUG_DEBUG] 📦 조회 결과:', data ? '성공' : '실패');
+                const data = await getUnionBySlug(slug);
+                console.log('[SlugProvider] 📦 Union data result:', data ? { id: data.id, name: data.name, slug: data.slug } : 'null');
                 
                 if (!data) {
-                    console.warn('[SLUG_DEBUG] ⚠️ Union not found, redirecting...');
+                    console.error('[SlugProvider] ❌ Union not found for slug:', slug);
+                    // 유효하지 않은 slug인 경우 404 페이지로 리다이렉트
                     setError(new Error('Union not found'));
                     router.replace('/not-found');
                     return;
@@ -61,13 +52,13 @@ export default function SlugProvider({ children, slug }: SlugProviderProps) {
                 setCurrentUnion(data);
                 setError(null);
             } catch (err) {
-                console.error('[SLUG_DEBUG] 💥 fetchUnion 에러 (타임아웃 포함):', err);
+                console.error('[SlugProvider] 💥 Error in SlugProvider:', err);
                 setError(err instanceof Error ? err : new Error('Unknown error'));
+                // 에러 발생 시에도 404로 리다이렉트
                 router.replace('/not-found');
             } finally {
                 setIsLoading(false);
                 setLoading(false);
-                console.log('[SLUG_DEBUG] 🔚 fetchUnion 종료 (isLoading: false)');
             }
         };
 
