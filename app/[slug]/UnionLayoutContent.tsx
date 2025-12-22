@@ -82,7 +82,7 @@ export default function UnionLayoutContent({ children }: UnionLayoutContentProps
 
             {/* ABC 3분할 레이아웃 */}
             {/* Desktop: 가로 배치 (20% / 60% / 20%), Mobile: 세로 쌓기 (A → B → C) */}
-            <div className="flex-1 flex flex-col md:flex-row min-h-[800px]">
+            <div className="flex-1 flex flex-col md:flex-row min-h-[1200px]">
                 {/* A 영역 - 왼쪽 광고 */}
                 <aside className="w-full md:w-[20%] bg-gray-100 p-4 order-1">
                     <BannerAd />
