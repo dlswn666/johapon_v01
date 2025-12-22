@@ -40,7 +40,7 @@ const NoticePage = () => {
     }
 
     // 공지사항 데이터를 ListCardItem 형태로 변환
-    const listItems: ListCardItem[] = (notices || []).map((notice: any) => ({
+    const listItems: ListCardItem[] = (notices || []).map((notice) => ({
         id: notice.id,
         title: notice.title,
         author: notice.author?.name || notice.author_id,

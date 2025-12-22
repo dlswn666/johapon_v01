@@ -22,7 +22,6 @@ import useModalStore from '@/app/_lib/shared/stores/modal/useModalStore';
 import { TextEditor } from '@/app/_lib/widgets/common/text-editor';
 import { FileUploader } from '@/app/_lib/widgets/common/file-uploader/FileUploader';
 import { useFileStore } from '@/app/_lib/shared/stores/file/useFileStore';
-import { Download, Trash2, Paperclip } from 'lucide-react';
 import { fileApi } from '@/app/_lib/shared/hooks/file/fileApi';
 
 const formSchema = z.object({
@@ -82,41 +81,6 @@ const EditUnionInfoPage = () => {
             updates: values,
         });
     }
-
-    const handleFileDownload = async (path: string, fileName: string) => {
-        try {
-            const url = await fileApi.getDownloadUrl(path, fileName);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = fileName;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        } catch (err) {
-            console.error('Download failed', err);
-            openAlertModal({
-                title: '다운로드 실패',
-                message: '파일 다운로드에 실패했습니다.',
-                type: 'error',
-            });
-        }
-    };
-
-    const handleFileDelete = (fileId: string, filePath: string) => {
-        openConfirmModal({
-            title: '파일 삭제',
-            message: '정말로 이 파일을 삭제하시겠습니까?',
-            onConfirm: () => deleteFile({ fileId, filePath, postId }),
-        });
-    };
-
-    const formatFileSize = (bytes: number) => {
-        if (bytes === 0) return '0 Bytes';
-        const k = 1024;
-        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-    };
 
     if (isUnionLoading || isLoading) {
         return (

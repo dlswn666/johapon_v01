@@ -3,7 +3,7 @@
 import { QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { Toaster, resolveValue } from 'react-hot-toast';
-import { Toast, ToastStatus } from '@/app/_lib/widgets/common/toast/Toast';
+import { Toast } from '@/app/_lib/widgets/common/toast/Toast';
 import { queryClient } from './queryClient';
 
 /**

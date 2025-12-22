@@ -3,7 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { Search, ChevronLeft, ChevronRight, User } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useFreeBoards } from '@/app/_lib/features/free-board/api/useFreeBoardHook';

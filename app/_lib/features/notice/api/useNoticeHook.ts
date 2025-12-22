@@ -32,7 +32,7 @@ export const useNotices = (enabled: boolean = true) => {
             // 1. 공지사항 목록 조회 (다형성 패턴으로 인해 files 관계 쿼리 제거)
             const { data: noticesData, error: noticesError } = await supabase
                 .from('notices')
-                .select('*, alimtalk_logs(count)')
+                .select('*, author:users!notices_author_id_fkey(id, name), alimtalk_logs(count)')
                 .eq('union_id', union.id)
                 .order('created_at', { ascending: false });
 
@@ -94,6 +94,7 @@ export const useNotices = (enabled: boolean = true) => {
             }));
 
             return noticesWithCounts as (Notice & {
+                author: { id: string; name: string } | null;
                 alimtalk_logs: { count: number }[];
                 file_count: number;
                 comment_count: number;

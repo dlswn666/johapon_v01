@@ -64,7 +64,7 @@ const UnionInfoListPage = () => {
     const posts = data?.data || [];
 
     // 조합 정보 데이터를 ListCardItem 형태로 변환
-    const listItems: ListCardItem[] = posts.map((post: any) => {
+    const listItems: ListCardItem[] = posts.map((post) => {
         const isMine = post.author_id === user?.id;
         const authorName = (post.author as { name: string } | null)?.name || post.author_id || '알 수 없음';
 
