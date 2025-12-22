@@ -38,11 +38,48 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     const [isLoading, setIsLoading] = useState(true);
     const [isUserFetching, setIsUserFetching] = useState(false);
 
+    // user 상태를 ref로 추적하여 클로저 문제 방지
+    const userRef = useRef<User | null>(user);
+    const isLoadingRef = useRef<boolean>(isLoading);
+    const isUserFetchingRef = useRef<boolean>(isUserFetching);
+
+    // ref 동기화
+    useEffect(() => {
+        userRef.current = user;
+    }, [user]);
+
+    useEffect(() => {
+        isLoadingRef.current = isLoading;
+    }, [isLoading]);
+
+    useEffect(() => {
+        isUserFetchingRef.current = isUserFetching;
+    }, [isUserFetching]);
+
+    // 마운트 로그
+    useEffect(() => {
+        console.log('[DEBUG] 🚀 AuthProvider mounted', {
+            timestamp: new Date().toISOString()
+        });
+    }, []);
+
+    // isUserFetching 워치독 (무한 로딩 방지용)
+    useEffect(() => {
+        if (isUserFetching) {
+            const timer = setTimeout(() => {
+                console.warn('[DEBUG] 🚨 Watchdog: isUserFetching is stuck for 15s. Force resetting loading states.');
+                setIsUserFetching(false);
+                setIsLoading(false);
+            }, 15000);
+            return () => clearTimeout(timer);
+        }
+    }, [isUserFetching]);
+
     const currentSlug = pathname?.split('/')[1] || null;
 
     // 캐싱 및 레이스 컨디션 방지용 Refs
     const unionCache = useRef<Record<string, string>>({});
-    const processingRef = useRef<string | null>(null);
+    const processingSessionRef = useRef<string | null>(null); // 세션 처리 중복 방지
 
     /**
      * Slug로 Union ID 조회 (캐싱 적용)
@@ -62,49 +99,139 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
      */
     const resolveUserProfile = useCallback(
         async (authUserId: string, slug: string | null, silent = false): Promise<User | null> => {
+            console.log('[DEBUG] resolveUserProfile 시작', { authUserId, slug, silent });
             if (!silent) setIsUserFetching(true);
+
+            // 타임아웃 헬퍼 (5초)
+            const queryTimeout = (ms: number = 5000) => new Promise((_, reject) => 
+                setTimeout(() => reject(new Error(`Query timeout after ${ms}ms`)), ms)
+            );
             try {
                 // 1. 계정에 연결된 모든 프로필 ID 조회
-                const { data: links } = await supabase
-                    .from('user_auth_links')
-                    .select('user_id')
-                    .eq('auth_user_id', authUserId);
-                if (!links || links.length === 0) return null;
+                console.log('[DEBUG] 1. user_auth_links 조회 시작');
+                const { data: links, error: linksError } = await Promise.race([
+                    supabase
+                        .from('user_auth_links')
+                        .select('user_id')
+                        .eq('auth_user_id', authUserId),
+                    queryTimeout() as Promise<never>
+                ]);
+                
+                if (linksError) {
+                    console.error('[DEBUG] ❌ user_auth_links 조회 에러:', linksError);
+                    return null;
+                }
+                
+                if (!links || links.length === 0) {
+                    console.log('[DEBUG] ⚠️ No links found for auth user');
+                    return null;
+                }
+                
                 const userIds = links.map((l) => l.user_id);
+                console.log('[DEBUG] 📦 연동된 userIds:', userIds);
 
                 // 2. 시스템 관리자 권한 확인 (전역 권한)
-                const { data: systemAdmin } = await supabase
-                    .from('users')
-                    .select('*')
-                    .in('id', userIds)
-                    .eq('role', 'SYSTEM_ADMIN')
-                    .single();
-                if (systemAdmin) return systemAdmin as User;
-
-                // 3. 현재 접속한 조합(Slug)에 맞는 프로필 확인
-                if (slug) {
-                    const unionId = await getUnionIdBySlug(slug);
-                    if (unionId) {
-                        const { data: unionUser } = await supabase
-                            .from('users')
-                            .select('*')
-                            .in('id', userIds)
-                            .eq('union_id', unionId)
-                            .single();
-                        if (unionUser) return unionUser as User;
-                    }
+                console.log('[DEBUG] 2. SYSTEM_ADMIN 권한 확인 시작');
+                const { data: systemAdmin, error: adminError } = await Promise.race([
+                    supabase
+                        .from('users')
+                        .select('*')
+                        .in('id', userIds)
+                        .eq('role', 'SYSTEM_ADMIN')
+                        .maybeSingle(),
+                    queryTimeout() as Promise<never>
+                ]);
+                
+                if (adminError) {
+                    console.error('[DEBUG] ❌ SYSTEM_ADMIN 확인 중 에러:', adminError);
                 }
 
+                if (systemAdmin) {
+                    console.log('[DEBUG] ✅ SYSTEM_ADMIN 발견');
+                    return systemAdmin as User;
+                }
+
+                // 3. 현재 접속한 조합(Slug)에 맞는 프로필 확인
+                const RESERVED_SLUGS = ['systemAdmin', 'auth', 'api', 'admin', 'not-found', 'login'];
+                if (slug && !RESERVED_SLUGS.includes(slug)) {
+                    console.log('[DEBUG] 3. 현재 조합 프로필 확인 시작', { slug });
+                    const unionId = await getUnionIdBySlug(slug);
+                    if (unionId) {
+                        console.log('[DEBUG] 🔍 unionId 발견:', unionId);
+                        const { data: unionUser, error: unionUserError } = await Promise.race([
+                            supabase
+                                .from('users')
+                                .select('*')
+                                .in('id', userIds)
+                                .eq('union_id', unionId)
+                                .maybeSingle(),
+                            queryTimeout() as Promise<never>
+                        ]);
+                        
+                        if (unionUserError) {
+                            console.error('[DEBUG] ❌ 조합 프로필 확인 중 에러:', unionUserError);
+                        }
+
+                        if (unionUser) {
+                            console.log('[DEBUG] ✅ 조합 프로필 발견');
+                            return unionUser as User;
+                        } else {
+                            console.log('[DEBUG] ⚠️ 해당 조합에 프로필 없음');
+                        }
+                    } else {
+                        console.log('[DEBUG] ⚠️ 해당 slug에 대한 조합 ID를 찾을 수 없음');
+                    }
+                } else if (slug) {
+                    console.log('[DEBUG] ⏭️ Reserved slug 스킵:', slug);
+                }
+
+                console.log('[DEBUG] 🤷‍♀️ 적절한 프로필을 찾을 수 없음');
                 return null; // 맞는 프로필 없음 (신규 유저 혹은 타 조합원)
             } catch (error) {
-                console.error('Profile resolution error:', error);
+                console.error('[DEBUG] 💥 Profile resolution error:', error);
                 return null;
             } finally {
+                console.log('[DEBUG] resolveUserProfile 종료 - isUserFetching(false)');
                 setIsUserFetching(false);
             }
         },
         [getUnionIdBySlug]
     );
+
+    const handleSessionWithUser = useCallback(async (newSession: Session | null, event: string, silent = false) => {
+        const sessionId = newSession?.user?.id || 'no-session-id';
+
+        if (processingSessionRef.current === sessionId) {
+            console.log(`[DEBUG] ⏭️ Already processing session for user ${sessionId}, skipping...`);
+            return;
+        }
+
+        console.log(`[DEBUG] ⏳ Setting isUserFetching(${!silent}) for user ${sessionId}`);
+        processingSessionRef.current = sessionId;
+        if (!silent) setIsUserFetching(true);
+
+        try {
+            setSession(newSession);
+            setAuthUser(newSession?.user ?? null);
+
+            if (newSession?.user) {
+                console.log(`[DEBUG] 🔍 Resolving profile for user ${newSession.user.id} (event: ${event}, silent: ${silent})`);
+                const profile = await resolveUserProfile(newSession.user.id, currentSlug, silent);
+                console.log(`[DEBUG] ✅ Profile resolved for user ${newSession.user.id}:`, profile ? '성공' : '없음');
+                setUser(profile);
+            } else {
+                console.log('[DEBUG] 🗑️ No user in session, clearing user profile.');
+                setUser(null);
+            }
+        } catch (err) {
+            console.error(`[DEBUG] 💥 Error handling session for user ${sessionId}:`, err);
+        } finally {
+            console.log(`[DEBUG] 🏁 Finishing session processing for user ${sessionId}`);
+            setIsUserFetching(false);
+            processingSessionRef.current = null;
+            console.log('[DEBUG] handleSessionWithUser 완료');
+        }
+    }, [currentSlug, resolveUserProfile]);
 
     /**
      * 초기 세션 로드 및 상태 변경 감지
@@ -113,7 +240,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
         const initAuth = async () => {
             console.log('[AUTH_DEBUG] 🚀 initAuth 시작');
             
-            // 타임아웃 헬퍼 (5초)
+            // 타임아웃 헬퍼 (10초로 증설)
             const timeout = (ms: number) => new Promise((_, reject) => 
                 setTimeout(() => reject(new Error(`Timeout after ${ms}ms`)), ms)
             );
@@ -125,7 +252,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
                     error
                 } = await Promise.race([
                     supabase.auth.getSession(),
-                    timeout(5000) as Promise<never>
+                    timeout(10000) as Promise<never>
                 ]);
 
                 if (error) {
@@ -137,13 +264,8 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
                 setAuthUser(initSession?.user ?? null);
 
                 if (initSession?.user) {
-                    console.log('[AUTH_DEBUG] 🔍 프로필 조회 시작 (initAuth)');
-                    const profile = await Promise.race([
-                        resolveUserProfile(initSession.user.id, currentSlug, false),
-                        timeout(3000) as Promise<never>
-                    ]);
-                    console.log('[AUTH_DEBUG] ✅ 프로필 조회 완료 (initAuth):', profile ? '성공' : '없음');
-                    setUser(profile);
+                    console.log('[AUTH_DEBUG]  handleSessionWithUser 호출 (initAuth)');
+                    await handleSessionWithUser(initSession, 'INITIAL_SESSION', false);
                 }
             } catch (err) {
                 console.error('[AUTH_DEBUG] 💥 initAuth 에러 (타임아웃 포함):', err);
@@ -161,30 +283,31 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
             console.log(`[AUTH_DEBUG] 🔔 [AUTH_EVENT] ${event}`);
             
             try {
-                setSession(newSession);
-                setAuthUser(newSession?.user ?? null);
-
                 if (event === 'SIGNED_OUT') {
+                    console.log('[DEBUG] 🗑️ SIGNED_OUT 처리');
                     setUser(null);
                 } else if (newSession?.user) {
                     // 사용자 ID가 변경된 경우에만 로딩 표시와 함께 프로필 재갱신
                     // 단순 세션 갱신(TOKEN_REFRESHED 등)이거나 포커스 이벤트로 인한 중복 호출이면 무시
                     const isUserChanged = authUser?.id !== newSession.user.id;
-                    const taskKey = `${newSession.user.id}-${currentSlug}`;
                     
-                    if (!isUserChanged && processingRef.current === taskKey) {
-                        console.log('[AUTH_DEBUG] ⏩ 신규 유저가 아니고 처리 중인 태스크가 동일함:', taskKey);
+                    if (event === 'SIGNED_IN' && userRef.current && !isUserChanged) {
+                        console.log('[DEBUG] ⏭️ SIGNED_IN 스킵 (이미 user가 있고 ID 동일)');
                         return;
                     }
-                    
-                    processingRef.current = taskKey;
 
-                    console.log(`[AUTH_DEBUG] 🔍 프로필 조회 시작 (onAuthStateChange), Silent: ${!isUserChanged}`);
-                    // 유저가 바뀌지 않았다면 로딩바 없이 조용히 갱신
-                    const profile = await resolveUserProfile(newSession.user.id, currentSlug, !isUserChanged);
-                    console.log('[AUTH_DEBUG] ✅ 프로필 조회 완료 (onAuthStateChange):', profile ? '성공' : '없음');
-                    setUser(profile);
-                    processingRef.current = null;
+                    if (isUserFetchingRef.current && !isUserChanged) {
+                         console.log('[DEBUG] ⏭️ Auth 이벤트 스킵 (이미 fetch 중이고 ID 동일)');
+                         return;
+                    }
+
+                    console.log(`[DEBUG] 🔄 Handling session for event: ${event}, Silent: ${!isUserChanged}`);
+                    await handleSessionWithUser(newSession, event, !isUserChanged);
+                } else {
+                    console.log(`[DEBUG] 🤷‍♀️ Unhandled auth event or no user in session: ${event}`);
+                    setUser(null);
+                    setAuthUser(null);
+                    setSession(null);
                 }
             } catch (err) {
                 console.error('[AUTH_DEBUG] 💥 onAuthStateChange 에러:', err);
@@ -195,7 +318,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
             console.log('[AUTH_DEBUG] 🔌 AuthProvider useEffect Cleanup');
             subscription.unsubscribe();
         };
-    }, [currentSlug, resolveUserProfile, authUser?.id]);
+    }, [currentSlug, resolveUserProfile, handleSessionWithUser, authUser?.id]);
 
     /**
      * 로그인/로그아웃 함수들
@@ -227,8 +350,12 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     }, [router]);
 
     const refreshUser = useCallback(async () => {
-        if (authUser) setUser(await resolveUserProfile(authUser.id, currentSlug));
-    }, [authUser, currentSlug, resolveUserProfile]);
+        const { data: { user: latestAuthUser } } = await supabase.auth.getUser();
+        if (latestAuthUser) {
+            setAuthUser(latestAuthUser);
+            setUser(await resolveUserProfile(latestAuthUser.id, currentSlug));
+        }
+    }, [currentSlug, resolveUserProfile]);
 
     // 파생 상태 계산
     const isSystemAdmin = user?.role === 'SYSTEM_ADMIN';

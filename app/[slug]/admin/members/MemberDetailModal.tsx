@@ -83,15 +83,6 @@ export default function MemberDetailModal({ invite, onClose }: MemberDetailModal
                         <p className="text-gray-900 text-lg font-medium pl-6">{invite.phone_number}</p>
                     </div>
 
-                    {/* 물건지 주소 */}
-                    <div className="p-4 bg-gray-50 rounded-xl space-y-1">
-                        <div className="flex items-center gap-2 text-gray-500 text-sm">
-                            <MapPin className="w-4 h-4" />
-                            물건지 주소
-                        </div>
-                        <p className="text-gray-900 text-lg font-medium pl-6">{invite.property_address}</p>
-                    </div>
-
                     {/* 등록일 */}
                     <div className="text-sm text-gray-500 text-center pt-2">
                         등록일: {new Date(invite.created_at).toLocaleDateString('ko-KR')}

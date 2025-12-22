@@ -14,7 +14,7 @@ import { ApprovalRejectedModal } from './ApprovalRejectedModal';
 export function UserStatusModal() {
     const searchParams = useSearchParams();
     const router = useRouter();
-    const { user, userStatus, isLoading } = useAuth();
+    const { user, userStatus, isLoading, isUserFetching } = useAuth();
     const { slug } = useSlug();
 
     // 모달 닫힘 상태 추적
@@ -23,24 +23,27 @@ export function UserStatusModal() {
 
     // URL 파라미터 또는 사용자 상태에서 모달 표시 여부 계산
     const showPendingModal = useMemo(() => {
-        if (isLoading || pendingModalDismissed) return false;
+        if (isLoading || isUserFetching || pendingModalDismissed) return false;
 
         const statusParam = searchParams.get('status');
         if (statusParam === 'pending') return true;
         if (userStatus === 'PENDING_APPROVAL') return true;
 
         return false;
-    }, [searchParams, userStatus, isLoading, pendingModalDismissed]);
+    }, [searchParams, userStatus, isLoading, isUserFetching, pendingModalDismissed]);
 
     const showRejectedModal = useMemo(() => {
-        if (isLoading || rejectedModalDismissed) return false;
+        if (isLoading || isUserFetching || rejectedModalDismissed) return false;
+
+        // 추가: 현재 상태가 승인 대기 중이면 반려 모달을 표시하지 않음 (중첩 방지)
+        if (userStatus === 'PENDING_APPROVAL') return false;
 
         const statusParam = searchParams.get('status');
         if (statusParam === 'rejected') return true;
         if (userStatus === 'REJECTED') return true;
 
         return false;
-    }, [searchParams, userStatus, isLoading, rejectedModalDismissed]);
+    }, [searchParams, userStatus, isLoading, isUserFetching, rejectedModalDismissed]);
 
     const handleClosePendingModal = useCallback(() => {
         setPendingModalDismissed(true);

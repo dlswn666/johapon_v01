@@ -2,7 +2,8 @@
 
 import { QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
-import { Toaster } from 'react-hot-toast';
+import { Toaster, resolveValue } from 'react-hot-toast';
+import { Toast, ToastStatus } from '@/app/_lib/widgets/common/toast/Toast';
 import { queryClient } from './queryClient';
 
 /**
@@ -16,29 +17,27 @@ export function Providers({ children }: { children: React.ReactNode }) {
             {children}
             <ReactQueryDevtools initialIsOpen={false} />
             <Toaster
-                position="top-right"
+                position="top-center"
                 toastOptions={{
                     duration: 3000,
-                    style: {
-                        background: '#363636',
-                        color: '#fff',
-                    },
-                    success: {
-                        duration: 3000,
-                        iconTheme: {
-                            primary: '#4ade80',
-                            secondary: '#fff',
-                        },
-                    },
-                    error: {
-                        duration: 4000,
-                        iconTheme: {
-                            primary: '#ef4444',
-                            secondary: '#fff',
-                        },
-                    },
                 }}
-            />
+            >
+                {(t) => (
+                    <Toast
+                        t={t}
+                        status={
+                            t.type === 'loading'
+                                ? 'loading'
+                                : t.type === 'success'
+                                ? 'success'
+                                : t.type === 'error'
+                                ? 'error'
+                                : 'info'
+                        }
+                        message={resolveValue(t.message, t)}
+                    />
+                )}
+            </Toaster>
         </QueryClientProvider>
     );
 }

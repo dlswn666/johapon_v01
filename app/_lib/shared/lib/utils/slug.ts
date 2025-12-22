@@ -17,8 +17,12 @@ export const getUnionBySlug = async (slug: string): Promise<Union | null> => {
         .single();
 
     if (error) {
-        console.error('Error fetching union:', error);
+        console.error(`[slug.ts] ❌ Error fetching union for slug "${slug}":`, error);
         return null;
+    }
+
+    if (!data) {
+        console.warn(`[slug.ts] ⚠️ No union found for slug "${slug}"`);
     }
 
     return data;

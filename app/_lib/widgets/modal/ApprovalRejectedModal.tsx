@@ -37,9 +37,9 @@ export function ApprovalRejectedModal({
     userName,
     rejectedReason,
 }: ApprovalRejectedModalProps) {
-    const { user, refreshUser } = useAuth();
+    const { user, refreshUser, isLoading: authLoading, isUserFetching } = useAuth();
     const [mode, setMode] = useState<ModalMode>('rejected');
-    const [isLoading, setIsLoading] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState('');
     
     // 폼 상태
@@ -55,20 +55,24 @@ export function ApprovalRejectedModal({
 
     // 모달 열릴 때 사용자 정보로 폼 초기화
     useEffect(() => {
-        if (isOpen && user) {
-            setForm({
-                name: user.name || '',
-                phone_number: user.phone_number || '',
-                birth_date: user.birth_date || '',
-                property_zonecode: user.property_zonecode || '',
-                property_address_road: user.property_address_road || '',
-                property_address_jibun: user.property_address_jibun || '',
-                property_address_detail: user.property_address_detail || '',
-            });
-            setMode('rejected');
-            setError('');
-        }
-    }, [isOpen, user]);
+        // 모달이 닫혀있거나 사용자가 아직 없는 경우 스킵
+        if (!isOpen || !user) return;
+
+        // 이미 'edit' 모드인 경우 폼 초기화 스킵 (사용자 입력 유지)
+        if (mode === 'edit') return;
+
+        setForm({
+            name: user.name || '',
+            phone_number: user.phone_number || '',
+            birth_date: user.birth_date || '',
+            property_zonecode: user.property_zonecode || '',
+            property_address_road: user.property_address_road || '',
+            property_address_jibun: user.property_address_jibun || '',
+            property_address_detail: user.property_address_detail || '',
+        });
+        setMode('rejected');
+        setError('');
+    }, [isOpen, user, mode]);
 
     if (!isOpen) return null;
 
@@ -114,8 +118,14 @@ export function ApprovalRejectedModal({
 
     // 수정 완료 및 재신청 제출
     const handleSubmit = async () => {
+        if (!user && (authLoading || isUserFetching)) {
+            return; // 아직 로딩 중이면 대기
+        }
+
         if (!user?.id) {
-            setError('사용자 정보를 찾을 수 없습니다.');
+            setError('사용자 정보를 찾을 수 없습니다. 다시 로그인해주세요.');
+            // 강제로 새로고침 시도
+            refreshUser();
             return;
         }
 
@@ -137,7 +147,7 @@ export function ApprovalRejectedModal({
             return;
         }
 
-        setIsLoading(true);
+        setIsSubmitting(true);
         setError('');
 
         try {
@@ -167,13 +177,13 @@ export function ApprovalRejectedModal({
             // 사용자 정보 새로고침
             await refreshUser();
 
-            // 심사중 모드로 전환
-            setMode('pending');
+            // 성공 시 모달을 닫음 (UserStatusModal에서 승인 대기 모달을 띄우므로 중첩 방지를 위해 즉시 종료)
+            onClose();
         } catch (err) {
             console.error('Reapply error:', err);
             setError('재신청 처리 중 오류가 발생했습니다.');
         } finally {
-            setIsLoading(false);
+            setIsSubmitting(false);
         }
     };
 
@@ -374,7 +384,7 @@ export function ApprovalRejectedModal({
                 <div className="flex gap-3 mt-6">
                     <button
                         onClick={() => setMode('rejected')}
-                        disabled={isLoading}
+                        disabled={isSubmitting}
                         className={cn(
                             'flex-1 h-12 rounded-lg font-medium',
                             'border border-gray-300 text-gray-700',
@@ -387,7 +397,7 @@ export function ApprovalRejectedModal({
                     </button>
                     <button
                         onClick={handleSubmit}
-                        disabled={isLoading}
+                        disabled={isSubmitting}
                         className={cn(
                             'flex-1 h-12 rounded-lg font-medium text-white',
                             'bg-[#4E8C6D] hover:bg-[#3d7058]',
@@ -396,7 +406,7 @@ export function ApprovalRejectedModal({
                             'flex items-center justify-center gap-2'
                         )}
                     >
-                        {isLoading ? (
+                        {(isSubmitting || (!user && isUserFetching)) ? (
                             <>
                                 <Loader2 className="w-4 h-4 animate-spin" />
                                 <span>처리 중...</span>
