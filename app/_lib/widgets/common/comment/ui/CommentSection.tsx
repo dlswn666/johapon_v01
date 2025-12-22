@@ -62,7 +62,7 @@ export function CommentSection({
             className
         )}>
             <CardHeader className={cn('pb-3', noPadding && 'px-0 pt-0')}>
-                <CardTitle className="flex items-center gap-2 text-lg">
+                <CardTitle className="flex items-center gap-2 text-lg py-4 px-6">
                     <MessageSquare className="size-5" />
                     {title}
                     {!isCommentsLoading && (
@@ -72,18 +72,21 @@ export function CommentSection({
                     )}
                 </CardTitle>
             </CardHeader>
-            <CardContent className={cn('space-y-4', noPadding && 'p-0')}>
+            <CardContent className={cn('space-y-4', noPadding && 'px-0 pb-6')}>
                 {/* 댓글 입력 폼 */}
-                <CommentForm
-                    entityType={entityType}
-                    entityId={entityId}
-                    authorId={currentUserId}
-                />
+                <div className={cn(noPadding && 'px-6')}>
+                    <CommentForm
+                        entityType={entityType}
+                        entityId={entityId}
+                        authorId={currentUserId}
+                    />
+                </div>
 
                 {/* 구분선 */}
-                <div className="border-t" />
+                <div className="border-t mx-6" />
 
                 {/* 댓글 목록 */}
+                <div className={cn(noPadding && 'px-6')}>
                 {isCommentsLoading ? (
                     <div className="flex items-center justify-center py-8">
                         <Loader2 className="size-6 animate-spin text-muted-foreground" />
@@ -101,6 +104,7 @@ export function CommentSection({
                         currentUserId={currentUserId}
                     />
                 )}
+                </div>
             </CardContent>
         </Card>
     );
