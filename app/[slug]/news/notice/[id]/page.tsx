@@ -6,6 +6,7 @@ import React from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useNotice, useIncrementNoticeViews, useDeleteNotice } from '@/app/_lib/features/notice/api/useNoticeHook';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
+import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import ConfirmModal from '@/app/_lib/widgets/modal/ConfirmModal';
 import AlertModal from '@/app/_lib/widgets/modal/AlertModal';
 import useModalStore from '@/app/_lib/shared/stores/modal/useModalStore';
@@ -19,6 +20,7 @@ const NoticeDetailPage = () => {
     const id = params.id as string;
     const noticeId = parseInt(id);
     const { isLoading: isUnionLoading } = useSlug();
+    const { isAdmin, isSystemAdmin } = useAuth();
     
     const { data: notice, isLoading, error } = useNotice(noticeId);
     const { mutate: incrementViews } = useIncrementNoticeViews();
@@ -67,18 +69,22 @@ const NoticeDetailPage = () => {
                     <div className="flex justify-between items-start border-b border-[#CCCCCC] pb-6">
                         <h2 className="text-[32px] font-bold text-[#5FA37C]">{notice.title}</h2>
                         <div className="flex gap-2">
-                            <Button 
-                                className="bg-white border border-[#4E8C6D] text-[#4E8C6D] hover:bg-[#F5F5F5] cursor-pointer" 
-                                onClick={() => router.push(`/${slug}/news/notice/${id}/edit`)}
-                            >
-                                수정
-                            </Button>
-                            <Button 
-                                className="bg-[#D9534F] text-white hover:bg-[#D9534F]/90 cursor-pointer" 
-                                onClick={handleDelete}
-                            >
-                                삭제
-                            </Button>
+                            {(isAdmin || isSystemAdmin) && (
+                                <>
+                                    <Button 
+                                        className="bg-white border border-[#4E8C6D] text-[#4E8C6D] hover:bg-[#F5F5F5] cursor-pointer" 
+                                        onClick={() => router.push(`/${slug}/news/notice/${id}/edit`)}
+                                    >
+                                        수정
+                                    </Button>
+                                    <Button 
+                                        className="bg-[#D9534F] text-white hover:bg-[#D9534F]/90 cursor-pointer" 
+                                        onClick={handleDelete}
+                                    >
+                                        삭제
+                                    </Button>
+                                </>
+                            )}
                             <Button 
                                 className="bg-[#E6E6E6] text-[#5FA37C] hover:bg-[#E6E6E6]/80 cursor-pointer" 
                                 onClick={() => router.push(`/${slug}/news/notice`)}
@@ -107,7 +113,7 @@ const NoticeDetailPage = () => {
                     </div>
 
                     {/* 댓글 영역 */}
-                    <div className="mt-8 bg-[#F5F5F5] rounded-[12px] p-6">
+                    <div className="mt-8 bg-[#F5F5F5] rounded-[12px] p-0">
                         <CommentSection
                             entityType="notice"
                             entityId={noticeId}

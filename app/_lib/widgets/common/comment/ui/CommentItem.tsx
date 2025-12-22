@@ -75,20 +75,36 @@ export function CommentItem({
         }
     };
 
-    // 삭제 처리
+    // 실지 삭제 또는 문구 변경 처리
     const handleDelete = () => {
+        const hasReplies = comment.replies && comment.replies.length > 0;
+        const confirmMessage = hasReplies 
+            ? '댓글을 삭제하시겠습니까? 답글이 있어 "삭제된 댓글입니다"로 표시됩니다.' 
+            : '댓글을 삭제하시겠습니까?';
+
         openConfirmModal({
             title: '댓글 삭제',
-            message: '댓글을 삭제하시겠습니까? 답글도 함께 삭제됩니다.',
+            message: confirmMessage,
             onConfirm: async () => {
                 try {
-                    await deleteCommentMutation.mutateAsync({
-                        id: comment.id,
-                        entityType,
-                        entityId,
-                    });
+                    if (hasReplies) {
+                        // 답글이 있는 경우: 내용만 변경 (Soft Delete)
+                        await updateCommentMutation.mutateAsync({
+                            id: comment.id,
+                            updates: { content: '삭제된 댓글입니다.' },
+                            entityType,
+                            entityId,
+                        });
+                    } else {
+                        // 답글이 없는 경우: 실제 삭제
+                        await deleteCommentMutation.mutateAsync({
+                            id: comment.id,
+                            entityType,
+                            entityId,
+                        });
+                    }
                 } catch (error) {
-                    console.error('Failed to delete comment:', error);
+                    console.error('Failed to handle comment deletion:', error);
                 }
             },
         });
@@ -96,30 +112,31 @@ export function CommentItem({
 
     const isUpdating = updateCommentMutation.isPending;
     const isDeleting = deleteCommentMutation.isPending;
+    const isDeleted = comment.content === '삭제된 댓글입니다.';
 
     return (
         <div className={cn('py-4', isReply && 'pl-8 border-l-2 border-muted ml-4')}>
             {/* 댓글 헤더 */}
             <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
-                    <span className="font-medium text-sm">{authorName}</span>
+                    <span className="font-medium text-sm">{isDeleted ? '(삭제됨)' : authorName}</span>
                     <span className="text-xs text-muted-foreground">
                         {formatDate(comment.created_at)}
                     </span>
-                    {comment.updated_at !== comment.created_at && (
+                    {comment.updated_at !== comment.created_at && !isDeleted && (
                         <span className="text-xs text-muted-foreground">(수정됨)</span>
                     )}
                 </div>
 
                 {/* 액션 버튼 */}
-                {isOwner && !isEditing && (
+                {isOwner && !isEditing && !isDeleted && (
                     <div className="flex items-center gap-1">
                         <Button
                             variant="ghost"
                             size="icon-sm"
                             onClick={() => setIsEditing(true)}
-                            disabled={isDeleting}
-                            className="cursor-pointer"
+                            disabled={isDeleting || isUpdating}
+                            className="cursor-pointer hover:bg-gray-100"
                         >
                             <Pencil className="size-3.5" />
                         </Button>
@@ -127,13 +144,13 @@ export function CommentItem({
                             variant="ghost"
                             size="icon-sm"
                             onClick={handleDelete}
-                            disabled={isDeleting}
-                            className="cursor-pointer"
+                            disabled={isDeleting || isUpdating}
+                            className="cursor-pointer hover:bg-gray-200"
                         >
-                            {isDeleting ? (
+                            {isDeleting || isUpdating ? (
                                 <Loader2 className="size-3.5 animate-spin" />
                             ) : (
-                                <Trash2 className="size-3.5" />
+                                <Trash2 className="size-3.5 text-gray-500 hover:text-gray-700" />
                             )}
                         </Button>
                     </div>
@@ -180,7 +197,9 @@ export function CommentItem({
                     </div>
                 </div>
             ) : (
-                <p className="text-sm whitespace-pre-wrap">{comment.content}</p>
+                <p className={cn("text-sm whitespace-pre-wrap", isDeleted && "text-muted-foreground italic")}>
+                    {comment.content}
+                </p>
             )}
 
             {/* 답글 달기 버튼 (원댓글만, 로그인 상태만) */}
