@@ -7,6 +7,7 @@ import { supabase } from '@/app/_lib/shared/supabase/client';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import { User, NewUser, AuthProvider } from '@/app/_lib/shared/type/database.types';
+import { sendAlimTalk } from '@/app/_lib/features/alimtalk/actions/sendAlimTalk';
 import {
     MapPin,
     Phone,
@@ -488,6 +489,43 @@ export function RegisterModal({
 
             await refreshUser();
             onClose();
+
+            if (!isInvite && unionId) {
+                try {
+                    const { data: admins } = await supabase
+                        .from('users')
+                        .select('phone_number, name')
+                        .eq('union_id', unionId)
+                        .eq('role', 'ADMIN')
+                        .eq('user_status', 'APPROVED');
+
+                    if (admins && admins.length > 0) {
+                        const { data: unionData } = await supabase
+                            .from('unions')
+                            .select('name')
+                            .eq('id', unionId)
+                            .single();
+
+                        await sendAlimTalk({
+                            unionId: unionId,
+                            templateCode: 'UE_3805', // 사용자 승인 요청 알림 템플릿
+                            recipients: admins.map((admin) => ({
+                                phoneNumber: admin.phone_number,
+                                name: admin.name,
+                                variables: {
+                                    조합명: unionData?.name || '',
+                                    신청자명: formData.name,
+                                    신청일시: new Date().toLocaleString('ko-KR'),
+                                    조합슬러그: slug || '',
+                                },
+                            })),
+                        });
+                        console.log(`[승인 요청 알림톡] 관리자 ${admins.length}명에게 발송 요청 완료`);
+                    }
+                } catch (alimTalkError) {
+                    console.error('관리자 알림톡 발송 실패:', alimTalkError);
+                }
+            }
 
             if (isInvite) {
                 router.push(`/${slug}`);

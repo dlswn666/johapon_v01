@@ -243,12 +243,13 @@ export const useAddNotice = () => {
             // 5. 알림톡 발송 로직
             if (send_alimtalk) {
                 try {
-                    // 해당 조합의 모든 '승인됨' 상태의 조합원 조회 (수신 대상)
+                    // 해당 조합의 '승인됨' 상태의 일반 조합원 조회 (수신 대상)
                     const { data: approvedMembers } = await supabase
                         .from('users')
                         .select('phone_number, name')
                         .eq('union_id', union.id)
-                        .eq('user_status', 'APPROVED');
+                        .eq('user_status', 'APPROVED')
+                        .eq('role', 'USER');
 
                     if (approvedMembers && approvedMembers.length > 0) {
                         const createdDate = new Date(noticeData.created_at);
