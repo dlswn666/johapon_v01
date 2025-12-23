@@ -3,7 +3,7 @@
 import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
-import { PageSkeleton } from '@/app/_lib/widgets/common/skeleton/PageSkeleton';
+import { Skeleton } from '@/components/ui/skeleton';
 import AuthProvider, { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import { AdminHeader } from '@/app/_lib/widgets/admin-header';
 
@@ -19,7 +19,11 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
     }, [isLoading, isSystemAdmin, router]);
 
     if (isLoading) {
-        return <PageSkeleton />;
+        return (
+            <div className="container mx-auto px-4 py-8">
+                <Skeleton className="w-full h-[600px] rounded-[24px]" />
+            </div>
+        );
     }
 
     if (!isSystemAdmin) {

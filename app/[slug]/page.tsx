@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import { PageSkeleton } from '@/app/_lib/widgets/common/skeleton/PageSkeleton';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
@@ -38,10 +37,13 @@ export default function UnionHomePage() {
         unionSlug: union?.slug || 'null',
     });
 
-    // 로딩 중 (인증 초기화 또는 프로필 조회 중)
     if (isUnionLoading || isAuthLoading || isUserFetching) {
         console.log('[DEBUG] ⏳ Loading...', { isUnionLoading, isAuthLoading, isUserFetching });
-        return <PageSkeleton />;
+        return (
+            <div className="container mx-auto max-w-[1280px] px-4 py-8">
+                <Skeleton className="w-full h-[600px] rounded-[24px]" />
+            </div>
+        );
     }
 
     // 조합 정보 없음

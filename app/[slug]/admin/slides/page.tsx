@@ -3,7 +3,7 @@
 import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
-import { PageSkeleton } from '@/app/_lib/widgets/common/skeleton/PageSkeleton';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import { useAllHeroSlides, useDeleteHeroSlide } from '@/app/_lib/features/hero-slides/api/useHeroSlidesHook';
@@ -52,7 +52,11 @@ export default function SlidesPage() {
 
     // 로딩 중
     if (isUnionLoading || isAuthLoading) {
-        return <PageSkeleton />;
+        return (
+            <div className="container mx-auto px-4 py-8">
+                <Skeleton className="w-full h-[600px] rounded-[24px]" />
+            </div>
+        );
     }
 
     // 권한 없음

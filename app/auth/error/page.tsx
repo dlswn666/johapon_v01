@@ -4,7 +4,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { AlertCircle, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { PageSkeleton } from '@/app/_lib/widgets/common/skeleton/PageSkeleton';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Suspense } from 'react';
 
 function AuthErrorContent() {
@@ -60,7 +60,11 @@ function AuthErrorContent() {
 
 export default function AuthErrorPage() {
     return (
-        <Suspense fallback={<PageSkeleton className="bg-slate-900" />}>
+        <Suspense fallback={
+            <div className="min-h-screen flex items-center justify-center bg-slate-900 p-4">
+                <Skeleton className="w-full max-w-md h-[400px] rounded-[24px] opacity-20" />
+            </div>
+        }>
             <AuthErrorContent />
         </Suspense>
     );

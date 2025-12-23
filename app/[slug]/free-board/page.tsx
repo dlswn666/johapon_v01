@@ -6,6 +6,7 @@ import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { Search, ChevronLeft, ChevronRight, Loader2, Calendar, Eye } from 'lucide-react';
 import React, { useState } from 'react';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
 import { PageSkeleton } from '@/app/_lib/widgets/common/skeleton/PageSkeleton';
 import { useFreeBoards } from '@/app/_lib/features/free-board/api/useFreeBoardHook';
@@ -66,7 +67,11 @@ const FreeBoardPage = () => {
     };
 
     if (isUnionLoading || isLoading) {
-        return <PageSkeleton />;
+        return (
+            <div className="container mx-auto max-w-[1280px] px-4 py-8">
+                <Skeleton className="w-full h-[600px] rounded-[24px]" />
+            </div>
+        );
     }
 
     if (error) {

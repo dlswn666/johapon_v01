@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import React, { useState } from 'react';
-import { PageSkeleton } from '@/app/_lib/widgets/common/skeleton/PageSkeleton';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
 import { useUnionInfos } from '@/app/_lib/features/union-info/api/useUnionInfoHook';
 import useUnionInfoStore from '@/app/_lib/features/union-info/model/useUnionInfoStore';
@@ -43,7 +43,11 @@ const UnionInfoListPage = () => {
     const totalPages = Math.ceil(totalCount / filters.pageSize);
 
     if (isUnionLoading || isLoading) {
-        return <PageSkeleton />;
+        return (
+            <div className="container mx-auto max-w-[1280px] px-4 py-8">
+                <Skeleton className="w-full h-[600px] rounded-[24px]" />
+            </div>
+        );
     }
 
     if (error) {

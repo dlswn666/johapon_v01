@@ -3,7 +3,7 @@
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
 import { Loader2, AlertCircle, Search, MessageSquare, Phone, Wallet } from 'lucide-react';
-import { PageSkeleton } from '@/app/_lib/widgets/common/skeleton/PageSkeleton';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useAlimtalkLogsByUnion } from '@/app/_lib/features/alimtalk/api/useAlimtalkLogHook';
 import useAlimtalkLogStore from '@/app/_lib/features/alimtalk/model/useAlimtalkLogStore';
 import { useUnions } from '@/app/_lib/entities/union/api/useUnionHook';
@@ -58,7 +58,11 @@ export default function UnionAlimtalkPage() {
 
     // 로딩 중
     if (unionsLoading || isLoading) {
-        return <PageSkeleton />;
+        return (
+            <div className="container mx-auto px-4 py-8">
+                <Skeleton className="w-full h-[600px] rounded-[24px]" />
+            </div>
+        );
     }
 
     if (!currentUnion) {

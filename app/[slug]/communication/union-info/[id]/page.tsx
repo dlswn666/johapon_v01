@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import React, { useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { PageSkeleton } from '@/app/_lib/widgets/common/skeleton/PageSkeleton';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useUnionInfo, useIncrementUnionInfoViews, useDeleteUnionInfo, useDeleteUnionInfoFile } from '@/app/_lib/features/union-info/api/useUnionInfoHook';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
@@ -50,7 +50,11 @@ const UnionInfoDetailPage = () => {
     const canEdit = isMine || isAdmin;
 
     if (isUnionLoading || isLoading) {
-        return <PageSkeleton />;
+        return (
+            <div className="container mx-auto max-w-[1280px] px-4 py-8">
+                <Skeleton className="w-full h-[600px] rounded-[24px]" />
+            </div>
+        );
     }
 
     if (error || !post) {

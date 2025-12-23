@@ -112,15 +112,11 @@ export default function UnionList({
                         </TableHeader>
                         <TableBody>
                             {isLoading ? (
-                                Array.from({ length: 5 }).map((_, i) => (
-                                    <TableRow key={i}>
-                                        <TableCell><Skeleton className="h-10 w-full" /></TableCell>
-                                        <TableCell><Skeleton className="h-10 w-full" /></TableCell>
-                                        <TableCell><Skeleton className="h-10 w-full" /></TableCell>
-                                        <TableCell><Skeleton className="h-10 w-20 mx-auto" /></TableCell>
-                                        <TableCell><Skeleton className="h-10 w-full" /></TableCell>
-                                    </TableRow>
-                                ))
+                                <TableRow>
+                                    <TableCell colSpan={5} className="p-0">
+                                        <Skeleton className="h-[400px] w-full rounded-none opacity-50" />
+                                    </TableCell>
+                                </TableRow>
                             ) : unions.length === 0 ? (
                                 <TableRow>
                                     <TableCell colSpan={5} className="h-32 text-center text-gray-500">
