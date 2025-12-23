@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Loader2, Shield, Building2, Users, LogOut, Home, MessageSquare, ChevronDown } from 'lucide-react';
+import { PageSkeleton } from '@/app/_lib/widgets/common/skeleton/PageSkeleton';
 import AuthProvider, { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -247,14 +248,7 @@ function SystemAdminLayoutContent({ children }: { children: React.ReactNode }) {
 
     // 초기 로딩 또는 user 정보 fetch 중
     if (isFullLoading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-slate-900">
-                <div className="flex flex-col items-center gap-3">
-                    <Loader2 className="h-10 w-10 animate-spin text-blue-500" />
-                    <p className="text-lg text-slate-400">로딩 중...</p>
-                </div>
-            </div>
-        );
+        return <PageSkeleton className="bg-slate-900" />;
     }
 
     if (!isSystemAdmin) {

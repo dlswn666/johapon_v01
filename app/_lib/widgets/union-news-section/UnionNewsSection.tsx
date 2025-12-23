@@ -7,7 +7,8 @@ import { Notice, Question, FreeBoard } from '@/app/_lib/shared/type/database.typ
 import { NewsTabType } from './types';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { Loader2, AlertCircle, RefreshCw, CheckCircle } from 'lucide-react';
+import { AlertCircle, RefreshCw, CheckCircle } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/app/_lib/shared/supabase/client';
 import { useQuery } from '@tanstack/react-query';
@@ -226,8 +227,13 @@ export function UnionNewsSection({ unionId }: UnionNewsSectionProps) {
                     {activeTab === 'notice' && (
                         <>
                             {isLoading ? (
-                                <div className="flex items-center justify-center py-20">
-                                    <Loader2 className="w-10 h-10 animate-spin text-[#4e8c6d]" />
+                                <div className="space-y-4 md:space-y-[27px]">
+                                    <Skeleton className="w-full h-[180px] md:h-[220px] rounded-[12px] md:rounded-[17.5px]" />
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-[18px]">
+                                        <Skeleton className="h-[120px] md:h-[150px] rounded-[10px] md:rounded-[13.5px]" />
+                                        <Skeleton className="h-[120px] md:h-[150px] rounded-[10px] md:rounded-[13.5px]" />
+                                        <Skeleton className="h-[120px] md:h-[150px] rounded-[10px] md:rounded-[13.5px]" />
+                                    </div>
                                 </div>
                             ) : error ? (
                                 <div className="flex flex-col items-center justify-center py-20 space-y-4">
@@ -334,8 +340,13 @@ export function UnionNewsSection({ unionId }: UnionNewsSectionProps) {
                     {activeTab === 'general' && (
                         <>
                             {isFreeBoardsLoading ? (
-                                <div className="flex items-center justify-center py-20">
-                                    <Loader2 className="w-10 h-10 animate-spin text-[#4e8c6d]" />
+                                <div className="space-y-4 md:space-y-[27px]">
+                                    <Skeleton className="w-full h-[180px] md:h-[220px] rounded-[12px] md:rounded-[17.5px]" />
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-[18px]">
+                                        <Skeleton className="h-[120px] md:h-[150px] rounded-[10px] md:rounded-[13.5px]" />
+                                        <Skeleton className="h-[120px] md:h-[150px] rounded-[10px] md:rounded-[13.5px]" />
+                                        <Skeleton className="h-[120px] md:h-[150px] rounded-[10px] md:rounded-[13.5px]" />
+                                    </div>
                                 </div>
                             ) : freeBoardsError ? (
                                 <div className="flex flex-col items-center justify-center py-20 space-y-4">
@@ -442,8 +453,13 @@ export function UnionNewsSection({ unionId }: UnionNewsSectionProps) {
                     {activeTab === 'question' && (
                         <>
                             {isQuestionsLoading ? (
-                                <div className="flex items-center justify-center py-20">
-                                    <Loader2 className="w-10 h-10 animate-spin text-[#4e8c6d]" />
+                                <div className="space-y-4 md:space-y-[27px]">
+                                    <Skeleton className="w-full h-[180px] md:h-[220px] rounded-[12px] md:rounded-[17.5px]" />
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-[18px]">
+                                        <Skeleton className="h-[120px] md:h-[150px] rounded-[10px] md:rounded-[13.5px]" />
+                                        <Skeleton className="h-[120px] md:h-[150px] rounded-[10px] md:rounded-[13.5px]" />
+                                        <Skeleton className="h-[120px] md:h-[150px] rounded-[10px] md:rounded-[13.5px]" />
+                                    </div>
                                 </div>
                             ) : questionsError ? (
                                 <div className="flex flex-col items-center justify-center py-20 space-y-4">

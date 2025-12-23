@@ -3,6 +3,7 @@
 import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
+import { PageSkeleton } from '@/app/_lib/widgets/common/skeleton/PageSkeleton';
 import AuthProvider, { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import { AdminHeader } from '@/app/_lib/widgets/admin-header';
 
@@ -18,14 +19,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
     }, [isLoading, isSystemAdmin, router]);
 
     if (isLoading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-50">
-                <div className="flex flex-col items-center gap-3">
-                    <Loader2 className="h-10 w-10 animate-spin text-blue-600" />
-                    <p className="text-lg text-gray-600">로딩 중...</p>
-                </div>
-            </div>
-        );
+        return <PageSkeleton />;
     }
 
     if (!isSystemAdmin) {

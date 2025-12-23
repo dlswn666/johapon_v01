@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import React, { useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { PageSkeleton } from '@/app/_lib/widgets/common/skeleton/PageSkeleton';
 import { useUnionInfo, useIncrementUnionInfoViews, useDeleteUnionInfo, useDeleteUnionInfoFile } from '@/app/_lib/features/union-info/api/useUnionInfoHook';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
@@ -49,13 +50,7 @@ const UnionInfoDetailPage = () => {
     const canEdit = isMine || isAdmin;
 
     if (isUnionLoading || isLoading) {
-        return (
-            <div className={cn('container mx-auto max-w-[1280px] px-4 py-8')}>
-                <div className="flex justify-center items-center h-64">
-                    <p className="text-[18px] text-gray-400">로딩 중...</p>
-                </div>
-            </div>
-        );
+        return <PageSkeleton />;
     }
 
     if (error || !post) {

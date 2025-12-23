@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import React from 'react';
+import { PageSkeleton } from '@/app/_lib/widgets/common/skeleton/PageSkeleton';
 import { useParams, useRouter } from 'next/navigation';
 import {
     useFreeBoard,
@@ -54,13 +55,7 @@ const FreeBoardDetailPage = () => {
     };
 
     if (isUnionLoading || isLoading) {
-        return (
-            <div className={cn('container mx-auto max-w-[1280px] px-4 py-8')}>
-                <div className="flex justify-center items-center h-64">
-                    <p className="text-[18px] text-gray-400">로딩 중...</p>
-                </div>
-            </div>
-        );
+        return <PageSkeleton />;
     }
 
     if (error || !freeBoard) {

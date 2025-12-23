@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import React, { useState } from 'react';
+import { PageSkeleton } from '@/app/_lib/widgets/common/skeleton/PageSkeleton';
 import { useRouter } from 'next/navigation';
 import { useUnionInfos } from '@/app/_lib/features/union-info/api/useUnionInfoHook';
 import useUnionInfoStore from '@/app/_lib/features/union-info/model/useUnionInfoStore';
@@ -42,13 +43,7 @@ const UnionInfoListPage = () => {
     const totalPages = Math.ceil(totalCount / filters.pageSize);
 
     if (isUnionLoading || isLoading) {
-        return (
-            <div className={cn('container mx-auto max-w-[1280px] px-4 py-8')}>
-                <div className="flex justify-center items-center h-64">
-                    <p className="text-[18px] text-gray-400">로딩 중...</p>
-                </div>
-            </div>
-        );
+        return <PageSkeleton />;
     }
 
     if (error) {

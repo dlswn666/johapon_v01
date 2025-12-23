@@ -3,7 +3,8 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { Search, Plus, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
+import { Search, Plus, CheckCircle2, XCircle } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -111,14 +112,15 @@ export default function UnionList({
                         </TableHeader>
                         <TableBody>
                             {isLoading ? (
-                                <TableRow>
-                                    <TableCell colSpan={5} className="h-32">
-                                        <div className="flex items-center justify-center">
-                                            <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-                                            <span className="ml-2 text-gray-500">로딩 중...</span>
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
+                                Array.from({ length: 5 }).map((_, i) => (
+                                    <TableRow key={i}>
+                                        <TableCell><Skeleton className="h-10 w-full" /></TableCell>
+                                        <TableCell><Skeleton className="h-10 w-full" /></TableCell>
+                                        <TableCell><Skeleton className="h-10 w-full" /></TableCell>
+                                        <TableCell><Skeleton className="h-10 w-20 mx-auto" /></TableCell>
+                                        <TableCell><Skeleton className="h-10 w-full" /></TableCell>
+                                    </TableRow>
+                                ))
                             ) : unions.length === 0 ? (
                                 <TableRow>
                                     <TableCell colSpan={5} className="h-32 text-center text-gray-500">

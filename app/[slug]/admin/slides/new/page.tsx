@@ -3,6 +3,7 @@
 import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
+import { PageSkeleton } from '@/app/_lib/widgets/common/skeleton/PageSkeleton';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import { useCreateHeroSlide } from '@/app/_lib/features/hero-slides/api/useHeroSlidesHook';
@@ -78,14 +79,7 @@ export default function NewSlidePage() {
 
     // 로딩 중
     if (isUnionLoading || isAuthLoading) {
-        return (
-            <div className="min-h-[400px] flex items-center justify-center">
-                <div className="flex flex-col items-center gap-3">
-                    <Loader2 className="h-10 w-10 animate-spin text-[#4E8C6D]" />
-                    <p className="text-lg text-gray-600">로딩 중...</p>
-                </div>
-            </div>
-        );
+        return <PageSkeleton />;
     }
 
     // 권한 없음

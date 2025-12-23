@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { PageSkeleton } from '@/app/_lib/widgets/common/skeleton/PageSkeleton';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import { useHeroSlides } from '@/app/_lib/features/hero-slides/api/useHeroSlidesHook';
@@ -14,7 +15,7 @@ import { UserStatusModal } from '@/app/_lib/widgets/modal';
 
 export default function UnionHomePage() {
     const { union, isLoading: isUnionLoading } = useSlug();
-    const { isAuthenticated, isLoading: isAuthLoading, authUser, user } = useAuth();
+    const { isAuthenticated, isLoading: isAuthLoading, isUserFetching, authUser, user } = useAuth();
     const { data: heroSlides, isLoading: isSlidesLoading } = useHeroSlides(union?.id);
     const { data: popupNotices } = usePopupNotices(union?.id);
 
@@ -37,17 +38,10 @@ export default function UnionHomePage() {
         unionSlug: union?.slug || 'null',
     });
 
-    // 로딩 중
-    if (isUnionLoading || isAuthLoading) {
-        console.log('[DEBUG] ⏳ 로딩 중...');
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-50">
-                <div className="flex flex-col items-center gap-3">
-                    <Loader2 className="h-10 w-10 animate-spin text-[#4E8C6D]" />
-                    <p className="text-lg text-gray-600">로딩 중...</p>
-                </div>
-            </div>
-        );
+    // 로딩 중 (인증 초기화 또는 프로필 조회 중)
+    if (isUnionLoading || isAuthLoading || isUserFetching) {
+        console.log('[DEBUG] ⏳ Loading...', { isUnionLoading, isAuthLoading, isUserFetching });
+        return <PageSkeleton />;
     }
 
     // 조합 정보 없음
@@ -86,9 +80,7 @@ export default function UnionHomePage() {
             {/* Hero Section - 슬라이드 */}
             <section className="relative">
                 {isSlidesLoading ? (
-                    <div className="w-full h-[400px] md:h-[500px] lg:h-[600px] bg-gray-200 flex items-center justify-center">
-                        <Loader2 className="h-10 w-10 animate-spin text-gray-400" />
-                    </div>
+                    <Skeleton className="w-full h-[400px] md:h-[500px] lg:h-[600px] rounded-none" />
                 ) : (
                     <HeroSlider slides={heroSlides || []} autoPlayInterval={4000} />
                 )}

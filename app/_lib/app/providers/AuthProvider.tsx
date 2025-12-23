@@ -200,14 +200,15 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
 
     const handleSessionWithUser = useCallback(async (newSession: Session | null, event: string, silent = false) => {
         const sessionId = newSession?.user?.id || 'no-session-id';
+        const processKey = `${sessionId}-${currentSlug}`;
 
-        if (processingSessionRef.current === sessionId) {
-            console.log(`[DEBUG] ⏭️ Already processing session for user ${sessionId}, skipping...`);
+        if (processingSessionRef.current === processKey) {
+            console.log(`[DEBUG] ⏭️ Already processing session for user ${sessionId} on slug ${currentSlug}, skipping...`);
             return;
         }
 
-        console.log(`[DEBUG] ⏳ Setting isUserFetching(${!silent}) for user ${sessionId}`);
-        processingSessionRef.current = sessionId;
+        console.log(`[DEBUG] ⏳ Setting isUserFetching(true) for user ${sessionId} on slug ${currentSlug}`);
+        processingSessionRef.current = processKey;
         if (!silent) setIsUserFetching(true);
 
         try {

@@ -4,6 +4,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { AlertCircle, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { PageSkeleton } from '@/app/_lib/widgets/common/skeleton/PageSkeleton';
 import { Suspense } from 'react';
 
 function AuthErrorContent() {
@@ -59,11 +60,7 @@ function AuthErrorContent() {
 
 export default function AuthErrorPage() {
     return (
-        <Suspense fallback={
-            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-                <div className="text-white">로딩 중...</div>
-            </div>
-        }>
+        <Suspense fallback={<PageSkeleton className="bg-slate-900" />}>
             <AuthErrorContent />
         </Suspense>
     );
