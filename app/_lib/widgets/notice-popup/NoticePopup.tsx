@@ -72,20 +72,27 @@ export function NoticePopup({
     if (!isVisible) return null;
 
     // 팝업 위치 계산 (여러 팝업 중첩 시 오프셋 적용)
-    const topOffset = 100 + offsetIndex * 30;
-    const leftOffset = 100 + offsetIndex * 30;
+    // 모바일에서는 중앙 정렬, 데스크탑(sm 이상)에서만 오프셋 적용
+    const desktopTopOffset = 100 + offsetIndex * 30;
+    const desktopLeftOffset = 100 + offsetIndex * 30;
 
     return (
         <div
             className={cn(
                 'fixed z-50 bg-white rounded-lg shadow-2xl overflow-hidden',
-                'w-[calc(100vw-32px)] max-w-[500px]',
+                'w-[calc(100%-32px)] sm:w-[500px]', // 모바일에서는 전체 너비에서 여백 제외, sm 이상부터 고정 너비
+                'left-0 right-0 mx-auto sm:left-auto sm:right-auto', // 모바일에서는 수평 중앙 정렬
+                'top-4 sm:top-auto', // 모바일에서는 상단 고정
                 'animate-in fade-in slide-in-from-top-4 duration-300',
                 className
             )}
             style={{
-                top: `${topOffset}px`,
-                left: `${leftOffset}px`,
+                // sm 미만(모바일)에서는 style의 top, left 무시 (클래스로 제어)
+                // sm 이상(데스크탑)에서만 오프셋 적용
+                ...(typeof window !== 'undefined' && window.innerWidth >= 640 ? {
+                    top: `${desktopTopOffset}px`,
+                    left: `${desktopLeftOffset}px`,
+                } : {})
             }}
         >
             {/* 팝업 헤더 바 */}
@@ -103,7 +110,7 @@ export function NoticePopup({
             </div>
 
             {/* 컨텐트 영역 */}
-            <div className="px-4 py-4 max-h-[400px] overflow-y-auto">
+            <div className="px-4 py-4 max-h-[50vh] sm:max-h-[400px] overflow-y-auto">
                 {/* 게시물 타이틀 */}
                 <h4 className="text-lg font-semibold text-gray-900 mb-4">
                     {notice.title}

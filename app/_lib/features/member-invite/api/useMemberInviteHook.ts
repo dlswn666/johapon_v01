@@ -292,7 +292,7 @@ export const useCreateManualInvites = () => {
             unionSlug: string;
             domain: string;
             createdBy: string;
-            members: { name: string; phone_number: string }[];
+            members: { name: string; phone_number: string; property_address: string }[];
         }) => {
             const { unionId, unionName, unionSlug, domain, createdBy, members } = input;
 
@@ -309,7 +309,7 @@ export const useCreateManualInvites = () => {
                 union_id: unionId,
                 name: member.name,
                 phone_number: member.phone_number,
-                property_address: '', // 물건지 정보 없이 등록
+                property_address: member.property_address,
                 invite_token: generateUUID(),
                 status: 'PENDING' as const,
                 created_by: createdBy,

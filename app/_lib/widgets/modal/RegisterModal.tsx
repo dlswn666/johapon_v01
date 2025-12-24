@@ -189,6 +189,13 @@ export function RegisterModal({
                     property_address_jibun: '',
                     property_zonecode: '',
                 });
+
+                // 필수 정보(이름, 번호, 주소)가 모두 있으면 바로 최종 확인 단계로 이동
+                if (inviteData.name && inviteData.phone_number && inviteData.property_address) {
+                    setCurrentStep(STEPS.length);
+                } else {
+                    setCurrentStep(0);
+                }
             } else {
                 setFormData({
                     name: prefillName || '',
@@ -200,8 +207,8 @@ export function RegisterModal({
                     property_address_jibun: '',
                     property_zonecode: '',
                 });
+                setCurrentStep(0);
             }
-            setCurrentStep(0);
             setAgreedToTerms(false);
             setError('');
             setEditingField(null);
