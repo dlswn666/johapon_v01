@@ -5,7 +5,7 @@ import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import React, { useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { PageSkeleton } from '@/app/_lib/widgets/common/skeleton/PageSkeleton';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -79,7 +79,11 @@ const EditFreeBoardPage = () => {
     }
 
     if (isUnionLoading || isLoading) {
-        return <PageSkeleton />;
+        return (
+            <div className="container mx-auto max-w-[1280px] px-4 py-8">
+                <Skeleton className="w-full h-[600px] rounded-[24px]" />
+            </div>
+        );
     }
 
     if (!freeBoard) {

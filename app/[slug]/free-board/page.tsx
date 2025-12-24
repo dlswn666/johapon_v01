@@ -8,7 +8,6 @@ import { Search, ChevronLeft, ChevronRight, Loader2, Calendar, Eye } from 'lucid
 import React, { useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
-import { PageSkeleton } from '@/app/_lib/widgets/common/skeleton/PageSkeleton';
 import { useFreeBoards } from '@/app/_lib/features/free-board/api/useFreeBoardHook';
 import useFreeBoardStore from '@/app/_lib/features/free-board/model/useFreeBoardStore';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
