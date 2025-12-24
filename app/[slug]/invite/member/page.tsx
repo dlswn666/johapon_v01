@@ -230,7 +230,7 @@ export default function MemberInvitePage() {
                     </Button>
 
                     {/* 네이버 로그인 버튼 */}
-                    <Button
+                    {/* <Button
                         onClick={handleNaverLogin}
                         className="w-full bg-[#03C75A] hover:bg-[#02b350] text-white font-medium py-6 text-lg transition-all duration-200 shadow-lg"
                     >
@@ -238,7 +238,7 @@ export default function MemberInvitePage() {
                             <path d="M16.273 12.845L7.376 0H0v24h7.727V11.155L16.624 24H24V0h-7.727z" />
                         </svg>
                         네이버로 시작하기
-                    </Button>
+                    </Button> */}
 
                     <p className="text-xs text-slate-500 text-center">
                         이 초대는 {new Date(invite.expires_at).toLocaleString('ko-KR')}까지 유효합니다
