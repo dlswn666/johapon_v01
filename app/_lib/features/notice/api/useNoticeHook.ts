@@ -261,9 +261,11 @@ export const useAddNotice = () => {
                                 name: member.name,
                                 variables: {
                                     조합명: union.name,
-                                    공지제목: noticeData.title,
+                                    이름: member.name,
+                                    안내제목: noticeData.title,
                                     등록일시: createdDate.toLocaleString('ko-KR'),
                                     조합슬러그: slug,
+                                    공지사항ID: noticeData.id,
                                 },
                             })),
                             noticeId: noticeData.id,
