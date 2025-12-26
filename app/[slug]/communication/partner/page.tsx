@@ -3,7 +3,6 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
-import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import { useAdsByType } from '@/app/_lib/features/advertisement/api/useAdvertisement';
 import { Skeleton } from '@/components/ui/skeleton';
 import { BoardListCard } from '@/app/_lib/widgets/common/list-card/BoardListCard';
