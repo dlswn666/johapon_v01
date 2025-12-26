@@ -9,10 +9,10 @@ export function SideAdWidget() {
   const { data: ads, isLoading } = useRandomAds('MAIN', 1);
 
   const DEFAULT_MAIN_ADS: Advertisement[] = [
-    { id: 'def-main-1', business_name: '협력사 모집 공고', type: 'MAIN', union_id: '', contract_start_date: '', contract_end_date: '', is_payment_completed: true, price: 0, image_url: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=400&h=2000&auto=format&fit=crop', link_url: null, created_at: '', title: '우리 조합과 함께할 신규 파트너 상시 모집 중', content: '공고: 협력 업체 모집', contract_file_url: null },
-    { id: 'def-main-2', business_name: '조합원 혜택 파트너', type: 'MAIN', union_id: '', contract_start_date: '', contract_end_date: '', is_payment_completed: true, price: 0, image_url: 'https://images.unsplash.com/photo-1554469384-e58fac16e23a?q=80&w=400&h=2000&auto=format&fit=crop', link_url: null, created_at: '', title: '전문 분야별 파트너사 모집 안내', content: '공고: 협력 업체 모집', contract_file_url: null },
-    { id: 'def-main-3', business_name: 'Professional Partners', type: 'MAIN', union_id: '', contract_start_date: '', contract_end_date: '', is_payment_completed: true, price: 0, image_url: 'https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=400&h=2000&auto=format&fit=crop', link_url: null, created_at: '', title: '성공적인 비즈니스를 위한 최고의 선택', content: '공고: 협력 업체 모집', contract_file_url: null },
-    { id: 'def-main-4', business_name: 'Announcement', type: 'MAIN', union_id: '', contract_start_date: '', contract_end_date: '', is_payment_completed: true, price: 0, image_url: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=400&h=2000&auto=format&fit=crop', link_url: null, created_at: '', title: '신규 입점 및 제휴 문의 환영', content: '공고: 협력 업체 모집', contract_file_url: null },
+    { id: 'def-main-1', business_name: '협력사 모집 공고', type: 'MAIN', union_id: '', contract_start_date: '', contract_end_date: '', is_payment_completed: true, price: 0, image_url: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=600&h=1200&auto=format&fit=crop', link_url: null, created_at: '', title: '우리 조합과 함께할 신규 파트너 상시 모집 중', content: '공고: 협력 업체 모집', contract_file_url: null },
+    { id: 'def-main-2', business_name: '조합원 혜택 파트너', type: 'MAIN', union_id: '', contract_start_date: '', contract_end_date: '', is_payment_completed: true, price: 0, image_url: 'https://images.unsplash.com/photo-1554469384-e58fac16e23a?q=80&w=600&h=1200&auto=format&fit=crop', link_url: null, created_at: '', title: '전문 분야별 파트너사 모집 안내', content: '공고: 협력 업체 모집', contract_file_url: null },
+    { id: 'def-main-3', business_name: 'Professional Partners', type: 'MAIN', union_id: '', contract_start_date: '', contract_end_date: '', is_payment_completed: true, price: 0, image_url: 'https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=600&h=1200&auto=format&fit=crop', link_url: null, created_at: '', title: '성공적인 비즈니스를 위한 최고의 선택', content: '공고: 협력 업체 모집', contract_file_url: null },
+    { id: 'def-main-4', business_name: 'Announcement', type: 'MAIN', union_id: '', contract_start_date: '', contract_end_date: '', is_payment_completed: true, price: 0, image_url: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=600&h=1200&auto=format&fit=crop', link_url: null, created_at: '', title: '신규 입점 및 제휴 문의 환영', content: '공고: 협력 업체 모집', contract_file_url: null },
   ];
 
   // 데이터가 없을 때 표시할 기본 광고 선정 (랜덤)
@@ -26,14 +26,22 @@ export function SideAdWidget() {
 
   return (
     <div className="flex flex-col gap-2 h-full">
-      <div className="relative w-full h-full bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden group">
+      <div className="relative w-full h-full min-h-[400px] bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden group">
         {activeAd.image_url ? (
-          <Image 
-            src={activeAd.image_url} 
-            alt={activeAd.business_name} 
-            fill 
-            className="object-cover group-hover:scale-105 transition-transform duration-500"
-          />
+          <>
+            <Image 
+              src={activeAd.image_url} 
+              alt={activeAd.business_name} 
+              fill 
+              className="object-cover group-hover:scale-105 transition-transform duration-700"
+            />
+            {/* Text Overlay */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-5">
+              <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest mb-1">Partnership</span>
+              <h4 className="text-white font-bold text-sm leading-tight mb-1">{activeAd.title}</h4>
+              <p className="text-white/70 text-[10px] font-medium">{activeAd.business_name}</p>
+            </div>
+          </>
         ) : (
           <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs text-center p-4">
             {activeAd.business_name}

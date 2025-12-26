@@ -33,22 +33,22 @@ export function BoardAdWidget() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       {activeAds.map((ad) => (
-        <Card key={ad.id} className="group relative bg-[#F8FAFC] border-none shadow-none rounded-[24px] overflow-hidden hover:bg-emerald-50 transition-colors duration-300">
+        <Card key={ad.id} className="group relative bg-white border border-slate-100 shadow-sm rounded-[24px] overflow-hidden hover:shadow-md hover:-translate-y-1 transition-all duration-300 cursor-pointer">
           <CardContent className="p-6">
             <div className="flex flex-col h-full">
               <div className="flex items-center gap-2 mb-3">
-                <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center group-hover:bg-emerald-100 transition-colors">
                   <Megaphone className="w-4 h-4 text-emerald-600" />
                 </div>
-                <span className="text-xs font-bold text-emerald-600 uppercase tracking-wider">AD</span>
+                <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Board Ad</span>
               </div>
-              <h4 className="text-lg font-bold text-slate-800 mb-2 line-clamp-1 group-hover:text-emerald-700 transition-colors">
+              <h4 className="text-lg font-bold text-slate-800 mb-2 line-clamp-1 group-hover:text-emerald-700 transition-colors tracking-tight">
                 {ad.title || ad.business_name}
               </h4>
-              <p className="text-sm text-slate-500 line-clamp-2 mb-4">
+              <p className="text-sm text-slate-500 line-clamp-2 mb-4 leading-relaxed">
                 {ad.content || `${ad.business_name}에서 제공하는 특별 혜택을 확인하세요.`}
               </p>
-              <div className="mt-auto flex items-center gap-1 text-xs font-bold text-slate-400 group-hover:text-emerald-600 transition-colors">
+              <div className="mt-auto flex items-center gap-1 text-[11px] font-bold text-slate-400 group-hover:text-emerald-600 transition-colors">
                 자세히 보기 <ArrowRight className="w-3 h-3" strokeWidth={3} />
               </div>
             </div>
