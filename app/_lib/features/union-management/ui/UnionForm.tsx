@@ -12,8 +12,9 @@ import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { UnionWithActive } from '../model/useUnionManagementStore';
 import { supabase } from '@/app/_lib/shared/supabase/client';
+import { useDevelopmentStages } from '@/app/_lib/features/development-stages/api/useDevelopmentStages';
 
-interface UnionFormData {
+export interface UnionFormData {
     name: string;
     slug: string;
     description: string;
@@ -23,6 +24,17 @@ interface UnionFormData {
     business_hours: string;
     logo_url: string;
     is_active: boolean;
+    // 신규 확장 필드
+    member_count: number;
+    area_size: string | number;
+    district_name: string;
+    establishment_date: string;
+    approval_date: string;
+    office_address: string;
+    office_phone: string;
+    registration_number: string;
+    business_type: string;
+    current_stage_id: string | null;
 }
 
 interface UnionFormProps {
@@ -44,17 +56,31 @@ export default function UnionForm({ mode, initialData, onSubmit, isSubmitting = 
         business_hours: '',
         logo_url: '',
         is_active: true,
+        member_count: 0,
+        area_size: '',
+        district_name: '',
+        establishment_date: '',
+        approval_date: '',
+        office_address: '',
+        office_phone: '',
+        registration_number: '',
+        business_type: '',
+        current_stage_id: null,
     });
     const [logoFile, setLogoFile] = useState<File | null>(null);
     const [logoPreview, setLogoPreview] = useState<string | null>(null);
     const [isUploading, setIsUploading] = useState(false);
+
+    // 진행 단계 데이터 로드
+    const { data: stages } = useDevelopmentStages(formData.business_type);
 
     const isReadOnly = mode === 'view';
     const showActiveToggle = mode === 'edit';
 
     useEffect(() => {
         if (initialData) {
-            setFormData({
+            setFormData((prev) => ({
+                ...prev,
                 name: initialData.name || '',
                 slug: initialData.slug || '',
                 description: initialData.description || '',
@@ -64,14 +90,25 @@ export default function UnionForm({ mode, initialData, onSubmit, isSubmitting = 
                 business_hours: initialData.business_hours || '',
                 logo_url: initialData.logo_url || '',
                 is_active: initialData.is_active ?? true,
-            });
+                // 확장 필드 반영 (타입 캐스팅 및 기본값 처리)
+                member_count: initialData.member_count || 0,
+                area_size: initialData.area_size || '',
+                district_name: initialData.district_name || '',
+                establishment_date: initialData.establishment_date || '',
+                approval_date: initialData.approval_date || '',
+                office_address: initialData.office_address || '',
+                office_phone: initialData.office_phone || '',
+                registration_number: initialData.registration_number || '',
+                business_type: initialData.business_type || '',
+                current_stage_id: initialData.current_stage_id || null,
+            }));
             if (initialData.logo_url) {
                 setLogoPreview(initialData.logo_url);
             }
         }
     }, [initialData]);
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFormData((prev) => ({ ...prev, [name]: value }));
 
@@ -260,9 +297,150 @@ export default function UnionForm({ mode, initialData, onSubmit, isSubmitting = 
                             value={formData.description}
                             onChange={handleChange}
                             placeholder="조합 소개를 입력하세요"
-                            rows={4}
+                            rows={3}
                             disabled={isReadOnly}
                         />
+                    </div>
+
+                    {/* 사업 상세 정보 섹션 */}
+                    <div className="pt-4 pb-2 border-t">
+                        <h3 className="text-lg font-semibold text-gray-900">사업 상세 정보</h3>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="business_type">사업 유형</Label>
+                            <select
+                                id="business_type"
+                                name="business_type"
+                                value={formData.business_type}
+                                onChange={handleChange}
+                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                disabled={isReadOnly}
+                            >
+                                <option value="">선택하세요</option>
+                                <option value="재개발">재개발</option>
+                                <option value="재건축">재건축</option>
+                                <option value="지주택">지주택</option>
+                                <option value="모아타운">모아타운</option>
+                            </select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="district_name">구역명</Label>
+                            <Input
+                                id="district_name"
+                                name="district_name"
+                                value={formData.district_name}
+                                onChange={handleChange}
+                                placeholder="예: 미아 3구역"
+                                disabled={isReadOnly}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="current_stage_id">현재 진행 단계</Label>
+                            <select
+                                id="current_stage_id"
+                                name="current_stage_id"
+                                value={formData.current_stage_id || ''}
+                                onChange={handleChange}
+                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                disabled={isReadOnly || !formData.business_type}
+                            >
+                                <option value="">선택하세요</option>
+                                {stages?.map((stage) => (
+                                    <option key={stage.id} value={stage.id}>
+                                        {stage.stage_name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="member_count">조합원 수</Label>
+                            <Input
+                                id="member_count"
+                                name="member_count"
+                                type="number"
+                                value={formData.member_count}
+                                onChange={handleChange}
+                                placeholder="0"
+                                disabled={isReadOnly}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="establishment_date">조합 설립일</Label>
+                            <Input
+                                id="establishment_date"
+                                name="establishment_date"
+                                type="date"
+                                value={formData.establishment_date}
+                                onChange={handleChange}
+                                disabled={isReadOnly}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="approval_date">사업 시행 인가일</Label>
+                            <Input
+                                id="approval_date"
+                                name="approval_date"
+                                type="date"
+                                value={formData.approval_date}
+                                onChange={handleChange}
+                                disabled={isReadOnly}
+                            />
+                        </div>
+                    </div>
+
+                    {/* 사업소 정보 섹션 */}
+                    <div className="pt-4 pb-2 border-t">
+                        <h3 className="text-lg font-semibold text-gray-900">사업소 정보</h3>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="office_address">사무실 주소</Label>
+                        <Input
+                            id="office_address"
+                            name="office_address"
+                            value={formData.office_address}
+                            onChange={handleChange}
+                            placeholder="사무실 상세 주소를 입력하세요"
+                            disabled={isReadOnly}
+                        />
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="office_phone">사무실 전화번호</Label>
+                            <Input
+                                id="office_phone"
+                                name="office_phone"
+                                value={formData.office_phone}
+                                onChange={handleChange}
+                                placeholder="02-123-4567"
+                                disabled={isReadOnly}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="registration_number">사업자 등록번호</Label>
+                            <Input
+                                id="registration_number"
+                                name="registration_number"
+                                value={formData.registration_number}
+                                onChange={handleChange}
+                                placeholder="000-00-00000"
+                                disabled={isReadOnly}
+                            />
+                        </div>
+                    </div>
+
+                    {/* 기본 정보 (기존 필드) */}
+                    <div className="pt-4 pb-2 border-t">
+                        <h3 className="text-lg font-semibold text-gray-900">기본 연락처 정보</h3>
                     </div>
 
                     {/* 주소 */}

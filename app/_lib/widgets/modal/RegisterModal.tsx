@@ -24,6 +24,7 @@ import {
 import { TermsModal } from './TermsModal';
 import { BirthDatePicker } from '@/app/_lib/widgets/common/date-picker/BirthDatePicker';
 import { KakaoAddressSearch, AddressData } from '@/app/_lib/widgets/common/address/KakaoAddressSearch';
+import { generatePNU } from '@/app/_lib/shared/utils/pnu-utils';
 
 // Step 정의
 type StepKey = 'name' | 'birth_date' | 'phone_number' | 'property_address' | 'property_address_detail' | 'confirm';
@@ -119,6 +120,7 @@ interface FormData {
     property_address_road: string;
     property_address_jibun: string;
     property_zonecode: string;
+    property_pnu: string;
 }
 
 /**
@@ -153,6 +155,7 @@ export function RegisterModal({
         property_address_road: '',
         property_address_jibun: '',
         property_zonecode: '',
+        property_pnu: '',
     });
 
     // 최종 확인 단계에서 수정 중인 필드
@@ -188,6 +191,7 @@ export function RegisterModal({
                     property_address_road: '',
                     property_address_jibun: '',
                     property_zonecode: '',
+                    property_pnu: '',
                 });
 
                 // 필수 정보(이름, 번호, 주소)가 모두 있으면 바로 최종 확인 단계로 이동
@@ -206,6 +210,7 @@ export function RegisterModal({
                     property_address_road: '',
                     property_address_jibun: '',
                     property_zonecode: '',
+                    property_pnu: '',
                 });
                 setCurrentStep(0);
             }
@@ -239,6 +244,7 @@ export function RegisterModal({
                         property_address_road: userData.property_address_road || '',
                         property_address_jibun: userData.property_address_jibun || '',
                         property_zonecode: userData.property_zonecode || '',
+                        property_pnu: userData.property_pnu || '',
                     });
                 }
             }
@@ -249,12 +255,20 @@ export function RegisterModal({
 
     // 카카오 주소 선택 핸들러
     const handleAddressSelect = useCallback((addressData: AddressData) => {
+        const pnu = generatePNU({
+            b_code: addressData.bcode,
+            main_address_no: addressData.main_address_no,
+            sub_address_no: addressData.sub_address_no,
+            mountain_yn: addressData.mountain_yn,
+        });
+
         setFormData((prev) => ({
             ...prev,
             property_address: addressData.address,
             property_address_road: addressData.roadAddress,
             property_address_jibun: addressData.jibunAddress,
             property_zonecode: addressData.zonecode,
+            property_pnu: pnu,
         }));
     }, []);
 
@@ -462,6 +476,7 @@ export function RegisterModal({
                 property_address_road: formData.property_address_road || null,
                 property_address_jibun: formData.property_address_jibun || null,
                 property_zonecode: formData.property_zonecode || null,
+                property_pnu: formData.property_pnu || null,
                 approved_at: isInvite ? new Date().toISOString() : null,
             };
 
@@ -680,6 +695,12 @@ export function RegisterModal({
                                                                             property_address_jibun:
                                                                                 addressData.jibunAddress,
                                                                             property_zonecode: addressData.zonecode,
+                                                                            property_pnu: generatePNU({
+                                                                                b_code: addressData.bcode,
+                                                                                main_address_no: addressData.main_address_no,
+                                                                                sub_address_no: addressData.sub_address_no,
+                                                                                mountain_yn: addressData.mountain_yn,
+                                                                            }),
                                                                         }));
                                                                     }}
                                                                     placeholder={step.placeholder}

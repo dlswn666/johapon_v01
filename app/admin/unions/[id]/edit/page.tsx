@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
-import { UnionForm, UnionEditConfirmModal } from '@/app/_lib/features/union-management/ui';
+import { UnionForm, UnionEditConfirmModal, UnionFormData } from '@/app/_lib/features/union-management/ui';
 import { useUnion, useUpdateUnion } from '@/app/_lib/features/union-management/api/useUnionManagementHook';
 
 interface FormData {
@@ -18,6 +18,16 @@ interface FormData {
     business_hours: string;
     logo_url: string;
     is_active: boolean;
+    member_count: number;
+    area_size: string | number;
+    district_name: string;
+    establishment_date: string;
+    approval_date: string;
+    office_address: string;
+    office_phone: string;
+    registration_number: string;
+    business_type: string;
+    current_stage_id: string | null;
 }
 
 export default function UnionEditPage() {
@@ -29,7 +39,7 @@ export default function UnionEditPage() {
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
     const [pendingData, setPendingData] = useState<FormData | null>(null);
 
-    const handleSubmit = async (data: FormData) => {
+    const handleSubmit = async (data: UnionFormData) => {
         setPendingData(data);
         setIsConfirmModalOpen(true);
     };
@@ -47,8 +57,18 @@ export default function UnionEditPage() {
                     phone: pendingData.phone || null,
                     email: pendingData.email || null,
                     business_hours: pendingData.business_hours || null,
-                    logo_url: pendingData.logo_url || null,
+                    logo_url: pendingData.logo_url || undefined,
                     is_active: pendingData.is_active,
+                    member_count: pendingData.member_count || undefined,
+                    area_size: typeof pendingData.area_size === 'string' ? parseFloat(pendingData.area_size) : (pendingData.area_size || undefined),
+                    district_name: pendingData.district_name || undefined,
+                    establishment_date: pendingData.establishment_date || undefined,
+                    approval_date: pendingData.approval_date || undefined,
+                    office_address: pendingData.office_address || undefined,
+                    office_phone: pendingData.office_phone || undefined,
+                    registration_number: pendingData.registration_number || undefined,
+                    business_type: pendingData.business_type || undefined,
+                    current_stage_id: pendingData.current_stage_id || undefined,
                 },
             });
 

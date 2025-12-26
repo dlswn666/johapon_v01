@@ -100,9 +100,18 @@ export const useUnion = (unionId: string | undefined, enabled: boolean = true) =
     return queryResult;
 };
 
-// 조합 생성 타입 확장
 interface CreateUnionInput extends NewUnion {
     is_active?: boolean;
+    member_count?: number;
+    area_size?: number;
+    district_name?: string;
+    establishment_date?: string;
+    approval_date?: string;
+    office_address?: string;
+    office_phone?: string;
+    registration_number?: string;
+    business_type?: string;
+    current_stage_id?: string | null;
 }
 
 // 조합 생성
@@ -130,9 +139,18 @@ export const useCreateUnion = () => {
     });
 };
 
-// 조합 수정 타입 확장
 interface UpdateUnionInput extends UpdateUnion {
     is_active?: boolean;
+    member_count?: number;
+    area_size?: number;
+    district_name?: string;
+    establishment_date?: string;
+    approval_date?: string;
+    office_address?: string;
+    office_phone?: string;
+    registration_number?: string;
+    business_type?: string;
+    current_stage_id?: string | null;
 }
 
 // 조합 수정

@@ -26,6 +26,7 @@ function SystemAdminHeader() {
     const navItems: NavItem[] = [
         { href: '/systemAdmin', label: '대시보드', icon: Home, exact: true },
         { href: '/systemAdmin/unions', label: '조합 관리', icon: Building2 },
+        { href: '/systemAdmin/stages', label: '단계 마스터', icon: Shield },
         {
             href: '/systemAdmin/alimtalk',
             label: '알림톡',

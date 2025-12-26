@@ -67,6 +67,65 @@ export type Database = {
                     }
                 ];
             };
+            development_stages: {
+                Row: {
+                    id: string;
+                    business_type: string;
+                    stage_name: string;
+                    sort_order: number;
+                    created_at: string;
+                };
+                Insert: {
+                    id?: string;
+                    business_type: string;
+                    stage_name: string;
+                    sort_order: number;
+                    created_at?: string;
+                };
+                Update: {
+                    id?: string;
+                    business_type?: string;
+                    stage_name?: string;
+                    sort_order?: number;
+                    created_at?: string;
+                };
+                Relationships: [];
+            };
+            union_land_lots: {
+                Row: {
+                    id: string;
+                    union_id: string;
+                    pnu: string;
+                    address_text: string | null;
+                    land_area: number | null;
+                    created_at: string;
+                };
+                Insert: {
+                    id?: string;
+                    union_id: string;
+                    pnu: string;
+                    address_text?: string | null;
+                    land_area?: number | null;
+                    created_at?: string;
+                };
+                Update: {
+                    id?: string;
+                    union_id?: string;
+                    pnu?: string;
+                    address_text?: string | null;
+                    land_area?: number | null;
+                    created_at?: string;
+                };
+                Relationships: [
+                    {
+                        foreignKeyName: 'union_land_lots_union_id_fkey';
+                        columns: ['union_id'];
+                        isOneToOne: false;
+                        referencedRelation: 'unions';
+                        referencedColumns: ['id'];
+                    }
+                ];
+            };
             alimtalk_logs: {
                 Row: {
                     content: string | null;
@@ -410,6 +469,16 @@ export type Database = {
                     // 알림톡 관련 필드
                     kakao_channel_id: string | null;
                     vault_sender_key_id: string | null;
+                    member_count: number | null;
+                    area_size: number | null;
+                    district_name: string | null;
+                    establishment_date: string | null;
+                    approval_date: string | null;
+                    office_address: string | null;
+                    office_phone: string | null;
+                    registration_number: string | null;
+                    business_type: string | null;
+                    current_stage_id: string | null;
                 };
                 Insert: {
                     created_at?: string;
@@ -427,6 +496,16 @@ export type Database = {
                     // 알림톡 관련 필드
                     kakao_channel_id?: string | null;
                     vault_sender_key_id?: string | null;
+                    member_count?: number | null;
+                    area_size?: number | null;
+                    district_name?: string | null;
+                    establishment_date?: string | null;
+                    approval_date?: string | null;
+                    office_address?: string | null;
+                    office_phone?: string | null;
+                    registration_number?: string | null;
+                    business_type?: string | null;
+                    current_stage_id?: string | null;
                 };
                 Update: {
                     created_at?: string;
@@ -444,6 +523,16 @@ export type Database = {
                     // 알림톡 관련 필드
                     kakao_channel_id?: string | null;
                     vault_sender_key_id?: string | null;
+                    member_count?: number | null;
+                    area_size?: number | null;
+                    district_name?: string | null;
+                    establishment_date?: string | null;
+                    approval_date?: string | null;
+                    office_address?: string | null;
+                    office_phone?: string | null;
+                    registration_number?: string | null;
+                    business_type?: string | null;
+                    current_stage_id?: string | null;
                 };
                 Relationships: [];
             };
@@ -506,6 +595,10 @@ export type Database = {
                     rejected_reason: string | null;
                     approved_at: string | null;
                     rejected_at: string | null;
+                    executive_title: string | null;
+                    is_executive: boolean;
+                    executive_sort_order: number;
+                    property_pnu: string | null;
                     created_at: string;
                     updated_at: string;
                 };
@@ -526,6 +619,10 @@ export type Database = {
                     rejected_reason?: string | null;
                     approved_at?: string | null;
                     rejected_at?: string | null;
+                    executive_title?: string | null;
+                    is_executive?: boolean;
+                    executive_sort_order?: number;
+                    property_pnu?: string | null;
                     created_at?: string;
                     updated_at?: string;
                 };
@@ -546,6 +643,10 @@ export type Database = {
                     rejected_reason?: string | null;
                     approved_at?: string | null;
                     rejected_at?: string | null;
+                    executive_title?: string | null;
+                    is_executive?: boolean;
+                    executive_sort_order?: number;
+                    property_pnu?: string | null;
                     created_at?: string;
                     updated_at?: string;
                 };

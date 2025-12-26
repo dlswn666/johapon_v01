@@ -11,6 +11,10 @@ export interface AddressData {
     jibunAddress: string; // 지번 주소 (구주소)
     buildingName: string; // 건물명
     address: string; // 기본 주소 (도로명 또는 지번)
+    bcode: string; // 법정동 코드
+    main_address_no: string; // 본번
+    sub_address_no: string; // 부번
+    mountain_yn: 'Y' | 'N'; // 산지 여부
 }
 
 interface KakaoAddressSearchProps {
@@ -111,6 +115,10 @@ export function KakaoAddressSearch({
                     buildingName: string;
                     address: string;
                     addressType: string;
+                    bcode: string;
+                    main_address_no: string;
+                    sub_address_no: string;
+                    mountain: string;
                 }) => {
                     // 도로명 주소와 지번 주소 추출
                     const roadAddress = data.roadAddress || data.autoRoadAddress || '';
@@ -125,6 +133,10 @@ export function KakaoAddressSearch({
                         jibunAddress,
                         buildingName: data.buildingName || '',
                         address,
+                        bcode: data.bcode || '',
+                        main_address_no: data.main_address_no || '',
+                        sub_address_no: data.sub_address_no || '',
+                        mountain_yn: data.mountain === 'Y' ? 'Y' : 'N',
                     };
 
                     onAddressSelect(addressData);

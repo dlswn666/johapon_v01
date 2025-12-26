@@ -29,6 +29,8 @@ import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
+import { Input } from '@/components/ui/input';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -194,6 +196,23 @@ export default function MemberManagementPage() {
         },
         enabled: isAdmin && activeTab === 'approval',
     });
+
+    // 구역 내 지번 목록 조회 (PNU 매칭 확인용)
+    const { data: landLots } = useQuery({
+        queryKey: ['union-land-lots', unionId],
+        queryFn: async () => {
+            if (!unionId) return [];
+            const { data, error } = await supabase
+                .from('union_land_lots')
+                .select('pnu')
+                .eq('union_id', unionId);
+            if (error) throw error;
+            return data.map((l) => l.pnu);
+        },
+        enabled: !!unionId && activeTab === 'approval',
+    });
+
+    const landLotPnuSet = useMemo(() => new Set(landLots || []), [landLots]);
 
     // 사용자 승인 mutation
     const approveMutation = useMutation({
@@ -938,7 +957,7 @@ export default function MemberManagementPage() {
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-gray-100">
-                                                {usersData?.users.map((userData) => (
+                                                {usersData?.users.map((userData: User) => (
                                                     <tr
                                                         key={userData.id}
                                                         className={cn(
@@ -959,7 +978,24 @@ export default function MemberManagementPage() {
                                                             </span>
                                                         </td>
                                                         <td className="px-6 py-4 text-[14px] text-gray-900 font-medium whitespace-nowrap">
-                                                            {userData.name}
+                                                            <div className="flex flex-col gap-1">
+                                                                <span className="text-[14px] font-medium text-gray-900">
+                                                                    {userData.name}
+                                                                </span>
+                                                                {userData.property_pnu && (
+                                                                    <div className="flex items-center gap-1">
+                                                                        {landLotPnuSet.has(userData.property_pnu) ? (
+                                                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                                                                매칭 완료
+                                                                            </span>
+                                                                        ) : (
+                                                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">
+                                                                                PNU 확인 필요
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                )}
+                                                            </div>
                                                         </td>
                                                         <td className="px-6 py-4 text-[14px] text-gray-600  whitespace-nowrap">
                                                             {maskPhoneNumber(userData.phone_number)}
@@ -1098,15 +1134,22 @@ export default function MemberManagementPage() {
 
                             <div className="p-6 space-y-6">
                                 <div className="flex items-center justify-between">
-                                    <span className="text-[14px] text-gray-500">현재 상태</span>
-                                    <span
-                                        className={cn(
-                                            'inline-flex items-center px-4 py-1.5 rounded-full text-[14px] font-medium',
-                                            USER_STATUS_COLORS[selectedUser.user_status]
+                                    <span className="text-[14px] text-gray-500">가입 상태</span>
+                                    <div className="flex gap-2">
+                                        {selectedUser.property_pnu && (
+                                            <span className="inline-flex items-center px-3 py-1.5 rounded-full text-[14px] font-medium bg-blue-100 text-blue-700">
+                                                PNU 매칭 확인 필요
+                                            </span>
                                         )}
-                                    >
-                                        {USER_STATUS_LABELS[selectedUser.user_status]}
-                                    </span>
+                                        <span
+                                            className={cn(
+                                                'inline-flex items-center px-4 py-1.5 rounded-full text-[14px] font-medium',
+                                                USER_STATUS_COLORS[selectedUser.user_status]
+                                            )}
+                                        >
+                                            {USER_STATUS_LABELS[selectedUser.user_status]}
+                                        </span>
+                                    </div>
                                 </div>
 
                                 <div className="space-y-4">
@@ -1137,6 +1180,23 @@ export default function MemberManagementPage() {
                                             </div>
                                         </div>
                                     )}
+                                    <div className="p-3 bg-gray-50 rounded-lg border border-gray-100">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-sm text-gray-600">PNU 매칭 상태</span>
+                                            {selectedUser.property_pnu ? (
+                                                landLotPnuSet.has(selectedUser.property_pnu) ? (
+                                                    <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-bold rounded">PNU 매칭 완료</span>
+                                                ) : (
+                                                    <span className="px-2 py-1 bg-red-100 text-red-700 text-xs font-bold rounded">PNU 확인 필요</span>
+                                                )
+                                            ) : (
+                                                <span className="text-xs text-gray-400">PNU 정보 없음</span>
+                                            )}
+                                        </div>
+                                        <div className="mt-1 text-xs text-center text-gray-400">
+                                            {selectedUser.property_pnu || '-'}
+                                        </div>
+                                    </div>
                                     <div className="flex items-start gap-4 p-4 bg-gray-50 rounded-xl">
                                         <MapPin className="w-6 h-6 text-gray-400 mt-1" />
                                         <div className="flex-1">
@@ -1159,34 +1219,83 @@ export default function MemberManagementPage() {
                                     </div>
                                 </div>
 
-                                <div className="space-y-2">
-                                    <label className="block text-[14px] font-medium text-gray-700">등급</label>
-                                    <div className="flex gap-2">
-                                        <SelectBox
-                                            value={newRole}
-                                            onChange={(value) => setNewRole(value)}
-                                            options={[
-                                                { value: 'USER', label: '조합원' },
-                                                { value: 'ADMIN', label: '조합 관리자' },
-                                                ...(isSystemAdmin
-                                                    ? [{ value: 'SYSTEM_ADMIN', label: '시스템 관리자' }]
-                                                    : []),
-                                            ]}
-                                            className="flex-1"
-                                        />
-                                        <button
-                                            onClick={() =>
-                                                updateRoleMutation.mutate({
-                                                    userId: selectedUser.id,
-                                                    role: newRole,
-                                                })
-                                            }
-                                            disabled={newRole === selectedUser.role || updateRoleMutation.isPending}
-                                            className="px-6 h-12 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-[14px] font-medium cursor-pointer"
-                                        >
-                                            변경
-                                        </button>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <label className="block text-[14px] font-medium text-gray-700">등급</label>
+                                        <div className="flex gap-2">
+                                            <SelectBox
+                                                value={newRole}
+                                                onChange={(value) => setNewRole(value)}
+                                                options={[
+                                                    { value: 'USER', label: '조합원' },
+                                                    { value: 'ADMIN', label: '조합 관리자' },
+                                                    ...(isSystemAdmin
+                                                        ? [{ value: 'SYSTEM_ADMIN', label: '시스템 관리자' }]
+                                                        : []),
+                                                ]}
+                                                className="flex-1"
+                                            />
+                                        </div>
                                     </div>
+                                    <div className="space-y-2">
+                                        <label className="block text-[14px] font-medium text-gray-700">임원 여부</label>
+                                        <div className="flex items-center h-12">
+                                            <Switch
+                                                checked={selectedUser.is_executive}
+                                                onCheckedChange={async (checked: boolean) => {
+                                                    await supabase.from('users').update({ is_executive: checked }).eq('id', selectedUser.id);
+                                                    queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+                                                }}
+                                            />
+                                            <span className="ml-2 text-sm text-gray-600">홈페이지 노출</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <label className="block text-[14px] font-medium text-gray-700">임원 직위</label>
+                                        <Input
+                                            value={selectedUser.executive_title || ''}
+                                            placeholder="예: 조합장, 이사"
+                                            onChange={(_e: React.ChangeEvent<HTMLInputElement>) => {
+                                                // 로컬 상태 업데이트 로직 필요 시 추가
+                                            }}
+                                            onBlur={async (e: React.FocusEvent<HTMLInputElement>) => {
+                                                await supabase.from('users').update({ executive_title: e.target.value }).eq('id', selectedUser.id);
+                                                queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+                                            }}
+                                            className="h-12"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="block text-[14px] font-medium text-gray-700">노출 순서</label>
+                                        <Input
+                                            type="number"
+                                            value={selectedUser.executive_sort_order || 0}
+                                            onChange={() => {}}
+                                            onBlur={async (e: React.FocusEvent<HTMLInputElement>) => {
+                                                await supabase.from('users').update({ executive_sort_order: parseInt(e.target.value) }).eq('id', selectedUser.id);
+                                                queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+                                            }}
+                                            className="h-12"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="pt-2">
+                                    <button
+                                        onClick={() =>
+                                            updateRoleMutation.mutate({
+                                                userId: selectedUser.id,
+                                                role: newRole,
+                                            })
+                                        }
+                                        disabled={newRole === selectedUser.role || updateRoleMutation.isPending}
+                                        className="w-full h-12 bg-[#4E8C6D] text-white rounded-xl hover:bg-[#3d7058] transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-[14px] font-medium cursor-pointer"
+                                    >
+                                        등급 및 정보 수동 업데이트
+                                    </button>
                                 </div>
 
                                 {selectedUser.user_status === 'REJECTED' && selectedUser.rejected_reason && (
