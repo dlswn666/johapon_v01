@@ -75,7 +75,7 @@ export function UnionInfoFooter({ union, className }: UnionInfoFooterProps) {
                     <div className="flex flex-col gap-[18px]">
                         <h4 className="text-[20.25px] font-bold leading-[30.375px]">오시는 길</h4>
                         <div className="text-[#d1d5dc] text-[18px] leading-[30.6px] whitespace-pre-wrap">
-                            {union.address || placeholderText}
+                            {union.office_address || placeholderText}
                         </div>
                     </div>
                 </div>
@@ -83,20 +83,20 @@ export function UnionInfoFooter({ union, className }: UnionInfoFooterProps) {
                 {/* 사업자 정보 */}
                 <div className="border-t border-[#364153] pt-6 mt-6">
                     <div className="text-[#99a1af] text-sm text-center space-y-1">
-                        <p>주식회사 조합온 | 대표: 홍길동 | 사업자등록번호: 123-45-67890</p>
-                        <p>서울특별시 강남구 테헤란로 123 조합온 빌딩 10층</p>
+                        <p>상호: 라텔 | 대표: 정인주 | 사업자등록번호: 276-40-01354</p>
+                        <p>주소: 서울특별시 강북구 인수봉로 6가길 9</p>
                         <p>
                             전화:{' '}
-                            <a href="tel:0212345678" className="hover:text-white transition-colors cursor-pointer">
-                                02-1234-5678
+                            <a href="tel:01035048164" className="hover:text-white transition-colors cursor-pointer">
+                                010-3504-8164
                             </a>
                             {' | '}
                             이메일:{' '}
                             <a
-                                href="mailto:contact@johapon.com"
+                                href="mailto:injostar@naver.com"
                                 className="hover:text-white transition-colors cursor-pointer"
                             >
-                                contact@johapon.com
+                                injostar@naver.com
                             </a>
                         </p>
                     </div>

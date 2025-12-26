@@ -184,7 +184,6 @@ export default function UnionHomeHeader() {
                                 )}
                             </div>
                             <div className="flex flex-col">
-                                <p className="text-[15.75px] leading-[22.5px] text-[#4a5565]">서울 신동아</p>
                                 <p className="text-[18px] leading-[27px] font-bold text-[#4e8c6d]">{union.name}</p>
                             </div>
                         </div>

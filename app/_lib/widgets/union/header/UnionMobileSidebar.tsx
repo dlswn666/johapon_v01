@@ -150,9 +150,6 @@ export default function UnionMobileSidebar({ isOpen, onClose }: UnionMobileSideb
                             )}
                         </div>
                         <div className="flex flex-col min-w-0">
-                            <p className="text-[13px] leading-[18px] text-[#4a5565] truncate">
-                                서울 신동아
-                            </p>
                             <p className="text-[15px] leading-[21px] font-bold text-[#4e8c6d] truncate">
                                 {union.name}
                             </p>
