@@ -3,11 +3,20 @@
 import React from 'react';
 import { useRandomAds } from '../api/useAdvertisement';
 import { Card, CardContent } from '@/components/ui/card';
-import { Megaphone, ArrowRight } from 'lucide-react';
+import { Advertisement } from '@/app/_lib/shared/type/database.types';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ArrowRight, Megaphone } from 'lucide-react';
 
 export function BoardAdWidget() {
   const { data: ads, isLoading } = useRandomAds('BOARD', 3);
+
+  const DEFAULT_BOARD_ADS: Advertisement[] = [
+    { id: 'def-brd-1', business_name: '조합 협력사 모집', type: 'BOARD', union_id: '', contract_start_date: '', contract_end_date: '', is_payment_completed: true, price: 0, image_url: null, link_url: null, created_at: '', title: '[모집] 조합과 함께할 신규 협력사를 찾습니다', content: '공고: 조합원 전용 혜택을 제공할 수 있는 우수한 업체를 모집합니다.', contract_file_url: null },
+    { id: 'def-brd-2', business_name: '파트너십 안내', type: 'BOARD', union_id: '', contract_start_date: '', contract_end_date: '', is_payment_completed: true, price: 0, image_url: null, link_url: null, created_at: '', title: '[안내] 협력 업체 입점 문의 및 절차', content: '조합 홈페이지 내 광고 및 협력 업체 등록 안내입니다.', contract_file_url: null },
+    { id: 'def-brd-3', business_name: '서비스 공고', type: 'BOARD', union_id: '', contract_start_date: '', contract_end_date: '', is_payment_completed: true, price: 0, image_url: null, link_url: null, created_at: '', title: '[공고] 분야별 전문 업체 상시 모집', content: '법률, 세무, 인테리어 등 다양한 분야의 파트너를 기다립니다.', contract_file_url: null },
+  ];
+
+  const activeAds = ads && ads.length > 0 ? ads : DEFAULT_BOARD_ADS;
 
   if (isLoading) {
     return (
@@ -19,11 +28,11 @@ export function BoardAdWidget() {
     );
   }
 
-  if (!ads || ads.length === 0) return null;
+  if (activeAds.length === 0) return null;
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-      {ads.map((ad) => (
+      {activeAds.map((ad) => (
         <Card key={ad.id} className="group relative bg-[#F8FAFC] border-none shadow-none rounded-[24px] overflow-hidden hover:bg-emerald-50 transition-colors duration-300">
           <CardContent className="p-6">
             <div className="flex flex-col h-full">

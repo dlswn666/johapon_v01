@@ -88,7 +88,7 @@ export default function UnionLayoutContent({ children }: UnionLayoutContentProps
             <div className="flex-1 flex flex-col md:flex-row min-h-[1200px]">
                 {/* A 영역 - 왼쪽 광고 */}
                 <aside className="w-full md:w-[20%] bg-gray-100 p-4 order-1">
-                    <div className="sticky top-24">
+                    <div className="sticky top-24 md:h-[50vh]">
                         <SideAdWidget />
                     </div>
                 </aside>
@@ -98,7 +98,7 @@ export default function UnionLayoutContent({ children }: UnionLayoutContentProps
 
                 {/* C 영역 - 오른쪽 광고 */}
                 <aside className="w-full md:w-[20%] bg-gray-100 p-4 order-3">
-                    <div className="sticky top-24">
+                    <div className="sticky top-24 md:h-[50vh]">
                         <SideAdWidget />
                     </div>
                 </aside>

@@ -19,7 +19,20 @@ export function SubSliderWidget() {
     );
   }
 
-  if (!ads || ads.length === 0) return null;
+  const DEFAULT_SUB_ADS: Advertisement[] = [
+    { id: 'def-sub-1', business_name: '협력사 모집 중', type: 'SUB', union_id: '', contract_start_date: '', contract_end_date: '', is_payment_completed: true, price: 0, image_url: 'https://picsum.photos/seed/sub1/600/200', link_url: null, created_at: '', title: '우리 조합과 함께할 파트너를 찾습니다', content: '공고: 협력 업체 모집 공고', contract_file_url: null },
+    { id: 'def-sub-2', business_name: '공고 모집 중', type: 'SUB', union_id: '', contract_start_date: '', contract_end_date: '', is_payment_completed: true, price: 0, image_url: 'https://picsum.photos/seed/sub2/600/200', link_url: null, created_at: '', title: '신규 파트너십 상시 모집', content: '공고: 협력 업체 모집 공고', contract_file_url: null },
+    { id: 'def-sub-3', business_name: 'Partner Recruitment', type: 'SUB', union_id: '', contract_start_date: '', contract_end_date: '', is_payment_completed: true, price: 0, image_url: 'https://picsum.photos/seed/sub3/600/200', link_url: null, created_at: '', title: '함께 성장할 업체를 제안해주세요', content: '공고: 협력 업체 모집 공고', contract_file_url: null },
+    { id: 'def-sub-4', business_name: '조합 파트너 모집', type: 'SUB', union_id: '', contract_start_date: '', contract_end_date: '', is_payment_completed: true, price: 0, image_url: 'https://picsum.photos/seed/sub4/600/200', link_url: null, created_at: '', title: '다양한 혜택을 제공하는 파트너십', content: '공고: 협력 업체 모집 공고', contract_file_url: null },
+    { id: 'def-sub-5', business_name: 'Service Announcement', type: 'SUB', union_id: '', contract_start_date: '', contract_end_date: '', is_payment_completed: true, price: 0, image_url: 'https://picsum.photos/seed/sub5/600/200', link_url: null, created_at: '', title: '조합원 전용 서비스 입점 모집', content: '공고: 협력 업체 모집 공고', contract_file_url: null },
+    { id: 'def-sub-6', business_name: 'Business Support', type: 'SUB', union_id: '', contract_start_date: '', contract_end_date: '', is_payment_completed: true, price: 0, image_url: 'https://picsum.photos/seed/sub6/600/200', link_url: null, created_at: '', title: '조합과 함께하는 성공 비즈니스', content: '공고: 협력 업체 모집 공고', contract_file_url: null },
+    { id: 'def-sub-7', business_name: '모집 안내', type: 'SUB', union_id: '', contract_start_date: '', contract_end_date: '', is_payment_completed: true, price: 0, image_url: 'https://picsum.photos/seed/sub7/600/200', link_url: null, created_at: '', title: '분야별 전문 업체 모집 공고', content: '공고: 협력 업체 모집 공고', contract_file_url: null },
+    { id: 'def-sub-8', business_name: 'Join Our Team', type: 'SUB', union_id: '', contract_start_date: '', contract_end_date: '', is_payment_completed: true, price: 0, image_url: 'https://picsum.photos/seed/sub8/600/200', link_url: null, created_at: '', title: '지금 바로 파트너로 신청하세요', content: '공고: 협력 업체 모집 공고', contract_file_url: null },
+  ];
+
+  const activeAds = ads && ads.length > 0 ? ads : DEFAULT_SUB_ADS;
+
+  if (!activeAds || activeAds.length === 0) return null;
 
   return (
     <div className="w-full bg-slate-50 border-y border-slate-200 py-8 overflow-hidden">
