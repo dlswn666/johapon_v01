@@ -323,7 +323,7 @@ export const useUpdateUnionInfo = () => {
     const router = useRouter();
     const updatePost = useUnionInfoStore((state) => state.updatePost);
     const editorImages = useUnionInfoStore((state) => state.editorImages);
-    const { tempFiles, confirmFiles, clearTempFiles } = useFileStore();
+    const { confirmFiles, clearTempFiles } = useFileStore();
     const clearEditorImages = useUnionInfoStore((state) => state.clearEditorImages);
     const openAlertModal = useModalStore((state) => state.openAlertModal);
     const { union, slug } = useSlug();

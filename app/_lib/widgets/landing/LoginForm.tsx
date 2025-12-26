@@ -36,7 +36,7 @@ export function LoginForm({ className, unionName, onLoginSuccess: _onLoginSucces
         }
     };
 
-    const handleNaverLogin = async () => {
+    const _handleNaverLogin = async () => {
         setError('');
         setIsLoading(true);
 

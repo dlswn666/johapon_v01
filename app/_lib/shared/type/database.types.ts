@@ -8,6 +8,65 @@ export type Database = {
     };
     public: {
         Tables: {
+            advertisements: {
+                Row: {
+                    id: string;
+                    union_id: string;
+                    type: 'MAIN' | 'SUB' | 'BOARD';
+                    business_name: string;
+                    contract_start_date: string;
+                    contract_end_date: string;
+                    price: number;
+                    contract_file_url: string | null;
+                    is_payment_completed: boolean;
+                    image_url: string | null;
+                    link_url: string | null;
+                    title: string | null;
+                    content: string | null;
+                    created_at: string;
+                };
+                Insert: {
+                    id?: string;
+                    union_id: string;
+                    type: 'MAIN' | 'SUB' | 'BOARD';
+                    business_name: string;
+                    contract_start_date: string;
+                    contract_end_date: string;
+                    price?: number;
+                    contract_file_url?: string | null;
+                    is_payment_completed?: boolean;
+                    image_url?: string | null;
+                    link_url?: string | null;
+                    title?: string | null;
+                    content?: string | null;
+                    created_at?: string;
+                };
+                Update: {
+                    id?: string;
+                    union_id?: string;
+                    type?: 'MAIN' | 'SUB' | 'BOARD';
+                    business_name?: string;
+                    contract_start_date?: string;
+                    contract_end_date?: string;
+                    price?: number;
+                    contract_file_url?: string | null;
+                    is_payment_completed?: boolean;
+                    image_url?: string | null;
+                    link_url?: string | null;
+                    title?: string | null;
+                    content?: string | null;
+                    created_at?: string;
+                };
+                Relationships: [
+                    {
+                        foreignKeyName: 'advertisements_union_id_fkey';
+                        columns: ['union_id'];
+                        isOneToOne: false;
+                        referencedRelation: 'unions';
+                        referencedColumns: ['id'];
+                    }
+                ];
+            };
             alimtalk_logs: {
                 Row: {
                     content: string | null;
@@ -873,6 +932,7 @@ export type Database = {
             user_status: 'PENDING_PROFILE' | 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED';
             auth_provider: 'kakao' | 'naver' | 'email';
             admin_invite_status: 'PENDING' | 'USED' | 'EXPIRED';
+            ad_type: 'MAIN' | 'SUB' | 'BOARD';
         };
         CompositeTypes: {
             [_ in never]: never;
@@ -1099,3 +1159,9 @@ export type AlimtalkLogWithUnion = AlimtalkLog & {
 
 // 알림톡 메시지 타입
 export type AlimtalkMessageType = 'KAKAO' | 'SMS' | 'LMS';
+
+// 광고 타입
+export type AdType = Database['public']['Enums']['ad_type'];
+export type Advertisement = Database['public']['Tables']['advertisements']['Row'];
+export type NewAdvertisement = Database['public']['Tables']['advertisements']['Insert'];
+export type UpdateAdvertisement = Database['public']['Tables']['advertisements']['Update'];

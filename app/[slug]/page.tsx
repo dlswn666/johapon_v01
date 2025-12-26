@@ -11,6 +11,7 @@ import { UnionNewsSection } from '@/app/_lib/widgets/union-news-section';
 import { NoticePopup } from '@/app/_lib/widgets/notice-popup';
 import { LandingPage } from '@/app/_lib/widgets/landing';
 import { UserStatusModal } from '@/app/_lib/widgets/modal';
+import { SubSliderWidget } from '@/app/_lib/features/advertisement/ui/SubSliderWidget';
 
 export default function UnionHomePage() {
     const { union, isLoading: isUnionLoading } = useSlug();
@@ -90,6 +91,9 @@ export default function UnionHomePage() {
 
             {/* 조합 소식 섹션 */}
             {union.id && <UnionNewsSection unionId={union.id} />}
+
+            {/* 서브 슬라이드 광고 */}
+            <SubSliderWidget />
 
             {/* 팝업 공지사항 */}
             {popupNotices?.map((notice, index) => (

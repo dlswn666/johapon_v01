@@ -10,7 +10,8 @@ import UnionInfoFooter from '@/app/_lib/widgets/union-info-footer/UnionInfoFoote
 import UnionHomeHeader from '@/app/_lib/widgets/union/header/UnionHomeHeader';
 import UnionBreadcrumb from '@/app/_lib/widgets/union/breadcrumb/UnionBreadcrumb';
 import { UserStatusModal } from '@/app/_lib/widgets/modal';
-import { BannerAd } from '@/components/BannerAd';
+import { SideAdWidget } from '@/app/_lib/features/advertisement/ui/SideAdWidget';
+import { MainBannerWidget } from '@/app/_lib/features/advertisement/ui/MainBannerWidget';
 
 interface UnionLayoutContentProps {
     children: React.ReactNode;
@@ -64,6 +65,7 @@ export default function UnionLayoutContent({ children }: UnionLayoutContentProps
     if (isLandingPage) {
         return (
             <div className="min-h-screen bg-gray-50 flex flex-col">
+                <MainBannerWidget />
                 <main className="flex-1">{children}</main>
                 {union && <UnionInfoFooter union={union} />}
                 <UserStatusModal />
@@ -74,6 +76,7 @@ export default function UnionLayoutContent({ children }: UnionLayoutContentProps
     // 일반 레이아웃 (로그인 상태 또는 다른 페이지)
     return (
         <div className="min-h-[1080px] bg-gray-50 flex flex-col">
+            <MainBannerWidget />
             {/* Header - 모든 페이지에서 공통 렌더링 */}
             <UnionHomeHeader />
 
@@ -85,7 +88,9 @@ export default function UnionLayoutContent({ children }: UnionLayoutContentProps
             <div className="flex-1 flex flex-col md:flex-row min-h-[1200px]">
                 {/* A 영역 - 왼쪽 광고 */}
                 <aside className="w-full md:w-[20%] bg-gray-100 p-4 order-1">
-                    <BannerAd />
+                    <div className="sticky top-24">
+                        <SideAdWidget />
+                    </div>
                 </aside>
 
                 {/* B 영역 - 메인 콘텐츠 */}
@@ -93,7 +98,9 @@ export default function UnionLayoutContent({ children }: UnionLayoutContentProps
 
                 {/* C 영역 - 오른쪽 광고 */}
                 <aside className="w-full md:w-[20%] bg-gray-100 p-4 order-3">
-                    <BannerAd />
+                    <div className="sticky top-24">
+                        <SideAdWidget />
+                    </div>
                 </aside>
             </div>
 

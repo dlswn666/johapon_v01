@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Upload, X, Loader2, Building2 } from 'lucide-react';
+import { ArrowLeft, Upload, X, Building2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
 import { ActionButton } from '@/app/_lib/widgets/common/button';

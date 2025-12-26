@@ -515,7 +515,7 @@ export const useAnswerQuestion = () => {
 export const useDeleteAnswer = () => {
     const updateQuestion = useQuestionStore((state) => state.updateQuestion);
     const openAlertModal = useModalStore((state) => state.openAlertModal);
-    const { union, slug } = useSlug();
+    const { union, slug: _slug } = useSlug();
 
     return useMutation({
         mutationFn: async (questionId: number) => {

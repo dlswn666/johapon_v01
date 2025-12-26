@@ -2,7 +2,7 @@
 
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
-import { Loader2, AlertCircle, Search, MessageSquare, Phone, Wallet } from 'lucide-react';
+import { AlertCircle, Search, MessageSquare, Phone, Wallet } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAlimtalkLogsByUnion } from '@/app/_lib/features/alimtalk/api/useAlimtalkLogHook';
 import useAlimtalkLogStore from '@/app/_lib/features/alimtalk/model/useAlimtalkLogStore';

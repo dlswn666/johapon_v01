@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Loader2, Shield, Building2, Users, LogOut, Home, MessageSquare, ChevronDown } from 'lucide-react';
+import { Shield, Building2, Users, LogOut, Home, MessageSquare, ChevronDown } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import AuthProvider, { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import { Button } from '@/components/ui/button';

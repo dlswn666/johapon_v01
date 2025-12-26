@@ -1,2 +1,2 @@
-export type NewsTabType = 'notice' | 'general' | 'question';
+export type NewsTabType = 'notice' | 'general' | 'question' | 'partner';
 

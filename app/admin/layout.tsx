@@ -2,7 +2,6 @@
 
 import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import AuthProvider, { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import { AdminHeader } from '@/app/_lib/widgets/admin-header';

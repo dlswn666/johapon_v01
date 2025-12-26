@@ -49,6 +49,7 @@ export default function UnionNavigation() {
             subItems: [
                 { href: `/${slug}/communication/union-info`, label: '조합 정보 공유' },
                 { href: `/${slug}/communication/free-board`, label: '자유 게시판' },
+                { href: `/${slug}/communication/partner`, label: '협력 업체' },
             ],
         },
     ];

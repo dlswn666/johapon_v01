@@ -1,6 +1,5 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import React, { useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -13,18 +12,15 @@ import { Input } from '@/components/ui/input';
 import {
     useUnionInfo,
     useUpdateUnionInfo,
-    useDeleteUnionInfoFile,
 } from '@/app/_lib/features/union-info/api/useUnionInfoHook';
 import useUnionInfoStore from '@/app/_lib/features/union-info/model/useUnionInfoStore';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import { ActionButton } from '@/app/_lib/widgets/common/button';
 import AlertModal from '@/app/_lib/widgets/modal/AlertModal';
 import ConfirmModal from '@/app/_lib/widgets/modal/ConfirmModal';
-import useModalStore from '@/app/_lib/shared/stores/modal/useModalStore';
 import { TextEditor } from '@/app/_lib/widgets/common/text-editor';
 import { FileUploader } from '@/app/_lib/widgets/common/file-uploader/FileUploader';
 import { useFileStore } from '@/app/_lib/shared/stores/file/useFileStore';
-import { fileApi } from '@/app/_lib/shared/hooks/file/fileApi';
 
 const formSchema = z.object({
     title: z.string().min(1, '제목을 입력해주세요.'),
@@ -39,11 +35,8 @@ const EditUnionInfoPage = () => {
     const postId = parseInt(id);
     const { isLoading: isUnionLoading } = useSlug();
     const { mutate: updateUnionInfo, isPending } = useUpdateUnionInfo();
-    const { mutate: deleteFile } = useDeleteUnionInfoFile();
-    const openConfirmModal = useModalStore((state) => state.openConfirmModal);
 
     const { data: post, isLoading, error } = useUnionInfo(postId);
-    const { openAlertModal } = useModalStore();
 
     // Store cleanup actions
     const clearEditorImages = useUnionInfoStore((state) => state.clearEditorImages);

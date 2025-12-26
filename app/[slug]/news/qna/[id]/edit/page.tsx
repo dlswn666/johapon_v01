@@ -31,7 +31,7 @@ const EditQuestionPage = () => {
     const id = params.id as string;
     const questionId = parseInt(id);
     const { union, isLoading: isUnionLoading } = useSlug();
-    const { user, isAdmin } = useAuth();
+    const { user } = useAuth();
     
     const { data: question, isLoading: isQuestionLoading } = useQuestion(questionId);
     const { mutate: updateQuestion, isPending } = useUpdateQuestion();

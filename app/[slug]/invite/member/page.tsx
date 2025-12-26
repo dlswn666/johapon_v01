@@ -38,7 +38,7 @@ export default function MemberInvitePage() {
         }
     };
 
-    const handleNaverLogin = async () => {
+    const _handleNaverLogin = async () => {
         // 네이버 로그인 시 slug와 member_invite_token 포함
         const redirectTo = `${window.location.origin}/auth/callback?slug=${slug}&member_invite_token=${token}`;
 

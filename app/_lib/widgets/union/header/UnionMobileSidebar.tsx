@@ -58,6 +58,7 @@ export default function UnionMobileSidebar({ isOpen, onClose }: UnionMobileSideb
             subItems: [
                 { label: '조합 정보 공유', href: `/${union?.slug || ''}/communication/union-info` },
                 { label: '자유 게시판', href: `/${union?.slug || ''}/communication/free-board` },
+                { label: '협력 업체', href: `/${union?.slug || ''}/communication/partner` },
             ],
         },
     ];

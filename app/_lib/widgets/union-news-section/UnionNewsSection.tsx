@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/app/_lib/shared/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
+import { BoardAdWidget } from '@/app/_lib/features/advertisement/ui/BoardAdWidget';
 
 interface UnionNewsSectionProps {
     unionId: string;
@@ -219,6 +220,18 @@ export function UnionNewsSection({ unionId }: UnionNewsSectionProps) {
                         aria-label="질문 탭"
                     >
                         <span style={{ fontSize: 'var(--text-tab)' }}>질문</span>
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('partner')}
+                        className={cn(
+                            'h-auto md:h-[52.375px] px-3 md:px-[27px] py-2 md:pb-[22px] md:pt-0 transition-colors cursor-pointer whitespace-nowrap',
+                            activeTab === 'partner'
+                                ? 'bg-[#4e8c6d] text-white font-bold rounded-tl-[8px] md:rounded-tl-[13.5px] rounded-tr-[8px] md:rounded-tr-[13.5px]'
+                                : 'text-[#4a5565] font-medium hover:text-[#4e8c6d]'
+                        )}
+                        aria-label="협력 업체 탭"
+                    >
+                        <span style={{ fontSize: 'var(--text-tab)' }}>협력 업체</span>
                     </button>
                 </div>
 
@@ -559,6 +572,12 @@ export function UnionNewsSection({ unionId }: UnionNewsSectionProps) {
                                 </div>
                             )}
                         </>
+                    )}
+
+                    {activeTab === 'partner' && (
+                        <div className="py-4">
+                            <BoardAdWidget />
+                        </div>
                     )}
                 </div>
             </div>

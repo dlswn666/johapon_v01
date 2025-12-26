@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 import React, { useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useUnionInfo, useIncrementUnionInfoViews, useDeleteUnionInfo, useDeleteUnionInfoFile } from '@/app/_lib/features/union-info/api/useUnionInfoHook';
+import { useUnionInfo, useIncrementUnionInfoViews, useDeleteUnionInfo } from '@/app/_lib/features/union-info/api/useUnionInfoHook';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import ConfirmModal from '@/app/_lib/widgets/modal/ConfirmModal';
@@ -14,7 +14,6 @@ import useModalStore from '@/app/_lib/shared/stores/modal/useModalStore';
 import { User, Eye, Calendar } from 'lucide-react';
 import { FileUploader } from '@/app/_lib/widgets/common/file-uploader/FileUploader';
 import { BoardComment } from '@/app/_lib/widgets/common/comment';
-import { fileApi } from '@/app/_lib/shared/hooks/file/fileApi';
 
 const UnionInfoDetailPage = () => {
     const router = useRouter();
@@ -28,8 +27,7 @@ const UnionInfoDetailPage = () => {
     const { data: post, isLoading, error } = useUnionInfo(postId);
     const { mutate: incrementViews } = useIncrementUnionInfoViews();
     const { mutate: deletePost } = useDeleteUnionInfo();
-    const { mutate: deleteFile } = useDeleteUnionInfoFile();
-    const { openConfirmModal, openAlertModal } = useModalStore();
+    const { openConfirmModal } = useModalStore();
 
     // 조회수 증가 (컴포넌트 마운트 시 1회, union 로드 완료 후)
     useEffect(() => {
