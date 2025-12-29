@@ -946,7 +946,7 @@ export default function MemberManagementPage() {
                                                         전화번호
                                                     </th>
                                                     <th className="px-6 py-4 text-left text-[14px] font-bold text-gray-700">
-                                                        물건지
+                                                        주소 (물건지/실거주)
                                                     </th>
                                                     <th className="px-6 py-4 text-left text-[14px] font-bold text-gray-700">
                                                         등급
@@ -1001,12 +1001,24 @@ export default function MemberManagementPage() {
                                                             {maskPhoneNumber(userData.phone_number)}
                                                         </td>
                                                         <td className="px-6 py-4 text-[14px] text-gray-600">
-                                                            <div>{userData.property_address_road || '-'}</div>
-                                                            {userData.property_address_jibun && (
-                                                                <div className="text-[12px] text-gray-400 mt-1">
-                                                                    (지번) {userData.property_address_jibun}
+                                                            <div className="flex flex-col gap-2">
+                                                                <div>
+                                                                    <div className="font-medium text-gray-900">{userData.property_address_road || '-'}</div>
+                                                                    {userData.property_address_jibun && (
+                                                                        <div className="text-[12px] text-gray-400 mt-0.5">
+                                                                            (물건지 지번) {userData.property_address_jibun}
+                                                                        </div>
+                                                                    )}
                                                                 </div>
-                                                            )}
+                                                                {(userData.resident_address_road || userData.resident_address) && (
+                                                                    <div className="pt-1 border-t border-gray-100">
+                                                                        <div className="text-[13px] text-gray-600">
+                                                                            <span className="text-[11px] bg-[#4E8C6D]/10 text-[#4E8C6D] px-1 rounded mr-1">실거주</span>
+                                                                            {userData.resident_address_road || userData.resident_address}
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+                                                            </div>
                                                         </td>
                                                         <td className="px-6 py-4 text-[14px] text-gray-600 whitespace-nowrap">
                                                             {USER_ROLE_LABELS[userData.role] || userData.role}
@@ -1212,6 +1224,28 @@ export default function MemberManagementPage() {
                                                 {selectedUser.property_address_detail && (
                                                     <div className="text-gray-600 font-normal mt-1 border-t border-gray-200 pt-1">
                                                         {selectedUser.property_address_detail}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* 실 거주지 주소 추가 */}
+                                    <div className="flex items-start gap-4 p-4 bg-green-50/50 rounded-xl border border-green-100">
+                                        <MapPin className="w-6 h-6 text-[#4E8C6D] mt-1" />
+                                        <div className="flex-1">
+                                            <p className="text-[12px] text-[#4E8C6D] font-medium">실 거주지</p>
+                                            <div className="text-[16px] font-bold text-gray-900">
+                                                <div>{selectedUser.resident_address_road || selectedUser.resident_address || '-'}</div>
+                                                {selectedUser.resident_address_jibun && (
+                                                    <div className="text-[14px] font-normal text-gray-500 mt-1">
+                                                        <span className="text-[12px] bg-gray-200 px-1 rounded mr-1">지번</span>
+                                                        {selectedUser.resident_address_jibun}
+                                                    </div>
+                                                )}
+                                                {selectedUser.resident_address_detail && (
+                                                    <div className="text-gray-600 font-normal mt-1 border-t border-gray-200 pt-1">
+                                                        {selectedUser.resident_address_detail}
                                                     </div>
                                                 )}
                                             </div>

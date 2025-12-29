@@ -814,6 +814,11 @@ export type Database = {
                     property_address_road: string | null;
                     property_address_jibun: string | null;
                     property_zonecode: string | null;
+                    resident_address: string | null;
+                    resident_address_detail: string | null;
+                    resident_address_road: string | null;
+                    resident_address_jibun: string | null;
+                    resident_zonecode: string | null;
                     rejected_reason: string | null;
                     approved_at: string | null;
                     rejected_at: string | null;
@@ -838,6 +843,11 @@ export type Database = {
                     property_address_road?: string | null;
                     property_address_jibun?: string | null;
                     property_zonecode?: string | null;
+                    resident_address?: string | null;
+                    resident_address_detail?: string | null;
+                    resident_address_road?: string | null;
+                    resident_address_jibun?: string | null;
+                    resident_zonecode?: string | null;
                     rejected_reason?: string | null;
                     approved_at?: string | null;
                     rejected_at?: string | null;
@@ -862,6 +872,11 @@ export type Database = {
                     property_address_road?: string | null;
                     property_address_jibun?: string | null;
                     property_zonecode?: string | null;
+                    resident_address?: string | null;
+                    resident_address_detail?: string | null;
+                    resident_address_road?: string | null;
+                    resident_address_jibun?: string | null;
+                    resident_zonecode?: string | null;
                     rejected_reason?: string | null;
                     approved_at?: string | null;
                     rejected_at?: string | null;

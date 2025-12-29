@@ -27,7 +27,15 @@ import { KakaoAddressSearch, AddressData } from '@/app/_lib/widgets/common/addre
 import { generatePNU } from '@/app/_lib/shared/utils/pnu-utils';
 
 // Step 정의
-type StepKey = 'name' | 'birth_date' | 'phone_number' | 'property_address' | 'property_address_detail' | 'confirm';
+type StepKey = 
+    | 'name' 
+    | 'birth_date' 
+    | 'phone_number' 
+    | 'property_address' 
+    | 'property_address_detail' 
+    | 'resident_address'
+    | 'resident_address_detail'
+    | 'confirm';
 
 interface StepConfig {
     key: StepKey;
@@ -91,6 +99,26 @@ const STEPS: StepConfig[] = [
         type: 'text',
         icon: <Building2 className="w-6 h-6 md:w-7 md:h-7" />,
     },
+    {
+        key: 'resident_address',
+        label: '실 거주지 주소',
+        placeholder: '지번/도로명 주소를 입력해주세요',
+        description: '현재 거주하고 계신 주소입니다.',
+        subDescription: '필수 입력 항목입니다.',
+        required: true,
+        type: 'text',
+        icon: <MapPin className="w-6 h-6 md:w-7 md:h-7" />,
+    },
+    {
+        key: 'resident_address_detail',
+        label: '실 거주지 상세 주소',
+        placeholder: '101동 1001호',
+        description: '동/호수 정보를 입력해주세요.',
+        subDescription: '상세 정보가 필요합니다.',
+        required: true,
+        type: 'text',
+        icon: <Building2 className="w-6 h-6 md:w-7 md:h-7" />,
+    },
 ];
 
 // 초대 데이터 타입
@@ -121,6 +149,11 @@ interface FormData {
     property_address_jibun: string;
     property_zonecode: string;
     property_pnu: string;
+    resident_address: string;
+    resident_address_detail: string;
+    resident_address_road: string;
+    resident_address_jibun: string;
+    resident_zonecode: string;
 }
 
 /**
@@ -156,6 +189,11 @@ export function RegisterModal({
         property_address_jibun: '',
         property_zonecode: '',
         property_pnu: '',
+        resident_address: '',
+        resident_address_detail: '',
+        resident_address_road: '',
+        resident_address_jibun: '',
+        resident_zonecode: '',
     });
 
     // 최종 확인 단계에서 수정 중인 필드
@@ -192,6 +230,11 @@ export function RegisterModal({
                     property_address_jibun: '',
                     property_zonecode: '',
                     property_pnu: '',
+                    resident_address: '',
+                    resident_address_detail: '',
+                    resident_address_road: '',
+                    resident_address_jibun: '',
+                    resident_zonecode: '',
                 });
 
                 // 필수 정보(이름, 번호, 주소)가 모두 있으면 바로 최종 확인 단계로 이동
@@ -211,6 +254,11 @@ export function RegisterModal({
                     property_address_jibun: '',
                     property_zonecode: '',
                     property_pnu: '',
+                    resident_address: '',
+                    resident_address_detail: '',
+                    resident_address_road: '',
+                    resident_address_jibun: '',
+                    resident_zonecode: '',
                 });
                 setCurrentStep(0);
             }
@@ -245,6 +293,11 @@ export function RegisterModal({
                         property_address_jibun: userData.property_address_jibun || '',
                         property_zonecode: userData.property_zonecode || '',
                         property_pnu: userData.property_pnu || '',
+                        resident_address: userData.resident_address || '',
+                        resident_address_detail: userData.resident_address_detail || '',
+                        resident_address_road: userData.resident_address_road || '',
+                        resident_address_jibun: userData.resident_address_jibun || '',
+                        resident_zonecode: userData.resident_zonecode || '',
                     });
                 }
             }
@@ -270,6 +323,31 @@ export function RegisterModal({
             property_zonecode: addressData.zonecode,
             property_pnu: pnu,
         }));
+    }, []);
+
+    // 카카오 실 거주지 주소 선택 핸들러
+    const handleResidentAddressSelect = useCallback((addressData: AddressData) => {
+        setFormData((prev) => ({
+            ...prev,
+            resident_address: addressData.address,
+            resident_address_road: addressData.roadAddress,
+            resident_address_jibun: addressData.jibunAddress,
+            resident_zonecode: addressData.zonecode,
+        }));
+    }, []);
+
+    // 물건지 주소 복사 핸들러
+    const handleCopyPropertyAddress = useCallback(() => {
+        setFormData((prev) => ({
+            ...prev,
+            resident_address: prev.property_address,
+            resident_address_detail: prev.property_address_detail,
+            resident_address_road: prev.property_address_road,
+            resident_address_jibun: prev.property_address_jibun,
+            resident_zonecode: prev.property_zonecode,
+        }));
+        // 복사 후 상세 주소 입력 단계로 바로 이동하거나, 
+        // 현 단계(주소)가 채워졌으므로 다음으로 넘길 수 있게 함
     }, []);
 
     // 현재 스텝의 설정 가져오기
@@ -477,6 +555,11 @@ export function RegisterModal({
                 property_address_jibun: formData.property_address_jibun || null,
                 property_zonecode: formData.property_zonecode || null,
                 property_pnu: formData.property_pnu || null,
+                resident_address: formData.resident_address || null,
+                resident_address_detail: formData.resident_address_detail || null,
+                resident_address_road: formData.resident_address_road || null,
+                resident_address_jibun: formData.resident_address_jibun || null,
+                resident_zonecode: formData.resident_zonecode || null,
                 approved_at: isInvite ? new Date().toISOString() : null,
             };
 
@@ -639,10 +722,12 @@ export function RegisterModal({
                                         const isEditing = editingField === step.key;
 
                                         // 주소 표시 값 결정 (도로명 + 지번 둘 다 표시)
-                                        const displayValue =
-                                            step.key === 'property_address' && formData.property_address_road
-                                                ? `${formData.property_address_road}${formData.property_address_jibun ? ` (${formData.property_address_jibun})` : ''}`
-                                                : value;
+                                        let displayValue = value;
+                                        if (step.key === 'property_address' && formData.property_address_road) {
+                                            displayValue = `${formData.property_address_road}${formData.property_address_jibun ? ` (${formData.property_address_jibun})` : ''}`;
+                                        } else if (step.key === 'resident_address' && formData.resident_address_road) {
+                                            displayValue = `${formData.resident_address_road}${formData.resident_address_jibun ? ` (${formData.resident_address_jibun})` : ''}`;
+                                        }
 
                                         return (
                                             <div key={step.key} className="bg-gray-50 rounded-xl p-4">
@@ -701,6 +786,34 @@ export function RegisterModal({
                                                                                 sub_address_no: addressData.sub_address_no,
                                                                                 mountain_yn: addressData.mountain_yn,
                                                                             }),
+                                                                        }));
+                                                                    }}
+                                                                    placeholder={step.placeholder}
+                                                                />
+                                                                <button
+                                                                    onClick={() => setEditingField(null)}
+                                                                    className="h-12 px-4 bg-[#4E8C6D] text-white rounded-lg hover:bg-[#3d7058] w-full"
+                                                                >
+                                                                    <span className="flex items-center justify-center gap-2">
+                                                                        <Check className="w-5 h-5" />
+                                                                        완료
+                                                                    </span>
+                                                                </button>
+                                                            </div>
+                                                        ) : step.key === 'resident_address' ? (
+                                                            // 실 거주지 주소: KakaoAddressSearch 사용
+                                                            <div className="flex flex-col gap-2">
+                                                                <KakaoAddressSearch
+                                                                    value={value}
+                                                                    onAddressSelect={(addressData) => {
+                                                                        setFormData((prev) => ({
+                                                                            ...prev,
+                                                                            resident_address: addressData.address,
+                                                                            resident_address_road:
+                                                                                addressData.roadAddress,
+                                                                            resident_address_jibun:
+                                                                                addressData.jibunAddress,
+                                                                            resident_zonecode: addressData.zonecode,
                                                                         }));
                                                                     }}
                                                                     placeholder={step.placeholder}
@@ -838,6 +951,22 @@ export function RegisterModal({
                                                 onAddressSelect={handleAddressSelect}
                                                 placeholder={stepConfig.placeholder}
                                             />
+                                        ) : stepConfig.key === 'resident_address' ? (
+                                            // 실 거주지 주소: KakaoAddressSearch 사용 + 복사 버튼
+                                            <div className="space-y-4">
+                                                <button
+                                                    onClick={handleCopyPropertyAddress}
+                                                    className="w-full h-12 rounded-xl border-2 border-[#4E8C6D] text-[#4E8C6D] font-medium hover:bg-[#4E8C6D]/5 transition-colors flex items-center justify-center gap-2"
+                                                >
+                                                    <Check className="w-4 h-4" />
+                                                    물건지 주소와 동일
+                                                </button>
+                                                <KakaoAddressSearch
+                                                    value={getCurrentValue()}
+                                                    onAddressSelect={handleResidentAddressSelect}
+                                                    placeholder={stepConfig.placeholder}
+                                                />
+                                            </div>
                                         ) : (
                                             // 기본 입력 필드
                                             <input

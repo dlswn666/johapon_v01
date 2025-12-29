@@ -18,12 +18,19 @@ import { toast } from 'react-hot-toast';
 import { supabase } from '@/app/_lib/shared/supabase/client';
 import * as XLSX from 'xlsx';
 import { cn } from '@/lib/utils';
+import { SelectBox } from '@/app/_lib/widgets/common/select-box';
+import { useUnions } from '@/app/_lib/features/union-management/api/useUnionManagementHook';
 
 export default function GisSyncPage() {
     const [progress, setProgress] = useState(0);
     const [status, setStatus] = useState<'idle' | 'syncing' | 'completed' | 'failed'>('idle');
     const [currentJobId, setCurrentJobId] = useState<string | null>(null);
     const [isPublished, setIsPublished] = useState(false);
+    const [selectedUnionId, setSelectedUnionId] = useState<string>('');
+
+    // 조합 목록 조회
+    const { data: unions, isLoading: isLoadingUnions } = useUnions();
+    const unionOptions = unions?.map(u => ({ value: u.id, label: u.name })) || [];
     
     // 미리보기 데이터 상태
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -55,7 +62,7 @@ export default function GisSyncPage() {
                 } else if (newStatus === 'FAILED') {
                     setStatus('failed');
                     toast.error('데이터 수집 중 오류가 발생했습니다.');
-                } else if (newStatus === 'SYNCING') {
+                } else if (newStatus === 'PROCESSING') {
                     setStatus('syncing');
                 }
             })
@@ -108,6 +115,11 @@ export default function GisSyncPage() {
             return;
         }
 
+        if (!selectedUnionId) {
+            toast.error('대상 조합을 선택해 주세요.');
+            return;
+        }
+
         setStatus('syncing');
         setProgress(0);
         
@@ -117,7 +129,8 @@ export default function GisSyncPage() {
             const { data, error } = await supabase
                 .from('sync_jobs')
                 .insert({
-                    status: 'SYNCING',
+                    union_id: selectedUnionId,
+                    status: 'PROCESSING',
                     progress: 0,
                     is_published: false
                 })
@@ -177,18 +190,31 @@ export default function GisSyncPage() {
                         </div>
                     </CardHeader>
                     <CardContent className="pt-6 space-y-6">
-                        <div className={cn(
-                            "border-2 border-dashed rounded-xl p-8 text-center transition-all",
-                            previewData.length > 0 ? "border-[#4E8C6D]/30 bg-[#4E8C6D]/5" : "border-slate-200 bg-slate-50/50"
-                        )}>
-                            <Upload className={cn("mx-auto h-10 w-10 mb-4", previewData.length > 0 ? "text-[#4E8C6D]" : "text-slate-400")} />
-                            <div className="flex flex-col items-center">
-                                <label className="cursor-pointer bg-slate-900 text-white px-6 py-2.5 rounded-lg hover:bg-slate-800 transition shadow-sm font-medium flex items-center gap-2">
-                                    {isAnalyzing ? <Loader2 className="w-4 h-4 animate-spin" /> : <TableIcon className="w-4 h-4" />}
-                                    엑셀 파일 선택
-                                    <input type="file" className="hidden" accept=".xlsx,.xls" onChange={handleFileUpload} />
-                                </label>
-                                <p className="mt-2 text-xs text-slate-400">지원 형식: XLSX, XLS (최대 50MB)</p>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="text-sm font-bold text-slate-700 mb-2 block">대상 조합 선택</label>
+                                <SelectBox
+                                    value={selectedUnionId}
+                                    onChange={setSelectedUnionId}
+                                    options={unionOptions}
+                                    placeholder="조합을 선택해 주세요"
+                                    disabled={isLoadingUnions || status === 'syncing'}
+                                />
+                            </div>
+
+                            <div className={cn(
+                                "border-2 border-dashed rounded-xl p-8 text-center transition-all",
+                                previewData.length > 0 ? "border-[#4E8C6D]/30 bg-[#4E8C6D]/5" : "border-slate-200 bg-slate-50/50"
+                            )}>
+                                <Upload className={cn("mx-auto h-10 w-10 mb-4", previewData.length > 0 ? "text-[#4E8C6D]" : "text-slate-400")} />
+                                <div className="flex flex-col items-center">
+                                    <label className="cursor-pointer bg-slate-900 text-white px-6 py-2.5 rounded-lg hover:bg-slate-800 transition shadow-sm font-medium flex items-center gap-2">
+                                        {isAnalyzing ? <Loader2 className="w-4 h-4 animate-spin" /> : <TableIcon className="w-4 h-4" />}
+                                        엑셀 파일 선택
+                                        <input type="file" className="hidden" accept=".xlsx,.xls" onChange={handleFileUpload} />
+                                    </label>
+                                    <p className="mt-2 text-xs text-slate-400">지원 형식: XLSX, XLS (최대 50MB)</p>
+                                </div>
                             </div>
                         </div>
 
