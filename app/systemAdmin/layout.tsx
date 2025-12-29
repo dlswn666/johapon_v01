@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Shield, Building2, Users, LogOut, Home, MessageSquare, ChevronDown } from 'lucide-react';
+import { Shield, Building2, Users, LogOut, Home, MessageSquare, ChevronDown, MapPin } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import AuthProvider, { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import { Button } from '@/components/ui/button';
@@ -27,6 +27,7 @@ function SystemAdminHeader() {
         { href: '/systemAdmin', label: '대시보드', icon: Home, exact: true },
         { href: '/systemAdmin/unions', label: '조합 관리', icon: Building2 },
         { href: '/systemAdmin/stages', label: '단계 마스터', icon: Shield },
+        { href: '/systemAdmin/gis', label: 'GIS 데이터 관리', icon: MapPin },
         {
             href: '/systemAdmin/alimtalk',
             label: '알림톡',

@@ -68,9 +68,9 @@ export default function GisSyncPage() {
 
     const handleDownloadTemplate = () => {
         const template = [
-            ['주소(전체)', '법정동코드(10자리)', '본번', '부번', '산여부(Y/N)', '면적(㎡)'],
-            ['서울특별시 강북구 미아동 791-2882', '1130510300', '791', '2882', 'N', '125.5'],
-            ['서울특별시 강북구 미아동 산 1-1', '1130510300', '1', '1', 'Y', '500'],
+            ['주소(전체)'],
+            ['서울특별시 강북구 미아동 791-2882'],
+            ['서울특별시 강북구 미아동 산 1-1'],
         ];
         const ws = XLSX.utils.aoa_to_sheet(template);
         const wb = XLSX.utils.book_new();
@@ -205,16 +205,12 @@ export default function GisSyncPage() {
                                         <thead className="bg-slate-100/50 text-slate-600">
                                             <tr>
                                                 <th className="px-4 py-2 border-b">주소</th>
-                                                <th className="px-4 py-2 border-b">본번-부번</th>
-                                                <th className="px-4 py-2 border-b text-right">면적(㎡)</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-100">
                                             {previewData.map((row, idx) => (
                                                 <tr key={idx} className="bg-white">
-                                                    <td className="px-4 py-2 truncate max-w-[200px]">{row[0]}</td>
-                                                    <td className="px-4 py-2">{row[2]}-{row[3]}</td>
-                                                    <td className="px-4 py-2 text-right">{row[5]}</td>
+                                                    <td className="px-4 py-2 truncate">{row[0]}</td>
                                                 </tr>
                                             ))}
                                         </tbody>
