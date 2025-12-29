@@ -67,6 +67,7 @@ export default function UnionHomeHeader() {
             subItems: [
                 { label: '조합 정보 공유', href: `/${union?.slug || ''}/communication/union-info` },
                 { label: '자유 게시판', href: `/${union?.slug || ''}/communication/free-board` },
+                { label: '협력 업체', href: `/${union?.slug || ''}/communication/partner` },
             ],
         },
     ];
@@ -78,10 +79,11 @@ export default function UnionHomeHeader() {
             label: '관리자',
             href: `/${union?.slug || ''}/admin`,
             subItems: [
+                { label: '조합 정보 설정', href: `/${union?.slug || ''}/admin/settings` },
                 { label: '슬라이드 관리', href: `/${union?.slug || ''}/admin/slides` },
                 { label: '알림톡 내역', href: `/${union?.slug || ''}/admin/alimtalk` },
                 { label: '조합원 관리', href: `/${union?.slug || ''}/admin/members` },
-                { label: '지번 관리', href: `/${union?.slug || ''}/admin/land-lots` },
+                { label: '지번 및 GIS 관리', href: `/${union?.slug || ''}/admin/land-lots` },
             ],
         });
     }

@@ -126,6 +126,228 @@ export type Database = {
                     }
                 ];
             };
+            consent_stages: {
+                Row: {
+                    id: string;
+                    business_type: Database['public']['Enums']['business_type_enum'];
+                    stage_code: string;
+                    stage_name: string;
+                    required_rate: number;
+                    sort_order: number;
+                    created_at: string;
+                };
+                Insert: {
+                    id?: string;
+                    business_type: Database['public']['Enums']['business_type_enum'];
+                    stage_code: string;
+                    stage_name: string;
+                    required_rate?: number;
+                    sort_order?: number;
+                    created_at?: string;
+                };
+                Update: {
+                    id?: string;
+                    business_type?: Database['public']['Enums']['business_type_enum'];
+                    stage_code?: string;
+                    stage_name?: string;
+                    required_rate?: number;
+                    sort_order?: number;
+                    created_at?: string;
+                };
+                Relationships: [];
+            };
+            land_lots: {
+                Row: {
+                    pnu: string;
+                    address: string;
+                    area: number | null;
+                    official_price: number | null;
+                    boundary: Json | null;
+                    updated_at: string;
+                };
+                Insert: {
+                    pnu: string;
+                    address: string;
+                    area?: number | null;
+                    official_price?: number | null;
+                    boundary?: Json | null;
+                    updated_at?: string;
+                };
+                Update: {
+                    pnu?: string;
+                    address?: string;
+                    area?: number | null;
+                    official_price?: number | null;
+                    boundary?: Json | null;
+                    updated_at?: string;
+                };
+                Relationships: [];
+            };
+            building_units: {
+                Row: {
+                    id: string;
+                    pnu: string;
+                    dong: string | null;
+                    ho: string | null;
+                    floor: string | null;
+                    exclusive_area: number | null;
+                    created_at: string;
+                };
+                Insert: {
+                    id?: string;
+                    pnu: string;
+                    dong?: string | null;
+                    ho?: string | null;
+                    floor?: string | null;
+                    exclusive_area?: number | null;
+                    created_at?: string;
+                };
+                Update: {
+                    id?: string;
+                    pnu?: string;
+                    dong?: string | null;
+                    ho?: string | null;
+                    floor?: string | null;
+                    exclusive_area?: number | null;
+                    created_at?: string;
+                };
+                Relationships: [
+                    {
+                        foreignKeyName: 'building_units_pnu_fkey';
+                        columns: ['pnu'];
+                        isOneToOne: false;
+                        referencedRelation: 'land_lots';
+                        referencedColumns: ['pnu'];
+                    }
+                ];
+            };
+            owners: {
+                Row: {
+                    id: string;
+                    unit_id: string;
+                    name: string;
+                    phone: string | null;
+                    share: string | null;
+                    is_representative: boolean;
+                    is_manual: boolean;
+                    created_at: string;
+                };
+                Insert: {
+                    id?: string;
+                    unit_id: string;
+                    name: string;
+                    phone?: string | null;
+                    share?: string | null;
+                    is_representative?: boolean;
+                    is_manual?: boolean;
+                    created_at?: string;
+                };
+                Update: {
+                    id?: string;
+                    unit_id?: string;
+                    name?: string;
+                    phone?: string | null;
+                    share?: string | null;
+                    is_representative?: boolean;
+                    is_manual?: boolean;
+                    created_at?: string;
+                };
+                Relationships: [
+                    {
+                        foreignKeyName: 'owners_unit_id_fkey';
+                        columns: ['unit_id'];
+                        isOneToOne: false;
+                        referencedRelation: 'building_units';
+                        referencedColumns: ['id'];
+                    }
+                ];
+            };
+            owner_consents: {
+                Row: {
+                    id: string;
+                    owner_id: string;
+                    stage_id: string;
+                    status: Database['public']['Enums']['agreement_status_enum'];
+                    consent_date: string | null;
+                    updated_at: string;
+                };
+                Insert: {
+                    id?: string;
+                    owner_id: string;
+                    stage_id: string;
+                    status?: Database['public']['Enums']['agreement_status_enum'];
+                    consent_date?: string | null;
+                    updated_at?: string;
+                };
+                Update: {
+                    id?: string;
+                    owner_id?: string;
+                    stage_id?: string;
+                    status?: Database['public']['Enums']['agreement_status_enum'];
+                    consent_date?: string | null;
+                    updated_at?: string;
+                };
+                Relationships: [
+                    {
+                        foreignKeyName: 'owner_consents_owner_id_fkey';
+                        columns: ['owner_id'];
+                        isOneToOne: false;
+                        referencedRelation: 'owners';
+                        referencedColumns: ['id'];
+                    },
+                    {
+                        foreignKeyName: 'owner_consents_stage_id_fkey';
+                        columns: ['stage_id'];
+                        isOneToOne: false;
+                        referencedRelation: 'consent_stages';
+                        referencedColumns: ['id'];
+                    }
+                ];
+            };
+            sync_jobs: {
+                Row: {
+                    id: string;
+                    union_id: string;
+                    status: Database['public']['Enums']['sync_status_enum'];
+                    progress: number;
+                    error_log: string | null;
+                    is_published: boolean;
+                    preview_data: Json | null;
+                    created_at: string;
+                    updated_at: string;
+                };
+                Insert: {
+                    id?: string;
+                    union_id: string;
+                    status?: Database['public']['Enums']['sync_status_enum'];
+                    progress?: number;
+                    error_log?: string | null;
+                    is_published?: boolean;
+                    preview_data?: Json | null;
+                    created_at?: string;
+                    updated_at?: string;
+                };
+                Update: {
+                    id?: string;
+                    union_id?: string;
+                    status?: Database['public']['Enums']['sync_status_enum'];
+                    progress?: number;
+                    error_log?: string | null;
+                    is_published?: boolean;
+                    preview_data?: Json | null;
+                    created_at?: string;
+                    updated_at?: string;
+                };
+                Relationships: [
+                    {
+                        foreignKeyName: 'sync_jobs_union_id_fkey';
+                        columns: ['union_id'];
+                        isOneToOne: false;
+                        referencedRelation: 'unions';
+                        referencedColumns: ['id'];
+                    }
+                ];
+            };
             alimtalk_logs: {
                 Row: {
                     content: string | null;
@@ -987,7 +1209,31 @@ export type Database = {
             };
         };
         Views: {
-            [_ in never]: never;
+            v_pnu_consent_status: {
+                Row: {
+                    pnu: string;
+                    stage_id: string;
+                    total_owners: number;
+                    agreed_owners: number;
+                    display_status: 'FULL_AGREED' | 'PARTIAL_AGREED' | 'NONE_AGREED';
+                };
+                Relationships: [
+                    {
+                        foreignKeyName: 'land_lots_pnu_fkey';
+                        columns: ['pnu'];
+                        isOneToOne: false;
+                        referencedRelation: 'land_lots';
+                        referencedColumns: ['pnu'];
+                    },
+                    {
+                        foreignKeyName: 'consent_stages_id_fkey';
+                        columns: ['stage_id'];
+                        isOneToOne: false;
+                        referencedRelation: 'consent_stages';
+                        referencedColumns: ['id'];
+                    }
+                ];
+            };
         };
         Functions: {
             increment_notice_views: {
@@ -1034,6 +1280,9 @@ export type Database = {
             auth_provider: 'kakao' | 'naver' | 'email';
             admin_invite_status: 'PENDING' | 'USED' | 'EXPIRED';
             ad_type: 'MAIN' | 'SUB' | 'BOARD';
+            business_type_enum: 'REDEVELOPMENT' | 'RECONSTRUCTION' | 'HOUSING_ASSOCIATION';
+            agreement_status_enum: 'AGREED' | 'DISAGREED' | 'PENDING';
+            sync_status_enum: 'PROCESSING' | 'COMPLETED' | 'FAILED';
         };
         CompositeTypes: {
             [_ in never]: never;
@@ -1266,3 +1515,12 @@ export type AdType = Database['public']['Enums']['ad_type'];
 export type Advertisement = Database['public']['Tables']['advertisements']['Row'];
 export type NewAdvertisement = Database['public']['Tables']['advertisements']['Insert'];
 export type UpdateAdvertisement = Database['public']['Tables']['advertisements']['Update'];
+
+// GIS 관련 타입 추가
+export type ConsentStage = Database['public']['Tables']['consent_stages']['Row'];
+export type LandLot = Database['public']['Tables']['land_lots']['Row'];
+export type BuildingUnit = Database['public']['Tables']['building_units']['Row'];
+export type Owner = Database['public']['Tables']['owners']['Row'];
+export type OwnerConsent = Database['public']['Tables']['owner_consents']['Row'];
+export type SyncJob = Database['public']['Tables']['sync_jobs']['Row'];
+export type PnuConsentStatus = Database['public']['Views']['v_pnu_consent_status']['Row'];
