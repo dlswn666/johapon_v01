@@ -26,6 +26,7 @@ import { cn } from '@/lib/utils';
 import { SelectBox } from '@/app/_lib/widgets/common/select-box';
 import { useUnions } from '@/app/_lib/features/union-management/api/useUnionManagementHook';
 import { useQuery } from '@tanstack/react-query';
+import { startGisSync } from '@/app/_lib/features/gis/actions/syncGis';
 
 export default function GisSyncPage() {
     const [progress, setProgress] = useState(0);
@@ -44,9 +45,6 @@ export default function GisSyncPage() {
     // 전체 주소 목록 (API 전송용)
     const [allAddresses, setAllAddresses] = useState<string[]>([]);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
-    
-    // GIS API 서버 URL (alimtalk-proxy-server와 동일)
-    const GIS_API_URL = process.env.NEXT_PUBLIC_GIS_API_URL || 'http://localhost:3100';
 
     // 수집 완료 데이터 검증용 상태
     const [showValidation, _setShowValidation] = useState(false);
@@ -213,27 +211,18 @@ export default function GisSyncPage() {
         setProgress(0);
         
         try {
-            // GIS 수집 API 호출 (alimtalk-proxy-server)
-            const response = await fetch(`${GIS_API_URL}/api/gis/sync`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    unionId: selectedUnionId,
-                    addresses: allAddresses
-                })
+            // 서버 액션을 통해 GIS 수집 API 호출
+            const result = await startGisSync({
+                unionId: selectedUnionId,
+                addresses: allAddresses
             });
 
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.error || `API 오류: ${response.status}`);
+            if (!result.success) {
+                throw new Error(result.error || 'GIS sync failed');
             }
-
-            const result = await response.json();
             
             // 반환된 jobId로 Realtime 구독 설정
-            setCurrentJobId(result.jobId);
+            setCurrentJobId(result.jobId || null);
             toast.success(`데이터 수집을 시작합니다. (총 ${allAddresses.length}건)`);
         } catch (error) {
             console.error('Sync Start Error:', error);
