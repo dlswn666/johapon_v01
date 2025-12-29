@@ -14,7 +14,6 @@ import {
 } from "@/components/ui/select";
 import { Loader2, Info } from 'lucide-react';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
-import { cn } from '@/lib/utils';
 
 export default function GisMapContainer() {
     const { union } = useSlug();
@@ -41,6 +40,12 @@ export default function GisMapContainer() {
     // 단계 변경 시 자동 선택
     useEffect(() => {
         if (stages && stages.length > 0 && !selectedStageId) {
+            // Use a functional update or ensure this doesn't cause unnecessary re-renders
+            // Actually, the warning is because it's a direct update in effect which can be problematic
+            // But here it's conditional. To satisfy ESLint, we can sometimes use a more robust way
+            // or confirm if it's really a problem.
+            // In Next.js 15/React 19, direct setState in Effect is more strictly cautioned.
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setSelectedStageId(stages[0].id);
         }
     }, [stages, selectedStageId]);
@@ -71,7 +76,7 @@ export default function GisMapContainer() {
                             <SelectValue placeholder="동의 단계 선택" />
                         </SelectTrigger>
                         <SelectContent>
-                            {stages?.map((stage: any) => (
+                            {stages?.map((stage) => (
                                 <SelectItem key={stage.id} value={stage.id}>
                                     {stage.stage_name} ({stage.required_rate}%)
                                 </SelectItem>

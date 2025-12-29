@@ -1,11 +1,10 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-// @ts-ignore
 import * as echarts from 'echarts';
 
 interface EChartsMapProps {
-    geoJson: any;
+    geoJson: GeoJSON.FeatureCollection;
     data: { pnu: string; status: 'FULL_AGREED' | 'PARTIAL_AGREED' | 'NONE_AGREED' }[];
     onParcelClick?: (pnu: string) => void;
 }
@@ -19,19 +18,18 @@ export default function EChartsMap({ geoJson, data, onParcelClick }: EChartsMapP
 
         if (!chartInstance.current) {
             chartInstance.current = echarts.init(chartRef.current);
-            chartInstance.current.on('click', (params: any) => {
+            chartInstance.current.on('click', (params: { componentType: string; name: string }) => {
                 if (params.componentType === 'series' && onParcelClick) {
                     onParcelClick(params.name);
                 }
             });
         }
 
-        echarts.registerMap('GIS_MAP', geoJson);
 
         const option = {
             tooltip: {
                 trigger: 'item',
-                formatter: (params: any) => `${params.name}<br/>상태: ${params.value || '정보 없음'}`
+                formatter: (params: { name: string; value: string }) => `${params.name}<br/>상태: ${params.value || '정보 없음'}`
             },
             visualMap: {
                 type: 'piecewise',

@@ -25,3 +25,19 @@ export const parseLandLotFromText = (addressText: string): Partial<AddressInfo> 
     }
     return null;
 };
+
+/**
+ * PNU 코드 생성 (19자리)
+ */
+export const generatePNU = (info: AddressInfo): string => {
+    const { b_code, main_address_no, sub_address_no, mountain_yn } = info;
+
+    // 본번을 4자리로 패딩
+    const mainPad = main_address_no.padStart(4, '0');
+    // 부번을 4자리로 패딩
+    const subPad = sub_address_no.padStart(4, '0');
+    // 산지 여부 (1: 대지, 2: 산)
+    const mountainCode = mountain_yn === 'Y' ? '2' : '1';
+
+    return `${b_code}${mountainCode}${mainPad}${subPad}`;
+};

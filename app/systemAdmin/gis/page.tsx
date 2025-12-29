@@ -26,6 +26,7 @@ export default function GisSyncPage() {
     const [isPublished, setIsPublished] = useState(false);
     
     // 미리보기 데이터 상태
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [previewData, setPreviewData] = useState<any[]>([]);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
 
@@ -86,6 +87,7 @@ export default function GisSyncPage() {
             const data = await file.arrayBuffer();
             const workbook = XLSX.read(data);
             const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
             
             // 상위 10개만 미리보기로 저장

@@ -3,9 +3,16 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/app/_lib/shared/supabase/client';
 
+export interface ConsentStatus {
+    pnu: string;
+    display_status: 'FULL_AGREED' | 'PARTIAL_AGREED' | 'NONE_AGREED';
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    [key: string]: any;
+}
+
 export function useConsentMap(unionId: string | undefined, stageId: string | null) {
-    const [geoJson, setGeoJson] = useState<any>(null);
-    const [consentData, setConsentData] = useState<any[]>([]);
+    const [geoJson, setGeoJson] = useState<GeoJSON.FeatureCollection | null>(null);
+    const [consentData, setConsentData] = useState<ConsentStatus[]>([]);
     const [loading, setLoading] = useState(false);
     const [isPublished, setIsPublished] = useState<boolean | null>(null);
 
@@ -41,12 +48,15 @@ export function useConsentMap(unionId: string | undefined, stageId: string | nul
                     .eq('union_id', unionId);
                 
                 if (lots && !lotsError) {
-                    const features = (lots as any[])
-                        .filter(l => Array.isArray(l.land_lots) ? l.land_lots[0]?.boundary : l.land_lots?.boundary)
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    const features = (lots as { pnu: string, land_lots: { boundary: any } | { boundary: any }[] }[])
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        .filter(l => Array.isArray(l.land_lots) ? (l.land_lots[0] as any)?.boundary : (l.land_lots as any)?.boundary)
                         .map(lot => ({
-                            type: 'Feature',
+                            type: 'Feature' as const,
                             properties: { name: lot.pnu },
-                            geometry: Array.isArray(lot.land_lots) ? lot.land_lots[0].boundary : lot.land_lots.boundary
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            geometry: Array.isArray(lot.land_lots) ? (lot.land_lots[0] as any).boundary : (lot.land_lots as any).boundary
                         }));
                     setGeoJson({ type: 'FeatureCollection', features });
                 }
