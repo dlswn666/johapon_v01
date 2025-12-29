@@ -7,7 +7,9 @@ import {
     Trash2, 
     GripVertical, 
     Layout, 
-    ChevronRight
+    ChevronRight,
+    FileCheck2,
+    Percent
 } from 'lucide-react';
 import { 
     useDevelopmentStages, 
@@ -16,9 +18,19 @@ import {
     useDeleteDevelopmentStage,
     DevelopmentStage
 } from '@/app/_lib/features/development-stages/api/useDevelopmentStages';
+import {
+    useConsentStages,
+    useCreateConsentStage,
+    useUpdateConsentStage,
+    useDeleteConsentStage,
+    ConsentStage,
+    BusinessTypeEnum,
+    BUSINESS_TYPE_LABELS
+} from '@/app/_lib/features/consent-stages/api/useConsentStages';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
     Dialog, 
     DialogContent, 
@@ -30,8 +42,57 @@ import { toast } from 'react-hot-toast';
 import { cn } from '@/lib/utils';
 
 const BUSINESS_TYPES = ['재개발', '재건축', '지역주택조합', '가로주택정비'];
+const CONSENT_BUSINESS_TYPES: BusinessTypeEnum[] = ['REDEVELOPMENT', 'RECONSTRUCTION', 'HOUSING_ASSOCIATION'];
 
 export default function StagesManagementPage() {
+    const [activeTab, setActiveTab] = useState<'development' | 'consent'>('development');
+    
+    return (
+        <div className="space-y-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+                        <Layout className="w-6 h-6 text-blue-400" />
+                        단계 마스터 관리
+                    </h1>
+                    <p className="text-slate-400 text-sm">사업 유형별 개발 단계 및 동의 단계를 표준화하여 관리합니다.</p>
+                </div>
+            </div>
+
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'development' | 'consent')} className="w-full">
+                <TabsList className="bg-slate-800 border border-slate-700 p-1">
+                    <TabsTrigger 
+                        value="development" 
+                        className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-slate-400"
+                    >
+                        <Layout className="w-4 h-4 mr-2" />
+                        사업 진행 단계
+                    </TabsTrigger>
+                    <TabsTrigger 
+                        value="consent" 
+                        className="data-[state=active]:bg-green-600 data-[state=active]:text-white text-slate-400"
+                    >
+                        <FileCheck2 className="w-4 h-4 mr-2" />
+                        동의 단계 관리
+                    </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="development" className="mt-6">
+                    <DevelopmentStagesTab />
+                </TabsContent>
+
+                <TabsContent value="consent" className="mt-6">
+                    <ConsentStagesTab />
+                </TabsContent>
+            </Tabs>
+        </div>
+    );
+}
+
+// =====================================================
+// 사업 진행 단계 탭 (기존 코드)
+// =====================================================
+function DevelopmentStagesTab() {
     const [selectedType, setSelectedType] = useState<string>('재개발');
     const { data: stages, isLoading } = useDevelopmentStages(selectedType);
     
@@ -39,7 +100,6 @@ export default function StagesManagementPage() {
     const updateMutation = useUpdateDevelopmentStage();
     const deleteMutation = useDeleteDevelopmentStage();
 
-    // 모달 상태
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingStage, setEditingStage] = useState<DevelopmentStage | null>(null);
     const [formData, setFormData] = useState({
@@ -102,15 +162,8 @@ export default function StagesManagementPage() {
     };
 
     return (
-        <div className="space-y-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-                        <Layout className="w-6 h-6 text-blue-400" />
-                        단계 마스터 관리
-                    </h1>
-                    <p className="text-slate-400 text-sm">사업 유형별 개발 단계를 표준화하여 관리합니다.</p>
-                </div>
+        <>
+            <div className="flex justify-end mb-4">
                 <Button 
                     onClick={() => handleOpenModal()}
                     className="bg-blue-600 hover:bg-blue-700 text-white"
@@ -121,7 +174,6 @@ export default function StagesManagementPage() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                {/* 왼쪽: 유형 선택 */}
                 <div className="bg-slate-800 border border-slate-700 rounded-2xl p-4 h-fit">
                     <h3 className="text-sm font-semibold text-slate-300 mb-4 px-2 uppercase tracking-wider">사업 유형</h3>
                     <div className="space-y-1">
@@ -146,7 +198,6 @@ export default function StagesManagementPage() {
                     </div>
                 </div>
 
-                {/* 오른쪽: 단계 목록 */}
                 <div className="lg:col-span-3 space-y-4">
                     <div className="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden shadow-sm">
                         <div className="p-4 border-b border-slate-700 bg-slate-800/50 flex items-center justify-between">
@@ -202,7 +253,6 @@ export default function StagesManagementPage() {
                 </div>
             </div>
 
-            {/* 등록/수정 모달 */}
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
                 <DialogContent className="bg-slate-800 border-slate-700 text-white sm:max-w-md">
                     <DialogHeader>
@@ -249,6 +299,292 @@ export default function StagesManagementPage() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-        </div>
+        </>
+    );
+}
+
+// =====================================================
+// 동의 단계 관리 탭 (신규)
+// =====================================================
+function ConsentStagesTab() {
+    const [selectedType, setSelectedType] = useState<BusinessTypeEnum>('REDEVELOPMENT');
+    const { data: stages, isLoading } = useConsentStages(selectedType);
+    
+    const createMutation = useCreateConsentStage();
+    const updateMutation = useUpdateConsentStage();
+    const deleteMutation = useDeleteConsentStage();
+
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingStage, setEditingStage] = useState<ConsentStage | null>(null);
+    const [formData, setFormData] = useState({
+        stage_code: '',
+        stage_name: '',
+        required_rate: 75,
+        sort_order: 1,
+        business_type: 'REDEVELOPMENT' as BusinessTypeEnum
+    });
+
+    const handleOpenModal = (stage?: ConsentStage) => {
+        if (stage) {
+            setEditingStage(stage);
+            setFormData({
+                stage_code: stage.stage_code,
+                stage_name: stage.stage_name,
+                required_rate: stage.required_rate,
+                sort_order: stage.sort_order,
+                business_type: stage.business_type
+            });
+        } else {
+            setEditingStage(null);
+            setFormData({
+                stage_code: '',
+                stage_name: '',
+                required_rate: 75,
+                sort_order: (stages?.length || 0) + 1,
+                business_type: selectedType
+            });
+        }
+        setIsModalOpen(true);
+    };
+
+    const handleSubmit = async () => {
+        if (!formData.stage_code.trim()) {
+            toast.error('단계 코드를 입력해주세요.');
+            return;
+        }
+        if (!formData.stage_name.trim()) {
+            toast.error('단계명을 입력해주세요.');
+            return;
+        }
+        if (formData.required_rate < 0 || formData.required_rate > 100) {
+            toast.error('동의율은 0~100 사이의 값이어야 합니다.');
+            return;
+        }
+
+        try {
+            if (editingStage) {
+                await updateMutation.mutateAsync({
+                    id: editingStage.id,
+                    updates: {
+                        stage_code: formData.stage_code,
+                        stage_name: formData.stage_name,
+                        required_rate: formData.required_rate,
+                        sort_order: formData.sort_order
+                    }
+                });
+                toast.success('수정되었습니다.');
+            } else {
+                await createMutation.mutateAsync(formData);
+                toast.success('등록되었습니다.');
+            }
+            setIsModalOpen(false);
+        } catch (_error) {
+            toast.error('저장에 실패했습니다.');
+        }
+    };
+
+    const handleDelete = async (id: string) => {
+        if (!confirm('정말로 이 동의 단계를 삭제하시겠습니까? 관련 동의 데이터가 있을 경우 오류가 발생할 수 있습니다.')) return;
+        
+        try {
+            await deleteMutation.mutateAsync(id);
+            toast.success('삭제되었습니다.');
+        } catch (_error) {
+            toast.error('삭제에 실패했습니다. (관련 데이터가 존재할 수 있습니다)');
+        }
+    };
+
+    return (
+        <>
+            <div className="flex justify-end mb-4">
+                <Button 
+                    onClick={() => handleOpenModal()}
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                >
+                    <Plus className="w-4 h-4 mr-2" />
+                    새 동의 단계 추가
+                </Button>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                <div className="bg-slate-800 border border-slate-700 rounded-2xl p-4 h-fit">
+                    <h3 className="text-sm font-semibold text-slate-300 mb-4 px-2 uppercase tracking-wider">사업 유형</h3>
+                    <div className="space-y-1">
+                        {CONSENT_BUSINESS_TYPES.map((type) => (
+                            <button
+                                key={type}
+                                onClick={() => setSelectedType(type)}
+                                className={cn(
+                                    "w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all cursor-pointer group",
+                                    selectedType === type 
+                                        ? "bg-green-600 text-white shadow-lg shadow-green-900/20" 
+                                        : "text-slate-400 hover:bg-slate-700/50 hover:text-white"
+                                )}
+                            >
+                                <span className="font-medium text-sm">{BUSINESS_TYPE_LABELS[type]}</span>
+                                <ChevronRight className={cn(
+                                    "w-4 h-4 opacity-0 transition-opacity",
+                                    selectedType === type ? "opacity-100" : "group-hover:opacity-100"
+                                )} />
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                <div className="lg:col-span-3 space-y-4">
+                    <div className="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden shadow-sm">
+                        <div className="p-4 border-b border-slate-700 bg-slate-800/50 flex items-center justify-between">
+                            <span className="text-sm font-medium text-slate-200">
+                                <strong className="text-green-400">{BUSINESS_TYPE_LABELS[selectedType]}</strong> 동의 단계 목록 ({stages?.length || 0})
+                            </span>
+                        </div>
+
+                        <div className="divide-y divide-slate-700">
+                            {isLoading ? (
+                                <div className="p-12 text-center">
+                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500 mx-auto"></div>
+                                </div>
+                            ) : !stages || stages.length === 0 ? (
+                                <div className="p-12 text-center text-slate-500">
+                                    등록된 동의 단계가 없습니다.
+                                </div>
+                            ) : (
+                                stages.map((stage) => (
+                                    <div key={stage.id} className="flex items-center gap-4 p-4 hover:bg-slate-700/30 transition-colors group">
+                                        <div className="p-2 text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <GripVertical className="w-4 h-4" />
+                                        </div>
+                                        <div className="w-10 h-10 bg-slate-900 rounded-lg flex items-center justify-center text-green-400 font-bold border border-slate-700">
+                                            {stage.sort_order}
+                                        </div>
+                                        <div className="flex-1">
+                                            <div className="flex items-center gap-2">
+                                                <h4 className="text-white font-medium">{stage.stage_name}</h4>
+                                                <span className="text-xs px-2 py-0.5 bg-slate-700 text-slate-300 rounded font-mono">
+                                                    {stage.stage_code}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2 px-3 py-1.5 bg-green-500/10 rounded-lg">
+                                            <Percent className="w-3 h-3 text-green-400" />
+                                            <span className="text-green-400 font-bold text-sm">{stage.required_rate}%</span>
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                            <Button 
+                                                variant="ghost" 
+                                                size="icon"
+                                                onClick={() => handleOpenModal(stage)}
+                                                className="text-slate-400 hover:text-green-400 hover:bg-green-500/10 cursor-pointer"
+                                            >
+                                                <Pencil className="w-4 h-4" />
+                                            </Button>
+                                            <Button 
+                                                variant="ghost" 
+                                                size="icon"
+                                                onClick={() => handleDelete(stage.id)}
+                                                className="text-slate-400 hover:text-red-400 hover:bg-red-500/10 cursor-pointer"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+
+                    {/* 안내 박스 */}
+                    <div className="bg-green-900/20 border border-green-800/50 rounded-xl p-4">
+                        <h4 className="text-green-400 font-semibold mb-2 flex items-center gap-2">
+                            <FileCheck2 className="w-4 h-4" />
+                            동의 단계란?
+                        </h4>
+                        <ul className="text-sm text-slate-400 space-y-1 list-disc list-inside">
+                            <li>각 사업 유형별로 필요한 동의 절차를 정의합니다.</li>
+                            <li><strong className="text-slate-300">필요 동의율</strong>: 해당 단계 완료를 위해 필요한 최소 동의 비율입니다.</li>
+                            <li>조합에서 지도를 통해 동의 현황을 시각적으로 확인할 수 있습니다.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+                <DialogContent className="bg-slate-800 border-slate-700 text-white sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>{editingStage ? '동의 단계 수정' : '새 동의 단계 등록'}</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium text-slate-400">사업 유형</label>
+                            <Select 
+                                value={formData.business_type} 
+                                onValueChange={(val) => setFormData(p => ({ ...p, business_type: val as BusinessTypeEnum }))}
+                                disabled={!!editingStage}
+                            >
+                                <SelectTrigger className="bg-slate-900 border-slate-700 focus:ring-green-500">
+                                    <SelectValue placeholder="유형 선택" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-slate-800 border-slate-700 text-white">
+                                    {CONSENT_BUSINESS_TYPES.map(t => (
+                                        <SelectItem key={t} value={t}>{BUSINESS_TYPE_LABELS[t]}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-slate-400">단계 코드</label>
+                                <Input 
+                                    placeholder="예: CONSENT_01"
+                                    value={formData.stage_code}
+                                    onChange={(e) => setFormData(p => ({ ...p, stage_code: e.target.value }))}
+                                    className="bg-slate-900 border-slate-700 focus:ring-green-500 font-mono"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-slate-400">출력 순서</label>
+                                <Input 
+                                    type="number"
+                                    value={formData.sort_order}
+                                    onChange={(e) => setFormData(p => ({ ...p, sort_order: parseInt(e.target.value) || 0 }))}
+                                    className="bg-slate-900 border-slate-700 focus:ring-green-500"
+                                />
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium text-slate-400">단계명</label>
+                            <Input 
+                                placeholder="예: 조합설립동의"
+                                value={formData.stage_name}
+                                onChange={(e) => setFormData(p => ({ ...p, stage_name: e.target.value }))}
+                                className="bg-slate-900 border-slate-700 focus:ring-green-500"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium text-slate-400 flex items-center gap-2">
+                                필요 동의율 (%)
+                                <span className="text-xs text-slate-500">(0~100)</span>
+                            </label>
+                            <div className="relative">
+                                <Input 
+                                    type="number"
+                                    min={0}
+                                    max={100}
+                                    value={formData.required_rate}
+                                    onChange={(e) => setFormData(p => ({ ...p, required_rate: parseInt(e.target.value) || 0 }))}
+                                    className="bg-slate-900 border-slate-700 focus:ring-green-500 pr-8"
+                                />
+                                <Percent className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                            </div>
+                            <p className="text-xs text-slate-500">일반적으로 조합설립동의는 75%, 사업시행인가동의는 66% 이상이 필요합니다.</p>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="ghost" onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-white">취소</Button>
+                        <Button onClick={handleSubmit} className="bg-green-600 hover:bg-green-700 text-white">저장</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </>
     );
 }

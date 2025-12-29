@@ -1,10 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/app/_lib/shared/supabase/client';
 import { useConsentMap } from '../hooks/useConsentMap';
 import EChartsMap from '@/components/map/EChartsMap';
+import ParcelDetailModal from './ParcelDetailModal';
+import { useUnionConsentRate } from '../api/useParcelDetail';
 import {
     Select,
     SelectContent,
@@ -12,7 +14,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Info } from 'lucide-react';
+import { Loader2, Info, Percent, Users, CheckCircle2 } from 'lucide-react';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 
 export default function GisMapContainer() {
@@ -20,6 +22,10 @@ export default function GisMapContainer() {
     const unionId = union?.id;
     const [selectedBusinessType, setSelectedBusinessType] = useState<string>('REDEVELOPMENT');
     const [selectedStageId, setSelectedStageId] = useState<string | null>(null);
+    
+    // 모달 상태
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedPnu, setSelectedPnu] = useState<string | null>(null);
 
     // 동의 단계 목록 조회
     const { data: stages } = useQuery({
@@ -51,6 +57,15 @@ export default function GisMapContainer() {
     }, [stages, selectedStageId]);
 
     const { geoJson, consentData, loading, isPublished } = useConsentMap(unionId, selectedStageId);
+    
+    // 조합 전체 동의율 조회
+    const { data: consentRate } = useUnionConsentRate(unionId || null, selectedStageId);
+
+    // 필지 클릭 핸들러
+    const handleParcelClick = useCallback((pnu: string) => {
+        setSelectedPnu(pnu);
+        setIsModalOpen(true);
+    }, []);
 
     return (
         <div className="space-y-4 h-full flex flex-col">
@@ -88,6 +103,31 @@ export default function GisMapContainer() {
                 {loading && <div className="text-sm text-slate-400 animate-pulse flex items-center gap-2">
                     <Loader2 className="w-3 h-3 animate-spin" /> 로딩 중...
                 </div>}
+
+                {/* 전체 동의율 표시 */}
+                {consentRate && (
+                    <div className="ml-auto flex items-center gap-4 bg-slate-50 px-4 py-2 rounded-lg border border-slate-200">
+                        <div className="flex items-center gap-2">
+                            <Users className="w-4 h-4 text-slate-500" />
+                            <span className="text-sm text-slate-600">
+                                <strong className="text-slate-900">{consentRate.agreed_owner_count || 0}</strong>
+                                /{consentRate.total_owner_count || 0}명
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Percent className="w-4 h-4 text-slate-500" />
+                            <span className="text-sm text-slate-600">
+                                인원 <strong className="text-primary">{Math.round(consentRate.owner_rate || 0)}%</strong>
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <CheckCircle2 className="w-4 h-4 text-green-500" />
+                            <span className="text-sm text-slate-600">
+                                면적 <strong className="text-green-600">{Math.round(consentRate.area_rate || 0)}%</strong>
+                            </span>
+                        </div>
+                    </div>
+                )}
             </div>
 
             <div className="flex-1 bg-slate-50 rounded-xl border border-slate-200 overflow-hidden relative min-h-[600px]">
@@ -109,7 +149,7 @@ export default function GisMapContainer() {
                     <EChartsMap 
                         geoJson={geoJson} 
                         data={consentData.map(d => ({ pnu: d.pnu, status: d.display_status }))} 
-                        onParcelClick={(pnu) => console.log('필지 클릭:', pnu)}
+                        onParcelClick={handleParcelClick}
                     />
                 ) : (
                     <div className="absolute inset-0 flex items-center justify-center text-slate-400">
@@ -117,6 +157,14 @@ export default function GisMapContainer() {
                     </div>
                 )}
             </div>
+
+            {/* 필지 상세 모달 */}
+            <ParcelDetailModal
+                open={isModalOpen}
+                onOpenChange={setIsModalOpen}
+                pnu={selectedPnu}
+                stageId={selectedStageId}
+            />
         </div>
     );
 }

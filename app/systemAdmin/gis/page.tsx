@@ -12,7 +12,12 @@ import {
     Eye, 
     Send,
     Table as TableIcon,
-    Loader2
+    Loader2,
+    MapPin,
+    Building2,
+    Users,
+    FileSearch,
+    RefreshCw
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { supabase } from '@/app/_lib/shared/supabase/client';
@@ -20,6 +25,7 @@ import * as XLSX from 'xlsx';
 import { cn } from '@/lib/utils';
 import { SelectBox } from '@/app/_lib/widgets/common/select-box';
 import { useUnions } from '@/app/_lib/features/union-management/api/useUnionManagementHook';
+import { useQuery } from '@tanstack/react-query';
 
 export default function GisSyncPage() {
     const [progress, setProgress] = useState(0);
@@ -35,7 +41,80 @@ export default function GisSyncPage() {
     // 미리보기 데이터 상태
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [previewData, setPreviewData] = useState<any[]>([]);
+    // 전체 주소 목록 (API 전송용)
+    const [allAddresses, setAllAddresses] = useState<string[]>([]);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
+    
+    // GIS API 서버 URL (alimtalk-proxy-server와 동일)
+    const GIS_API_URL = process.env.NEXT_PUBLIC_GIS_API_URL || 'http://localhost:3100';
+
+    // 수집 완료 데이터 검증용 상태
+    const [showValidation, _setShowValidation] = useState(false);
+
+    // 수집 완료된 데이터 통계 조회
+    const { data: collectedStats, isLoading: isLoadingStats, refetch: refetchStats } = useQuery({
+        queryKey: ['gis-collected-stats', selectedUnionId, currentJobId],
+        queryFn: async () => {
+            if (!selectedUnionId) return null;
+
+            // 필지 수 조회
+            const { count: landLotCount } = await supabase
+                .from('union_land_lots')
+                .select('*', { count: 'exact', head: true })
+                .eq('union_id', selectedUnionId);
+
+            // 건물 호수 수 조회 (land_lots 테이블과 조인)
+            const { data: landLots } = await supabase
+                .from('union_land_lots')
+                .select('pnu')
+                .eq('union_id', selectedUnionId);
+
+            const pnus = landLots?.map(l => l.pnu) || [];
+
+            let buildingUnitCount = 0;
+            let ownerCount = 0;
+
+            if (pnus.length > 0) {
+                const { count: unitCount } = await supabase
+                    .from('building_units')
+                    .select('*', { count: 'exact', head: true })
+                    .in('pnu', pnus);
+
+                buildingUnitCount = unitCount || 0;
+
+                // 소유주 수 조회
+                const { data: units } = await supabase
+                    .from('building_units')
+                    .select('id')
+                    .in('pnu', pnus);
+
+                if (units && units.length > 0) {
+                    const unitIds = units.map(u => u.id);
+                    const { count: ownCount } = await supabase
+                        .from('owners')
+                        .select('*', { count: 'exact', head: true })
+                        .in('unit_id', unitIds);
+                    ownerCount = ownCount || 0;
+                }
+            }
+
+            // 샘플 데이터 조회 (상위 5개 필지)
+            const { data: sampleLots } = await supabase
+                .from('union_land_lots')
+                .select('pnu, address_text, land_area')
+                .eq('union_id', selectedUnionId)
+                .limit(5);
+
+            return {
+                landLotCount: landLotCount || 0,
+                buildingUnitCount,
+                ownerCount,
+                sampleLots: sampleLots || []
+            };
+        },
+        enabled: !!selectedUnionId && (status === 'completed' || showValidation),
+        staleTime: 10000, // 10초 캐시
+    });
 
     // Supabase Realtime을 통한 작업 상태 구독
     useEffect(() => {
@@ -97,10 +176,20 @@ export default function GisSyncPage() {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
             
+            // 헤더 제외한 전체 데이터 (첫 번째 컬럼 = 주소)
+            const allRows = jsonData.slice(1);
+            const addresses = allRows
+                .map(row => row[0])
+                .filter((addr): addr is string => typeof addr === 'string' && addr.trim() !== '');
+            
+            // 전체 주소 목록 저장 (API 전송용)
+            setAllAddresses(addresses);
+            
             // 상위 10개만 미리보기로 저장
-            const rows = jsonData.slice(1, 11);
-            setPreviewData(rows);
-            toast.success(`${file.name} 데이터 분석 완료 (총 ${jsonData.length - 1}건)`);
+            const previewRows = allRows.slice(0, 10);
+            setPreviewData(previewRows);
+            
+            toast.success(`${file.name} 데이터 분석 완료 (총 ${addresses.length}건)`);
         } catch (error) {
             console.error('File Analysis Error:', error);
             toast.error('파일 분석 중 오류가 발생했습니다.');
@@ -110,7 +199,7 @@ export default function GisSyncPage() {
     };
 
     const startSync = async () => {
-        if (previewData.length === 0) {
+        if (allAddresses.length === 0) {
             toast.error('먼저 엑셀 파일을 업로드해 주세요.');
             return;
         }
@@ -124,25 +213,32 @@ export default function GisSyncPage() {
         setProgress(0);
         
         try {
-            // 실제 수집 API 호출 (서버의 /gis/sync)
-            // 임시로 수동 상태 업데이트 예시
-            const { data, error } = await supabase
-                .from('sync_jobs')
-                .insert({
-                    union_id: selectedUnionId,
-                    status: 'PROCESSING',
-                    progress: 0,
-                    is_published: false
+            // GIS 수집 API 호출 (alimtalk-proxy-server)
+            const response = await fetch(`${GIS_API_URL}/api/gis/sync`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    unionId: selectedUnionId,
+                    addresses: allAddresses
                 })
-                .select()
-                .single();
+            });
 
-            if (error) throw error;
-            setCurrentJobId(data.id);
-            toast.success('데이터 수집을 시작합니다. 잠시만 기다려 주세요.');
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || `API 오류: ${response.status}`);
+            }
+
+            const result = await response.json();
+            
+            // 반환된 jobId로 Realtime 구독 설정
+            setCurrentJobId(result.jobId);
+            toast.success(`데이터 수집을 시작합니다. (총 ${allAddresses.length}건)`);
         } catch (error) {
             console.error('Sync Start Error:', error);
-            toast.error('수집 시작 중 오류가 발생했습니다.');
+            const errorMessage = error instanceof Error ? error.message : '수집 시작 중 오류가 발생했습니다.';
+            toast.error(errorMessage);
             setStatus('idle');
         }
     };
@@ -222,9 +318,9 @@ export default function GisSyncPage() {
                             <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
                                 <div className="flex items-center justify-between">
                                     <h3 className="text-sm font-bold text-slate-700 flex items-center gap-1.5">
-                                        <Eye className="w-4 h-4" /> 데이터 미리보기 (상위 10건)
+                                        <Eye className="w-4 h-4" /> 데이터 미리보기 (상위 10건 / 총 {allAddresses.length}건)
                                     </h3>
-                                    <Button variant="ghost" size="sm" onClick={() => setPreviewData([])} className="text-xs text-red-500 hover:text-red-600 hover:bg-red-50">초기화</Button>
+                                    <Button variant="ghost" size="sm" onClick={() => { setPreviewData([]); setAllAddresses([]); }} className="text-xs text-red-500 hover:text-red-600 hover:bg-red-50">초기화</Button>
                                 </div>
                                 <div className="rounded-lg border border-slate-200 overflow-hidden text-xs">
                                     <table className="w-full text-left">
@@ -292,13 +388,129 @@ export default function GisSyncPage() {
                         </CardContent>
                     </Card>
 
+                    {/* 3단계: 데이터 검증 */}
                     <Card className={cn(
                         "shadow-sm border-slate-200 overflow-hidden transition-all",
                         status === 'completed' ? "opacity-100" : "opacity-50 grayscale pointer-events-none"
                     )}>
                         <CardHeader className="bg-slate-50/30 border-b border-slate-50 py-4">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <div className="size-6 rounded-full bg-slate-400 text-white flex items-center justify-center text-xs font-bold">3</div>
+                                    <CardTitle className="text-md">수집 데이터 검증</CardTitle>
+                                </div>
+                                <Button 
+                                    variant="ghost" 
+                                    size="sm"
+                                    onClick={() => refetchStats()}
+                                    disabled={isLoadingStats}
+                                    className="h-7 px-2"
+                                >
+                                    <RefreshCw className={cn("w-3 h-3", isLoadingStats && "animate-spin")} />
+                                </Button>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="pt-4 space-y-4">
+                            {isLoadingStats ? (
+                                <div className="flex items-center justify-center py-4">
+                                    <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
+                                </div>
+                            ) : collectedStats ? (
+                                <>
+                                    {/* 통계 카드 */}
+                                    <div className="grid grid-cols-3 gap-2">
+                                        <div className="bg-blue-50 rounded-lg p-3 text-center">
+                                            <MapPin className="w-4 h-4 text-blue-500 mx-auto mb-1" />
+                                            <p className="text-lg font-bold text-blue-700">{collectedStats.landLotCount}</p>
+                                            <p className="text-xs text-blue-500">필지</p>
+                                        </div>
+                                        <div className="bg-green-50 rounded-lg p-3 text-center">
+                                            <Building2 className="w-4 h-4 text-green-500 mx-auto mb-1" />
+                                            <p className="text-lg font-bold text-green-700">{collectedStats.buildingUnitCount}</p>
+                                            <p className="text-xs text-green-500">호수</p>
+                                        </div>
+                                        <div className="bg-purple-50 rounded-lg p-3 text-center">
+                                            <Users className="w-4 h-4 text-purple-500 mx-auto mb-1" />
+                                            <p className="text-lg font-bold text-purple-700">{collectedStats.ownerCount}</p>
+                                            <p className="text-xs text-purple-500">소유주</p>
+                                        </div>
+                                    </div>
+
+                                    {/* 샘플 데이터 미리보기 */}
+                                    {collectedStats.sampleLots.length > 0 && (
+                                        <div>
+                                            <div className="flex items-center gap-1 mb-2">
+                                                <FileSearch className="w-3 h-3 text-slate-400" />
+                                                <span className="text-xs font-semibold text-slate-500">샘플 데이터 (상위 5건)</span>
+                                            </div>
+                                            <div className="rounded-lg border border-slate-200 overflow-hidden">
+                                                <table className="w-full text-xs">
+                                                    <thead className="bg-slate-50">
+                                                        <tr>
+                                                            <th className="px-2 py-1.5 text-left text-slate-600">주소</th>
+                                                            <th className="px-2 py-1.5 text-right text-slate-600">면적</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-slate-100">
+                                                        {collectedStats.sampleLots.map((lot, idx) => (
+                                                            <tr key={idx} className="bg-white">
+                                                                <td className="px-2 py-1.5 truncate max-w-[180px]" title={lot.address_text || lot.pnu}>
+                                                                    {lot.address_text || lot.pnu}
+                                                                </td>
+                                                                <td className="px-2 py-1.5 text-right text-slate-500">
+                                                                    {lot.land_area ? `${Number(lot.land_area).toLocaleString()}㎡` : '-'}
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* 검증 결과 */}
+                                    <div className={cn(
+                                        "p-3 rounded-lg border",
+                                        collectedStats.landLotCount > 0 
+                                            ? "bg-green-50 border-green-200" 
+                                            : "bg-yellow-50 border-yellow-200"
+                                    )}>
+                                        {collectedStats.landLotCount > 0 ? (
+                                            <div className="flex items-center gap-2">
+                                                <CheckCircle2 className="w-4 h-4 text-green-500" />
+                                                <span className="text-xs text-green-700 font-medium">
+                                                    데이터 수집이 정상적으로 완료되었습니다.
+                                                </span>
+                                            </div>
+                                        ) : (
+                                            <div className="flex items-center gap-2">
+                                                <AlertCircle className="w-4 h-4 text-yellow-500" />
+                                                <span className="text-xs text-yellow-700 font-medium">
+                                                    수집된 데이터가 없습니다. 주소 목록을 확인해 주세요.
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="text-center py-4 text-slate-400 text-sm">
+                                    조합을 선택하고 수집을 완료하면<br/>
+                                    데이터 검증이 가능합니다.
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+
+                    {/* 4단계: 최종 배포 승인 */}
+                    <Card className={cn(
+                        "shadow-sm border-slate-200 overflow-hidden transition-all",
+                        status === 'completed' && collectedStats && collectedStats.landLotCount > 0 
+                            ? "opacity-100" 
+                            : "opacity-50 grayscale pointer-events-none"
+                    )}>
+                        <CardHeader className="bg-slate-50/30 border-b border-slate-50 py-4">
                             <div className="flex items-center gap-2">
-                                <div className="size-6 rounded-full bg-slate-400 text-white flex items-center justify-center text-xs font-bold">3</div>
+                                <div className="size-6 rounded-full bg-slate-400 text-white flex items-center justify-center text-xs font-bold">4</div>
                                 <CardTitle className="text-md">최종 배포 승인</CardTitle>
                             </div>
                         </CardHeader>
