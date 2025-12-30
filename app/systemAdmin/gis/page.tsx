@@ -3,13 +3,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { 
-    Download, 
-    Upload, 
-    Play, 
-    CheckCircle2, 
-    AlertCircle, 
-    Eye, 
+import {
+    Download,
+    Upload,
+    Play,
+    CheckCircle2,
+    AlertCircle,
+    Eye,
     Send,
     Table as TableIcon,
     Loader2,
@@ -18,7 +18,7 @@ import {
     Trash2,
     Clock,
     Plus,
-    ChevronRight
+    ChevronRight,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { supabase } from '@/app/_lib/shared/supabase/client';
@@ -38,7 +38,7 @@ import {
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+} from '@/components/ui/alert-dialog';
 
 // 작업 기록 타입
 interface SyncJob {
@@ -59,37 +59,41 @@ interface SyncJob {
 
 export default function GisSyncPage() {
     const queryClient = useQueryClient();
-    
+
     // 기본 상태
     const [selectedUnionId, setSelectedUnionId] = useState<string>('');
     const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
     const [isNewJobMode, setIsNewJobMode] = useState(false);
-    
+
     // 새 작업 관련 상태
     const [previewData, setPreviewData] = useState<string[][]>([]);
     const [allAddresses, setAllAddresses] = useState<string[]>([]);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
-    
+
     // 삭제 다이얼로그
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [jobToDelete, setJobToDelete] = useState<string | null>(null);
 
     // 조합 목록 조회
     const { data: unions, isLoading: isLoadingUnions } = useUnions();
-    const unionOptions = unions?.map(u => ({ value: u.id, label: u.name })) || [];
-    
+    const unionOptions = unions?.map((u) => ({ value: u.id, label: u.name })) || [];
+
     // 조합별 작업 기록 조회
-    const { data: syncJobs, isLoading: isLoadingJobs, refetch: refetchJobs } = useQuery({
+    const {
+        data: syncJobs,
+        isLoading: isLoadingJobs,
+        refetch: refetchJobs,
+    } = useQuery({
         queryKey: ['sync-jobs', selectedUnionId],
         queryFn: async () => {
             if (!selectedUnionId) return [];
-            
+
             const { data, error } = await supabase
                 .from('sync_jobs')
                 .select('*')
                 .eq('union_id', selectedUnionId)
                 .order('created_at', { ascending: false });
-            
+
             if (error) throw error;
             return data as SyncJob[];
         },
@@ -98,12 +102,12 @@ export default function GisSyncPage() {
     });
 
     // 현재 선택된 작업
-    const selectedJob = syncJobs?.find(job => job.id === selectedJobId);
-    
+    const selectedJob = syncJobs?.find((job) => job.id === selectedJobId);
+
     // 진행 중인 작업이 있으면 자동 선택
     useEffect(() => {
         if (syncJobs && syncJobs.length > 0 && !selectedJobId && !isNewJobMode) {
-            const processingJob = syncJobs.find(job => job.status === 'PROCESSING');
+            const processingJob = syncJobs.find((job) => job.status === 'PROCESSING');
             if (processingJob) {
                 setSelectedJobId(processingJob.id);
             } else {
@@ -115,21 +119,17 @@ export default function GisSyncPage() {
     // 폴링을 통한 진행 상태 업데이트
     useEffect(() => {
         if (!selectedJobId || selectedJob?.status !== 'PROCESSING') return;
-        
+
         const pollInterval = setInterval(async () => {
-            const { data, error } = await supabase
-                .from('sync_jobs')
-                .select('*')
-                .eq('id', selectedJobId)
-                .single();
-            
+            const { data, error } = await supabase.from('sync_jobs').select('*').eq('id', selectedJobId).single();
+
             if (!error && data) {
                 // 쿼리 캐시 업데이트
                 queryClient.setQueryData(['sync-jobs', selectedUnionId], (old: SyncJob[] | undefined) => {
                     if (!old) return old;
-                    return old.map(job => job.id === selectedJobId ? data : job);
+                    return old.map((job) => (job.id === selectedJobId ? data : job));
                 });
-                
+
                 if (data.status === 'COMPLETED') {
                     toast.success('모든 필지 데이터 수집이 완료되었습니다.');
                     clearInterval(pollInterval);
@@ -139,57 +139,53 @@ export default function GisSyncPage() {
                 }
             }
         }, 2000);
-        
+
         return () => clearInterval(pollInterval);
     }, [selectedJobId, selectedJob?.status, selectedUnionId, queryClient]);
 
-    // 지도 미리보기용 GeoJSON 조회
+    // 지도 미리보기용 GeoJSON 조회 (RPC 함수 사용 - geometry를 GeoJSON으로 변환)
     const { data: mapData, isLoading: isLoadingMap } = useQuery({
         queryKey: ['gis-map-preview', selectedUnionId, selectedJobId],
         queryFn: async () => {
             if (!selectedUnionId) return null;
-            
-            // 해당 조합의 필지 경계 데이터 조회
-            const { data: lots, error } = await supabase
-                .from('union_land_lots')
-                .select('pnu, address_text, land_lots(boundary, address)')
-                .eq('union_id', selectedUnionId);
-            
-            if (error) throw error;
-            
-            // GeoJSON 생성
-            type LandLotJoin = {
-                pnu: string;
-                address_text: string | null;
-                land_lots: { boundary: GeoJSON.Geometry; address: string } | { boundary: GeoJSON.Geometry; address: string }[] | null;
-            };
-            
-            const features = (lots as LandLotJoin[])
-                .filter(l => {
-                    const landLot = Array.isArray(l.land_lots) ? l.land_lots[0] : l.land_lots;
-                    return landLot?.boundary;
-                })
-                .map(lot => {
-                    const landLot = Array.isArray(lot.land_lots) ? lot.land_lots[0] : lot.land_lots;
-                    return {
-                        type: 'Feature' as const,
-                        properties: { name: lot.pnu },
-                        geometry: landLot!.boundary
-                    };
-                });
-            
+
+            // RPC 함수를 사용하여 GeoJSON 데이터 조회 (PostGIS geometry를 JSON으로 변환)
+            const { data: parcels, error } = await supabase.rpc('get_union_parcels_geojson', {
+                p_union_id: selectedUnionId,
+            });
+
+            if (error) {
+                console.error('RPC get_union_parcels_geojson error:', error);
+                throw error;
+            }
+
+            // GeoJSON FeatureCollection 생성
+            const features = (parcels || [])
+                .filter(
+                    (p: { pnu: string; address: string; boundary_geojson: GeoJSON.Geometry | null }) =>
+                        p.boundary_geojson !== null
+                )
+                .map((p: { pnu: string; address: string; boundary_geojson: GeoJSON.Geometry }) => ({
+                    type: 'Feature' as const,
+                    properties: {
+                        name: p.pnu,
+                        address: p.address,
+                    },
+                    geometry: p.boundary_geojson,
+                }));
+
             const geoJson: GeoJSON.FeatureCollection = {
                 type: 'FeatureCollection',
-                features
+                features,
             };
-            
+
             // 통계 데이터
             const stats = {
-                totalLots: lots?.length || 0,
+                totalLots: parcels?.length || 0,
                 withBoundary: features.length,
-                withoutBoundary: (lots?.length || 0) - features.length
+                withoutBoundary: (parcels?.length || 0) - features.length,
             };
-            
+
             return { geoJson, stats };
         },
         enabled: !!selectedUnionId && !!selectedJobId && !isNewJobMode,
@@ -206,11 +202,7 @@ export default function GisSyncPage() {
 
     // 템플릿 다운로드
     const handleDownloadTemplate = () => {
-        const template = [
-            ['주소(전체)'],
-            ['서울특별시 강북구 미아동 791-2882'],
-            ['서울특별시 강북구 미아동 산 1-1'],
-        ];
+        const template = [['주소(전체)'], ['서울특별시 강북구 미아동 791-2882'], ['서울특별시 강북구 미아동 산 1-1']];
         const ws = XLSX.utils.aoa_to_sheet(template);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, '지번업로드양식');
@@ -221,23 +213,23 @@ export default function GisSyncPage() {
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
-        
+
         setIsAnalyzing(true);
         try {
             const data = await file.arrayBuffer();
             const workbook = XLSX.read(data);
             const worksheet = workbook.Sheets[workbook.SheetNames[0]];
             const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as string[][];
-            
+
             // 헤더 제외한 전체 데이터
             const allRows = jsonData.slice(1);
             const addresses = allRows
-                .map(row => row[0])
+                .map((row) => row[0])
                 .filter((addr): addr is string => typeof addr === 'string' && addr.trim() !== '');
-            
+
             setAllAddresses(addresses);
             setPreviewData(allRows.slice(0, 10));
-            
+
             toast.success(`${file.name} 분석 완료 (총 ${addresses.length}건)`);
         } catch (error) {
             console.error('File Analysis Error:', error);
@@ -262,22 +254,22 @@ export default function GisSyncPage() {
         try {
             const result = await startGisSync({
                 unionId: selectedUnionId,
-                addresses: allAddresses
+                addresses: allAddresses,
             });
 
             if (!result.success) {
                 throw new Error(result.error || 'GIS sync failed');
             }
-            
+
             // 새 작업 모드 종료 및 작업 선택
             setIsNewJobMode(false);
             setSelectedJobId(result.jobId || null);
             setPreviewData([]);
             setAllAddresses([]);
-            
+
             // 작업 목록 새로고침
             await refetchJobs();
-            
+
             toast.success(`데이터 수집을 시작합니다. (총 ${allAddresses.length}건)`);
         } catch (error) {
             console.error('Sync Start Error:', error);
@@ -291,13 +283,10 @@ export default function GisSyncPage() {
         if (!selectedJobId) return;
 
         try {
-            const { error } = await supabase
-                .from('sync_jobs')
-                .update({ is_published: true })
-                .eq('id', selectedJobId);
+            const { error } = await supabase.from('sync_jobs').update({ is_published: true }).eq('id', selectedJobId);
 
             if (error) throw error;
-            
+
             await refetchJobs();
             toast.success('지도가 성공적으로 배포되었습니다.');
         } catch (error) {
@@ -312,17 +301,14 @@ export default function GisSyncPage() {
 
         try {
             // 작업 삭제 (연관된 union_land_lots는 유지)
-            const { error } = await supabase
-                .from('sync_jobs')
-                .delete()
-                .eq('id', jobToDelete);
+            const { error } = await supabase.from('sync_jobs').delete().eq('id', jobToDelete);
 
             if (error) throw error;
-            
+
             if (selectedJobId === jobToDelete) {
                 setSelectedJobId(null);
             }
-            
+
             await refetchJobs();
             toast.success('작업 기록이 삭제되었습니다.');
         } catch (error) {
@@ -355,7 +341,7 @@ export default function GisSyncPage() {
             month: '2-digit',
             day: '2-digit',
             hour: '2-digit',
-            minute: '2-digit'
+            minute: '2-digit',
         });
     };
 
@@ -364,10 +350,16 @@ export default function GisSyncPage() {
             {/* 헤더 */}
             <div className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-3xl font-bold text-slate-900 font-mono tracking-tight">GIS SYNC CONTROL PANEL</h1>
+                    <h1 className="text-3xl font-bold text-slate-900 font-mono tracking-tight">
+                        GIS SYNC CONTROL PANEL
+                    </h1>
                     <p className="text-slate-500 mt-1">지번 데이터 수집 및 GIS 시각화 배포 관리 시스템</p>
                 </div>
-                <Button variant="outline" onClick={handleDownloadTemplate} className="hover:bg-slate-50 border-slate-200">
+                <Button
+                    variant="outline"
+                    onClick={handleDownloadTemplate}
+                    className="hover:bg-slate-50 border-slate-200"
+                >
                     <Download className="mr-2 h-4 w-4" /> 템플릿 다운로드
                 </Button>
             </div>
@@ -385,12 +377,7 @@ export default function GisSyncPage() {
                             disabled={isLoadingUnions}
                         />
                         {selectedUnionId && (
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => refetchJobs()}
-                                className="ml-auto"
-                            >
+                            <Button variant="outline" size="sm" onClick={() => refetchJobs()} className="ml-auto">
                                 <RefreshCw className="w-4 h-4 mr-1" />
                                 새로고침
                             </Button>
@@ -417,8 +404,7 @@ export default function GisSyncPage() {
                                     }}
                                     className="bg-[#4E8C6D] hover:bg-[#3d7058]"
                                 >
-                                    <Plus className="w-4 h-4 mr-1" />
-                                    새 작업
+                                    <Plus className="w-4 h-4 mr-1" />새 작업
                                 </Button>
                             </div>
                         </CardHeader>
@@ -429,10 +415,10 @@ export default function GisSyncPage() {
                                 </div>
                             ) : syncJobs && syncJobs.length > 0 ? (
                                 <div className="divide-y divide-slate-100">
-                                    {syncJobs.map(job => {
+                                    {syncJobs.map((job) => {
                                         const statusInfo = formatJobStatus(job);
                                         const isSelected = job.id === selectedJobId && !isNewJobMode;
-                                        
+
                                         return (
                                             <div
                                                 key={job.id}
@@ -441,17 +427,19 @@ export default function GisSyncPage() {
                                                     setIsNewJobMode(false);
                                                 }}
                                                 className={cn(
-                                                    "p-4 cursor-pointer transition-all hover:bg-slate-50",
-                                                    isSelected && "bg-blue-50 border-l-4 border-l-blue-500"
+                                                    'p-4 cursor-pointer transition-all hover:bg-slate-50',
+                                                    isSelected && 'bg-blue-50 border-l-4 border-l-blue-500'
                                                 )}
                                             >
                                                 <div className="flex items-center justify-between">
                                                     <div className="flex items-center gap-2">
-                                                        <span className={cn(
-                                                            "text-xs font-medium px-2 py-0.5 rounded",
-                                                            statusInfo.bg,
-                                                            statusInfo.color
-                                                        )}>
+                                                        <span
+                                                            className={cn(
+                                                                'text-xs font-medium px-2 py-0.5 rounded',
+                                                                statusInfo.bg,
+                                                                statusInfo.color
+                                                            )}
+                                                        >
                                                             {statusInfo.label}
                                                         </span>
                                                         {job.is_published && (
@@ -460,10 +448,12 @@ export default function GisSyncPage() {
                                                             </span>
                                                         )}
                                                     </div>
-                                                    <ChevronRight className={cn(
-                                                        "w-4 h-4 text-slate-400",
-                                                        isSelected && "text-blue-500"
-                                                    )} />
+                                                    <ChevronRight
+                                                        className={cn(
+                                                            'w-4 h-4 text-slate-400',
+                                                            isSelected && 'text-blue-500'
+                                                        )}
+                                                    />
                                                 </div>
                                                 <p className="text-xs text-slate-500 mt-2">
                                                     {formatDate(job.created_at)}
@@ -471,7 +461,7 @@ export default function GisSyncPage() {
                                                 {job.status === 'PROCESSING' && (
                                                     <div className="mt-2">
                                                         <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
-                                                            <div 
+                                                            <div
                                                                 className="h-full bg-blue-500 animate-pulse transition-all"
                                                                 style={{ width: `${job.progress}%` }}
                                                             />
@@ -481,7 +471,8 @@ export default function GisSyncPage() {
                                                 )}
                                                 {job.preview_data && (
                                                     <p className="text-xs text-slate-400 mt-1">
-                                                        성공: {job.preview_data.successCount || 0} / 실패: {job.preview_data.failedCount || 0}
+                                                        성공: {job.preview_data.successCount || 0} / 실패:{' '}
+                                                        {job.preview_data.failedCount || 0}
                                                     </p>
                                                 )}
                                             </div>
@@ -505,24 +496,45 @@ export default function GisSyncPage() {
                             <>
                                 <CardHeader className="border-b border-slate-100 bg-slate-50/50">
                                     <CardTitle className="text-lg flex items-center gap-2">
-                                        <Upload className="w-5 h-5" />
-                                        새 작업 - 주소 목록 업로드
+                                        <Upload className="w-5 h-5" />새 작업 - 주소 목록 업로드
                                     </CardTitle>
-                                    <CardDescription>수집할 지번 목록을 업로드하여 GIS 데이터를 수집합니다.</CardDescription>
+                                    <CardDescription>
+                                        수집할 지번 목록을 업로드하여 GIS 데이터를 수집합니다.
+                                    </CardDescription>
                                 </CardHeader>
                                 <CardContent className="pt-6 space-y-6">
-                                    <div className={cn(
-                                        "border-2 border-dashed rounded-xl p-8 text-center transition-all",
-                                        previewData.length > 0 ? "border-[#4E8C6D]/30 bg-[#4E8C6D]/5" : "border-slate-200 bg-slate-50/50"
-                                    )}>
-                                        <Upload className={cn("mx-auto h-10 w-10 mb-4", previewData.length > 0 ? "text-[#4E8C6D]" : "text-slate-400")} />
+                                    <div
+                                        className={cn(
+                                            'border-2 border-dashed rounded-xl p-8 text-center transition-all',
+                                            previewData.length > 0
+                                                ? 'border-[#4E8C6D]/30 bg-[#4E8C6D]/5'
+                                                : 'border-slate-200 bg-slate-50/50'
+                                        )}
+                                    >
+                                        <Upload
+                                            className={cn(
+                                                'mx-auto h-10 w-10 mb-4',
+                                                previewData.length > 0 ? 'text-[#4E8C6D]' : 'text-slate-400'
+                                            )}
+                                        />
                                         <div className="flex flex-col items-center">
                                             <label className="cursor-pointer bg-slate-900 text-white px-6 py-2.5 rounded-lg hover:bg-slate-800 transition shadow-sm font-medium flex items-center gap-2">
-                                                {isAnalyzing ? <Loader2 className="w-4 h-4 animate-spin" /> : <TableIcon className="w-4 h-4" />}
+                                                {isAnalyzing ? (
+                                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                                ) : (
+                                                    <TableIcon className="w-4 h-4" />
+                                                )}
                                                 엑셀 파일 선택
-                                                <input type="file" className="hidden" accept=".xlsx,.xls" onChange={handleFileUpload} />
+                                                <input
+                                                    type="file"
+                                                    className="hidden"
+                                                    accept=".xlsx,.xls"
+                                                    onChange={handleFileUpload}
+                                                />
                                             </label>
-                                            <p className="mt-2 text-xs text-slate-400">지원 형식: XLSX, XLS (최대 50MB)</p>
+                                            <p className="mt-2 text-xs text-slate-400">
+                                                지원 형식: XLSX, XLS (최대 50MB)
+                                            </p>
                                         </div>
                                     </div>
 
@@ -530,12 +542,16 @@ export default function GisSyncPage() {
                                         <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
                                             <div className="flex items-center justify-between">
                                                 <h3 className="text-sm font-bold text-slate-700 flex items-center gap-1.5">
-                                                    <Eye className="w-4 h-4" /> 미리보기 (상위 10건 / 총 {allAddresses.length}건)
+                                                    <Eye className="w-4 h-4" /> 미리보기 (상위 10건 / 총{' '}
+                                                    {allAddresses.length}건)
                                                 </h3>
-                                                <Button 
-                                                    variant="ghost" 
-                                                    size="sm" 
-                                                    onClick={() => { setPreviewData([]); setAllAddresses([]); }} 
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => {
+                                                        setPreviewData([]);
+                                                        setAllAddresses([]);
+                                                    }}
                                                     className="text-xs text-red-500 hover:text-red-600 hover:bg-red-50"
                                                 >
                                                     초기화
@@ -557,8 +573,8 @@ export default function GisSyncPage() {
                                                     </tbody>
                                                 </table>
                                             </div>
-                                            <Button 
-                                                onClick={startSync} 
+                                            <Button
+                                                onClick={startSync}
                                                 className="w-full bg-[#4E8C6D] hover:bg-[#3d7058] h-12 text-md font-bold shadow-lg shadow-[#4E8C6D]/10"
                                             >
                                                 <Play className="mr-2 h-5 w-5 fill-current" /> 수집 태스크 시작
@@ -566,11 +582,7 @@ export default function GisSyncPage() {
                                         </div>
                                     )}
 
-                                    <Button 
-                                        variant="outline" 
-                                        onClick={() => setIsNewJobMode(false)}
-                                        className="w-full"
-                                    >
+                                    <Button variant="outline" onClick={() => setIsNewJobMode(false)} className="w-full">
                                         취소
                                     </Button>
                                 </CardContent>
@@ -585,9 +597,7 @@ export default function GisSyncPage() {
                                                 <MapPin className="w-5 h-5" />
                                                 지도 미리보기
                                             </CardTitle>
-                                            <CardDescription>
-                                                {formatDate(selectedJob.created_at)} 작업
-                                            </CardDescription>
+                                            <CardDescription>{formatDate(selectedJob.created_at)} 작업</CardDescription>
                                         </div>
                                         <div className="flex items-center gap-2">
                                             {selectedJob.status === 'PROCESSING' && (
@@ -618,18 +628,20 @@ export default function GisSyncPage() {
                                                 <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
                                             </div>
                                         ) : mapData?.geoJson && mapData.geoJson.features.length > 0 ? (
-                                            <EChartsMap 
-                                                geoJson={mapData.geoJson} 
-                                                data={mapData.geoJson.features.map(f => ({
+                                            <EChartsMap
+                                                geoJson={mapData.geoJson}
+                                                data={mapData.geoJson.features.map((f) => ({
                                                     pnu: f.properties?.name || '',
-                                                    status: 'NONE_AGREED' as const
+                                                    status: 'NONE_AGREED' as const,
                                                 }))}
                                             />
                                         ) : (
                                             <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400">
                                                 <MapPin className="w-12 h-12 mb-2 opacity-50" />
                                                 <p className="text-sm font-medium">지도 데이터가 없습니다.</p>
-                                                <p className="text-xs mt-1">필지 경계(boundary) 데이터가 수집되지 않았습니다.</p>
+                                                <p className="text-xs mt-1">
+                                                    필지 경계(boundary) 데이터가 수집되지 않았습니다.
+                                                </p>
                                             </div>
                                         )}
                                     </div>
@@ -663,7 +675,7 @@ export default function GisSyncPage() {
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 {selectedJob.status === 'COMPLETED' && !selectedJob.is_published && (
-                                                    <Button 
+                                                    <Button
                                                         onClick={handlePublish}
                                                         className="bg-blue-600 hover:bg-blue-700"
                                                     >
@@ -716,7 +728,8 @@ export default function GisSyncPage() {
                     <AlertDialogHeader>
                         <AlertDialogTitle>작업 기록 삭제</AlertDialogTitle>
                         <AlertDialogDescription>
-                            이 작업 기록을 삭제하시겠습니까?<br/>
+                            이 작업 기록을 삭제하시겠습니까?
+                            <br />
                             수집된 필지 데이터(union_land_lots)는 유지됩니다.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
