@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -19,6 +19,11 @@ import {
     Clock,
     Plus,
     ChevronRight,
+    Copy,
+    Users,
+    Ruler,
+    Banknote,
+    X,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { supabase } from '@/app/_lib/shared/supabase/client';
@@ -28,7 +33,7 @@ import { SelectBox } from '@/app/_lib/widgets/common/select-box';
 import { useUnions } from '@/app/_lib/features/union-management/api/useUnionManagementHook';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { startGisSync } from '@/app/_lib/features/gis/actions/syncGis';
-import EChartsMap from '@/components/map/EChartsMap';
+import EChartsMap, { ParcelData } from '@/components/map/EChartsMap';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -57,6 +62,40 @@ interface SyncJob {
     updated_at: string;
 }
 
+// RPC에서 반환하는 필지 데이터 타입
+interface RpcParcelData {
+    pnu: string;
+    address: string;
+    area: number | null;
+    official_price: number | null;
+    owner_count: number | null;
+    boundary_geojson: GeoJSON.Geometry | null;
+}
+
+// 실패 주소 타입
+interface FailedAddress {
+    address: string;
+    reason: string;
+    index: number;
+}
+
+// 금액 포맷팅 함수
+function formatPrice(price: number | null | undefined): string {
+    if (!price) return '-';
+    if (price >= 100000000) {
+        return `${(price / 100000000).toFixed(1)}억원`;
+    } else if (price >= 10000) {
+        return `${(price / 10000).toFixed(0)}만원`;
+    }
+    return `${price.toLocaleString()}원`;
+}
+
+// 면적 포맷팅 함수
+function formatArea(area: number | null | undefined): string {
+    if (!area) return '-';
+    return `${area.toLocaleString()}㎡`;
+}
+
 export default function GisSyncPage() {
     const queryClient = useQueryClient();
 
@@ -73,6 +112,9 @@ export default function GisSyncPage() {
     // 삭제 다이얼로그
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [jobToDelete, setJobToDelete] = useState<string | null>(null);
+
+    // 선택된 필지 (클릭 시 하단에 상세 정보 표시)
+    const [selectedParcel, setSelectedParcel] = useState<ParcelData | null>(null);
 
     // 조합 목록 조회
     const { data: unions, isLoading: isLoadingUnions } = useUnions();
@@ -159,25 +201,40 @@ export default function GisSyncPage() {
                 throw error;
             }
 
+            // 필지 데이터 맵 생성 (PNU -> 상세정보)
+            const parcelMap = new Map<string, RpcParcelData>();
+            (parcels || []).forEach((p: RpcParcelData) => {
+                parcelMap.set(p.pnu, p);
+            });
+
             // GeoJSON FeatureCollection 생성
             const features = (parcels || [])
-                .filter(
-                    (p: { pnu: string; address: string; boundary_geojson: GeoJSON.Geometry | null }) =>
-                        p.boundary_geojson !== null
-                )
-                .map((p: { pnu: string; address: string; boundary_geojson: GeoJSON.Geometry }) => ({
+                .filter((p: RpcParcelData) => p.boundary_geojson !== null)
+                .map((p: RpcParcelData) => ({
                     type: 'Feature' as const,
                     properties: {
                         name: p.pnu,
                         address: p.address,
                     },
-                    geometry: p.boundary_geojson,
+                    geometry: p.boundary_geojson as GeoJSON.Geometry,
                 }));
 
             const geoJson: GeoJSON.FeatureCollection = {
                 type: 'FeatureCollection',
                 features,
             };
+
+            // EChartsMap용 데이터 생성 (추가 필드 포함)
+            const mapDataArray: ParcelData[] = (parcels || [])
+                .filter((p: RpcParcelData) => p.boundary_geojson !== null)
+                .map((p: RpcParcelData) => ({
+                    pnu: p.pnu,
+                    address: p.address,
+                    area: p.area ?? undefined,
+                    officialPrice: p.official_price ?? undefined,
+                    ownerCount: p.owner_count ?? undefined,
+                    status: 'NONE_AGREED' as const,
+                }));
 
             // 통계 데이터
             const stats = {
@@ -186,10 +243,59 @@ export default function GisSyncPage() {
                 withoutBoundary: (parcels?.length || 0) - features.length,
             };
 
-            return { geoJson, stats };
+            return { geoJson, mapDataArray, parcelMap, stats };
         },
         enabled: !!selectedUnionId && !!selectedJobId && !isNewJobMode,
     });
+
+    // 실패 주소 목록 파싱
+    const failedAddresses = useMemo<FailedAddress[]>(() => {
+        if (!selectedJob?.error_log) return [];
+
+        try {
+            const errorData = JSON.parse(selectedJob.error_log);
+            return errorData.failedAddresses || [];
+        } catch {
+            return [];
+        }
+    }, [selectedJob?.error_log]);
+
+    // 실패 주소를 콤마로 구분된 문자열로 변환
+    const failedAddressesString = useMemo(() => {
+        return failedAddresses.map((f) => f.address).join(', ');
+    }, [failedAddresses]);
+
+    // 클립보드 복사
+    const handleCopyFailedAddresses = async () => {
+        if (!failedAddressesString) return;
+
+        try {
+            await navigator.clipboard.writeText(failedAddressesString);
+            toast.success('실패 주소가 클립보드에 복사되었습니다.');
+        } catch {
+            toast.error('복사에 실패했습니다.');
+        }
+    };
+
+    // 필지 클릭 핸들러
+    const handleParcelClick = useCallback(
+        (pnu: string) => {
+            if (!mapData?.parcelMap) return;
+
+            const parcel = mapData.parcelMap.get(pnu);
+            if (parcel) {
+                setSelectedParcel({
+                    pnu: parcel.pnu,
+                    address: parcel.address,
+                    area: parcel.area ?? undefined,
+                    officialPrice: parcel.official_price ?? undefined,
+                    ownerCount: parcel.owner_count ?? undefined,
+                    status: 'NONE_AGREED',
+                });
+            }
+        },
+        [mapData?.parcelMap]
+    );
 
     // 조합 변경 시 상태 초기화
     const handleUnionChange = useCallback((unionId: string) => {
@@ -198,6 +304,7 @@ export default function GisSyncPage() {
         setIsNewJobMode(false);
         setPreviewData([]);
         setAllAddresses([]);
+        setSelectedParcel(null);
     }, []);
 
     // 템플릿 다운로드
@@ -401,6 +508,7 @@ export default function GisSyncPage() {
                                     onClick={() => {
                                         setIsNewJobMode(true);
                                         setSelectedJobId(null);
+                                        setSelectedParcel(null);
                                     }}
                                     className="bg-[#4E8C6D] hover:bg-[#3d7058]"
                                 >
@@ -425,6 +533,7 @@ export default function GisSyncPage() {
                                                 onClick={() => {
                                                     setSelectedJobId(job.id);
                                                     setIsNewJobMode(false);
+                                                    setSelectedParcel(null);
                                                 }}
                                                 className={cn(
                                                     'p-4 cursor-pointer transition-all hover:bg-slate-50',
@@ -630,10 +739,9 @@ export default function GisSyncPage() {
                                         ) : mapData?.geoJson && mapData.geoJson.features.length > 0 ? (
                                             <EChartsMap
                                                 geoJson={mapData.geoJson}
-                                                data={mapData.geoJson.features.map((f) => ({
-                                                    pnu: f.properties?.name || '',
-                                                    status: 'NONE_AGREED' as const,
-                                                }))}
+                                                data={mapData.mapDataArray}
+                                                mode="preview"
+                                                onParcelClick={handleParcelClick}
                                             />
                                         ) : (
                                             <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400">
@@ -645,6 +753,53 @@ export default function GisSyncPage() {
                                             </div>
                                         )}
                                     </div>
+
+                                    {/* 선택된 필지 상세 정보 */}
+                                    {selectedParcel && (
+                                        <div className="p-4 border-t border-slate-200 bg-blue-50/50 animate-in fade-in slide-in-from-bottom-2 duration-200">
+                                            <div className="flex items-start justify-between">
+                                                <div className="space-y-3 flex-1">
+                                                    <div className="flex items-center gap-2">
+                                                        <MapPin className="w-4 h-4 text-blue-600" />
+                                                        <span className="font-semibold text-slate-900">
+                                                            {selectedParcel.address || '주소 정보 없음'}
+                                                        </span>
+                                                    </div>
+                                                    <div className="grid grid-cols-3 gap-4">
+                                                        <div className="flex items-center gap-2 text-sm">
+                                                            <Ruler className="w-4 h-4 text-slate-400" />
+                                                            <span className="text-slate-500">면적:</span>
+                                                            <span className="font-medium text-slate-700">
+                                                                {formatArea(selectedParcel.area)}
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex items-center gap-2 text-sm">
+                                                            <Banknote className="w-4 h-4 text-slate-400" />
+                                                            <span className="text-slate-500">공시지가:</span>
+                                                            <span className="font-medium text-slate-700">
+                                                                {formatPrice(selectedParcel.officialPrice)}
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex items-center gap-2 text-sm">
+                                                            <Users className="w-4 h-4 text-slate-400" />
+                                                            <span className="text-slate-500">소유주:</span>
+                                                            <span className="font-medium text-slate-700">
+                                                                {selectedParcel.ownerCount ?? 0}명
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => setSelectedParcel(null)}
+                                                    className="text-slate-400 hover:text-slate-600"
+                                                >
+                                                    <X className="w-4 h-4" />
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    )}
 
                                     {/* 통계 및 액션 */}
                                     <div className="p-4 border-t border-slate-100 bg-slate-50/50">
@@ -698,12 +853,25 @@ export default function GisSyncPage() {
                                             </div>
                                         </div>
 
-                                        {/* 에러 로그 표시 */}
-                                        {selectedJob.error_log && (
+                                        {/* 실패 주소 목록 표시 */}
+                                        {failedAddresses.length > 0 && (
                                             <div className="mt-4 p-3 bg-red-50 rounded-lg border border-red-200">
-                                                <p className="text-xs text-red-600 font-medium mb-1">에러 로그:</p>
-                                                <p className="text-xs text-red-500 font-mono whitespace-pre-wrap max-h-[100px] overflow-y-auto">
-                                                    {selectedJob.error_log}
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <p className="text-xs text-red-600 font-medium">
+                                                        실패 주소 ({failedAddresses.length}건)
+                                                    </p>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={handleCopyFailedAddresses}
+                                                        className="text-xs text-red-600 hover:text-red-700 hover:bg-red-100 h-7 px-2"
+                                                    >
+                                                        <Copy className="w-3 h-3 mr-1" />
+                                                        복사
+                                                    </Button>
+                                                </div>
+                                                <p className="text-xs text-red-500 max-h-[80px] overflow-y-auto leading-relaxed">
+                                                    {failedAddressesString}
                                                 </p>
                                             </div>
                                         )}

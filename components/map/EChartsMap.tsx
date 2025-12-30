@@ -4,7 +4,7 @@ import { useEffect, useRef, useMemo } from 'react';
 import * as echarts from 'echarts';
 
 // 조회 모드
-export type MapViewMode = 'consent' | 'registration';
+export type MapViewMode = 'consent' | 'registration' | 'preview';
 
 // 동의 상태
 type ConsentStatus = 'FULL_AGREED' | 'PARTIAL_AGREED' | 'NONE_AGREED' | 'NO_OWNER';
@@ -12,10 +12,13 @@ type ConsentStatus = 'FULL_AGREED' | 'PARTIAL_AGREED' | 'NONE_AGREED' | 'NO_OWNE
 // 가입 상태
 type RegistrationStatus = 'ALL_REGISTERED' | 'PARTIAL_REGISTERED' | 'NONE_REGISTERED' | 'NO_OWNER';
 
-interface ParcelData {
+export interface ParcelData {
     pnu: string;
     status: ConsentStatus | RegistrationStatus;
     address?: string;
+    area?: number;
+    officialPrice?: number;
+    ownerCount?: number;
     totalOwners?: number;
     agreedOwners?: number;
     registeredCount?: number;
@@ -74,13 +77,49 @@ const REGISTRATION_CONFIG = {
     seriesName: '필지별 가입 현황'
 };
 
+// 미리보기 모드 설정 (시스템 페이지용)
+const PREVIEW_CONFIG = {
+    pieces: [
+        { value: 'NONE_AGREED', label: '필지', color: '#3b82f6' },
+        { value: 'NO_OWNER', label: '정보 없음', color: '#94a3b8' }
+    ],
+    labels: {
+        'NONE_AGREED': { label: '필지', description: '' },
+        'NO_OWNER': { label: '정보 없음', description: '' }
+    },
+    colors: {
+        'NONE_AGREED': '#3b82f6',
+        'NO_OWNER': '#94a3b8'
+    },
+    seriesName: '필지 미리보기'
+};
+
+// 금액 포맷팅 함수
+function formatPrice(price: number | undefined): string {
+    if (!price) return '-';
+    if (price >= 100000000) {
+        return `${(price / 100000000).toFixed(1)}억원`;
+    } else if (price >= 10000) {
+        return `${(price / 10000).toFixed(0)}만원`;
+    }
+    return `${price.toLocaleString()}원`;
+}
+
+// 면적 포맷팅 함수
+function formatArea(area: number | undefined): string {
+    if (!area) return '-';
+    return `${area.toLocaleString()}㎡`;
+}
+
 export default function EChartsMap({ geoJson, data, mode = 'consent', onParcelClick }: EChartsMapProps) {
     const chartRef = useRef<HTMLDivElement>(null);
     const chartInstance = useRef<echarts.ECharts | null>(null);
 
     // 현재 모드에 따른 설정 선택
     const config = useMemo(() => {
-        return mode === 'registration' ? REGISTRATION_CONFIG : CONSENT_CONFIG;
+        if (mode === 'registration') return REGISTRATION_CONFIG;
+        if (mode === 'preview') return PREVIEW_CONFIG;
+        return CONSENT_CONFIG;
     }, [mode]);
 
     // 데이터 맵 생성 (PNU -> 상세정보)
@@ -122,18 +161,45 @@ export default function EChartsMap({ geoJson, data, mode = 'consent', onParcelCl
                     const statusInfo = (config.labels as Record<string, { label: string; description: string }>)[params.value] || { label: '정보 없음', description: '' };
                     const statusColor = (config.colors as Record<string, string>)[params.value] || '#94a3b8';
                     
+                    // 주소 표시 (PNU 제거)
                     let html = `
-                        <div style="min-width: 200px;">
-                            <div style="font-weight: 600; font-size: 14px; margin-bottom: 8px; color: #0f172a;">
-                                ${parcelData?.address || pnu}
+                        <div style="min-width: 220px;">
+                            <div style="font-weight: 600; font-size: 14px; margin-bottom: 10px; color: #0f172a; line-height: 1.4;">
+                                ${parcelData?.address || '주소 정보 없음'}
                             </div>
-                            <div style="font-size: 11px; color: #64748b; margin-bottom: 10px; font-family: monospace;">
-                                PNU: ${pnu}
+                    `;
+
+                    // 미리보기 모드일 때: 면적, 공시지가, 소유주 수 표시
+                    if (mode === 'preview') {
+                        html += `
+                            <div style="display: grid; gap: 6px; font-size: 12px; color: #475569;">
+                                <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid #f1f5f9;">
+                                    <span>면적</span>
+                                    <span style="font-weight: 500;">${formatArea(parcelData?.area)}</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid #f1f5f9;">
+                                    <span>공시지가</span>
+                                    <span style="font-weight: 500;">${formatPrice(parcelData?.officialPrice)}</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; padding: 4px 0;">
+                                    <span>소유주</span>
+                                    <span style="font-weight: 500;">${parcelData?.ownerCount ?? 0}명</span>
+                                </div>
                             </div>
-                            <div style="display: flex; align-items: center; gap: 6px; padding: 8px; background: ${statusColor}15; border-radius: 6px; margin-bottom: 8px;">
-                                <span style="width: 10px; height: 10px; border-radius: 50%; background: ${statusColor};"></span>
-                                <span style="font-weight: 500; color: ${statusColor};">${statusInfo.label}</span>
+                            <div style="margin-top: 10px; padding-top: 8px; border-top: 1px solid #e2e8f0; font-size: 11px; color: #94a3b8; text-align: center;">
+                                클릭하여 상세 정보 보기
                             </div>
+                        </div>
+                        `;
+                        return html;
+                    }
+
+                    // 동의/가입 모드일 때: 상태 표시
+                    html += `
+                        <div style="display: flex; align-items: center; gap: 6px; padding: 8px; background: ${statusColor}15; border-radius: 6px; margin-bottom: 8px;">
+                            <span style="width: 10px; height: 10px; border-radius: 50%; background: ${statusColor};"></span>
+                            <span style="font-weight: 500; color: ${statusColor};">${statusInfo.label}</span>
+                        </div>
                     `;
                     
                     if (mode === 'consent' && parcelData?.totalOwners !== undefined) {
@@ -171,7 +237,7 @@ export default function EChartsMap({ geoJson, data, mode = 'consent', onParcelCl
             visualMap: {
                 type: 'piecewise',
                 pieces: config.pieces,
-                show: true,
+                show: mode !== 'preview', // 미리보기 모드에서는 범례 숨김
                 orient: 'horizontal',
                 bottom: 20,
                 left: 'center',
@@ -184,7 +250,7 @@ export default function EChartsMap({ geoJson, data, mode = 'consent', onParcelCl
                     name: config.seriesName,
                     type: 'map',
                     map: 'GIS_MAP',
-                    roam: true,
+                    roam: true, // 드래그 이동 + 줌 활성화
                     zoom: 1.2,
                     label: {
                         show: false
@@ -229,5 +295,21 @@ export default function EChartsMap({ geoJson, data, mode = 'consent', onParcelCl
         };
     }, [geoJson, data, dataMap, onParcelClick, config, mode]);
 
-    return <div ref={chartRef} className="w-full h-full min-h-[500px] cursor-pointer" />;
+    // 드래그 가능함을 시각적으로 표시하는 커서 스타일
+    return (
+        <div 
+            ref={chartRef} 
+            className="w-full h-full min-h-[500px]" 
+            style={{ cursor: 'grab' }}
+            onMouseDown={(e) => {
+                (e.currentTarget as HTMLDivElement).style.cursor = 'grabbing';
+            }}
+            onMouseUp={(e) => {
+                (e.currentTarget as HTMLDivElement).style.cursor = 'grab';
+            }}
+            onMouseLeave={(e) => {
+                (e.currentTarget as HTMLDivElement).style.cursor = 'grab';
+            }}
+        />
+    );
 }
