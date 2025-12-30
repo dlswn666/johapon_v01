@@ -64,16 +64,12 @@ async function generateProxyToken(unionId: string, userId: string): Promise<stri
 // ============================================================
 
 /**
- * 주소 검색 (PNU만 반환)
+ * 주소 검색 (법정동코드 + 지번으로 PNU 생성)
  *
- * @param address - 검색할 주소
- * @param source - 데이터 소스 ('vworld' | 'data_portal')
+ * @param address - 검색할 주소 (예: 서울시 강북구 미아동 123-45)
  * @returns 검색 결과 (address, pnu)
  */
-export async function searchAddress(
-    address: string,
-    source: 'vworld' | 'data_portal' = 'vworld'
-): Promise<AddressSearchResult> {
+export async function searchAddress(address: string): Promise<AddressSearchResult> {
     if (!address || address.trim() === '') {
         return { success: false, error: '주소를 입력해주세요.' };
     }
@@ -88,13 +84,13 @@ export async function searchAddress(
         return { success: false, error: '로그인이 필요합니다.' };
     }
 
-    console.log(`[Manual Search] Searching address: "${address}" via ${source}`);
+    console.log(`[Manual Search] Searching address: "${address}"`);
 
     try {
         // JWT 토큰 생성
         const token = await generateProxyToken('system', user.id);
 
-        // 프록시 서버 호출
+        // 프록시 서버 호출 (법정동코드 기반 PNU 생성)
         const response = await fetch(`${PROXY_URL}/api/gis/search-address`, {
             method: 'POST',
             headers: {
@@ -103,7 +99,6 @@ export async function searchAddress(
             },
             body: JSON.stringify({
                 address: address.trim(),
-                source,
             }),
         });
 

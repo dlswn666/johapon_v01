@@ -119,7 +119,6 @@ export default function GisSyncPage() {
     const [selectedParcel, setSelectedParcel] = useState<ParcelData | null>(null);
 
     // 수동 검색 관련 상태
-    const [manualSearchSource, setManualSearchSource] = useState<'vworld' | 'data_portal'>('vworld');
     const [manualSearchAddress, setManualSearchAddress] = useState('');
     const [isSearching, setIsSearching] = useState(false);
     const [searchResult, setSearchResult] = useState<{ address: string; pnu: string } | null>(null);
@@ -299,7 +298,7 @@ export default function GisSyncPage() {
         setSearchError(null);
 
         try {
-            const result = await searchAddress(manualSearchAddress.trim(), manualSearchSource);
+            const result = await searchAddress(manualSearchAddress.trim());
 
             if (result.success && result.data) {
                 setSearchResult(result.data);
@@ -975,23 +974,11 @@ export default function GisSyncPage() {
                             <MapPin className="w-4 h-4" />
                             주소 수동 검색
                         </CardTitle>
-                        <CardDescription>
-                            Vworld 또는 공공데이터포털에서 주소를 검색하고 직접 추가합니다.
-                        </CardDescription>
+                        <CardDescription>법정동코드 + 지번 조합으로 PNU를 생성하고 직접 추가합니다.</CardDescription>
                     </CardHeader>
                     <CardContent className="pt-6 space-y-4">
                         {/* 검색 폼 */}
                         <div className="flex flex-wrap items-center gap-3">
-                            <SelectBox
-                                value={manualSearchSource}
-                                onChange={(value) => setManualSearchSource(value as 'vworld' | 'data_portal')}
-                                options={[
-                                    { value: 'vworld', label: 'Vworld' },
-                                    { value: 'data_portal', label: '공공데이터포털' },
-                                ]}
-                                placeholder="데이터 소스"
-                                className="w-[160px]"
-                            />
                             <Input
                                 type="text"
                                 placeholder="주소 입력 (예: 서울시 강북구 미아동 123-45)"
