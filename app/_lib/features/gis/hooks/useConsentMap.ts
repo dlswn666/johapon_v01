@@ -5,9 +5,10 @@ import { supabase } from '@/app/_lib/shared/supabase/client';
 
 export interface ConsentStatus {
     pnu: string;
-    display_status: 'FULL_AGREED' | 'PARTIAL_AGREED' | 'NONE_AGREED';
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    [key: string]: any;
+    address: string | null;
+    display_status: 'FULL_AGREED' | 'PARTIAL_AGREED' | 'NONE_AGREED' | 'NO_OWNER';
+    total_owners: number;
+    agreed_count: number;
 }
 
 export function useConsentMap(unionId: string | undefined, stageId: string | null) {
@@ -41,33 +42,58 @@ export function useConsentMap(unionId: string | undefined, stageId: string | nul
 
                 setIsPublished(true);
 
-                // 2. 필지 경계 GeoJSON 조회 (해당 조합의 필지만)
-                const { data: lots, error: lotsError } = await supabase
-                    .from('union_land_lots')
-                    .select('pnu, land_lots(boundary)')
-                    .eq('union_id', unionId);
-                
-                if (lots && !lotsError) {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    const features = (lots as { pnu: string, land_lots: { boundary: any } | { boundary: any }[] }[])
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        .filter(l => Array.isArray(l.land_lots) ? (l.land_lots[0] as any)?.boundary : (l.land_lots as any)?.boundary)
-                        .map(lot => ({
-                            type: 'Feature' as const,
-                            properties: { name: lot.pnu },
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            geometry: Array.isArray(lot.land_lots) ? (lot.land_lots[0] as any).boundary : (lot.land_lots as any).boundary
-                        }));
-                    setGeoJson({ type: 'FeatureCollection', features });
+                // 2. RPC 함수로 동의 상태 + GeoJSON 함께 조회
+                const { data: mapData, error: mapError } = await supabase.rpc(
+                    'get_union_consent_map_data',
+                    {
+                        p_union_id: unionId,
+                        p_stage_id: stageId
+                    }
+                );
+
+                if (mapError) {
+                    console.error('지도 데이터 조회 실패:', mapError);
+                    return;
                 }
 
-                // 3. 단계별 동의 상태 조회 (SQL View 활용)
-                const { data: statuses, error: statusError } = await supabase
-                    .from('v_pnu_consent_status')
-                    .select('*')
-                    .eq('stage_id', stageId);
+                if (mapData && mapData.length > 0) {
+                    // GeoJSON FeatureCollection 생성
+                    const features = mapData
+                        .filter((item: { boundary_geojson: unknown }) => item.boundary_geojson)
+                        .map((item: { 
+                            pnu: string; 
+                            address: string | null; 
+                            boundary_geojson: GeoJSON.Geometry;
+                            consent_status: string;
+                        }) => ({
+                            type: 'Feature' as const,
+                            properties: { 
+                                name: item.pnu,
+                                address: item.address 
+                            },
+                            geometry: item.boundary_geojson
+                        }));
 
-                if (statuses && !statusError) {
+                    setGeoJson({ 
+                        type: 'FeatureCollection', 
+                        features 
+                    });
+
+                    // 동의 상태 데이터 변환
+                    const statuses: ConsentStatus[] = mapData.map((item: {
+                        pnu: string;
+                        address: string | null;
+                        consent_status: string;
+                        total_owners: number;
+                        agreed_count: number;
+                    }) => ({
+                        pnu: item.pnu,
+                        address: item.address,
+                        display_status: item.consent_status as ConsentStatus['display_status'],
+                        total_owners: Number(item.total_owners) || 0,
+                        agreed_count: Number(item.agreed_count) || 0
+                    }));
+
                     setConsentData(statuses);
                 }
             } catch (err) {
