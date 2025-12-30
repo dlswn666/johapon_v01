@@ -37,21 +37,21 @@ const CONSENT_CONFIG = {
         { value: 'FULL_AGREED', label: '동의 완료', color: '#22c55e' },
         { value: 'PARTIAL_AGREED', label: '일부 동의', color: '#eab308' },
         { value: 'NONE_AGREED', label: '미동의', color: '#ef4444' },
-        { value: 'NO_OWNER', label: '정보 없음', color: '#94a3b8' }
+        { value: 'NO_OWNER', label: '정보 없음', color: '#94a3b8' },
     ],
     labels: {
-        'FULL_AGREED': { label: '동의 완료', description: '모든 소유주가 동의함' },
-        'PARTIAL_AGREED': { label: '일부 동의', description: '일부 소유주만 동의함' },
-        'NONE_AGREED': { label: '미동의', description: '동의한 소유주 없음' },
-        'NO_OWNER': { label: '정보 없음', description: '소유주 정보 없음' }
+        FULL_AGREED: { label: '동의 완료', description: '모든 소유주가 동의함' },
+        PARTIAL_AGREED: { label: '일부 동의', description: '일부 소유주만 동의함' },
+        NONE_AGREED: { label: '미동의', description: '동의한 소유주 없음' },
+        NO_OWNER: { label: '정보 없음', description: '소유주 정보 없음' },
     },
     colors: {
-        'FULL_AGREED': '#22c55e',
-        'PARTIAL_AGREED': '#eab308',
-        'NONE_AGREED': '#ef4444',
-        'NO_OWNER': '#94a3b8'
+        FULL_AGREED: '#22c55e',
+        PARTIAL_AGREED: '#eab308',
+        NONE_AGREED: '#ef4444',
+        NO_OWNER: '#94a3b8',
     },
-    seriesName: '필지별 동의 현황'
+    seriesName: '필지별 동의 현황',
 };
 
 // 가입 현황 색상 및 라벨
@@ -60,38 +60,38 @@ const REGISTRATION_CONFIG = {
         { value: 'ALL_REGISTERED', label: '전체 가입', color: '#22c55e' },
         { value: 'PARTIAL_REGISTERED', label: '일부 가입', color: '#eab308' },
         { value: 'NONE_REGISTERED', label: '미가입', color: '#ef4444' },
-        { value: 'NO_OWNER', label: '정보 없음', color: '#94a3b8' }
+        { value: 'NO_OWNER', label: '정보 없음', color: '#94a3b8' },
     ],
     labels: {
-        'ALL_REGISTERED': { label: '전체 가입', description: '모든 소유주가 조합원 가입' },
-        'PARTIAL_REGISTERED': { label: '일부 가입', description: '일부 소유주만 조합원 가입' },
-        'NONE_REGISTERED': { label: '미가입', description: '가입한 조합원 없음' },
-        'NO_OWNER': { label: '정보 없음', description: '소유주 정보 없음' }
+        ALL_REGISTERED: { label: '전체 가입', description: '모든 소유주가 조합원 가입' },
+        PARTIAL_REGISTERED: { label: '일부 가입', description: '일부 소유주만 조합원 가입' },
+        NONE_REGISTERED: { label: '미가입', description: '가입한 조합원 없음' },
+        NO_OWNER: { label: '정보 없음', description: '소유주 정보 없음' },
     },
     colors: {
-        'ALL_REGISTERED': '#22c55e',
-        'PARTIAL_REGISTERED': '#eab308',
-        'NONE_REGISTERED': '#ef4444',
-        'NO_OWNER': '#94a3b8'
+        ALL_REGISTERED: '#22c55e',
+        PARTIAL_REGISTERED: '#eab308',
+        NONE_REGISTERED: '#ef4444',
+        NO_OWNER: '#94a3b8',
     },
-    seriesName: '필지별 가입 현황'
+    seriesName: '필지별 가입 현황',
 };
 
 // 미리보기 모드 설정 (시스템 페이지용)
 const PREVIEW_CONFIG = {
     pieces: [
         { value: 'NONE_AGREED', label: '필지', color: '#3b82f6' },
-        { value: 'NO_OWNER', label: '정보 없음', color: '#94a3b8' }
+        { value: 'NO_OWNER', label: '정보 없음', color: '#94a3b8' },
     ],
     labels: {
-        'NONE_AGREED': { label: '필지', description: '' },
-        'NO_OWNER': { label: '정보 없음', description: '' }
+        NONE_AGREED: { label: '필지', description: '' },
+        NO_OWNER: { label: '정보 없음', description: '' },
     },
     colors: {
-        'NONE_AGREED': '#3b82f6',
-        'NO_OWNER': '#94a3b8'
+        NONE_AGREED: '#3b82f6',
+        NO_OWNER: '#94a3b8',
     },
-    seriesName: '필지 미리보기'
+    seriesName: '필지 미리보기',
 };
 
 // 금액 포맷팅 함수
@@ -125,7 +125,7 @@ export default function EChartsMap({ geoJson, data, mode = 'consent', onParcelCl
     // 데이터 맵 생성 (PNU -> 상세정보)
     const dataMap = useMemo(() => {
         const map = new Map<string, ParcelData>();
-        data.forEach(item => map.set(item.pnu, item));
+        data.forEach((item) => map.set(item.pnu, item));
         return map;
     }, [data]);
 
@@ -153,14 +153,16 @@ export default function EChartsMap({ geoJson, data, mode = 'consent', onParcelCl
                 padding: [12, 16],
                 textStyle: {
                     color: '#1e293b',
-                    fontSize: 13
+                    fontSize: 13,
                 },
                 formatter: (params: { name: string; value: string }) => {
                     const pnu = params.name;
                     const parcelData = dataMap.get(pnu);
-                    const statusInfo = (config.labels as Record<string, { label: string; description: string }>)[params.value] || { label: '정보 없음', description: '' };
+                    const statusInfo = (config.labels as Record<string, { label: string; description: string }>)[
+                        params.value
+                    ] || { label: '정보 없음', description: '' };
                     const statusColor = (config.colors as Record<string, string>)[params.value] || '#94a3b8';
-                    
+
                     // 주소 표시 (PNU 제거)
                     let html = `
                         <div style="min-width: 220px;">
@@ -201,38 +203,44 @@ export default function EChartsMap({ geoJson, data, mode = 'consent', onParcelCl
                             <span style="font-weight: 500; color: ${statusColor};">${statusInfo.label}</span>
                         </div>
                     `;
-                    
+
                     if (mode === 'consent' && parcelData?.totalOwners !== undefined) {
-                        const rate = parcelData.totalOwners > 0 
-                            ? Math.round((parcelData.agreedOwners || 0) / parcelData.totalOwners * 100) 
-                            : 0;
+                        const rate =
+                            parcelData.totalOwners > 0
+                                ? Math.round(((parcelData.agreedOwners || 0) / parcelData.totalOwners) * 100)
+                                : 0;
                         html += `
                             <div style="display: flex; justify-content: space-between; font-size: 12px; color: #475569;">
                                 <span>동의 현황</span>
-                                <span><strong>${parcelData.agreedOwners || 0}</strong> / ${parcelData.totalOwners}명 (${rate}%)</span>
+                                <span><strong>${parcelData.agreedOwners || 0}</strong> / ${
+                            parcelData.totalOwners
+                        }명 (${rate}%)</span>
                             </div>
                         `;
                     } else if (mode === 'registration' && parcelData?.totalOwners !== undefined) {
-                        const rate = parcelData.totalOwners > 0 
-                            ? Math.round((parcelData.registeredCount || 0) / parcelData.totalOwners * 100) 
-                            : 0;
+                        const rate =
+                            parcelData.totalOwners > 0
+                                ? Math.round(((parcelData.registeredCount || 0) / parcelData.totalOwners) * 100)
+                                : 0;
                         html += `
                             <div style="display: flex; justify-content: space-between; font-size: 12px; color: #475569;">
                                 <span>가입 현황</span>
-                                <span><strong>${parcelData.registeredCount || 0}</strong> / ${parcelData.totalOwners}명 (${rate}%)</span>
+                                <span><strong>${parcelData.registeredCount || 0}</strong> / ${
+                            parcelData.totalOwners
+                        }명 (${rate}%)</span>
                             </div>
                         `;
                     }
-                    
+
                     html += `
                             <div style="margin-top: 10px; padding-top: 8px; border-top: 1px solid #e2e8f0; font-size: 11px; color: #94a3b8; text-align: center;">
                                 클릭하여 상세 정보 보기
                             </div>
                         </div>
                     `;
-                    
+
                     return html;
-                }
+                },
             },
             visualMap: {
                 type: 'piecewise',
@@ -242,60 +250,47 @@ export default function EChartsMap({ geoJson, data, mode = 'consent', onParcelCl
                 bottom: 20,
                 left: 'center',
                 textStyle: {
-                    color: '#64748b'
-                }
-            },
-            // geo 컴포넌트 추가 - 전체 차트 영역에서 roam(드래그/줌) 활성화
-            geo: {
-                map: 'GIS_MAP',
-                roam: true, // 전체 영역에서 드래그/줌 가능
-                zoom: 1.2,
-                silent: true, // 이벤트는 series에서만 처리
-                itemStyle: {
-                    areaColor: 'transparent', // 투명하게 설정 (series가 위에 그려짐)
-                    borderColor: 'transparent'
+                    color: '#64748b',
                 },
-                emphasis: {
-                    disabled: true // geo에서는 강조 효과 비활성화
-                }
             },
             series: [
                 {
                     name: config.seriesName,
                     type: 'map',
-                    map: 'GIS_MAP', // map 속성 필수
-                    geoIndex: 0, // geo 컴포넌트와 동기화 (roam/zoom 공유)
+                    map: 'GIS_MAP',
+                    roam: true, // 드래그 이동 + 줌 활성화
+                    zoom: 1.2,
                     label: {
-                        show: false
+                        show: false,
                     },
                     itemStyle: {
                         borderColor: '#94a3b8',
-                        borderWidth: 0.5
+                        borderWidth: 0.5,
                     },
                     emphasis: {
                         label: { show: false },
-                        itemStyle: { 
+                        itemStyle: {
                             areaColor: '#3b82f6',
                             borderColor: '#1d4ed8',
                             borderWidth: 2,
                             shadowColor: 'rgba(59, 130, 246, 0.5)',
-                            shadowBlur: 10
-                        }
+                            shadowBlur: 10,
+                        },
                     },
                     select: {
                         label: { show: false },
                         itemStyle: {
                             areaColor: '#2563eb',
                             borderColor: '#1e40af',
-                            borderWidth: 2
-                        }
+                            borderWidth: 2,
+                        },
                     },
-                    data: data.map(item => ({
+                    data: data.map((item) => ({
                         name: item.pnu,
-                        value: item.status
-                    }))
-                }
-            ]
+                        value: item.status,
+                    })),
+                },
+            ],
         };
 
         chartInstance.current.setOption(option, true);
@@ -308,21 +303,5 @@ export default function EChartsMap({ geoJson, data, mode = 'consent', onParcelCl
         };
     }, [geoJson, data, dataMap, onParcelClick, config, mode]);
 
-    // 드래그 가능함을 시각적으로 표시하는 커서 스타일
-    return (
-        <div 
-            ref={chartRef} 
-            className="w-full h-full min-h-[500px]" 
-            style={{ cursor: 'grab' }}
-            onMouseDown={(e) => {
-                (e.currentTarget as HTMLDivElement).style.cursor = 'grabbing';
-            }}
-            onMouseUp={(e) => {
-                (e.currentTarget as HTMLDivElement).style.cursor = 'grab';
-            }}
-            onMouseLeave={(e) => {
-                (e.currentTarget as HTMLDivElement).style.cursor = 'grab';
-            }}
-        />
-    );
+    return <div ref={chartRef} className="w-full h-full min-h-[500px]" />;
 }
