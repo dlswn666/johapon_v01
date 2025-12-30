@@ -3,30 +3,85 @@
 import { useEffect, useRef, useMemo } from 'react';
 import * as echarts from 'echarts';
 
+// 조회 모드
+export type MapViewMode = 'consent' | 'registration';
+
+// 동의 상태
+type ConsentStatus = 'FULL_AGREED' | 'PARTIAL_AGREED' | 'NONE_AGREED' | 'NO_OWNER';
+
+// 가입 상태
+type RegistrationStatus = 'ALL_REGISTERED' | 'PARTIAL_REGISTERED' | 'NONE_REGISTERED' | 'NO_OWNER';
+
 interface ParcelData {
     pnu: string;
-    status: 'FULL_AGREED' | 'PARTIAL_AGREED' | 'NONE_AGREED';
+    status: ConsentStatus | RegistrationStatus;
     address?: string;
     totalOwners?: number;
     agreedOwners?: number;
+    registeredCount?: number;
 }
 
 interface EChartsMapProps {
     geoJson: GeoJSON.FeatureCollection;
     data: ParcelData[];
+    mode?: MapViewMode;
     onParcelClick?: (pnu: string) => void;
 }
 
-// 상태 라벨 매핑
-const STATUS_LABELS: Record<string, { label: string; description: string }> = {
-    'FULL_AGREED': { label: '동의 완료', description: '모든 소유주가 동의함' },
-    'PARTIAL_AGREED': { label: '일부 동의', description: '일부 소유주만 동의함' },
-    'NONE_AGREED': { label: '미동의', description: '동의한 소유주 없음' }
+// 동의 현황 색상 및 라벨
+const CONSENT_CONFIG = {
+    pieces: [
+        { value: 'FULL_AGREED', label: '동의 완료', color: '#22c55e' },
+        { value: 'PARTIAL_AGREED', label: '일부 동의', color: '#eab308' },
+        { value: 'NONE_AGREED', label: '미동의', color: '#ef4444' },
+        { value: 'NO_OWNER', label: '정보 없음', color: '#94a3b8' }
+    ],
+    labels: {
+        'FULL_AGREED': { label: '동의 완료', description: '모든 소유주가 동의함' },
+        'PARTIAL_AGREED': { label: '일부 동의', description: '일부 소유주만 동의함' },
+        'NONE_AGREED': { label: '미동의', description: '동의한 소유주 없음' },
+        'NO_OWNER': { label: '정보 없음', description: '소유주 정보 없음' }
+    },
+    colors: {
+        'FULL_AGREED': '#22c55e',
+        'PARTIAL_AGREED': '#eab308',
+        'NONE_AGREED': '#ef4444',
+        'NO_OWNER': '#94a3b8'
+    },
+    seriesName: '필지별 동의 현황'
 };
 
-export default function EChartsMap({ geoJson, data, onParcelClick }: EChartsMapProps) {
+// 가입 현황 색상 및 라벨
+const REGISTRATION_CONFIG = {
+    pieces: [
+        { value: 'ALL_REGISTERED', label: '전체 가입', color: '#22c55e' },
+        { value: 'PARTIAL_REGISTERED', label: '일부 가입', color: '#eab308' },
+        { value: 'NONE_REGISTERED', label: '미가입', color: '#ef4444' },
+        { value: 'NO_OWNER', label: '정보 없음', color: '#94a3b8' }
+    ],
+    labels: {
+        'ALL_REGISTERED': { label: '전체 가입', description: '모든 소유주가 조합원 가입' },
+        'PARTIAL_REGISTERED': { label: '일부 가입', description: '일부 소유주만 조합원 가입' },
+        'NONE_REGISTERED': { label: '미가입', description: '가입한 조합원 없음' },
+        'NO_OWNER': { label: '정보 없음', description: '소유주 정보 없음' }
+    },
+    colors: {
+        'ALL_REGISTERED': '#22c55e',
+        'PARTIAL_REGISTERED': '#eab308',
+        'NONE_REGISTERED': '#ef4444',
+        'NO_OWNER': '#94a3b8'
+    },
+    seriesName: '필지별 가입 현황'
+};
+
+export default function EChartsMap({ geoJson, data, mode = 'consent', onParcelClick }: EChartsMapProps) {
     const chartRef = useRef<HTMLDivElement>(null);
     const chartInstance = useRef<echarts.ECharts | null>(null);
+
+    // 현재 모드에 따른 설정 선택
+    const config = useMemo(() => {
+        return mode === 'registration' ? REGISTRATION_CONFIG : CONSENT_CONFIG;
+    }, [mode]);
 
     // 데이터 맵 생성 (PNU -> 상세정보)
     const dataMap = useMemo(() => {
@@ -64,15 +119,8 @@ export default function EChartsMap({ geoJson, data, onParcelClick }: EChartsMapP
                 formatter: (params: { name: string; value: string }) => {
                     const pnu = params.name;
                     const parcelData = dataMap.get(pnu);
-                    const statusInfo = STATUS_LABELS[params.value] || { label: '정보 없음', description: '' };
-                    
-                    // 상태에 따른 색상
-                    const statusColors: Record<string, string> = {
-                        'FULL_AGREED': '#22c55e',
-                        'PARTIAL_AGREED': '#eab308',
-                        'NONE_AGREED': '#ef4444'
-                    };
-                    const statusColor = statusColors[params.value] || '#94a3b8';
+                    const statusInfo = (config.labels as Record<string, { label: string; description: string }>)[params.value] || { label: '정보 없음', description: '' };
+                    const statusColor = (config.colors as Record<string, string>)[params.value] || '#94a3b8';
                     
                     let html = `
                         <div style="min-width: 200px;">
@@ -88,14 +136,24 @@ export default function EChartsMap({ geoJson, data, onParcelClick }: EChartsMapP
                             </div>
                     `;
                     
-                    if (parcelData?.totalOwners !== undefined) {
+                    if (mode === 'consent' && parcelData?.totalOwners !== undefined) {
                         const rate = parcelData.totalOwners > 0 
                             ? Math.round((parcelData.agreedOwners || 0) / parcelData.totalOwners * 100) 
                             : 0;
                         html += `
                             <div style="display: flex; justify-content: space-between; font-size: 12px; color: #475569;">
-                                <span>소유주</span>
+                                <span>동의 현황</span>
                                 <span><strong>${parcelData.agreedOwners || 0}</strong> / ${parcelData.totalOwners}명 (${rate}%)</span>
+                            </div>
+                        `;
+                    } else if (mode === 'registration' && parcelData?.totalOwners !== undefined) {
+                        const rate = parcelData.totalOwners > 0 
+                            ? Math.round((parcelData.registeredCount || 0) / parcelData.totalOwners * 100) 
+                            : 0;
+                        html += `
+                            <div style="display: flex; justify-content: space-between; font-size: 12px; color: #475569;">
+                                <span>가입 현황</span>
+                                <span><strong>${parcelData.registeredCount || 0}</strong> / ${parcelData.totalOwners}명 (${rate}%)</span>
                             </div>
                         `;
                     }
@@ -112,11 +170,7 @@ export default function EChartsMap({ geoJson, data, onParcelClick }: EChartsMapP
             },
             visualMap: {
                 type: 'piecewise',
-                pieces: [
-                    { value: 'FULL_AGREED', label: '동의 완료', color: '#22c55e' },
-                    { value: 'PARTIAL_AGREED', label: '일부 동의', color: '#eab308' },
-                    { value: 'NONE_AGREED', label: '미동의', color: '#ef4444' }
-                ],
+                pieces: config.pieces,
                 show: true,
                 orient: 'horizontal',
                 bottom: 20,
@@ -127,7 +181,7 @@ export default function EChartsMap({ geoJson, data, onParcelClick }: EChartsMapP
             },
             series: [
                 {
-                    name: '필지별 동의 현황',
+                    name: config.seriesName,
                     type: 'map',
                     map: 'GIS_MAP',
                     roam: true,
@@ -173,7 +227,7 @@ export default function EChartsMap({ geoJson, data, onParcelClick }: EChartsMapP
         return () => {
             window.removeEventListener('resize', handleResize);
         };
-    }, [geoJson, data, dataMap, onParcelClick]);
+    }, [geoJson, data, dataMap, onParcelClick, config, mode]);
 
     return <div ref={chartRef} className="w-full h-full min-h-[500px] cursor-pointer" />;
 }
