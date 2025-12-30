@@ -33,7 +33,7 @@ import { SelectBox } from '@/app/_lib/widgets/common/select-box';
 import { useUnions } from '@/app/_lib/features/union-management/api/useUnionManagementHook';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { startGisSync } from '@/app/_lib/features/gis/actions/syncGis';
-import { searchAddress, addAddressToUnion } from '@/app/_lib/features/gis/actions/manualAddAddress';
+import { searchAddress, addAddressToUnion, manualAddAddress } from '@/app/_lib/features/gis/actions/manualAddAddress';
 import EChartsMap, { ParcelData } from '@/components/map/EChartsMap';
 import { Input } from '@/components/ui/input';
 import {
@@ -46,6 +46,17 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Edit } from 'lucide-react';
 
 // 작업 기록 타입
 interface SyncJob {
@@ -124,6 +135,18 @@ export default function GisSyncPage() {
     const [searchResult, setSearchResult] = useState<{ address: string; pnu: string } | null>(null);
     const [searchError, setSearchError] = useState<string | null>(null);
     const [isAdding, setIsAdding] = useState(false);
+
+    // 수동 입력 모달 상태
+    const [isManualInputOpen, setIsManualInputOpen] = useState(false);
+    const [isManualInputSaving, setIsManualInputSaving] = useState(false);
+    const [manualInputData, setManualInputData] = useState({
+        address: '',
+        pnu: '',
+        area: '',
+        officialPrice: '',
+        ownerCount: '',
+        boundary: '',
+    });
 
     // 조합 목록 조회
     const { data: unions, isLoading: isLoadingUnions } = useUnions();
@@ -350,6 +373,82 @@ export default function GisSyncPage() {
             toast.error('주소 추가 중 오류가 발생했습니다.');
         } finally {
             setIsAdding(false);
+        }
+    };
+
+    // 수동 입력 모달 열기
+    const openManualInputModal = (prefillAddress?: string) => {
+        setManualInputData({
+            address: prefillAddress || '',
+            pnu: '',
+            area: '',
+            officialPrice: '',
+            ownerCount: '',
+            boundary: '',
+        });
+        setIsManualInputOpen(true);
+    };
+
+    // 수동 입력 저장
+    const handleManualInputSave = async () => {
+        if (!selectedUnionId) {
+            toast.error('조합을 먼저 선택해주세요.');
+            return;
+        }
+
+        if (!manualInputData.address.trim()) {
+            toast.error('주소를 입력해주세요.');
+            return;
+        }
+
+        if (!manualInputData.pnu.trim()) {
+            toast.error('PNU를 입력해주세요.');
+            return;
+        }
+
+        if (manualInputData.pnu.length !== 19 || !/^\d+$/.test(manualInputData.pnu)) {
+            toast.error('PNU는 19자리 숫자여야 합니다.');
+            return;
+        }
+
+        setIsManualInputSaving(true);
+
+        try {
+            const result = await manualAddAddress({
+                unionId: selectedUnionId,
+                address: manualInputData.address.trim(),
+                pnu: manualInputData.pnu.trim(),
+                area: manualInputData.area ? Number(manualInputData.area) : undefined,
+                officialPrice: manualInputData.officialPrice ? Number(manualInputData.officialPrice) : undefined,
+                ownerCount: manualInputData.ownerCount ? Number(manualInputData.ownerCount) : undefined,
+                boundary: manualInputData.boundary.trim() || undefined,
+            });
+
+            if (result.success && result.data) {
+                toast.success(
+                    `수동 입력 완료! (면적: ${result.data.area ? result.data.area + '㎡' : '-'}, 경계: ${
+                        result.data.hasBoundary ? '있음' : '없음'
+                    })`
+                );
+                setIsManualInputOpen(false);
+                setManualInputData({
+                    address: '',
+                    pnu: '',
+                    area: '',
+                    officialPrice: '',
+                    ownerCount: '',
+                    boundary: '',
+                });
+                // 지도 데이터 새로고침
+                queryClient.invalidateQueries({ queryKey: ['gis-map-preview', selectedUnionId] });
+            } else {
+                toast.error(result.error || '수동 입력에 실패했습니다.');
+            }
+        } catch (error) {
+            console.error('Manual input error:', error);
+            toast.error('수동 입력 중 오류가 발생했습니다.');
+        } finally {
+            setIsManualInputSaving(false);
         }
     };
 
@@ -936,19 +1035,45 @@ export default function GisSyncPage() {
                                                     <p className="text-xs text-red-600 font-medium">
                                                         실패 주소 ({failedAddresses.length}건)
                                                     </p>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={handleCopyFailedAddresses}
-                                                        className="text-xs text-red-600 hover:text-red-700 hover:bg-red-100 h-7 px-2"
-                                                    >
-                                                        <Copy className="w-3 h-3 mr-1" />
-                                                        복사
-                                                    </Button>
+                                                    <div className="flex items-center gap-1">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() => openManualInputModal()}
+                                                            className="text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-100 h-7 px-2"
+                                                        >
+                                                            <Edit className="w-3 h-3 mr-1" />
+                                                            수동 입력
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={handleCopyFailedAddresses}
+                                                            className="text-xs text-red-600 hover:text-red-700 hover:bg-red-100 h-7 px-2"
+                                                        >
+                                                            <Copy className="w-3 h-3 mr-1" />
+                                                            복사
+                                                        </Button>
+                                                    </div>
                                                 </div>
-                                                <p className="text-xs text-red-500 max-h-[80px] overflow-y-auto leading-relaxed">
-                                                    {failedAddressesString}
-                                                </p>
+                                                <div className="text-xs text-red-500 max-h-[120px] overflow-y-auto">
+                                                    {failedAddresses.map((item, idx) => (
+                                                        <div
+                                                            key={idx}
+                                                            className="flex items-center justify-between py-1 border-b border-red-100 last:border-b-0 hover:bg-red-100/50 rounded px-1"
+                                                        >
+                                                            <span className="truncate flex-1">{item.address}</span>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                onClick={() => openManualInputModal(item.address)}
+                                                                className="text-xs text-blue-500 hover:text-blue-600 h-5 px-1 ml-2"
+                                                            >
+                                                                <Edit className="w-3 h-3" />
+                                                            </Button>
+                                                        </div>
+                                                    ))}
+                                                </div>
                                             </div>
                                         )}
                                     </div>
@@ -1072,6 +1197,124 @@ export default function GisSyncPage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
+            {/* 수동 입력 모달 */}
+            <Dialog open={isManualInputOpen} onOpenChange={setIsManualInputOpen}>
+                <DialogContent className="max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Edit className="w-5 h-5" />
+                            수동 입력
+                        </DialogTitle>
+                        <DialogDescription>API에서 조회되지 않는 필지 정보를 직접 입력합니다.</DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-4 py-4">
+                        {/* 주소 */}
+                        <div className="space-y-2">
+                            <Label htmlFor="manual-address">
+                                주소 <span className="text-red-500">*</span>
+                            </Label>
+                            <Input
+                                id="manual-address"
+                                placeholder="예: 서울시 강북구 미아동 745-119"
+                                value={manualInputData.address}
+                                onChange={(e) => setManualInputData({ ...manualInputData, address: e.target.value })}
+                            />
+                        </div>
+
+                        {/* PNU */}
+                        <div className="space-y-2">
+                            <Label htmlFor="manual-pnu">
+                                PNU (19자리) <span className="text-red-500">*</span>
+                            </Label>
+                            <Input
+                                id="manual-pnu"
+                                placeholder="예: 1130510100107450119"
+                                value={manualInputData.pnu}
+                                onChange={(e) => setManualInputData({ ...manualInputData, pnu: e.target.value })}
+                                maxLength={19}
+                                className="font-mono"
+                            />
+                            <p className="text-xs text-slate-500">
+                                법정동코드(10자리) + 대지구분(1) + 본번(4자리) + 부번(4자리)
+                            </p>
+                        </div>
+
+                        {/* 면적 & 공시지가 */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="manual-area">면적 (㎡)</Label>
+                                <Input
+                                    id="manual-area"
+                                    type="number"
+                                    placeholder="예: 100"
+                                    value={manualInputData.area}
+                                    onChange={(e) => setManualInputData({ ...manualInputData, area: e.target.value })}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="manual-price">공시지가 (원/㎡)</Label>
+                                <Input
+                                    id="manual-price"
+                                    type="number"
+                                    placeholder="예: 3000000"
+                                    value={manualInputData.officialPrice}
+                                    onChange={(e) =>
+                                        setManualInputData({ ...manualInputData, officialPrice: e.target.value })
+                                    }
+                                />
+                            </div>
+                        </div>
+
+                        {/* 소유자수 */}
+                        <div className="space-y-2">
+                            <Label htmlFor="manual-owner">소유자 수</Label>
+                            <Input
+                                id="manual-owner"
+                                type="number"
+                                placeholder="예: 1"
+                                value={manualInputData.ownerCount}
+                                onChange={(e) => setManualInputData({ ...manualInputData, ownerCount: e.target.value })}
+                            />
+                        </div>
+
+                        {/* 경계 좌표 */}
+                        <div className="space-y-2">
+                            <Label htmlFor="manual-boundary">경계 좌표 (GeoJSON 또는 WKT)</Label>
+                            <Textarea
+                                id="manual-boundary"
+                                placeholder={`GeoJSON 형식:\n{"type":"Polygon","coordinates":[[[127.0,37.5],...]]}\n\n또는 WKT 형식:\nPOLYGON((127.0 37.5, 127.1 37.5, ...))`}
+                                value={manualInputData.boundary}
+                                onChange={(e) => setManualInputData({ ...manualInputData, boundary: e.target.value })}
+                                rows={4}
+                                className="font-mono text-xs"
+                            />
+                            <p className="text-xs text-slate-500">
+                                Vworld 지도에서 &quot;연속지적도&quot; 레이어를 켜고 필지 클릭 후 좌표를 복사하세요.
+                            </p>
+                        </div>
+                    </div>
+
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsManualInputOpen(false)}>
+                            취소
+                        </Button>
+                        <Button
+                            onClick={handleManualInputSave}
+                            disabled={isManualInputSaving}
+                            className="bg-[#4E8C6D] hover:bg-[#3d7058]"
+                        >
+                            {isManualInputSaving ? (
+                                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                            ) : (
+                                <Plus className="w-4 h-4 mr-2" />
+                            )}
+                            저장
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

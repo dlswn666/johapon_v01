@@ -36,6 +36,19 @@ export interface AddressAddResult {
     error?: string;
 }
 
+/**
+ * 수동 입력 데이터 타입
+ */
+export interface ManualInputData {
+    unionId: string;
+    address: string;
+    pnu: string;
+    area?: number;
+    officialPrice?: number;
+    ownerCount?: number;
+    boundary?: string; // GeoJSON 또는 WKT 문자열
+}
+
 // 프록시 서버 URL
 const PROXY_URL = process.env.ALIMTALK_PROXY_URL || 'http://localhost:3100';
 
@@ -137,6 +150,88 @@ export async function searchAddress(address: string): Promise<AddressSearchResul
 // ============================================================
 // 주소 추가 함수
 // ============================================================
+
+/**
+ * 수동 입력 (API 조회 없이 직접 데이터 저장)
+ *
+ * @param data - 수동 입력 데이터
+ * @returns 저장된 데이터 정보
+ */
+export async function manualAddAddress(data: ManualInputData): Promise<AddressAddResult> {
+    const { unionId, address, pnu, area, officialPrice, ownerCount, boundary } = data;
+
+    if (!unionId || !address || !pnu) {
+        return { success: false, error: '필수 정보가 누락되었습니다. (조합ID, 주소, PNU)' };
+    }
+
+    if (pnu.length !== 19 || !/^\d+$/.test(pnu)) {
+        return { success: false, error: 'PNU는 19자리 숫자여야 합니다.' };
+    }
+
+    // 인증 확인
+    const supabase = await createClient();
+    const {
+        data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+        return { success: false, error: '로그인이 필요합니다.' };
+    }
+
+    console.log(`[Manual Input] Adding: unionId=${unionId}, pnu=${pnu}`);
+
+    try {
+        // JWT 토큰 생성
+        const token = await generateProxyToken(unionId, user.id);
+
+        // 프록시 서버 호출 (수동 입력 API)
+        const response = await fetch(`${PROXY_URL}/api/gis/manual-add`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+                unionId,
+                address: address.trim(),
+                pnu,
+                area: area !== undefined ? Number(area) : undefined,
+                officialPrice: officialPrice !== undefined ? Number(officialPrice) : undefined,
+                ownerCount: ownerCount !== undefined ? Number(ownerCount) : undefined,
+                boundary: boundary || undefined,
+            }),
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            console.error(`[Manual Input] API error: ${result.error}`);
+            return {
+                success: false,
+                error: result.error || `API 오류: ${response.status}`,
+            };
+        }
+
+        if (result.success && result.data) {
+            console.log(`[Manual Input] Success: PNU=${pnu}`);
+            return {
+                success: true,
+                data: result.data,
+            };
+        }
+
+        return {
+            success: false,
+            error: result.error || '수동 입력에 실패했습니다.',
+        };
+    } catch (error) {
+        console.error('[Manual Input] Error:', error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : '수동 입력 중 오류가 발생했습니다.',
+        };
+    }
+}
 
 /**
  * 주소 추가 (전체 데이터 조회 후 DB 저장)
