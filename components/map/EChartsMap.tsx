@@ -263,8 +263,8 @@ export default function EChartsMap({ geoJson, data, mode = 'consent', onParcelCl
                 {
                     name: config.seriesName,
                     type: 'map',
-                    geoIndex: 0, // geo 컴포넌트에 연결 (map 속성 대신 사용)
-                    // roam은 geo에서 처리하므로 제거
+                    map: 'GIS_MAP', // map 속성 필수
+                    geoIndex: 0, // geo 컴포넌트와 동기화 (roam/zoom 공유)
                     label: {
                         show: false
                     },
