@@ -33,7 +33,9 @@ import { SelectBox } from '@/app/_lib/widgets/common/select-box';
 import { useUnions } from '@/app/_lib/features/union-management/api/useUnionManagementHook';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { startGisSync } from '@/app/_lib/features/gis/actions/syncGis';
+import { searchAddress, addAddressToUnion } from '@/app/_lib/features/gis/actions/manualAddAddress';
 import EChartsMap, { ParcelData } from '@/components/map/EChartsMap';
+import { Input } from '@/components/ui/input';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -115,6 +117,14 @@ export default function GisSyncPage() {
 
     // 선택된 필지 (클릭 시 하단에 상세 정보 표시)
     const [selectedParcel, setSelectedParcel] = useState<ParcelData | null>(null);
+
+    // 수동 검색 관련 상태
+    const [manualSearchSource, setManualSearchSource] = useState<'vworld' | 'data_portal'>('vworld');
+    const [manualSearchAddress, setManualSearchAddress] = useState('');
+    const [isSearching, setIsSearching] = useState(false);
+    const [searchResult, setSearchResult] = useState<{ address: string; pnu: string } | null>(null);
+    const [searchError, setSearchError] = useState<string | null>(null);
+    const [isAdding, setIsAdding] = useState(false);
 
     // 조합 목록 조회
     const { data: unions, isLoading: isLoadingUnions } = useUnions();
@@ -274,6 +284,73 @@ export default function GisSyncPage() {
             toast.success('실패 주소가 클립보드에 복사되었습니다.');
         } catch {
             toast.error('복사에 실패했습니다.');
+        }
+    };
+
+    // 수동 주소 검색
+    const handleManualSearch = async () => {
+        if (!manualSearchAddress.trim()) {
+            toast.error('주소를 입력해주세요.');
+            return;
+        }
+
+        setIsSearching(true);
+        setSearchResult(null);
+        setSearchError(null);
+
+        try {
+            const result = await searchAddress(manualSearchAddress.trim(), manualSearchSource);
+
+            if (result.success && result.data) {
+                setSearchResult(result.data);
+                toast.success('검색 결과를 찾았습니다.');
+            } else {
+                setSearchError(result.message || result.error || '검색 결과가 없습니다.');
+            }
+        } catch (error) {
+            console.error('Manual search error:', error);
+            setSearchError('검색 중 오류가 발생했습니다.');
+        } finally {
+            setIsSearching(false);
+        }
+    };
+
+    // 수동 주소 추가
+    const handleManualAdd = async () => {
+        if (!selectedUnionId) {
+            toast.error('조합을 먼저 선택해주세요.');
+            return;
+        }
+
+        if (!searchResult) {
+            toast.error('먼저 주소를 검색해주세요.');
+            return;
+        }
+
+        setIsAdding(true);
+
+        try {
+            const result = await addAddressToUnion(selectedUnionId, searchResult.address, searchResult.pnu);
+
+            if (result.success && result.data) {
+                toast.success(
+                    `주소가 추가되었습니다. (공시지가: ${formatPrice(result.data.officialPrice)}, 소유주: ${
+                        result.data.ownerCount
+                    }명)`
+                );
+                // 검색 결과 초기화
+                setSearchResult(null);
+                setManualSearchAddress('');
+                // 지도 데이터 새로고침
+                queryClient.invalidateQueries({ queryKey: ['gis-map-preview', selectedUnionId] });
+            } else {
+                toast.error(result.error || '주소 추가에 실패했습니다.');
+            }
+        } catch (error) {
+            console.error('Manual add error:', error);
+            toast.error('주소 추가 중 오류가 발생했습니다.');
+        } finally {
+            setIsAdding(false);
         }
     };
 
@@ -888,6 +965,105 @@ export default function GisSyncPage() {
                         )}
                     </Card>
                 </div>
+            )}
+
+            {/* 수동 주소 검색 영역 */}
+            {selectedUnionId && (
+                <Card className="shadow-sm border-slate-200">
+                    <CardHeader className="border-b border-slate-100 bg-slate-50/50 py-4">
+                        <CardTitle className="text-md flex items-center gap-2">
+                            <MapPin className="w-4 h-4" />
+                            주소 수동 검색
+                        </CardTitle>
+                        <CardDescription>
+                            Vworld 또는 공공데이터포털에서 주소를 검색하고 직접 추가합니다.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="pt-6 space-y-4">
+                        {/* 검색 폼 */}
+                        <div className="flex flex-wrap items-center gap-3">
+                            <SelectBox
+                                value={manualSearchSource}
+                                onChange={(value) => setManualSearchSource(value as 'vworld' | 'data_portal')}
+                                options={[
+                                    { value: 'vworld', label: 'Vworld' },
+                                    { value: 'data_portal', label: '공공데이터포털' },
+                                ]}
+                                placeholder="데이터 소스"
+                                className="w-[160px]"
+                            />
+                            <Input
+                                type="text"
+                                placeholder="주소 입력 (예: 서울시 강북구 미아동 123-45)"
+                                value={manualSearchAddress}
+                                onChange={(e) => setManualSearchAddress(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        handleManualSearch();
+                                    }
+                                }}
+                                className="flex-1 min-w-[300px]"
+                            />
+                            <Button
+                                onClick={handleManualSearch}
+                                disabled={isSearching || !manualSearchAddress.trim()}
+                                className="bg-slate-900 hover:bg-slate-800"
+                            >
+                                {isSearching ? (
+                                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                                ) : (
+                                    <MapPin className="w-4 h-4 mr-2" />
+                                )}
+                                조회
+                            </Button>
+                        </div>
+
+                        {/* 검색 결과 */}
+                        {searchError && (
+                            <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                                <div className="flex items-center gap-2 text-red-600">
+                                    <AlertCircle className="w-4 h-4" />
+                                    <span className="text-sm font-medium">결과 없음</span>
+                                </div>
+                                <p className="text-sm text-red-500 mt-1">{searchError}</p>
+                            </div>
+                        )}
+
+                        {searchResult && (
+                            <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2 text-green-600">
+                                        <CheckCircle2 className="w-4 h-4" />
+                                        <span className="text-sm font-medium">결과 있음</span>
+                                    </div>
+                                    <Button
+                                        onClick={handleManualAdd}
+                                        disabled={isAdding}
+                                        size="sm"
+                                        className="bg-[#4E8C6D] hover:bg-[#3d7058]"
+                                    >
+                                        {isAdding ? (
+                                            <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                                        ) : (
+                                            <Plus className="w-4 h-4 mr-2" />
+                                        )}
+                                        추가
+                                    </Button>
+                                </div>
+                                <div className="mt-3 space-y-1">
+                                    <p className="text-sm">
+                                        <span className="text-slate-500">주소:</span>{' '}
+                                        <span className="font-medium text-slate-900">{searchResult.address}</span>
+                                    </p>
+                                    <p className="text-sm">
+                                        <span className="text-slate-500">PNU:</span>{' '}
+                                        <span className="font-mono text-slate-900">{searchResult.pnu}</span>
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
             )}
 
             {/* 삭제 확인 다이얼로그 */}
