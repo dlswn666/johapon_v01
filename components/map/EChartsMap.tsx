@@ -245,13 +245,26 @@ export default function EChartsMap({ geoJson, data, mode = 'consent', onParcelCl
                     color: '#64748b'
                 }
             },
+            // geo 컴포넌트 추가 - 전체 차트 영역에서 roam(드래그/줌) 활성화
+            geo: {
+                map: 'GIS_MAP',
+                roam: true, // 전체 영역에서 드래그/줌 가능
+                zoom: 1.2,
+                silent: true, // 이벤트는 series에서만 처리
+                itemStyle: {
+                    areaColor: 'transparent', // 투명하게 설정 (series가 위에 그려짐)
+                    borderColor: 'transparent'
+                },
+                emphasis: {
+                    disabled: true // geo에서는 강조 효과 비활성화
+                }
+            },
             series: [
                 {
                     name: config.seriesName,
                     type: 'map',
-                    map: 'GIS_MAP',
-                    roam: true, // 드래그 이동 + 줌 활성화
-                    zoom: 1.2,
+                    geoIndex: 0, // geo 컴포넌트에 연결 (map 속성 대신 사용)
+                    // roam은 geo에서 처리하므로 제거
                     label: {
                         show: false
                     },
