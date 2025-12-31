@@ -56,12 +56,12 @@ const CONSENT_CONFIG = {
     seriesName: '필지별 동의 현황',
 };
 
-// 가입 현황 색상 및 라벨
+// 가입 현황 색상 및 라벨 (디자인 시스템에 맞게 조정)
 const REGISTRATION_CONFIG = {
     pieces: [
-        { value: 'ALL_REGISTERED', label: '전체 가입', color: '#22c55e' },
-        { value: 'PARTIAL_REGISTERED', label: '일부 가입', color: '#eab308' },
-        { value: 'NONE_REGISTERED', label: '미가입', color: '#ef4444' },
+        { value: 'ALL_REGISTERED', label: '전체 가입', color: '#22c55e' }, // green-500
+        { value: 'PARTIAL_REGISTERED', label: '일부 가입', color: '#ca8a04' }, // yellow-600
+        { value: 'NONE_REGISTERED', label: '미가입', color: '#dc2626' }, // red-600
         { value: 'NO_OWNER', label: '정보 없음', color: '#94a3b8' },
     ],
     labels: {
@@ -71,9 +71,9 @@ const REGISTRATION_CONFIG = {
         NO_OWNER: { label: '정보 없음', description: '소유주 정보 없음' },
     },
     colors: {
-        ALL_REGISTERED: '#22c55e',
-        PARTIAL_REGISTERED: '#eab308',
-        NONE_REGISTERED: '#ef4444',
+        ALL_REGISTERED: '#22c55e', // green-500
+        PARTIAL_REGISTERED: '#ca8a04', // yellow-600
+        NONE_REGISTERED: '#dc2626', // red-600
         NO_OWNER: '#94a3b8',
     },
     seriesName: '필지별 가입 현황',
@@ -113,7 +113,14 @@ function formatArea(area: number | undefined): string {
     return `${area.toLocaleString()}㎡`;
 }
 
-export default function EChartsMap({ geoJson, data, mode = 'consent', onParcelClick, selectedPnu, onParcelHover }: EChartsMapProps) {
+export default function EChartsMap({
+    geoJson,
+    data,
+    mode = 'consent',
+    onParcelClick,
+    selectedPnu,
+    onParcelHover,
+}: EChartsMapProps) {
     const chartRef = useRef<HTMLDivElement>(null);
     const chartInstance = useRef<echarts.ECharts | null>(null);
     const prevSelectedPnu = useRef<string | null>(null);
@@ -259,7 +266,7 @@ export default function EChartsMap({ geoJson, data, mode = 'consent', onParcelCl
             visualMap: {
                 type: 'piecewise',
                 pieces: config.pieces,
-                show: mode !== 'preview', // 미리보기 모드에서는 범례 숨김
+                show: false, // canvas 외부에 별도 범례 컴포넌트 사용
                 orient: 'horizontal',
                 bottom: 20,
                 left: 'center',
@@ -320,32 +327,54 @@ export default function EChartsMap({ geoJson, data, mode = 'consent', onParcelCl
     // 외부에서 선택된 필지 하이라이트 및 포커스
     useEffect(() => {
         if (!chartInstance.current || !selectedPnu) return;
-        
+
         // 이전 선택 해제
         if (prevSelectedPnu.current && prevSelectedPnu.current !== selectedPnu) {
             chartInstance.current.dispatchAction({
                 type: 'downplay',
                 seriesIndex: 0,
-                name: prevSelectedPnu.current
+                name: prevSelectedPnu.current,
             });
         }
-        
+
         // 새로운 필지 강조
         chartInstance.current.dispatchAction({
             type: 'highlight',
             seriesIndex: 0,
-            name: selectedPnu
+            name: selectedPnu,
         });
-        
+
         // 툴팁 표시
         chartInstance.current.dispatchAction({
             type: 'showTip',
             seriesIndex: 0,
-            name: selectedPnu
+            name: selectedPnu,
         });
-        
+
         prevSelectedPnu.current = selectedPnu;
     }, [selectedPnu]);
 
     return <div ref={chartRef} className="w-full h-full min-h-[500px]" />;
+}
+
+// 지도 범례 컴포넌트 (canvas 외부에 배치)
+interface MapLegendProps {
+    mode: MapViewMode;
+}
+
+export function MapLegend({ mode }: MapLegendProps) {
+    const config = mode === 'registration' ? REGISTRATION_CONFIG : mode === 'preview' ? PREVIEW_CONFIG : CONSENT_CONFIG;
+
+    if (mode === 'preview') return null;
+
+    return (
+        <div className="bg-white rounded-lg border border-slate-200 p-3 flex flex-wrap items-center justify-center gap-4">
+            {config.pieces.map((piece) => (
+                <div key={piece.value} className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full" style={{ backgroundColor: piece.color }} />
+                    <span className="text-sm text-slate-600">{piece.label}</span>
+                </div>
+            ))}
+        </div>
+    );
 }

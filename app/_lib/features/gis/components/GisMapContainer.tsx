@@ -5,17 +5,11 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/app/_lib/shared/supabase/client';
 import { useConsentMap } from '../hooks/useConsentMap';
 import { useRegistrationMap } from '../hooks/useRegistrationMap';
-import EChartsMap, { MapViewMode } from '@/components/map/EChartsMap';
+import EChartsMap, { MapViewMode, MapLegend } from '@/components/map/EChartsMap';
 import ParcelDetailModal from './ParcelDetailModal';
 import ConsentStatusBar from './ConsentStatusBar';
 import { useUnionConsentRate } from '../api/useParcelDetail';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, Info, LayoutGrid, Search, MapPin, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -25,16 +19,15 @@ export default function GisMapContainer() {
     const { union } = useSlug();
     const unionId = union?.id;
 
-    
     // 조회 모드: 'consent' (동의 현황) | 'registration' (가입 현황)
     const [viewMode, setViewMode] = useState<MapViewMode>('consent');
     const [selectedBusinessType, setSelectedBusinessType] = useState<string>('REDEVELOPMENT');
     const [selectedStageId, setSelectedStageId] = useState<string | null>(null);
-    
+
     // 모달 상태
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedPnu, setSelectedPnu] = useState<string | null>(null);
-    
+
     // 주소 검색 상태
     const [searchQuery, setSearchQuery] = useState('');
     const [searchedPnu, setSearchedPnu] = useState<string | null>(null);
@@ -49,11 +42,11 @@ export default function GisMapContainer() {
                 .select('*')
                 .eq('business_type', selectedBusinessType)
                 .order('sort_order', { ascending: true });
-            
+
             if (error) throw error;
             return data;
         },
-        enabled: !!selectedBusinessType
+        enabled: !!selectedBusinessType,
     });
 
     // 단계 변경 시 자동 선택 - useMemo로 초기값 계산
@@ -78,25 +71,29 @@ export default function GisMapContainer() {
     // stages가 비어있고 로딩이 완료되면 자동으로 registration 모드로 전환
     useEffect(() => {
         if (!stagesLoading && stages && stages.length === 0 && viewMode === 'consent') {
-            setViewMode('registration');
+            // 다음 렌더 사이클에서 setState 호출하여 cascading render 방지
+            const timer = setTimeout(() => {
+                setViewMode('registration');
+            }, 0);
+            return () => clearTimeout(timer);
         }
     }, [stagesLoading, stages, viewMode]);
 
     // 동의 현황 데이터
-    const { 
-        geoJson: consentGeoJson, 
-        consentData, 
-        loading: consentLoading, 
-        isPublished 
+    const {
+        geoJson: consentGeoJson,
+        consentData,
+        loading: consentLoading,
+        isPublished,
     } = useConsentMap(unionId, selectedStageId);
-    
+
     // 가입 현황 데이터
-    const { 
-        geoJson: registrationGeoJson, 
-        registrationData, 
-        loading: registrationLoading 
+    const {
+        geoJson: registrationGeoJson,
+        registrationData,
+        loading: registrationLoading,
     } = useRegistrationMap(unionId);
-    
+
     // 조합 전체 동의율 조회
     const { data: consentRate } = useUnionConsentRate(unionId || null, selectedStageId);
 
@@ -106,12 +103,12 @@ export default function GisMapContainer() {
         queryFn: async () => {
             if (!unionId) return null;
             const { data, error } = await supabase.rpc('get_union_registration_rate', {
-                p_union_id: unionId
+                p_union_id: unionId,
             });
             if (error) throw error;
             return data?.[0] || null;
         },
-        enabled: !!unionId
+        enabled: !!unionId,
     });
 
     // 현재 모드에 따른 데이터 선택
@@ -121,20 +118,20 @@ export default function GisMapContainer() {
 
     const currentData = useMemo(() => {
         if (viewMode === 'registration') {
-            return registrationData.map(d => ({
+            return registrationData.map((d) => ({
                 pnu: d.pnu,
                 status: d.registration_status,
                 address: d.address,
                 totalOwners: d.total_owners,
-                registeredCount: d.registered_count
+                registeredCount: d.registered_count,
             }));
         }
-        return consentData.map(d => ({
+        return consentData.map((d) => ({
             pnu: d.pnu,
             status: d.display_status,
             address: d.address,
             totalOwners: d.total_owners,
-            agreedOwners: d.agreed_count
+            agreedOwners: d.agreed_count,
         }));
     }, [viewMode, registrationData, consentData]);
 
@@ -144,35 +141,45 @@ export default function GisMapContainer() {
     const displayPnu = searchedPnu || hoveredPnu;
     const displayParcelInfo = useMemo(() => {
         if (!displayPnu) return null;
-        
+
         if (viewMode === 'registration') {
-            const found = registrationData.find(d => d.pnu === displayPnu);
+            const found = registrationData.find((d) => d.pnu === displayPnu);
             if (!found) return null;
             return {
                 pnu: found.pnu,
                 address: found.address,
                 status: found.registration_status,
-                statusLabel: found.registration_status === 'ALL_REGISTERED' ? '전체 가입' 
-                    : found.registration_status === 'PARTIAL_REGISTERED' ? '일부 가입' 
-                    : found.registration_status === 'NONE_REGISTERED' ? '미가입' : '정보 없음',
+                statusLabel:
+                    found.registration_status === 'ALL_REGISTERED'
+                        ? '전체 가입'
+                        : found.registration_status === 'PARTIAL_REGISTERED'
+                        ? '일부 가입'
+                        : found.registration_status === 'NONE_REGISTERED'
+                        ? '미가입'
+                        : '정보 없음',
                 totalOwners: found.total_owners,
                 currentCount: found.registered_count,
-                currentLabel: '가입'
+                currentLabel: '가입',
             };
         }
-        
-        const found = consentData.find(d => d.pnu === displayPnu);
+
+        const found = consentData.find((d) => d.pnu === displayPnu);
         if (!found) return null;
         return {
             pnu: found.pnu,
             address: found.address,
             status: found.display_status,
-            statusLabel: found.display_status === 'FULL_AGREED' ? '동의 완료' 
-                : found.display_status === 'PARTIAL_AGREED' ? '일부 동의' 
-                : found.display_status === 'NONE_AGREED' ? '미동의' : '정보 없음',
+            statusLabel:
+                found.display_status === 'FULL_AGREED'
+                    ? '동의 완료'
+                    : found.display_status === 'PARTIAL_AGREED'
+                    ? '일부 동의'
+                    : found.display_status === 'NONE_AGREED'
+                    ? '미동의'
+                    : '정보 없음',
             totalOwners: found.total_owners,
             currentCount: found.agreed_count,
-            currentLabel: '동의'
+            currentLabel: '동의',
         };
     }, [displayPnu, viewMode, registrationData, consentData]);
 
@@ -182,31 +189,27 @@ export default function GisMapContainer() {
             setSearchedPnu(null);
             return;
         }
-        
+
         const query = searchQuery.trim().toLowerCase();
-        
+
         // 동의 현황 데이터에서 검색
-        const foundConsent = consentData.find(d => 
-            d.address?.toLowerCase().includes(query) || 
-            d.pnu.includes(query)
-        );
-        
+        const foundConsent = consentData.find((d) => d.address?.toLowerCase().includes(query) || d.pnu.includes(query));
+
         if (foundConsent) {
             setSearchedPnu(foundConsent.pnu);
             return;
         }
-        
+
         // 가입 현황 데이터에서 검색
-        const foundReg = registrationData.find(d => 
-            d.address?.toLowerCase().includes(query) || 
-            d.pnu.includes(query)
+        const foundReg = registrationData.find(
+            (d) => d.address?.toLowerCase().includes(query) || d.pnu.includes(query)
         );
-        
+
         if (foundReg) {
             setSearchedPnu(foundReg.pnu);
             return;
         }
-        
+
         // 찾지 못함
         setSearchedPnu(null);
         alert('해당 주소를 찾을 수 없습니다.');
@@ -223,16 +226,16 @@ export default function GisMapContainer() {
         setHoveredPnu(pnu);
     }, []);
 
-    // 필지 클릭 핸들러
+    // 필지 클릭 핸들러 - 카드에 표시하고 모달 대신 하단 카드로 표시
     const handleParcelClick = useCallback((pnu: string) => {
+        setSearchedPnu(pnu);
         setSelectedPnu(pnu);
-        setIsModalOpen(true);
     }, []);
 
     // 현재 단계의 필수 동의율
     const requiredRate = useMemo(() => {
         if (!stages || !selectedStageId) return 75;
-        const stage = stages.find(s => s.id === selectedStageId);
+        const stage = stages.find((s) => s.id === selectedStageId);
         return stage?.required_rate || 75;
     }, [stages, selectedStageId]);
 
@@ -240,57 +243,26 @@ export default function GisMapContainer() {
         <div className="space-y-4 h-full flex flex-col">
             {/* 필터 영역 */}
             <div className="flex flex-wrap gap-4 items-center bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                {/* 주소 검색 */}
-                <div className="flex items-center gap-2 flex-1 min-w-[280px] max-w-md">
-                    <div className="relative flex-1">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                        <Input
-                            type="text"
-                            placeholder="지번 또는 도로명 주소로 검색..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                            className="pl-10 pr-8"
-                        />
-                        {searchQuery && (
-                            <button
-                                onClick={handleClearSearch}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
-                            >
-                                <X className="w-4 h-4" />
-                            </button>
-                        )}
-                    </div>
-                    <Button onClick={handleSearch} size="sm" variant="default">
-                        검색
-                    </Button>
-                </div>
-
-                <div className="h-6 w-px bg-slate-200 hidden md:block" />
-
                 {/* 조회 모드 선택 */}
-                <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-slate-600">조회 모드:</span>
-                    <Select value={viewMode} onValueChange={(v: MapViewMode) => setViewMode(v)}>
-                        <SelectTrigger className="w-[140px]">
-                            <SelectValue placeholder="조회 모드" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="consent">
-                                <div className="flex items-center gap-2">
-                                    <LayoutGrid className="w-4 h-4" />
-                                    동의 현황
-                                </div>
-                            </SelectItem>
-                            <SelectItem value="registration">
-                                <div className="flex items-center gap-2">
-                                    <LayoutGrid className="w-4 h-4" />
-                                    가입 현황
-                                </div>
-                            </SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
+                <Select value={viewMode} onValueChange={(v: MapViewMode) => setViewMode(v)}>
+                    <SelectTrigger className="w-[140px]">
+                        <SelectValue placeholder="조회 모드" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="consent">
+                            <div className="flex items-center gap-2">
+                                <LayoutGrid className="w-4 h-4" />
+                                동의 현황
+                            </div>
+                        </SelectItem>
+                        <SelectItem value="registration">
+                            <div className="flex items-center gap-2">
+                                <LayoutGrid className="w-4 h-4" />
+                                가입 현황
+                            </div>
+                        </SelectItem>
+                    </SelectContent>
+                </Select>
 
                 {/* 동의 현황일 때만 사업 유형 및 단계 선택 표시 */}
                 {viewMode === 'consent' && (
@@ -304,7 +276,9 @@ export default function GisMapContainer() {
                                 <SelectContent>
                                     <SelectItem value="REDEVELOPMENT">재개발</SelectItem>
                                     <SelectItem value="RECONSTRUCTION">재건축</SelectItem>
-                                    <SelectItem value="HOUSING_ASSOCIATION">지주택</SelectItem>
+                                    <SelectItem value="STREET_HOUSING">가로주택정비</SelectItem>
+                                    <SelectItem value="SMALL_RECONSTRUCTION">소규모재건축</SelectItem>
+                                    <SelectItem value="HOUSING_ASSOCIATION">지역주택</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -369,12 +343,14 @@ export default function GisMapContainer() {
                         </div>
                         <div className="text-center">
                             <p className="text-lg font-bold text-slate-600 mb-1">데이터 수집 및 배포 준비 중입니다.</p>
-                            <p className="text-sm px-6">시스템 관리자의 검토 및 승인이 완료된 후 지도가 활성화됩니다.</p>
+                            <p className="text-sm px-6">
+                                시스템 관리자의 검토 및 승인이 완료된 후 지도가 활성화됩니다.
+                            </p>
                         </div>
                     </div>
                 ) : currentGeoJson && currentGeoJson.features.length > 0 ? (
-                    <EChartsMap 
-                        geoJson={currentGeoJson} 
+                    <EChartsMap
+                        geoJson={currentGeoJson}
                         data={currentData as Parameters<typeof EChartsMap>[0]['data']}
                         mode={viewMode}
                         onParcelClick={handleParcelClick}
@@ -386,6 +362,35 @@ export default function GisMapContainer() {
                         지도 데이터를 불러올 수 없습니다. 지번 수집 상태를 확인해 주세요.
                     </div>
                 )}
+            </div>
+
+            {/* 지도 범례 */}
+            <MapLegend mode={viewMode} />
+
+            {/* 주소 검색 */}
+            <div className="flex items-center gap-2 bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+                <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <Input
+                        type="text"
+                        placeholder="지번 또는 도로명 주소로 검색..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                        className="pl-10 pr-8"
+                    />
+                    {searchQuery && (
+                        <button
+                            onClick={handleClearSearch}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
+                    )}
+                </div>
+                <Button onClick={handleSearch} size="sm" variant="default">
+                    검색
+                </Button>
             </div>
 
             {/* 선택된 필지 정보 패널 */}
@@ -400,15 +405,20 @@ export default function GisMapContainer() {
                                 <h3 className="font-semibold text-slate-900 truncate">
                                     {displayParcelInfo.address || '주소 정보 없음'}
                                 </h3>
-                                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                                    displayParcelInfo.status === 'FULL_AGREED' || displayParcelInfo.status === 'ALL_REGISTERED'
-                                        ? 'bg-green-100 text-green-700'
-                                        : displayParcelInfo.status === 'PARTIAL_AGREED' || displayParcelInfo.status === 'PARTIAL_REGISTERED'
-                                        ? 'bg-yellow-100 text-yellow-700'
-                                        : displayParcelInfo.status === 'NONE_AGREED' || displayParcelInfo.status === 'NONE_REGISTERED'
-                                        ? 'bg-red-100 text-red-700'
-                                        : 'bg-slate-100 text-slate-600'
-                                }`}>
+                                <span
+                                    className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                                        displayParcelInfo.status === 'FULL_AGREED' ||
+                                        displayParcelInfo.status === 'ALL_REGISTERED'
+                                            ? 'bg-green-100 text-green-700'
+                                            : displayParcelInfo.status === 'PARTIAL_AGREED' ||
+                                              displayParcelInfo.status === 'PARTIAL_REGISTERED'
+                                            ? 'bg-yellow-100 text-yellow-700'
+                                            : displayParcelInfo.status === 'NONE_AGREED' ||
+                                              displayParcelInfo.status === 'NONE_REGISTERED'
+                                            ? 'bg-red-100 text-red-700'
+                                            : 'bg-slate-100 text-slate-600'
+                                    }`}
+                                >
                                     {displayParcelInfo.statusLabel}
                                 </span>
                             </div>
@@ -416,10 +426,16 @@ export default function GisMapContainer() {
                                 <span className="font-mono">{displayParcelInfo.pnu}</span>
                                 <span className="h-3 w-px bg-slate-200" />
                                 <span>
-                                    {displayParcelInfo.currentLabel}: <strong className="text-slate-700">{displayParcelInfo.currentCount}</strong> / {displayParcelInfo.totalOwners}명
+                                    {displayParcelInfo.currentLabel}:{' '}
+                                    <strong className="text-slate-700">{displayParcelInfo.currentCount}</strong> /{' '}
+                                    {displayParcelInfo.totalOwners}명
                                     {displayParcelInfo.totalOwners > 0 && (
                                         <span className="ml-1 text-primary font-medium">
-                                            ({Math.round((displayParcelInfo.currentCount / displayParcelInfo.totalOwners) * 100)}%)
+                                            (
+                                            {Math.round(
+                                                (displayParcelInfo.currentCount / displayParcelInfo.totalOwners) * 100
+                                            )}
+                                            %)
                                         </span>
                                     )}
                                 </span>

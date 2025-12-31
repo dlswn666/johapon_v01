@@ -41,8 +41,8 @@ import {
 import { toast } from 'react-hot-toast';
 import { cn } from '@/lib/utils';
 
-const BUSINESS_TYPES = ['재개발', '재건축', '지역주택조합', '가로주택정비'];
-const CONSENT_BUSINESS_TYPES: BusinessTypeEnum[] = ['REDEVELOPMENT', 'RECONSTRUCTION', 'HOUSING_ASSOCIATION'];
+const BUSINESS_TYPES = ['재개발', '재건축', '가로주택정비', '소규모재건축', '지역주택'];
+const CONSENT_BUSINESS_TYPES: BusinessTypeEnum[] = ['REDEVELOPMENT', 'RECONSTRUCTION', 'STREET_HOUSING', 'SMALL_RECONSTRUCTION', 'HOUSING_ASSOCIATION'];
 
 export default function StagesManagementPage() {
     const [activeTab, setActiveTab] = useState<'development' | 'consent'>('development');

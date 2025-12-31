@@ -62,7 +62,10 @@ export default function ConsentStatusBar({
             </div>
 
             {/* 수치 박스 */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className={cn(
+                "grid gap-4",
+                mode === 'registration' ? "grid-cols-3" : "grid-cols-2"
+            )}>
                 {/* 현재 수치 */}
                 <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-xl p-4 border border-blue-200/50">
                     <div className="text-xs text-blue-600 font-medium mb-1">{text.current}</div>
@@ -83,6 +86,33 @@ export default function ConsentStatusBar({
                         <span className="text-sm font-normal text-slate-500 ml-1">{text.unit}</span>
                     </div>
                 </div>
+
+                {/* 가입률 퍼센트 카드 (가입 현황 모드에서만) */}
+                {mode === 'registration' && (
+                    <div className={cn(
+                        "rounded-xl p-4 border",
+                        isAchieved 
+                            ? "bg-gradient-to-br from-green-50 to-green-100/50 border-green-200/50"
+                            : "bg-gradient-to-br from-amber-50 to-amber-100/50 border-amber-200/50"
+                    )}>
+                        <div className={cn(
+                            "text-xs font-medium mb-1",
+                            isAchieved ? "text-green-600" : "text-amber-600"
+                        )}>
+                            가입률
+                        </div>
+                        <div className={cn(
+                            "text-2xl font-bold",
+                            isAchieved ? "text-green-700" : "text-amber-700"
+                        )}>
+                            {Math.round(currentRate * 10) / 10}
+                            <span className={cn(
+                                "text-sm font-normal ml-1",
+                                isAchieved ? "text-green-500" : "text-amber-500"
+                            )}>%</span>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* 프로그레스 바 */}

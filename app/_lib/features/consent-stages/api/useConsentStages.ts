@@ -5,7 +5,7 @@ import { supabase } from '@/app/_lib/shared/supabase/client';
 import { queryClient } from '@/app/_lib/shared/tanstack/queryClient';
 
 // 동의 단계 타입 정의
-export type BusinessTypeEnum = 'REDEVELOPMENT' | 'RECONSTRUCTION' | 'HOUSING_ASSOCIATION';
+export type BusinessTypeEnum = 'REDEVELOPMENT' | 'RECONSTRUCTION' | 'HOUSING_ASSOCIATION' | 'STREET_HOUSING' | 'SMALL_RECONSTRUCTION';
 
 export interface ConsentStage {
     id: string;
@@ -37,7 +37,9 @@ export interface UpdateConsentStageInput {
 export const BUSINESS_TYPE_LABELS: Record<BusinessTypeEnum, string> = {
     REDEVELOPMENT: '재개발',
     RECONSTRUCTION: '재건축',
-    HOUSING_ASSOCIATION: '지역주택조합'
+    HOUSING_ASSOCIATION: '지역주택',
+    STREET_HOUSING: '가로주택정비',
+    SMALL_RECONSTRUCTION: '소규모재건축'
 };
 
 // 동의 단계 목록 조회
