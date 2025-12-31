@@ -27,7 +27,7 @@ export default function LandLotManagementPage() {
     const { union } = useSlug();
     const unionId = union?.id;
 
-    const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
+    const [viewMode, setViewMode] = useState<'list' | 'map'>('map');
     const [searchQuery, setSearchQuery] = useState('');
     const [page, setPage] = useState(1);
     const pageSize = 15;
@@ -71,22 +71,26 @@ export default function LandLotManagementPage() {
                 </div>
                 <div className="flex items-center gap-2 p-1 bg-gray-100 rounded-lg w-fit">
                     <button 
-                        onClick={() => setViewMode('list')}
-                        className={cn(
-                            "px-4 py-1.5 rounded-md text-sm font-medium transition-all",
-                            viewMode === 'list' ? "bg-white shadow-sm text-primary" : "text-gray-500 hover:text-gray-700"
-                        )}
-                    >
-                        리스트 보기
-                    </button>
-                    <button 
                         onClick={() => setViewMode('map')}
                         className={cn(
-                            "px-4 py-1.5 rounded-md text-sm font-medium transition-all",
-                            viewMode === 'map' ? "bg-white shadow-sm text-primary" : "text-gray-500 hover:text-gray-700"
+                            "px-4 py-1.5 rounded-md text-sm font-medium transition-all cursor-pointer",
+                            viewMode === 'map' 
+                                ? "bg-white shadow-sm text-primary" 
+                                : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
                         )}
                     >
                         지도 보기
+                    </button>
+                    <button 
+                        onClick={() => setViewMode('list')}
+                        className={cn(
+                            "px-4 py-1.5 rounded-md text-sm font-medium transition-all cursor-pointer",
+                            viewMode === 'list' 
+                                ? "bg-white shadow-sm text-primary" 
+                                : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                        )}
+                    >
+                        리스트 보기
                     </button>
                 </div>
             </div>

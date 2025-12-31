@@ -29,6 +29,8 @@ interface EChartsMapProps {
     data: ParcelData[];
     mode?: MapViewMode;
     onParcelClick?: (pnu: string) => void;
+    selectedPnu?: string | null;
+    onParcelHover?: (pnu: string | null) => void;
 }
 
 // 동의 현황 색상 및 라벨
@@ -111,9 +113,10 @@ function formatArea(area: number | undefined): string {
     return `${area.toLocaleString()}㎡`;
 }
 
-export default function EChartsMap({ geoJson, data, mode = 'consent', onParcelClick }: EChartsMapProps) {
+export default function EChartsMap({ geoJson, data, mode = 'consent', onParcelClick, selectedPnu, onParcelHover }: EChartsMapProps) {
     const chartRef = useRef<HTMLDivElement>(null);
     const chartInstance = useRef<echarts.ECharts | null>(null);
+    const prevSelectedPnu = useRef<string | null>(null);
 
     // 현재 모드에 따른 설정 선택
     const config = useMemo(() => {
@@ -137,6 +140,17 @@ export default function EChartsMap({ geoJson, data, mode = 'consent', onParcelCl
             chartInstance.current.on('click', (params: { componentType: string; name: string }) => {
                 if (params.componentType === 'series' && onParcelClick) {
                     onParcelClick(params.name);
+                }
+            });
+            // 마우스 오버 이벤트
+            chartInstance.current.on('mouseover', (params: { componentType: string; name: string }) => {
+                if (params.componentType === 'series' && onParcelHover) {
+                    onParcelHover(params.name);
+                }
+            });
+            chartInstance.current.on('mouseout', () => {
+                if (onParcelHover) {
+                    onParcelHover(null);
                 }
             });
         }
@@ -301,7 +315,37 @@ export default function EChartsMap({ geoJson, data, mode = 'consent', onParcelCl
         return () => {
             window.removeEventListener('resize', handleResize);
         };
-    }, [geoJson, data, dataMap, onParcelClick, config, mode]);
+    }, [geoJson, data, dataMap, onParcelClick, onParcelHover, config, mode]);
+
+    // 외부에서 선택된 필지 하이라이트 및 포커스
+    useEffect(() => {
+        if (!chartInstance.current || !selectedPnu) return;
+        
+        // 이전 선택 해제
+        if (prevSelectedPnu.current && prevSelectedPnu.current !== selectedPnu) {
+            chartInstance.current.dispatchAction({
+                type: 'downplay',
+                seriesIndex: 0,
+                name: prevSelectedPnu.current
+            });
+        }
+        
+        // 새로운 필지 강조
+        chartInstance.current.dispatchAction({
+            type: 'highlight',
+            seriesIndex: 0,
+            name: selectedPnu
+        });
+        
+        // 툴팁 표시
+        chartInstance.current.dispatchAction({
+            type: 'showTip',
+            seriesIndex: 0,
+            name: selectedPnu
+        });
+        
+        prevSelectedPnu.current = selectedPnu;
+    }, [selectedPnu]);
 
     return <div ref={chartRef} className="w-full h-full min-h-[500px]" />;
 }

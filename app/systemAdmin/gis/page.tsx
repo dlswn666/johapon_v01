@@ -906,7 +906,7 @@ export default function GisSyncPage() {
                                 </CardHeader>
                                 <CardContent className="p-0">
                                     {/* 지도 영역 */}
-                                    <div className="h-[400px] bg-slate-100 relative">
+                                    <div className="h-[500px] bg-slate-100 relative">
                                         {isLoadingMap ? (
                                             <div className="absolute inset-0 flex items-center justify-center">
                                                 <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
