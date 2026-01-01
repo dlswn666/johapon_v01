@@ -21,7 +21,6 @@ function getSupabaseAdmin() {
 
 export interface UpdateParcelInput {
     pnu: string;
-    total_units?: number;
     owner_count?: number;
     land_area?: number;
 }
@@ -38,7 +37,6 @@ export async function updateParcelInfo(input: UpdateParcelInput) {
     const supabase = getSupabaseAdmin();
 
     const updateData: Record<string, number | undefined> = {};
-    if (input.total_units !== undefined) updateData.total_units = input.total_units;
     if (input.owner_count !== undefined) updateData.owner_count = input.owner_count;
     if (input.land_area !== undefined) updateData.area = input.land_area;
 

@@ -256,7 +256,6 @@ interface EditParcelModalProps {
 
 function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: EditParcelModalProps) {
     const [formData, setFormData] = useState({
-        total_units: parcel.summary.total_units,
         owner_count: parcel.summary.total_owners,
         land_area: parcel.land_area || 0,
     });
@@ -265,7 +264,6 @@ function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: Edi
     React.useEffect(() => {
         if (open) {
             setFormData({
-                total_units: parcel.summary.total_units,
                 owner_count: parcel.summary.total_owners,
                 land_area: parcel.land_area || 0,
             });
@@ -276,7 +274,6 @@ function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: Edi
         mutationFn: async () => {
             return updateParcelInfo({
                 pnu: parcel.pnu,
-                total_units: formData.total_units,
                 owner_count: formData.owner_count,
                 land_area: formData.land_area,
             });
@@ -300,16 +297,6 @@ function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: Edi
                 </DialogHeader>
 
                 <div className="space-y-4 py-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="total_units">호수</Label>
-                        <Input
-                            id="total_units"
-                            type="number"
-                            min={0}
-                            value={formData.total_units}
-                            onChange={(e) => setFormData({ ...formData, total_units: parseInt(e.target.value) || 0 })}
-                        />
-                    </div>
                     <div className="space-y-2">
                         <Label htmlFor="owner_count">소유주수</Label>
                         <Input

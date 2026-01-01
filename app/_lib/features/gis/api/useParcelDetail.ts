@@ -64,12 +64,19 @@ export const useParcelDetail = (pnu: string | null, stageId: string | null) => {
             // 1. 필지 기본 정보 조회
             const { data: landLot, error: landError } = await supabase
                 .from('land_lots')
-                .select('pnu, address, area, official_price, owner_count, total_units')
+                .select('pnu, address, area, official_price, owner_count')
                 .eq('pnu', pnu)
                 .single();
 
             if (landError) {
-                console.error('필지 조회 오류:', landError);
+                console.error('필지 조회 오류:', {
+                    message: landError.message,
+                    code: landError.code,
+                    details: landError.details,
+                    hint: landError.hint,
+                    pnu,
+                });
+                // 에러 발생 시 null 반환 (쿼리는 성공으로 처리하되 데이터는 null)
             }
 
             // 2. union_land_lots에서 union_id 조회
@@ -87,20 +94,25 @@ export const useParcelDetail = (pnu: string | null, stageId: string | null) => {
                 id: string;
                 name: string;
                 phone_number: string;
-                property_unit_dong: string | null;
-                property_unit_ho: string | null;
             }[] = [];
 
             if (unionId) {
                 const { data: usersData, error: usersError } = await supabase
                     .from('users')
-                    .select('id, name, phone_number, property_unit_dong, property_unit_ho')
+                    .select('id, name, phone_number')
                     .eq('property_pnu', pnu)
                     .eq('union_id', unionId)
                     .eq('user_status', 'APPROVED');
 
                 if (usersError) {
-                    console.error('조합원 조회 오류:', usersError);
+                    console.error('조합원 조회 오류:', {
+                        message: usersError.message,
+                        code: usersError.code,
+                        details: usersError.details,
+                        hint: usersError.hint,
+                        unionId,
+                        pnu,
+                    });
                 }
                 members = usersData || [];
             }
@@ -112,14 +124,20 @@ export const useParcelDetail = (pnu: string | null, stageId: string | null) => {
                 .order('sort_order', { ascending: true });
 
             if (stagesError) {
-                console.error('동의 단계 조회 오류:', stagesError);
+                console.error('동의 단계 조회 오류:', {
+                    message: stagesError.message,
+                    code: stagesError.code,
+                    details: stagesError.details,
+                    hint: stagesError.hint,
+                });
             }
 
             // 5. 조합원 ID 목록 추출
-            const memberIds = members.map(m => m.id);
+            const memberIds = members.map((m) => m.id);
 
             // 6. 조합원별 동의 현황 조회 (user_consents)
-            let memberConsents: { user_id: string; stage_id: string; status: string; consent_date: string | null }[] = [];
+            let memberConsents: { user_id: string; stage_id: string; status: string; consent_date: string | null }[] =
+                [];
             if (memberIds.length > 0) {
                 const { data: consents, error: consentError } = await supabase
                     .from('user_consents')
@@ -127,16 +145,20 @@ export const useParcelDetail = (pnu: string | null, stageId: string | null) => {
                     .in('user_id', memberIds);
 
                 if (consentError) {
-                    console.error('동의 현황 조회 오류:', consentError);
+                    console.error('동의 현황 조회 오류:', {
+                        message: consentError.message,
+                        code: consentError.code,
+                        details: consentError.details,
+                        hint: consentError.hint,
+                        memberIds,
+                    });
                 }
                 memberConsents = consents || [];
             }
 
             // 7. 조합원에게 현재 선택된 단계의 동의 상태 추가
-            const ownersWithConsent: Owner[] = members.map(member => {
-                const consent = memberConsents.find(
-                    c => c.user_id === member.id && c.stage_id === stageId
-                );
+            const ownersWithConsent: Owner[] = members.map((member) => {
+                const consent = memberConsents.find((c) => c.user_id === member.id && c.stage_id === stageId);
                 return {
                     id: member.id,
                     name: member.name,
@@ -146,21 +168,19 @@ export const useParcelDetail = (pnu: string | null, stageId: string | null) => {
                     is_manual: false,
                     consent_status: (consent?.status as 'AGREED' | 'DISAGREED' | 'PENDING') || 'PENDING',
                     consent_date: consent?.consent_date || null,
-                    property_unit_dong: member.property_unit_dong,
-                    property_unit_ho: member.property_unit_ho,
+                    property_unit_dong: null,
+                    property_unit_ho: null,
                 };
             });
 
             // 8. 동의 단계별 통계 계산
-            const consentStagesStatus: ConsentStageStatus[] = (allStages || []).map(stage => {
+            const consentStagesStatus: ConsentStageStatus[] = (allStages || []).map((stage) => {
                 let agreed = 0;
                 let disagreed = 0;
                 let pending = 0;
 
-                memberIds.forEach(memberId => {
-                    const consent = memberConsents.find(
-                        c => c.user_id === memberId && c.stage_id === stage.id
-                    );
+                memberIds.forEach((memberId) => {
+                    const consent = memberConsents.find((c) => c.user_id === memberId && c.stage_id === stage.id);
                     if (consent?.status === 'AGREED') agreed++;
                     else if (consent?.status === 'DISAGREED') disagreed++;
                     else pending++;
@@ -179,15 +199,15 @@ export const useParcelDetail = (pnu: string | null, stageId: string | null) => {
                     disagreed_owners: disagreed,
                     pending_owners: pending,
                     consent_rate: rate,
-                    is_completed: rate >= stage.required_rate
+                    is_completed: rate >= stage.required_rate,
                 };
             });
 
             // 9. 호수별로 그룹화 (building_units 호환성 유지)
             const unitMap = new Map<string, BuildingUnit>();
-            ownersWithConsent.forEach(owner => {
+            ownersWithConsent.forEach((owner) => {
                 const unitKey = `${owner.property_unit_dong || ''}-${owner.property_unit_ho || ''}`;
-                
+
                 if (!unitMap.has(unitKey)) {
                     unitMap.set(unitKey, {
                         id: unitKey,
@@ -195,10 +215,10 @@ export const useParcelDetail = (pnu: string | null, stageId: string | null) => {
                         ho: owner.property_unit_ho || null,
                         floor: null,
                         exclusive_area: null,
-                        owners: []
+                        owners: [],
                     });
                 }
-                
+
                 unitMap.get(unitKey)!.owners.push(owner);
             });
 
@@ -212,9 +232,9 @@ export const useParcelDetail = (pnu: string | null, stageId: string | null) => {
                 building_units: buildingUnits,
                 consent_stages: consentStagesStatus,
                 summary: {
-                    total_units: landLot?.total_units || buildingUnits.length,
-                    total_owners: landLot?.owner_count || memberIds.length
-                }
+                    total_units: buildingUnits.length,
+                    total_owners: landLot?.owner_count || memberIds.length,
+                },
             };
         },
         enabled: !!pnu,
@@ -230,14 +250,20 @@ export const useUnionConsentRate = (unionId: string | null, stageId: string | nu
             if (!unionId || !stageId) return null;
 
             // RPC 함수 호출
-            const { data, error } = await supabase
-                .rpc('get_union_consent_rate', {
-                    p_union_id: unionId,
-                    p_stage_id: stageId
-                });
+            const { data, error } = await supabase.rpc('get_union_consent_rate', {
+                p_union_id: unionId,
+                p_stage_id: stageId,
+            });
 
             if (error) {
-                console.error('동의율 조회 오류:', error);
+                console.error('동의율 조회 오류:', {
+                    message: error.message,
+                    code: error.code,
+                    details: error.details,
+                    hint: error.hint,
+                    unionId,
+                    stageId,
+                });
                 return null;
             }
 

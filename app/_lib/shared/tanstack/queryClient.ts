@@ -154,7 +154,8 @@ export const queryClient = new QueryClient({
             // 네트워크 에러
             if (errorMessage.includes('fetch') || errorMessage.includes('network')) {
                 console.error('Query Network Error:', {
-                    error: errorMessage,
+                    message: errorMessage,
+                    name: error?.name || 'NetworkError',
                     queryKey: query.queryKey,
                     timestamp: new Date().toISOString(),
                 });
@@ -166,11 +167,33 @@ export const queryClient = new QueryClient({
 
             // 일반 에러 로깅
             const status = supabaseError?.response?.status || supabaseError?.status;
-            console.error('Query Error:', {
-                error: errorMessage,
+            
+            // 에러 객체를 안전하게 직렬화
+            const errorDetails: {
+                message: string;
+                code: string;
+                status: number | undefined;
+                name: string;
+                stack: string | undefined;
+                details?: string;
+                hint?: string;
+            } = {
+                message: errorMessage,
                 code: errorCode,
-                queryKey: query.queryKey,
                 status,
+                name: error?.name || 'Unknown',
+                stack: error?.stack ? error.stack.substring(0, 200) : undefined, // 스택 추적 일부만
+            };
+            
+            // Supabase 에러의 추가 정보
+            if (isSupabaseError(error)) {
+                errorDetails.details = supabaseError.details;
+                errorDetails.hint = supabaseError.hint;
+            }
+            
+            console.error('Query Error:', {
+                ...errorDetails,
+                queryKey: query.queryKey,
                 timestamp: new Date().toISOString(),
             });
 
@@ -200,7 +223,8 @@ export const queryClient = new QueryClient({
             // 네트워크 에러
             if (errorMessage.includes('fetch') || errorMessage.includes('network')) {
                 console.error('Mutation Network Error:', {
-                    error: errorMessage,
+                    message: errorMessage,
+                    name: error?.name || 'NetworkError',
                     mutationKey: mutation.options.mutationKey,
                     timestamp: new Date().toISOString(),
                 });
@@ -211,12 +235,33 @@ export const queryClient = new QueryClient({
             }
 
             // 일반 에러 로깅
-            console.error('Mutation Error:', {
-                error: errorMessage,
+            // 에러 객체를 안전하게 직렬화
+            const errorDetails: {
+                message: string;
+                code: string;
+                status: number | undefined;
+                name: string;
+                stack: string | undefined;
+                details?: string;
+                hint?: string;
+            } = {
+                message: errorMessage,
                 code: errorCode,
+                status,
+                name: error?.name || 'Unknown',
+                stack: error?.stack ? error.stack.substring(0, 200) : undefined, // 스택 추적 일부만
+            };
+            
+            // Supabase 에러의 추가 정보
+            if (isSupabaseError(error)) {
+                errorDetails.details = supabaseError.details;
+                errorDetails.hint = supabaseError.hint;
+            }
+            
+            console.error('Mutation Error:', {
+                ...errorDetails,
                 mutationKey: mutation.options.mutationKey,
                 variables,
-                status,
                 timestamp: new Date().toISOString(),
             });
 
