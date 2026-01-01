@@ -149,6 +149,50 @@ BEGIN
 END;
 $$;
 
+-- 11. 가입율 계산 함수 (users 테이블 기반)
+-- 기존 building_units 테이블 대신 users.property_pnu를 사용
+CREATE OR REPLACE FUNCTION public.get_union_registration_rate(p_union_id UUID)
+RETURNS TABLE (
+    total_land_lots INTEGER,
+    registered_land_lots INTEGER,
+    registration_rate DECIMAL,
+    total_members INTEGER
+) LANGUAGE plpgsql AS $$
+BEGIN
+    RETURN QUERY
+    WITH union_lots AS (
+        -- 조합에 속한 전체 필지 수
+        SELECT COUNT(DISTINCT pnu)::INTEGER as total_lots
+        FROM public.union_land_lots
+        WHERE union_id = p_union_id
+    ),
+    registered_lots AS (
+        -- 조합원이 등록된 필지 수
+        SELECT COUNT(DISTINCT property_pnu)::INTEGER as reg_lots
+        FROM public.users
+        WHERE union_id = p_union_id
+          AND user_status = 'APPROVED'
+          AND property_pnu IS NOT NULL
+    ),
+    member_count AS (
+        -- 전체 승인된 조합원 수
+        SELECT COUNT(*)::INTEGER as members
+        FROM public.users
+        WHERE union_id = p_union_id
+          AND user_status = 'APPROVED'
+    )
+    SELECT 
+        (SELECT total_lots FROM union_lots),
+        (SELECT reg_lots FROM registered_lots),
+        CASE 
+            WHEN (SELECT total_lots FROM union_lots) > 0 
+            THEN ((SELECT reg_lots FROM registered_lots)::DECIMAL / (SELECT total_lots FROM union_lots)) * 100 
+            ELSE 0 
+        END,
+        (SELECT members FROM member_count);
+END;
+$$;
+
 -- 인덱스 설정
 CREATE INDEX IF NOT EXISTS idx_land_lots_boundary ON public.land_lots USING GIST (boundary);
 CREATE INDEX IF NOT EXISTS idx_building_units_pnu ON public.building_units (pnu);

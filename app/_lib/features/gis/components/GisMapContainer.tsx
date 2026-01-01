@@ -115,9 +115,11 @@ export default function GisMapContainer() {
         queryKey: ['union-registration-rate', unionId],
         queryFn: async () => {
             if (!unionId) return null;
+
             const { data, error } = await supabase.rpc('get_union_registration_rate', {
                 p_union_id: unionId,
             });
+
             if (error) throw error;
             return data?.[0] || null;
         },
@@ -214,14 +216,14 @@ export default function GisMapContainer() {
         queryKey: ['member-consents', searchedPnu, unionId, selectedStageId],
         queryFn: async () => {
             if (!searchedPnu || !unionId || parcelMembers.length === 0) return [];
-            
+
             const memberIds = parcelMembers.map((m) => m.id);
             const { data, error } = await supabase
                 .from('user_consents')
                 .select('user_id, status')
                 .in('user_id', memberIds)
                 .eq('stage_id', selectedStageId || '');
-            
+
             if (error) return [];
             return data || [];
         },
@@ -470,13 +472,24 @@ export default function GisMapContainer() {
                             </div>
                             <div className="flex flex-wrap items-center gap-4 text-sm text-slate-500">
                                 {displayParcelInfo.area && (
-                                    <span>면적: <strong className="text-slate-700">{displayParcelInfo.area.toLocaleString()}㎡</strong></span>
+                                    <span>
+                                        면적:{' '}
+                                        <strong className="text-slate-700">
+                                            {displayParcelInfo.area.toLocaleString()}㎡
+                                        </strong>
+                                    </span>
                                 )}
                                 {displayParcelInfo.officialPrice && (
-                                    <span>공시지가: <strong className="text-slate-700">{formatPrice(displayParcelInfo.officialPrice)}</strong></span>
+                                    <span>
+                                        공시지가:{' '}
+                                        <strong className="text-slate-700">
+                                            {formatPrice(displayParcelInfo.officialPrice)}
+                                        </strong>
+                                    </span>
                                 )}
                                 <span>
-                                    소유주: <strong className="text-slate-700">{displayParcelInfo.totalOwners}</strong>명
+                                    소유주: <strong className="text-slate-700">{displayParcelInfo.totalOwners}</strong>
+                                    명
                                 </span>
                             </div>
                         </div>
@@ -504,7 +517,7 @@ export default function GisMapContainer() {
                                 {parcelMembers.map((member) => {
                                     const consent = memberConsents?.find((c) => c.user_id === member.id);
                                     const status = consent?.status || 'PENDING';
-                                    
+
                                     return (
                                         <div
                                             key={member.id}
@@ -524,7 +537,11 @@ export default function GisMapContainer() {
                                                 {status === 'AGREED' && <CheckCircle2 className="w-3 h-3 mr-1" />}
                                                 {status === 'DISAGREED' && <XCircle className="w-3 h-3 mr-1" />}
                                                 {status === 'PENDING' && <Clock className="w-3 h-3 mr-1" />}
-                                                {status === 'AGREED' ? '동의' : status === 'DISAGREED' ? '미동의' : '미제출'}
+                                                {status === 'AGREED'
+                                                    ? '동의'
+                                                    : status === 'DISAGREED'
+                                                    ? '미동의'
+                                                    : '미제출'}
                                             </Badge>
                                         </div>
                                     );
