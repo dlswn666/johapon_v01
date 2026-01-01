@@ -9,6 +9,8 @@ export interface ConsentStatus {
     display_status: 'FULL_AGREED' | 'PARTIAL_AGREED' | 'NONE_AGREED' | 'NO_OWNER';
     total_owners: number;
     agreed_count: number;
+    area: number | null;
+    official_price: number | null;
 }
 
 export function useConsentMap(unionId: string | undefined, stageId: string | null) {
@@ -86,12 +88,16 @@ export function useConsentMap(unionId: string | undefined, stageId: string | nul
                         consent_status: string;
                         total_owners: number;
                         agreed_count: number;
+                        area: number | null;
+                        official_price: number | null;
                     }) => ({
                         pnu: item.pnu,
                         address: item.address,
                         display_status: item.consent_status as ConsentStatus['display_status'],
                         total_owners: Number(item.total_owners) || 0,
-                        agreed_count: Number(item.agreed_count) || 0
+                        agreed_count: Number(item.agreed_count) || 0,
+                        area: item.area,
+                        official_price: item.official_price
                     }));
 
                     setConsentData(statuses);

@@ -39,13 +39,13 @@ const CONSENT_CONFIG = {
         { value: 'FULL_AGREED', label: '동의 완료', color: '#22c55e' },
         { value: 'PARTIAL_AGREED', label: '일부 동의', color: '#eab308' },
         { value: 'NONE_AGREED', label: '미동의', color: '#ef4444' },
-        { value: 'NO_OWNER', label: '정보 없음', color: '#94a3b8' },
+        { value: 'NO_OWNER', label: '미제출', color: '#94a3b8' },
     ],
     labels: {
         FULL_AGREED: { label: '동의 완료', description: '모든 소유주가 동의함' },
         PARTIAL_AGREED: { label: '일부 동의', description: '일부 소유주만 동의함' },
         NONE_AGREED: { label: '미동의', description: '동의한 소유주 없음' },
-        NO_OWNER: { label: '정보 없음', description: '소유주 정보 없음' },
+        NO_OWNER: { label: '미제출', description: '등록된 조합원 없음' },
     },
     colors: {
         FULL_AGREED: '#22c55e',
@@ -62,13 +62,13 @@ const REGISTRATION_CONFIG = {
         { value: 'ALL_REGISTERED', label: '전체 가입', color: '#22c55e' }, // green-500
         { value: 'PARTIAL_REGISTERED', label: '일부 가입', color: '#ca8a04' }, // yellow-600
         { value: 'NONE_REGISTERED', label: '미가입', color: '#dc2626' }, // red-600
-        { value: 'NO_OWNER', label: '정보 없음', color: '#94a3b8' },
+        { value: 'NO_OWNER', label: '미제출', color: '#94a3b8' },
     ],
     labels: {
         ALL_REGISTERED: { label: '전체 가입', description: '모든 소유주가 조합원 가입' },
         PARTIAL_REGISTERED: { label: '일부 가입', description: '일부 소유주만 조합원 가입' },
         NONE_REGISTERED: { label: '미가입', description: '가입한 조합원 없음' },
-        NO_OWNER: { label: '정보 없음', description: '소유주 정보 없음' },
+        NO_OWNER: { label: '미제출', description: '등록된 조합원 없음' },
     },
     colors: {
         ALL_REGISTERED: '#22c55e', // green-500
@@ -83,11 +83,11 @@ const REGISTRATION_CONFIG = {
 const PREVIEW_CONFIG = {
     pieces: [
         { value: 'NONE_AGREED', label: '필지', color: '#3b82f6' },
-        { value: 'NO_OWNER', label: '정보 없음', color: '#94a3b8' },
+        { value: 'NO_OWNER', label: '미제출', color: '#94a3b8' },
     ],
     labels: {
         NONE_AGREED: { label: '필지', description: '' },
-        NO_OWNER: { label: '정보 없음', description: '' },
+        NO_OWNER: { label: '미제출', description: '' },
     },
     colors: {
         NONE_AGREED: '#3b82f6',
@@ -181,7 +181,7 @@ export default function EChartsMap({
                     const parcelData = dataMap.get(pnu);
                     const statusInfo = (config.labels as Record<string, { label: string; description: string }>)[
                         params.value
-                    ] || { label: '정보 없음', description: '' };
+                    ] || { label: '미제출', description: '' };
                     const statusColor = (config.colors as Record<string, string>)[params.value] || '#94a3b8';
 
                     // 주소 표시 (PNU 제거)

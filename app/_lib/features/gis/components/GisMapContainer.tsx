@@ -10,10 +10,23 @@ import ParcelDetailModal from './ParcelDetailModal';
 import ConsentStatusBar from './ConsentStatusBar';
 import { useUnionConsentRate } from '../api/useParcelDetail';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Info, LayoutGrid, Search, MapPin, X } from 'lucide-react';
+import { Loader2, Info, LayoutGrid, Search, MapPin, X, CheckCircle2, XCircle, Clock, Users } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
+import { getParcelMembers } from '../actions/parcelActions';
+
+// 금액 포맷팅 함수
+function formatPrice(price: number | undefined): string {
+    if (!price) return '-';
+    if (price >= 100000000) {
+        return `${(price / 100000000).toFixed(1)}억원`;
+    } else if (price >= 10000) {
+        return `${(price / 10000).toFixed(0)}만원`;
+    }
+    return `${price.toLocaleString()}원`;
+}
 
 export default function GisMapContainer() {
     const { union } = useSlug();
@@ -156,10 +169,12 @@ export default function GisMapContainer() {
                         ? '일부 가입'
                         : found.registration_status === 'NONE_REGISTERED'
                         ? '미가입'
-                        : '정보 없음',
+                        : '미제출',
                 totalOwners: found.total_owners,
                 currentCount: found.registered_count,
                 currentLabel: '가입',
+                area: found.area,
+                officialPrice: found.official_price,
             };
         }
 
@@ -176,12 +191,43 @@ export default function GisMapContainer() {
                     ? '일부 동의'
                     : found.display_status === 'NONE_AGREED'
                     ? '미동의'
-                    : '정보 없음',
+                    : '미제출',
             totalOwners: found.total_owners,
             currentCount: found.agreed_count,
             currentLabel: '동의',
+            area: found.area,
+            officialPrice: found.official_price,
         };
     }, [displayPnu, viewMode, registrationData, consentData]);
+
+    // 선택된 필지의 조합원 목록 조회
+    const { data: parcelMembers, isLoading: membersLoading } = useQuery({
+        queryKey: ['parcel-members', displayPnu, unionId],
+        queryFn: async () => {
+            if (!displayPnu || !unionId) return [];
+            return getParcelMembers(displayPnu, unionId);
+        },
+        enabled: !!displayPnu && !!unionId,
+    });
+
+    // 조합원별 동의 상태 조회
+    const { data: memberConsents } = useQuery({
+        queryKey: ['member-consents', displayPnu, unionId, selectedStageId],
+        queryFn: async () => {
+            if (!displayPnu || !unionId || !parcelMembers || parcelMembers.length === 0) return [];
+            
+            const memberIds = parcelMembers.map((m) => m.id);
+            const { data, error } = await supabase
+                .from('user_consents')
+                .select('user_id, status')
+                .in('user_id', memberIds)
+                .eq('stage_id', selectedStageId || '');
+            
+            if (error) return [];
+            return data || [];
+        },
+        enabled: !!displayPnu && !!unionId && !!parcelMembers && parcelMembers.length > 0 && !!selectedStageId,
+    });
 
     // 주소 검색 함수
     const handleSearch = useCallback(() => {
@@ -292,7 +338,7 @@ export default function GisMapContainer() {
                                 <SelectContent>
                                     {stages?.map((stage) => (
                                         <SelectItem key={stage.id} value={stage.id}>
-                                            {stage.stage_name} ({stage.required_rate}%)
+                                            {stage.stage_name}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
@@ -306,6 +352,32 @@ export default function GisMapContainer() {
                         <Loader2 className="w-3 h-3 animate-spin" /> 로딩 중...
                     </div>
                 )}
+            </div>
+
+            {/* 주소 검색 */}
+            <div className="flex items-center gap-2 bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+                <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <Input
+                        type="text"
+                        placeholder="지번 또는 도로명 주소로 검색..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                        className="pl-10 pr-8"
+                    />
+                    {searchQuery && (
+                        <button
+                            onClick={handleClearSearch}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
+                    )}
+                </div>
+                <Button onClick={handleSearch} size="sm" variant="default">
+                    검색
+                </Button>
             </div>
 
             {/* 대시보드 영역 */}
@@ -367,35 +439,10 @@ export default function GisMapContainer() {
             {/* 지도 범례 */}
             <MapLegend mode={viewMode} />
 
-            {/* 주소 검색 */}
-            <div className="flex items-center gap-2 bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
-                <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <Input
-                        type="text"
-                        placeholder="지번 또는 도로명 주소로 검색..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                        className="pl-10 pr-8"
-                    />
-                    {searchQuery && (
-                        <button
-                            onClick={handleClearSearch}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
-                        >
-                            <X className="w-4 h-4" />
-                        </button>
-                    )}
-                </div>
-                <Button onClick={handleSearch} size="sm" variant="default">
-                    검색
-                </Button>
-            </div>
-
             {/* 선택된 필지 정보 패널 */}
             {displayParcelInfo && (
-                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm animate-in slide-in-from-bottom-2 duration-200">
+                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm animate-in slide-in-from-bottom-2 duration-200 space-y-4">
+                    {/* 기본 정보 */}
                     <div className="flex items-start gap-4">
                         <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                             <MapPin className="w-5 h-5 text-primary" />
@@ -422,22 +469,15 @@ export default function GisMapContainer() {
                                     {displayParcelInfo.statusLabel}
                                 </span>
                             </div>
-                            <div className="flex items-center gap-4 text-sm text-slate-500">
-                                <span className="font-mono">{displayParcelInfo.pnu}</span>
-                                <span className="h-3 w-px bg-slate-200" />
+                            <div className="flex flex-wrap items-center gap-4 text-sm text-slate-500">
+                                {displayParcelInfo.area && (
+                                    <span>면적: <strong className="text-slate-700">{displayParcelInfo.area.toLocaleString()}㎡</strong></span>
+                                )}
+                                {displayParcelInfo.officialPrice && (
+                                    <span>공시지가: <strong className="text-slate-700">{formatPrice(displayParcelInfo.officialPrice)}</strong></span>
+                                )}
                                 <span>
-                                    {displayParcelInfo.currentLabel}:{' '}
-                                    <strong className="text-slate-700">{displayParcelInfo.currentCount}</strong> /{' '}
-                                    {displayParcelInfo.totalOwners}명
-                                    {displayParcelInfo.totalOwners > 0 && (
-                                        <span className="ml-1 text-primary font-medium">
-                                            (
-                                            {Math.round(
-                                                (displayParcelInfo.currentCount / displayParcelInfo.totalOwners) * 100
-                                            )}
-                                            %)
-                                        </span>
-                                    )}
+                                    소유주: <strong className="text-slate-700">{displayParcelInfo.totalOwners}</strong>명
                                 </span>
                             </div>
                         </div>
@@ -453,6 +493,52 @@ export default function GisMapContainer() {
                             상세 보기
                         </Button>
                     </div>
+
+                    {/* 조합원 목록 */}
+                    {parcelMembers && parcelMembers.length > 0 && (
+                        <div className="border-t border-slate-100 pt-3">
+                            <div className="flex items-center gap-2 mb-2">
+                                <Users className="w-4 h-4 text-slate-400" />
+                                <span className="text-sm font-medium text-slate-600">등록된 조합원</span>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                                {parcelMembers.map((member) => {
+                                    const consent = memberConsents?.find((c) => c.user_id === member.id);
+                                    const status = consent?.status || 'PENDING';
+                                    
+                                    return (
+                                        <div
+                                            key={member.id}
+                                            className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 rounded-lg"
+                                        >
+                                            <span className="text-sm font-medium text-slate-700">{member.name}</span>
+                                            <Badge
+                                                variant="outline"
+                                                className={`text-xs ${
+                                                    status === 'AGREED'
+                                                        ? 'text-green-600 border-green-200 bg-green-50'
+                                                        : status === 'DISAGREED'
+                                                        ? 'text-red-600 border-red-200 bg-red-50'
+                                                        : 'text-slate-500 border-slate-200 bg-slate-50'
+                                                }`}
+                                            >
+                                                {status === 'AGREED' && <CheckCircle2 className="w-3 h-3 mr-1" />}
+                                                {status === 'DISAGREED' && <XCircle className="w-3 h-3 mr-1" />}
+                                                {status === 'PENDING' && <Clock className="w-3 h-3 mr-1" />}
+                                                {status === 'AGREED' ? '동의' : status === 'DISAGREED' ? '미동의' : '미제출'}
+                                            </Badge>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
+                    {membersLoading && (
+                        <div className="border-t border-slate-100 pt-3 flex items-center gap-2 text-sm text-slate-400">
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            조합원 정보 로딩 중...
+                        </div>
+                    )}
                 </div>
             )}
 
@@ -462,6 +548,8 @@ export default function GisMapContainer() {
                 onOpenChange={setIsModalOpen}
                 pnu={selectedPnu}
                 stageId={selectedStageId}
+                unionId={unionId}
+                onDeleted={() => setSearchedPnu(null)}
             />
         </div>
     );

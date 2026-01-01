@@ -12,6 +12,8 @@ export interface RegistrationData {
     total_owners: number;
     registered_count: number;
     registration_status: RegistrationStatus;
+    area: number | null;
+    official_price: number | null;
 }
 
 /**
@@ -71,12 +73,16 @@ export function useRegistrationMap(unionId: string | undefined) {
                         registration_status: string;
                         total_owners: number;
                         registered_count: number;
+                        area: number | null;
+                        official_price: number | null;
                     }) => ({
                         pnu: item.pnu,
                         address: item.address,
                         registration_status: item.registration_status as RegistrationStatus,
                         total_owners: Number(item.total_owners) || 0,
-                        registered_count: Number(item.registered_count) || 0
+                        registered_count: Number(item.registered_count) || 0,
+                        area: item.area,
+                        official_price: item.official_price
                     }));
 
                     setRegistrationData(statuses);

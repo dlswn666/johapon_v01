@@ -92,7 +92,7 @@ export const useSyncMemberInvites = () => {
             unionId: string;
             createdBy: string;
             expiresHours: number;
-            members: { name: string; phone_number: string; property_address?: string }[];
+            members: { name: string; phone_number: string; property_address?: string; property_pnu?: string }[];
         }) => {
             // API Route를 통해 동기화 (auth.users 삭제 처리를 위해)
             const response = await fetch('/api/member-invite/sync', {
@@ -292,7 +292,7 @@ export const useCreateManualInvites = () => {
             unionSlug: string;
             domain: string;
             createdBy: string;
-            members: { name: string; phone_number: string; property_address: string }[];
+            members: { name: string; phone_number: string; property_address: string; property_pnu: string }[];
         }) => {
             const { unionId, unionName, unionSlug, domain, createdBy, members } = input;
 
@@ -310,6 +310,7 @@ export const useCreateManualInvites = () => {
                 name: member.name,
                 phone_number: member.phone_number,
                 property_address: member.property_address,
+                property_pnu: member.property_pnu || null,
                 invite_token: generateUUID(),
                 status: 'PENDING' as const,
                 created_by: createdBy,

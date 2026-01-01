@@ -540,7 +540,7 @@ export default function MemberManagementPage() {
     };
 
     // 수동 회원 등록 핸들러
-    const handleManualInvite = async (members: { name: string; phone_number: string; property_address: string }[]) => {
+    const handleManualInvite = async (members: { name: string; phone_number: string; property_address: string; property_pnu: string }[]) => {
         if (!unionId || !union || !user?.id) {
             toast.error('조합 정보를 불러올 수 없습니다.');
             return;
