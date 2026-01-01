@@ -138,8 +138,7 @@ export async function getParcelMembers(pnu: string, unionId: string) {
             name,
             phone_number,
             property_address_jibun,
-            property_unit_dong,
-            property_unit_ho,
+            property_pnu,
             user_status
         `)
         .eq('property_pnu', pnu)
@@ -148,6 +147,34 @@ export async function getParcelMembers(pnu: string, unionId: string) {
 
     if (error) {
         console.error('Get parcel members error:', error);
+        throw new Error(`조합원 정보 조회에 실패했습니다: ${error.message}`);
+    }
+
+    return users || [];
+}
+
+/**
+ * 조합의 모든 승인된 조합원 목록 조회 (초기 로딩용)
+ */
+export async function getAllUnionMembers(unionId: string) {
+    const supabase = getSupabaseAdmin();
+
+    const { data: users, error } = await supabase
+        .from('users')
+        .select(`
+            id,
+            name,
+            phone_number,
+            property_address_jibun,
+            property_pnu,
+            user_status
+        `)
+        .eq('union_id', unionId)
+        .eq('user_status', 'APPROVED')
+        .not('property_pnu', 'is', null);
+
+    if (error) {
+        console.error('Get all union members error:', error);
         throw new Error(`조합원 정보 조회에 실패했습니다: ${error.message}`);
     }
 

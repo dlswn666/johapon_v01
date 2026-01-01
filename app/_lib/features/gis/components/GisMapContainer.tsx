@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
-import { getParcelMembers } from '../actions/parcelActions';
+import { useUnionMembers } from '../hooks/useUnionMembers';
 
 // 금액 포맷팅 함수
 function formatPrice(price: number | undefined): string {
@@ -150,6 +150,9 @@ export default function GisMapContainer() {
 
     const isLoading = viewMode === 'registration' ? registrationLoading : consentLoading;
 
+    // 조합의 모든 조합원 정보 (초기 로딩, PNU별 그룹화)
+    const { getMembersByPnu, isLoading: membersLoading } = useUnionMembers(unionId);
+
     // 표시할 필지 정보 (검색된 필지 또는 호버된 필지)
     const displayPnu = searchedPnu || hoveredPnu;
     const displayParcelInfo = useMemo(() => {
@@ -200,21 +203,17 @@ export default function GisMapContainer() {
         };
     }, [displayPnu, viewMode, registrationData, consentData]);
 
-    // 선택된 필지의 조합원 목록 조회
-    const { data: parcelMembers, isLoading: membersLoading } = useQuery({
-        queryKey: ['parcel-members', displayPnu, unionId],
-        queryFn: async () => {
-            if (!displayPnu || !unionId) return [];
-            return getParcelMembers(displayPnu, unionId);
-        },
-        enabled: !!displayPnu && !!unionId,
-    });
+    // 선택된 필지의 조합원 목록 (로컬 데이터에서 필터링)
+    const parcelMembers = useMemo(() => {
+        if (!displayPnu) return [];
+        return getMembersByPnu(displayPnu);
+    }, [displayPnu, getMembersByPnu]);
 
-    // 조합원별 동의 상태 조회
+    // 조합원별 동의 상태 조회 (클릭/검색 시에만 API 호출 - 호버 시에는 호출 안함)
     const { data: memberConsents } = useQuery({
-        queryKey: ['member-consents', displayPnu, unionId, selectedStageId],
+        queryKey: ['member-consents', searchedPnu, unionId, selectedStageId],
         queryFn: async () => {
-            if (!displayPnu || !unionId || !parcelMembers || parcelMembers.length === 0) return [];
+            if (!searchedPnu || !unionId || parcelMembers.length === 0) return [];
             
             const memberIds = parcelMembers.map((m) => m.id);
             const { data, error } = await supabase
@@ -226,7 +225,7 @@ export default function GisMapContainer() {
             if (error) return [];
             return data || [];
         },
-        enabled: !!displayPnu && !!unionId && !!parcelMembers && parcelMembers.length > 0 && !!selectedStageId,
+        enabled: !!searchedPnu && !!unionId && parcelMembers.length > 0 && !!selectedStageId,
     });
 
     // 주소 검색 함수
