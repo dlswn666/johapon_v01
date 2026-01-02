@@ -44,6 +44,8 @@ import {
 import {
     useMemberInvites,
     useSyncMemberInvites,
+    useSyncMemberInvitesAsync,
+    useMemberJobStatus,
     useDeleteMemberInvite,
     useSendBulkMemberAlimtalk,
     useCreateManualInvites,
@@ -121,8 +123,9 @@ export default function MemberManagementPage() {
     }, [searchParams]);
 
     // ====== 초대 관리 관련 상태 ======
-    const { isLoading: invitesLoading } = useMemberInvites(unionId);
+    const { isLoading: invitesLoading, refetch: refetchInvites } = useMemberInvites(unionId);
     const syncMutation = useSyncMemberInvites();
+    const syncAsyncMutation = useSyncMemberInvitesAsync();
     const deleteMutation = useDeleteMemberInvite();
     const { mutateAsync: sendBulkAlimtalk, isPending: isSendingAlimtalk } = useSendBulkMemberAlimtalk();
 
@@ -144,6 +147,30 @@ export default function MemberManagementPage() {
     const [deleteTarget, setDeleteTarget] = useState<MemberInvite | null>(null);
     const [detailTarget, setDetailTarget] = useState<MemberInvite | null>(null);
     const [isUploading, setIsUploading] = useState(false);
+    
+    // 대량 처리 기준 (이 이상이면 비동기 처리)
+    const ASYNC_THRESHOLD = 50;
+
+    // 비동기 작업 상태
+    const [currentJobId, setCurrentJobId] = useState<string | null>(null);
+    const { data: jobStatus } = useMemberJobStatus(currentJobId, !!currentJobId);
+
+    // 작업 완료 시 처리
+    useEffect(() => {
+        if (jobStatus?.status === 'completed') {
+            const result = jobStatus.result;
+            toast.success(
+                `동기화 완료!\n추가: ${result?.inserted || 0}명\n삭제(대기): ${result?.deleted_pending || 0}명\n삭제(수락): ${result?.deleted_used || 0}명`,
+                { duration: 5000 }
+            );
+            setCurrentJobId(null);
+            refetchInvites();
+            clearSelection();
+        } else if (jobStatus?.status === 'failed') {
+            toast.error(jobStatus.error || '동기화 처리 중 오류가 발생했습니다.');
+            setCurrentJobId(null);
+        }
+    }, [jobStatus?.status, jobStatus?.result, jobStatus?.error, refetchInvites, clearSelection]);
 
     // ====== 승인 관리 관련 상태 ======
     const [searchInput, setSearchInput] = useState('');
@@ -449,18 +476,32 @@ export default function MemberManagementPage() {
                     return;
                 }
 
-                const result = await syncMutation.mutateAsync({
-                    unionId,
-                    createdBy: user.id,
-                    expiresHours: 24 * 365,
-                    members,
-                });
+                // 대량 데이터는 비동기 처리
+                if (members.length >= ASYNC_THRESHOLD) {
+                    const { jobId, totalCount } = await syncAsyncMutation.mutateAsync({
+                        unionId,
+                        createdBy: user.id,
+                        expiresHours: 24 * 365,
+                        members,
+                    });
+                    
+                    setCurrentJobId(jobId);
+                    toast.success(`${totalCount}명의 데이터 처리가 시작되었습니다.\n진행 상황을 확인하세요.`);
+                } else {
+                    // 소량 데이터는 기존 동기 처리
+                    const result = await syncMutation.mutateAsync({
+                        unionId,
+                        createdBy: user.id,
+                        expiresHours: 24 * 365,
+                        members,
+                    });
 
-                toast.success(
-                    `동기화 완료!\n추가: ${result.inserted}명\n삭제(대기): ${result.deleted_pending}명\n삭제(수락): ${result.deleted_used}명`
-                );
+                    toast.success(
+                        `동기화 완료!\n추가: ${result.inserted}명\n삭제(대기): ${result.deleted_pending}명\n삭제(수락): ${result.deleted_used}명`
+                    );
 
-                clearSelection();
+                    clearSelection();
+                }
             } catch (error) {
                 console.error('Excel upload error:', error);
                 toast.error('파일 처리 중 오류가 발생했습니다.');
@@ -471,7 +512,7 @@ export default function MemberManagementPage() {
                 }
             }
         },
-        [unionId, user?.id, syncMutation, clearSelection]
+        [unionId, user?.id, syncMutation, syncAsyncMutation, clearSelection, ASYNC_THRESHOLD]
     );
 
     const handleDelete = async () => {
@@ -719,6 +760,38 @@ export default function MemberManagementPage() {
                             <p className="mt-3 text-xs text-gray-500">
                                 * 엑셀 업로드 시 기존 데이터와 비교하여 자동으로 추가/삭제됩니다.
                             </p>
+                            
+                            {/* 비동기 처리 진행률 표시 */}
+                            {currentJobId && jobStatus && (
+                                <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <div className="flex items-center gap-2">
+                                            {jobStatus.status === 'processing' && (
+                                                <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />
+                                            )}
+                                            {jobStatus.status === 'pending' && (
+                                                <Clock className="w-4 h-4 text-yellow-600" />
+                                            )}
+                                            <span className="text-sm font-medium text-blue-800">
+                                                {jobStatus.status === 'pending' && '대기 중...'}
+                                                {jobStatus.status === 'processing' && '처리 중...'}
+                                            </span>
+                                        </div>
+                                        <span className="text-sm font-semibold text-blue-800">
+                                            {jobStatus.progress}%
+                                        </span>
+                                    </div>
+                                    <div className="w-full bg-blue-200 rounded-full h-2">
+                                        <div 
+                                            className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                                            style={{ width: `${jobStatus.progress}%` }}
+                                        />
+                                    </div>
+                                    <p className="mt-2 text-xs text-blue-700">
+                                        총 {jobStatus.totalCount}명 중 {jobStatus.processedCount || 0}명 처리됨
+                                    </p>
+                                </div>
+                            )}
                         </div>
 
                         {/* 초대 목록 카드 */}

@@ -85,7 +85,7 @@ export const useMemberInviteByToken = (token: string | undefined, enabled: boole
     });
 };
 
-// 조합원 초대 동기화 (엑셀 업로드)
+// 조합원 초대 동기화 (엑셀 업로드) - 동기 방식 (하위 호환성)
 export const useSyncMemberInvites = () => {
     return useMutation({
         mutationFn: async (input: {
@@ -120,6 +120,91 @@ export const useSyncMemberInvites = () => {
         },
         meta: {
             skipErrorToast: true, // 컴포넌트에서 직접 에러 처리하므로 전역 토스트 비활성화
+        },
+    });
+};
+
+// 비동기 작업 상태 타입
+export interface MemberJobStatus {
+    jobId: string;
+    jobType: 'MEMBER_INVITE_SYNC' | 'PRE_REGISTER';
+    status: 'pending' | 'processing' | 'completed' | 'failed';
+    progress: number;
+    totalCount: number;
+    processedCount?: number;
+    result?: {
+        inserted?: number;
+        deleted_pending?: number;
+        deleted_used?: number;
+        savedCount?: number;
+        errors?: string[];
+    };
+    error?: string;
+    createdAt: string;
+    updatedAt?: string;
+}
+
+// 조합원 초대 비동기 동기화 (대량 처리용)
+export const useSyncMemberInvitesAsync = () => {
+    return useMutation({
+        mutationFn: async (input: {
+            unionId: string;
+            createdBy: string;
+            expiresHours?: number;
+            members: { name: string; phone_number: string }[];
+        }): Promise<{ jobId: string; totalCount: number }> => {
+            const response = await fetch('/api/member-invite/sync-async', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    unionId: input.unionId,
+                    createdBy: input.createdBy,
+                    expiresHours: input.expiresHours || 8760,
+                    members: input.members,
+                }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || '비동기 동기화 요청에 실패했습니다.');
+            }
+
+            const result = await response.json();
+            return { jobId: result.jobId, totalCount: result.totalCount };
+        },
+        meta: {
+            skipErrorToast: true,
+        },
+    });
+};
+
+// 작업 상태 조회 Hook
+export const useMemberJobStatus = (jobId: string | null, enabled: boolean = true) => {
+    return useQuery({
+        queryKey: ['member-job-status', jobId],
+        queryFn: async (): Promise<MemberJobStatus> => {
+            if (!jobId) throw new Error('Job ID is required');
+
+            const response = await fetch(`/api/member-invite/job/${jobId}`);
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || '작업 상태 조회에 실패했습니다.');
+            }
+
+            const result = await response.json();
+            return result.data;
+        },
+        enabled: !!jobId && enabled,
+        refetchInterval: (query) => {
+            // 작업이 완료되거나 실패하면 폴링 중지
+            const status = query.state.data?.status;
+            if (status === 'completed' || status === 'failed') {
+                return false;
+            }
+            return 2000; // 2초마다 폴링
         },
     });
 };

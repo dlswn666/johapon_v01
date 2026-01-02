@@ -15,7 +15,10 @@ import {
     Building2,
     Users,
     Edit,
+    Loader2,
+    Clock,
 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -105,6 +108,52 @@ export default function MemberManagementPage() {
         savedCount: number;
         errors: string[];
     } | null>(null);
+    
+    // 비동기 처리 관련
+    const [currentJobId, setCurrentJobId] = useState<string | null>(null);
+    const ASYNC_THRESHOLD = 50; // 50건 이상이면 비동기 처리
+    
+    // 비동기 작업 상태 조회
+    const { data: jobStatus } = useQuery({
+        queryKey: ['pre-register-job-status', currentJobId],
+        queryFn: async () => {
+            if (!currentJobId) throw new Error('Job ID is required');
+            const response = await fetch(`/api/member-invite/job/${currentJobId}`);
+            if (!response.ok) throw new Error('Job status fetch failed');
+            const result = await response.json();
+            return result.data;
+        },
+        enabled: !!currentJobId,
+        refetchInterval: (query) => {
+            const status = query.state.data?.status;
+            if (status === 'completed' || status === 'failed') return false;
+            return 2000;
+        },
+    });
+    
+    // 작업 완료 시 처리
+    useEffect(() => {
+        if (jobStatus?.status === 'completed') {
+            const result = jobStatus.result;
+            setSaveResult({
+                success: true,
+                savedCount: result?.savedCount || 0,
+                errors: result?.errors || [],
+            });
+            setCurrentJobId(null);
+            setUploadedData([]);
+            setMatchingResults([]);
+            fetchMembers();
+        } else if (jobStatus?.status === 'failed') {
+            setSaveResult({
+                success: false,
+                savedCount: 0,
+                errors: [jobStatus.error || '저장 처리 중 오류가 발생했습니다.'],
+            });
+            setCurrentJobId(null);
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [jobStatus?.status]);
 
     // 기존 조합원 목록
     const [preRegisteredMembers, setPreRegisteredMembers] = useState<PreRegisteredMember[]>([]);
@@ -270,20 +319,42 @@ export default function MemberManagementPage() {
         if (!selectedUnionId || matchingResults.length === 0) return;
 
         setIsSaving(true);
+        setSaveResult(null);
+        
         try {
-            const result = await savePreRegisteredMembers(selectedUnionId, matchingResults);
-            setSaveResult({
-                success: result.success,
-                savedCount: result.savedCount,
-                errors: result.errors,
-            });
+            // 대량 데이터는 비동기 처리
+            if (matchingResults.length >= ASYNC_THRESHOLD) {
+                const response = await fetch('/api/member-invite/pre-register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        unionId: selectedUnionId,
+                        members: matchingResults,
+                    }),
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || '비동기 저장 요청에 실패했습니다.');
+                }
+                
+                const result = await response.json();
+                setCurrentJobId(result.jobId);
+                // 비동기 처리 시작됨 - UI는 jobStatus로 업데이트됨
+            } else {
+                // 소량 데이터는 기존 동기 처리
+                const result = await savePreRegisteredMembers(selectedUnionId, matchingResults);
+                setSaveResult({
+                    success: result.success,
+                    savedCount: result.savedCount,
+                    errors: result.errors,
+                });
 
-            if (result.savedCount > 0) {
-                // 목록 새로고침
-                await fetchMembers();
-                // 업로드 데이터 초기화
-                setUploadedData([]);
-                setMatchingResults([]);
+                if (result.savedCount > 0) {
+                    await fetchMembers();
+                    setUploadedData([]);
+                    setMatchingResults([]);
+                }
             }
         } catch (error) {
             console.error('Save error:', error);
@@ -526,7 +597,7 @@ export default function MemberManagementPage() {
                                             <div className="flex items-center gap-4">
                                                 <Button
                                                     onClick={handleSave}
-                                                    disabled={isSaving}
+                                                    disabled={isSaving || !!currentJobId}
                                                     className="bg-blue-600 hover:bg-blue-700"
                                                 >
                                                     {isSaving ? (
@@ -545,12 +616,52 @@ export default function MemberManagementPage() {
                                                         setUploadedData([]);
                                                         setMatchingResults([]);
                                                         setSaveResult(null);
+                                                        setCurrentJobId(null);
                                                     }}
+                                                    disabled={!!currentJobId && jobStatus?.status === 'processing'}
                                                     className="border-slate-600 text-slate-300 hover:bg-slate-700"
                                                 >
                                                     초기화
                                                 </Button>
+                                                
+                                                {matchingResults.length >= ASYNC_THRESHOLD && (
+                                                    <span className="text-xs text-amber-400">
+                                                        * {ASYNC_THRESHOLD}건 이상은 백그라운드에서 처리됩니다
+                                                    </span>
+                                                )}
                                             </div>
+                                            
+                                            {/* 비동기 처리 진행률 표시 */}
+                                            {currentJobId && jobStatus && (
+                                                <div className="mt-4 p-4 bg-blue-900/30 rounded-lg border border-blue-500/30">
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <div className="flex items-center gap-2">
+                                                            {jobStatus.status === 'processing' && (
+                                                                <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />
+                                                            )}
+                                                            {jobStatus.status === 'pending' && (
+                                                                <Clock className="w-4 h-4 text-yellow-400" />
+                                                            )}
+                                                            <span className="text-sm font-medium text-blue-300">
+                                                                {jobStatus.status === 'pending' && '대기 중...'}
+                                                                {jobStatus.status === 'processing' && '사전 등록 처리 중...'}
+                                                            </span>
+                                                        </div>
+                                                        <span className="text-sm font-semibold text-blue-300">
+                                                            {jobStatus.progress}%
+                                                        </span>
+                                                    </div>
+                                                    <div className="w-full bg-blue-900 rounded-full h-2">
+                                                        <div 
+                                                            className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                                                            style={{ width: `${jobStatus.progress}%` }}
+                                                        />
+                                                    </div>
+                                                    <p className="mt-2 text-xs text-blue-400">
+                                                        총 {jobStatus.totalCount}명 중 {jobStatus.processedCount || 0}명 처리됨
+                                                    </p>
+                                                </div>
+                                            )}
 
                                             {/* 저장 결과 */}
                                             {saveResult && (
