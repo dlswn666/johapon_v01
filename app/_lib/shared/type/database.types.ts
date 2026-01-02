@@ -1349,7 +1349,12 @@ export type Database = {
             auth_provider: 'kakao' | 'naver' | 'email';
             admin_invite_status: 'PENDING' | 'USED' | 'EXPIRED';
             ad_type: 'MAIN' | 'SUB' | 'BOARD';
-            business_type_enum: 'REDEVELOPMENT' | 'RECONSTRUCTION' | 'HOUSING_ASSOCIATION' | 'STREET_HOUSING' | 'SMALL_RECONSTRUCTION';
+            business_type_enum:
+                | 'REDEVELOPMENT'
+                | 'RECONSTRUCTION'
+                | 'HOUSING_ASSOCIATION'
+                | 'STREET_HOUSING'
+                | 'SMALL_RECONSTRUCTION';
             building_type_enum: 'DETACHED_HOUSE' | 'VILLA' | 'APARTMENT' | 'COMMERCIAL' | 'MIXED' | 'NONE';
             agreement_status_enum: 'AGREED' | 'DISAGREED' | 'PENDING';
             sync_status_enum: 'PROCESSING' | 'COMPLETED' | 'FAILED';
