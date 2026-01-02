@@ -183,41 +183,85 @@ export type Database = {
                 };
                 Relationships: [];
             };
-            building_units: {
+            buildings: {
                 Row: {
                     id: string;
                     pnu: string;
-                    dong: string | null;
-                    ho: string | null;
-                    floor: string | null;
-                    exclusive_area: number | null;
+                    building_type: Database['public']['Enums']['building_type_enum'];
+                    building_name: string | null;
+                    main_purpose: string | null;
+                    floor_count: number;
+                    total_unit_count: number;
                     created_at: string;
+                    updated_at: string;
                 };
                 Insert: {
                     id?: string;
                     pnu: string;
-                    dong?: string | null;
-                    ho?: string | null;
-                    floor?: string | null;
-                    exclusive_area?: number | null;
+                    building_type?: Database['public']['Enums']['building_type_enum'];
+                    building_name?: string | null;
+                    main_purpose?: string | null;
+                    floor_count?: number;
+                    total_unit_count?: number;
                     created_at?: string;
+                    updated_at?: string;
                 };
                 Update: {
                     id?: string;
                     pnu?: string;
+                    building_type?: Database['public']['Enums']['building_type_enum'];
+                    building_name?: string | null;
+                    main_purpose?: string | null;
+                    floor_count?: number;
+                    total_unit_count?: number;
+                    created_at?: string;
+                    updated_at?: string;
+                };
+                Relationships: [
+                    {
+                        foreignKeyName: 'buildings_pnu_fkey';
+                        columns: ['pnu'];
+                        isOneToOne: true;
+                        referencedRelation: 'land_lots';
+                        referencedColumns: ['pnu'];
+                    }
+                ];
+            };
+            building_units: {
+                Row: {
+                    id: string;
+                    building_id: string;
+                    dong: string | null;
+                    ho: string | null;
+                    floor: number | null;
+                    area: number | null;
+                    created_at: string;
+                };
+                Insert: {
+                    id?: string;
+                    building_id: string;
                     dong?: string | null;
                     ho?: string | null;
-                    floor?: string | null;
-                    exclusive_area?: number | null;
+                    floor?: number | null;
+                    area?: number | null;
+                    created_at?: string;
+                };
+                Update: {
+                    id?: string;
+                    building_id?: string;
+                    dong?: string | null;
+                    ho?: string | null;
+                    floor?: number | null;
+                    area?: number | null;
                     created_at?: string;
                 };
                 Relationships: [
                     {
-                        foreignKeyName: 'building_units_pnu_fkey';
-                        columns: ['pnu'];
+                        foreignKeyName: 'building_units_building_id_fkey';
+                        columns: ['building_id'];
                         isOneToOne: false;
-                        referencedRelation: 'land_lots';
-                        referencedColumns: ['pnu'];
+                        referencedRelation: 'buildings';
+                        referencedColumns: ['id'];
                     }
                 ];
             };
@@ -826,6 +870,7 @@ export type Database = {
                     is_executive: boolean;
                     executive_sort_order: number;
                     property_pnu: string | null;
+                    property_unit_id: string | null;
                     created_at: string;
                     updated_at: string;
                 };
@@ -855,6 +900,7 @@ export type Database = {
                     is_executive?: boolean;
                     executive_sort_order?: number;
                     property_pnu?: string | null;
+                    property_unit_id?: string | null;
                     created_at?: string;
                     updated_at?: string;
                 };
@@ -884,6 +930,7 @@ export type Database = {
                     is_executive?: boolean;
                     executive_sort_order?: number;
                     property_pnu?: string | null;
+                    property_unit_id?: string | null;
                     created_at?: string;
                     updated_at?: string;
                 };
@@ -893,6 +940,13 @@ export type Database = {
                         columns: ['union_id'];
                         isOneToOne: false;
                         referencedRelation: 'unions';
+                        referencedColumns: ['id'];
+                    },
+                    {
+                        foreignKeyName: 'users_property_unit_id_fkey';
+                        columns: ['property_unit_id'];
+                        isOneToOne: false;
+                        referencedRelation: 'building_units';
                         referencedColumns: ['id'];
                     }
                 ];
@@ -1295,7 +1349,8 @@ export type Database = {
             auth_provider: 'kakao' | 'naver' | 'email';
             admin_invite_status: 'PENDING' | 'USED' | 'EXPIRED';
             ad_type: 'MAIN' | 'SUB' | 'BOARD';
-            business_type_enum: 'REDEVELOPMENT' | 'RECONSTRUCTION' | 'HOUSING_ASSOCIATION';
+            business_type_enum: 'REDEVELOPMENT' | 'RECONSTRUCTION' | 'HOUSING_ASSOCIATION' | 'STREET_HOUSING' | 'SMALL_RECONSTRUCTION';
+            building_type_enum: 'DETACHED_HOUSE' | 'VILLA' | 'APARTMENT' | 'COMMERCIAL' | 'MIXED' | 'NONE';
             agreement_status_enum: 'AGREED' | 'DISAGREED' | 'PENDING';
             sync_status_enum: 'PROCESSING' | 'COMPLETED' | 'FAILED';
         };
@@ -1534,8 +1589,16 @@ export type UpdateAdvertisement = Database['public']['Tables']['advertisements']
 // GIS 관련 타입 추가
 export type ConsentStage = Database['public']['Tables']['consent_stages']['Row'];
 export type LandLot = Database['public']['Tables']['land_lots']['Row'];
+export type Building = Database['public']['Tables']['buildings']['Row'];
+export type NewBuilding = Database['public']['Tables']['buildings']['Insert'];
+export type UpdateBuilding = Database['public']['Tables']['buildings']['Update'];
 export type BuildingUnit = Database['public']['Tables']['building_units']['Row'];
+export type NewBuildingUnit = Database['public']['Tables']['building_units']['Insert'];
+export type UpdateBuildingUnit = Database['public']['Tables']['building_units']['Update'];
 export type Owner = Database['public']['Tables']['owners']['Row'];
 export type OwnerConsent = Database['public']['Tables']['owner_consents']['Row'];
 export type SyncJob = Database['public']['Tables']['sync_jobs']['Row'];
 export type PnuConsentStatus = Database['public']['Views']['v_pnu_consent_status']['Row'];
+
+// 건물 유형 타입
+export type BuildingTypeEnum = Database['public']['Enums']['building_type_enum'];

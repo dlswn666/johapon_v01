@@ -34,6 +34,7 @@ import { useUnions } from '@/app/_lib/features/union-management/api/useUnionMana
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { startGisSync } from '@/app/_lib/features/gis/actions/syncGis';
 import { searchAddress, addAddressToUnion, manualAddAddress } from '@/app/_lib/features/gis/actions/manualAddAddress';
+import { resetUnionGisData } from '@/app/_lib/features/gis/actions/resetGisData';
 import EChartsMap, { ParcelData } from '@/components/map/EChartsMap';
 import { Input } from '@/components/ui/input';
 import {
@@ -125,6 +126,10 @@ export default function GisSyncPage() {
     // 삭제 다이얼로그
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [jobToDelete, setJobToDelete] = useState<string | null>(null);
+
+    // GIS 데이터 초기화 다이얼로그
+    const [resetDialogOpen, setResetDialogOpen] = useState(false);
+    const [isResetting, setIsResetting] = useState(false);
 
     // 선택된 필지 (클릭 시 하단에 상세 정보 표시)
     const [selectedParcel, setSelectedParcel] = useState<ParcelData | null>(null);
@@ -602,6 +607,36 @@ export default function GisSyncPage() {
         }
     };
 
+    // GIS 데이터 전체 초기화
+    const handleResetGisData = async () => {
+        if (!selectedUnionId) return;
+
+        setIsResetting(true);
+
+        try {
+            const result = await resetUnionGisData(selectedUnionId);
+
+            if (result.success) {
+                toast.success(result.message || 'GIS 데이터가 초기화되었습니다.');
+                // 상태 초기화
+                setSelectedJobId(null);
+                setSelectedParcel(null);
+                setIsNewJobMode(false);
+                // 데이터 새로고침
+                await refetchJobs();
+                queryClient.invalidateQueries({ queryKey: ['gis-map-preview', selectedUnionId] });
+            } else {
+                toast.error(result.error || 'GIS 데이터 초기화에 실패했습니다.');
+            }
+        } catch (error) {
+            console.error('Reset GIS Data Error:', error);
+            toast.error('GIS 데이터 초기화 중 오류가 발생했습니다.');
+        } finally {
+            setIsResetting(false);
+            setResetDialogOpen(false);
+        }
+    };
+
     // 작업 상태 포맷
     const formatJobStatus = (job: SyncJob) => {
         switch (job.status) {
@@ -678,17 +713,28 @@ export default function GisSyncPage() {
                                     <Clock className="w-4 h-4" />
                                     작업 기록
                                 </CardTitle>
-                                <Button
-                                    size="sm"
-                                    onClick={() => {
-                                        setIsNewJobMode(true);
-                                        setSelectedJobId(null);
-                                        setSelectedParcel(null);
-                                    }}
-                                    className="bg-[#4E8C6D] hover:bg-[#3d7058]"
-                                >
-                                    <Plus className="w-4 h-4 mr-1" />새 작업
-                                </Button>
+                                <div className="flex items-center gap-2">
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => setResetDialogOpen(true)}
+                                        className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+                                    >
+                                        <Trash2 className="w-4 h-4 mr-1" />
+                                        초기화
+                                    </Button>
+                                    <Button
+                                        size="sm"
+                                        onClick={() => {
+                                            setIsNewJobMode(true);
+                                            setSelectedJobId(null);
+                                            setSelectedParcel(null);
+                                        }}
+                                        className="bg-[#4E8C6D] hover:bg-[#3d7058]"
+                                    >
+                                        <Plus className="w-4 h-4 mr-1" />새 작업
+                                    </Button>
+                                </div>
                             </div>
                         </CardHeader>
                         <CardContent className="p-0 max-h-[600px] overflow-y-auto">
@@ -1193,6 +1239,50 @@ export default function GisSyncPage() {
                         <AlertDialogCancel>취소</AlertDialogCancel>
                         <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
                             삭제
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            {/* GIS 데이터 초기화 확인 다이얼로그 */}
+            <AlertDialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2 text-red-600">
+                            <AlertCircle className="w-5 h-5" />
+                            GIS 데이터 전체 초기화
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="space-y-2">
+                            <p className="font-semibold text-slate-900">
+                                이 조합의 모든 GIS 데이터가 삭제됩니다.
+                            </p>
+                            <ul className="list-disc list-inside text-sm text-slate-600 space-y-1">
+                                <li>동기화 작업 기록 (sync_jobs)</li>
+                                <li>조합 필지 연결 정보 (union_land_lots)</li>
+                                <li>건물 호실 정보 (building_units) - 다른 조합과 공유되지 않는 데이터만</li>
+                                <li>건물 정보 (buildings) - 다른 조합과 공유되지 않는 데이터만</li>
+                                <li>필지 상세 정보 (land_lots) - 다른 조합과 공유되지 않는 데이터만</li>
+                            </ul>
+                            <p className="text-red-600 font-medium mt-3">
+                                이 작업은 되돌릴 수 없습니다. 정말 초기화하시겠습니까?
+                            </p>
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={isResetting}>취소</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleResetGisData}
+                            disabled={isResetting}
+                            className="bg-red-600 hover:bg-red-700"
+                        >
+                            {isResetting ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    초기화 중...
+                                </>
+                            ) : (
+                                '전체 초기화'
+                            )}
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
