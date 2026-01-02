@@ -169,7 +169,7 @@ export default function EChartsMap({
             tooltip: {
                 trigger: 'item',
                 backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                borderColor: '#e2e8f0',
+                borderColor: '#000000',
                 borderWidth: 1,
                 padding: [12, 16],
                 textStyle: {
