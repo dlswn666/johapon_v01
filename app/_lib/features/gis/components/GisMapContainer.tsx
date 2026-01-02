@@ -34,7 +34,8 @@ export default function GisMapContainer() {
 
     // 조회 모드: 'consent' (동의 현황) | 'registration' (가입 현황)
     const [viewMode, setViewMode] = useState<MapViewMode>('consent');
-    const [selectedBusinessType, setSelectedBusinessType] = useState<string>('REDEVELOPMENT');
+    // 조합의 사업 유형을 사용 (없으면 기본값 REDEVELOPMENT)
+    const selectedBusinessType = union?.business_type || 'REDEVELOPMENT';
     const [selectedStageId, setSelectedStageId] = useState<string | null>(null);
 
     // 모달 상태
@@ -316,7 +317,7 @@ export default function GisMapContainer() {
                     <>
                         <div className="flex items-center gap-2">
                             <span className="text-sm font-semibold text-slate-600">사업 유형:</span>
-                            <Select value={selectedBusinessType} onValueChange={setSelectedBusinessType}>
+                            <Select value={selectedBusinessType} disabled>
                                 <SelectTrigger className="w-[150px]">
                                     <SelectValue placeholder="사업 유형 선택" />
                                 </SelectTrigger>

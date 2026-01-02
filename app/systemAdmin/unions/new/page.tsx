@@ -62,7 +62,7 @@ export default function NewUnionPage() {
         office_address: '',
         office_phone: '',
         registration_number: '',
-        business_type: '재건축', // 기본값
+        business_type: 'RECONSTRUCTION', // 기본값 (ENUM)
         current_stage_id: '',
     });
     
@@ -325,11 +325,11 @@ export default function NewUnionPage() {
                                         <SelectValue placeholder="사업 유형 선택" />
                                     </SelectTrigger>
                                     <SelectContent className="bg-slate-800 border-slate-700 text-white">
-                                        <SelectItem value="재개발">재개발</SelectItem>
-                                        <SelectItem value="재건축">재건축</SelectItem>
-                                        <SelectItem value="지역주택">지역주택</SelectItem>
-                                        <SelectItem value="가로주택정비">가로주택정비</SelectItem>
-                                        <SelectItem value="소규모재건축">소규모재건축</SelectItem>
+                                        <SelectItem value="REDEVELOPMENT">재개발</SelectItem>
+                                        <SelectItem value="RECONSTRUCTION">재건축</SelectItem>
+                                        <SelectItem value="HOUSING_ASSOCIATION">지역주택</SelectItem>
+                                        <SelectItem value="STREET_HOUSING">가로주택정비</SelectItem>
+                                        <SelectItem value="SMALL_RECONSTRUCTION">소규모재건축</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>

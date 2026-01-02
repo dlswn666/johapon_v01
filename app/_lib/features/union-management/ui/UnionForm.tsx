@@ -319,11 +319,11 @@ export default function UnionForm({ mode, initialData, onSubmit, isSubmitting = 
                                 disabled={isReadOnly}
                             >
                                 <option value="">선택하세요</option>
-                                <option value="재개발">재개발</option>
-                                <option value="재건축">재건축</option>
-                                <option value="지역주택">지역주택</option>
-                                <option value="가로주택정비">가로주택정비</option>
-                                <option value="소규모재건축">소규모재건축</option>
+                                <option value="REDEVELOPMENT">재개발</option>
+                                <option value="RECONSTRUCTION">재건축</option>
+                                <option value="HOUSING_ASSOCIATION">지역주택</option>
+                                <option value="STREET_HOUSING">가로주택정비</option>
+                                <option value="SMALL_RECONSTRUCTION">소규모재건축</option>
                             </select>
                         </div>
                         <div className="space-y-2">

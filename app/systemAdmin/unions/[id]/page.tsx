@@ -2,7 +2,29 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, Upload, X, Loader2, Building2, Edit, Save, Users, ExternalLink, MessageSquare, Key, AlertTriangle, Megaphone, Info, MapPin, Phone, Mail, Clock, ShieldCheck, Calendar, SquareStack } from 'lucide-react';
+import {
+    ArrowLeft,
+    Upload,
+    X,
+    Loader2,
+    Building2,
+    Edit,
+    Save,
+    Users,
+    ExternalLink,
+    MessageSquare,
+    Key,
+    AlertTriangle,
+    Megaphone,
+    Info,
+    MapPin,
+    Phone,
+    Mail,
+    Clock,
+    ShieldCheck,
+    Calendar,
+    SquareStack,
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -14,17 +36,38 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogFooter,
-} from '@/components/ui/dialog';
-import { useUnion, useUpdateUnion, useRegisterUnionSenderKey, useUpdateUnionAlimtalkSettings } from '@/app/_lib/features/union-management/api/useUnionManagementHook';
+    useUnion,
+    useUpdateUnion,
+    useRegisterUnionSenderKey,
+    useUpdateUnionAlimtalkSettings,
+} from '@/app/_lib/features/union-management/api/useUnionManagementHook';
 import { useDevelopmentStages } from '@/app/_lib/features/development-stages/api/useDevelopmentStages';
 import { supabase } from '@/app/_lib/shared/supabase/client';
 import { AdDashboard } from '@/app/_lib/features/advertisement/ui/AdDashboard';
+
+// 숫자를 천단위 콤마가 포함된 문자열로 변환
+const formatNumberWithCommas = (value: string | number): string => {
+    if (value === '' || value === null || value === undefined) return '';
+    const numStr = String(value).replace(/,/g, '');
+    const num = parseFloat(numStr);
+    if (isNaN(num)) return '';
+
+    // 정수부와 소수부 분리
+    const parts = numStr.split('.');
+    const intPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
+    if (parts.length > 1) {
+        return `${intPart}.${parts[1]}`;
+    }
+    return intPart;
+};
+
+// 콤마가 포함된 문자열에서 순수 숫자 문자열로 변환 (저장용)
+const parseNumberFromCommas = (value: string): string => {
+    return value.replace(/,/g, '');
+};
 
 interface UnionFormData {
     name: string;
@@ -37,7 +80,7 @@ interface UnionFormData {
     logo_url: string;
     is_active: boolean;
     kakao_channel_id: string;
-    
+
     // 신규 추가 필드
     member_count: string;
     area_size: string;
@@ -58,7 +101,10 @@ export default function UnionDetailPage() {
 
     const { data: union, isLoading } = useUnion(unionId);
     const updateMutation = useUpdateUnion();
-    const { data: stages } = useDevelopmentStages();
+
+    // 초기 business_type을 union 데이터에서 가져오기 위한 상태
+    const [businessTypeForStages, setBusinessTypeForStages] = useState<string>('RECONSTRUCTION');
+    const { data: stages, isLoading: stagesLoading } = useDevelopmentStages(businessTypeForStages);
 
     const [activeView, setActiveView] = useState<'INFO' | 'ADS'>('INFO');
     const [isEditing, setIsEditing] = useState(false);
@@ -73,7 +119,7 @@ export default function UnionDetailPage() {
         logo_url: '',
         is_active: true,
         kakao_channel_id: '',
-        
+
         member_count: '',
         area_size: '',
         district_name: '',
@@ -82,13 +128,13 @@ export default function UnionDetailPage() {
         office_address: '',
         office_phone: '',
         registration_number: '',
-        business_type: '재건축',
+        business_type: 'RECONSTRUCTION',
         current_stage_id: '',
     });
     const [logoFile, setLogoFile] = useState<File | null>(null);
     const [logoPreview, setLogoPreview] = useState<string | null>(null);
     const [isUploading, setIsUploading] = useState(false);
-    
+
     // Sender Key 모달 상태
     const [isSenderKeyModalOpen, setIsSenderKeyModalOpen] = useState(false);
     const [newSenderKey, setNewSenderKey] = useState('');
@@ -97,6 +143,10 @@ export default function UnionDetailPage() {
 
     useEffect(() => {
         if (union) {
+            const businessType = union.business_type || 'RECONSTRUCTION';
+            // stages 데이터를 해당 business_type으로 가져오도록 설정
+            setBusinessTypeForStages(businessType);
+
             setFormData({
                 name: union.name || '',
                 slug: union.slug || '',
@@ -108,7 +158,7 @@ export default function UnionDetailPage() {
                 logo_url: union.logo_url || '',
                 is_active: union.is_active ?? true,
                 kakao_channel_id: union.kakao_channel_id || '',
-                
+
                 member_count: union.member_count?.toString() || '',
                 area_size: union.area_size?.toString() || '',
                 district_name: union.district_name || '',
@@ -117,7 +167,7 @@ export default function UnionDetailPage() {
                 office_address: union.office_address || '',
                 office_phone: union.office_phone || '',
                 registration_number: union.registration_number || '',
-                business_type: union.business_type || '재건축',
+                business_type: businessType,
                 current_stage_id: union.current_stage_id || '',
             });
             if (union.logo_url) {
@@ -129,6 +179,16 @@ export default function UnionDetailPage() {
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         setFormData((prev) => ({ ...prev, [name]: value }));
+    };
+
+    // 구역 면적 입력 핸들러 (천단위 콤마 처리)
+    const handleAreaSizeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        // 숫자, 콤마, 소수점만 허용
+        const cleanValue = value.replace(/[^0-9.,]/g, '');
+        // 콤마 제거 후 저장 (순수 숫자 형태로 저장)
+        const numericValue = parseNumberFromCommas(cleanValue);
+        setFormData((prev) => ({ ...prev, area_size: numericValue }));
     };
 
     const handleSelectChange = (name: string, value: string) => {
@@ -199,7 +259,7 @@ export default function UnionDetailPage() {
                     logo_url: logoUrl || undefined,
                     is_active: formData.is_active,
                     kakao_channel_id: formData.kakao_channel_id || undefined,
-                    
+
                     member_count: formData.member_count ? parseInt(formData.member_count) : undefined,
                     area_size: formData.area_size ? parseFloat(formData.area_size) : undefined,
                     district_name: formData.district_name || undefined,
@@ -235,7 +295,7 @@ export default function UnionDetailPage() {
                 logo_url: union.logo_url || '',
                 is_active: union.is_active ?? true,
                 kakao_channel_id: union.kakao_channel_id || '',
-                
+
                 member_count: union.member_count?.toString() || '',
                 area_size: union.area_size?.toString() || '',
                 district_name: union.district_name || '',
@@ -244,7 +304,7 @@ export default function UnionDetailPage() {
                 office_address: union.office_address || '',
                 office_phone: union.office_phone || '',
                 registration_number: union.registration_number || '',
-                business_type: union.business_type || '재건축',
+                business_type: union.business_type || 'RECONSTRUCTION',
                 current_stage_id: union.current_stage_id || '',
             });
             if (union.logo_url) {
@@ -301,7 +361,8 @@ export default function UnionDetailPage() {
         );
     }
 
-    const filteredStages = stages?.filter(s => s.business_type === formData.business_type) || [];
+    // stages는 이미 businessTypeForStages로 필터링된 데이터
+    const availableStages = stages || [];
 
     return (
         <div className="max-w-4xl mx-auto pb-12">
@@ -331,13 +392,24 @@ export default function UnionDetailPage() {
                     {!isEditing && activeView === 'INFO' && (
                         <>
                             <Link href={`/systemAdmin/unions/${unionId}/admins`} className="cursor-pointer">
-                                <Button variant="outline" className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600">
+                                <Button
+                                    variant="outline"
+                                    className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
+                                >
                                     <Users className="w-4 h-4 mr-2" />
                                     관리자 관리
                                 </Button>
                             </Link>
-                            <a href={`/${union.slug}`} target="_blank" rel="noopener noreferrer" className="cursor-pointer">
-                                <Button variant="outline" className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600">
+                            <a
+                                href={`/${union.slug}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="cursor-pointer"
+                            >
+                                <Button
+                                    variant="outline"
+                                    className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
+                                >
                                     <ExternalLink className="w-4 h-4 mr-2" />
                                     사이트 보기
                                 </Button>
@@ -353,7 +425,11 @@ export default function UnionDetailPage() {
                             setActiveView(activeView === 'INFO' ? 'ADS' : 'INFO');
                             setIsEditing(false);
                         }}
-                        className={activeView === 'ADS' ? 'bg-amber-600 hover:bg-amber-700' : 'bg-emerald-600 hover:bg-emerald-700'}
+                        className={
+                            activeView === 'ADS'
+                                ? 'bg-amber-600 hover:bg-amber-700'
+                                : 'bg-emerald-600 hover:bg-emerald-700'
+                        }
                     >
                         <Megaphone className="w-4 h-4 mr-2" />
                         {activeView === 'INFO' ? '광고 관리' : '조합 정보'}
@@ -414,7 +490,9 @@ export default function UnionDetailPage() {
                                                         <Upload className="w-4 h-4 mr-2" />
                                                         이미지 선택
                                                     </Label>
-                                                    <p className="text-xs text-slate-500 mt-1">권장: 200x200px, PNG/JPG</p>
+                                                    <p className="text-xs text-slate-500 mt-1">
+                                                        권장: 200x200px, PNG/JPG
+                                                    </p>
                                                 </div>
                                             )}
                                         </div>
@@ -455,7 +533,9 @@ export default function UnionDetailPage() {
                             </div>
 
                             <div className="space-y-2">
-                                <Label htmlFor="description" className="text-slate-300">조합 소개</Label>
+                                <Label htmlFor="description" className="text-slate-300">
+                                    조합 소개
+                                </Label>
                                 <Textarea
                                     id="description"
                                     name="description"
@@ -480,10 +560,16 @@ export default function UnionDetailPage() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-2">
                                     <Label className="text-slate-300">사업 유형</Label>
-                                    <Select 
-                                        value={formData.business_type} 
+                                    <Select
+                                        value={formData.business_type}
                                         onValueChange={(val) => {
-                                            setFormData(prev => ({ ...prev, business_type: val, current_stage_id: '' }));
+                                            setFormData((prev) => ({
+                                                ...prev,
+                                                business_type: val,
+                                                current_stage_id: '',
+                                            }));
+                                            // 사업 유형 변경 시 해당 타입의 단계 목록을 다시 가져옴
+                                            setBusinessTypeForStages(val);
                                         }}
                                         disabled={!isEditing}
                                     >
@@ -491,40 +577,44 @@ export default function UnionDetailPage() {
                                             <SelectValue placeholder="사업 유형 선택" />
                                         </SelectTrigger>
                                         <SelectContent className="bg-slate-800 border-slate-700 text-white">
-                                            <SelectItem value="재개발">재개발</SelectItem>
-                                            <SelectItem value="재건축">재건축</SelectItem>
-                                            <SelectItem value="지역주택">지역주택</SelectItem>
-                                            <SelectItem value="가로주택정비">가로주택정비</SelectItem>
-                                            <SelectItem value="소규모재건축">소규모재건축</SelectItem>
+                                            <SelectItem value="REDEVELOPMENT">재개발</SelectItem>
+                                            <SelectItem value="RECONSTRUCTION">재건축</SelectItem>
+                                            <SelectItem value="HOUSING_ASSOCIATION">지역주택</SelectItem>
+                                            <SelectItem value="STREET_HOUSING">가로주택정비</SelectItem>
+                                            <SelectItem value="SMALL_RECONSTRUCTION">소규모재건축</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
 
                                 <div className="space-y-2">
                                     <Label className="text-slate-300">현재 개발 단계</Label>
-                                    <Select 
-                                        value={formData.current_stage_id} 
+                                    <Select
+                                        value={formData.current_stage_id || undefined}
                                         onValueChange={(val) => handleSelectChange('current_stage_id', val)}
-                                        disabled={!isEditing}
+                                        disabled={!isEditing || stagesLoading}
                                     >
                                         <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white disabled:opacity-70">
-                                            <SelectValue placeholder="단계 선택" />
+                                            <SelectValue placeholder={stagesLoading ? '로딩 중...' : '단계 선택'} />
                                         </SelectTrigger>
                                         <SelectContent className="bg-slate-800 border-slate-700 text-white">
-                                            {filteredStages.map((stage) => (
+                                            {availableStages.map((stage) => (
                                                 <SelectItem key={stage.id} value={stage.id}>
                                                     {stage.stage_name}
                                                 </SelectItem>
                                             ))}
-                                            {filteredStages.length === 0 && (
-                                                <div className="p-2 text-sm text-slate-500">등록된 단계가 없습니다.</div>
+                                            {availableStages.length === 0 && !stagesLoading && (
+                                                <div className="p-2 text-sm text-slate-500">
+                                                    등록된 단계가 없습니다.
+                                                </div>
                                             )}
                                         </SelectContent>
                                     </Select>
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label htmlFor="district_name" className="text-slate-300">사업 지구명</Label>
+                                    <Label htmlFor="district_name" className="text-slate-300">
+                                        사업 지구명
+                                    </Label>
                                     <Input
                                         id="district_name"
                                         name="district_name"
@@ -537,22 +627,26 @@ export default function UnionDetailPage() {
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label htmlFor="area_size" className="text-slate-300">구역 면적 (㎡)</Label>
+                                    <Label htmlFor="area_size" className="text-slate-300">
+                                        구역 면적 (㎡)
+                                    </Label>
                                     <Input
                                         id="area_size"
                                         name="area_size"
-                                        type="number"
-                                        step="0.01"
-                                        value={formData.area_size}
-                                        onChange={handleChange}
+                                        type="text"
+                                        inputMode="decimal"
+                                        value={formatNumberWithCommas(formData.area_size)}
+                                        onChange={handleAreaSizeChange}
                                         disabled={!isEditing}
                                         placeholder="0.00"
-                                        className="bg-slate-700/50 border-slate-600 text-white disabled:opacity-70"
+                                        className="bg-slate-700/50 border-slate-600 text-white disabled:opacity-70 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                     />
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label htmlFor="member_count" className="text-slate-300">조합원 수</Label>
+                                    <Label htmlFor="member_count" className="text-slate-300">
+                                        조합원 수
+                                    </Label>
                                     <Input
                                         id="member_count"
                                         name="member_count"
@@ -566,7 +660,9 @@ export default function UnionDetailPage() {
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label htmlFor="registration_number" className="text-slate-300">사업자 등록번호</Label>
+                                    <Label htmlFor="registration_number" className="text-slate-300">
+                                        사업자 등록번호
+                                    </Label>
                                     <Input
                                         id="registration_number"
                                         name="registration_number"
@@ -590,7 +686,10 @@ export default function UnionDetailPage() {
                         <CardContent className="p-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-2">
-                                    <Label htmlFor="establishment_date" className="text-slate-300 flex items-center gap-1">
+                                    <Label
+                                        htmlFor="establishment_date"
+                                        className="text-slate-300 flex items-center gap-1"
+                                    >
                                         <Calendar className="w-4 h-4" /> 설립 인가일
                                     </Label>
                                     <Input
@@ -631,7 +730,9 @@ export default function UnionDetailPage() {
                         <CardContent className="p-6 space-y-6">
                             <div className="space-y-4">
                                 <div className="space-y-2">
-                                    <Label htmlFor="address" className="text-slate-300">조합 주소 (대표)</Label>
+                                    <Label htmlFor="address" className="text-slate-300">
+                                        조합 주소 (대표)
+                                    </Label>
                                     <Input
                                         id="address"
                                         name="address"
@@ -643,7 +744,9 @@ export default function UnionDetailPage() {
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="office_address" className="text-slate-300">사무실 상세 주소</Label>
+                                    <Label htmlFor="office_address" className="text-slate-300">
+                                        사무실 상세 주소
+                                    </Label>
                                     <Input
                                         id="office_address"
                                         name="office_address"
@@ -728,7 +831,9 @@ export default function UnionDetailPage() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-4">
                                     <div className="space-y-2">
-                                        <Label htmlFor="kakao_channel_id" className="text-slate-300">카카오 채널 ID</Label>
+                                        <Label htmlFor="kakao_channel_id" className="text-slate-300">
+                                            카카오 채널 ID
+                                        </Label>
                                         <Input
                                             id="kakao_channel_id"
                                             name="kakao_channel_id"
@@ -749,7 +854,9 @@ export default function UnionDetailPage() {
                                                     {union?.vault_sender_key_id ? (
                                                         <span className="text-green-400">✓ 등록됨</span>
                                                     ) : (
-                                                        <span className="text-yellow-400">미등록 (조합온 채널 사용)</span>
+                                                        <span className="text-yellow-400">
+                                                            미등록 (조합온 채널 사용)
+                                                        </span>
                                                     )}
                                                 </p>
                                             </div>
@@ -774,7 +881,9 @@ export default function UnionDetailPage() {
                                         </div>
                                         <Switch
                                             checked={formData.is_active}
-                                            onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, is_active: checked }))}
+                                            onCheckedChange={(checked) =>
+                                                setFormData((prev) => ({ ...prev, is_active: checked }))
+                                            }
                                             disabled={!isEditing}
                                         />
                                     </div>
