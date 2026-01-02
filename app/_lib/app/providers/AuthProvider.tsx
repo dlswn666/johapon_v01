@@ -102,8 +102,8 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
             console.log('[DEBUG] resolveUserProfile 시작', { authUserId, slug, silent });
             if (!silent) setIsUserFetching(true);
 
-            // 타임아웃 헬퍼 (5초)
-            const queryTimeout = (ms: number = 5000) => new Promise((_, reject) => 
+            // 타임아웃 헬퍼 (15초 - 네트워크 지연 대응)
+            const queryTimeout = (ms: number = 15000) => new Promise((_, reject) => 
                 setTimeout(() => reject(new Error(`Query timeout after ${ms}ms`)), ms)
             );
             try {

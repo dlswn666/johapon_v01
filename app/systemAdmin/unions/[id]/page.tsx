@@ -491,10 +491,11 @@ export default function UnionDetailPage() {
                                             <SelectValue placeholder="사업 유형 선택" />
                                         </SelectTrigger>
                                         <SelectContent className="bg-slate-800 border-slate-700 text-white">
-                                            <SelectItem value="재건축">재건축</SelectItem>
                                             <SelectItem value="재개발">재개발</SelectItem>
+                                            <SelectItem value="재건축">재건축</SelectItem>
                                             <SelectItem value="지역주택">지역주택</SelectItem>
-                                            <SelectItem value="기타">기타</SelectItem>
+                                            <SelectItem value="가로주택정비">가로주택정비</SelectItem>
+                                            <SelectItem value="소규모재건축">소규모재건축</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
