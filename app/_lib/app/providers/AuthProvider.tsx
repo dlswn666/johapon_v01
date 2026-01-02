@@ -16,7 +16,7 @@ interface AuthContextType {
     session: Session | null;
     isLoading: boolean; // 초기 로딩 상태
     isUserFetching: boolean; // 프로필 전환/조회 중 상태
-    userStatus: 'PENDING_PROFILE' | 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED' | null; // 사용자 상태
+    userStatus: 'PRE_REGISTERED' | 'PENDING_PROFILE' | 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED' | null; // 사용자 상태
     isAuthenticated: boolean; // 로그인 여부
     isSystemAdmin: boolean; // 시스템 관리자 여부
     isAdmin: boolean; // 관리자(조합/시스템) 여부

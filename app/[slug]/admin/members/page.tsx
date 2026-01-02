@@ -68,6 +68,7 @@ type UserStatusFilter = 'ALL' | UserStatus;
 type UserRoleFilter = 'ALL' | 'SYSTEM_ADMIN' | 'ADMIN' | 'USER' | 'APPLICANT';
 
 const USER_STATUS_LABELS: Record<UserStatus, string> = {
+    PRE_REGISTERED: '사전 등록',
     PENDING_PROFILE: '프로필 미입력',
     PENDING_APPROVAL: '승인 대기',
     APPROVED: '승인됨',
@@ -75,6 +76,7 @@ const USER_STATUS_LABELS: Record<UserStatus, string> = {
 };
 
 const USER_STATUS_COLORS: Record<UserStatus, string> = {
+    PRE_REGISTERED: 'bg-purple-100 text-purple-700',
     PENDING_PROFILE: 'bg-gray-100 text-gray-700',
     PENDING_APPROVAL: 'bg-yellow-100 text-yellow-700',
     APPROVED: 'bg-green-100 text-green-700',

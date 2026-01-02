@@ -27,7 +27,15 @@ function SystemAdminHeader() {
         { href: '/systemAdmin', label: '대시보드', icon: Home, exact: true },
         { href: '/systemAdmin/unions', label: '조합 관리', icon: Building2 },
         { href: '/systemAdmin/stages', label: '단계 마스터', icon: Shield },
-        { href: '/systemAdmin/gis', label: 'GIS 데이터 관리', icon: MapPin },
+        {
+            href: '/systemAdmin/gis',
+            label: '조합 데이터 관리',
+            icon: MapPin,
+            subItems: [
+                { href: '/systemAdmin/gis', label: 'GIS 데이터 관리' },
+                { href: '/systemAdmin/gis/members', label: '조합원 관리' },
+            ],
+        },
         {
             href: '/systemAdmin/alimtalk',
             label: '알림톡',

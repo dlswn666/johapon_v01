@@ -851,13 +851,16 @@ export type Database = {
                     phone_number: string;
                     role: 'SYSTEM_ADMIN' | 'ADMIN' | 'USER' | 'APPLICANT';
                     union_id: string | null;
-                    user_status: 'PENDING_PROFILE' | 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED';
+                    user_status: 'PRE_REGISTERED' | 'PENDING_PROFILE' | 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED';
                     birth_date: string | null;
                     property_address: string | null;
                     property_address_detail: string | null;
                     property_address_road: string | null;
                     property_address_jibun: string | null;
                     property_zonecode: string | null;
+                    property_type: string | null;
+                    property_dong: string | null;
+                    property_ho: string | null;
                     resident_address: string | null;
                     resident_address_detail: string | null;
                     resident_address_road: string | null;
@@ -888,6 +891,9 @@ export type Database = {
                     property_address_road?: string | null;
                     property_address_jibun?: string | null;
                     property_zonecode?: string | null;
+                    property_type?: string | null;
+                    property_dong?: string | null;
+                    property_ho?: string | null;
                     resident_address?: string | null;
                     resident_address_detail?: string | null;
                     resident_address_road?: string | null;
@@ -918,6 +924,9 @@ export type Database = {
                     property_address_road?: string | null;
                     property_address_jibun?: string | null;
                     property_zonecode?: string | null;
+                    property_type?: string | null;
+                    property_dong?: string | null;
+                    property_ho?: string | null;
                     resident_address?: string | null;
                     resident_address_detail?: string | null;
                     resident_address_road?: string | null;
@@ -1345,7 +1354,7 @@ export type Database = {
         };
         Enums: {
             user_role: 'SYSTEM_ADMIN' | 'ADMIN' | 'USER' | 'APPLICANT';
-            user_status: 'PENDING_PROFILE' | 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED';
+            user_status: 'PRE_REGISTERED' | 'PENDING_PROFILE' | 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED';
             auth_provider: 'kakao' | 'naver' | 'email';
             admin_invite_status: 'PENDING' | 'USED' | 'EXPIRED';
             ad_type: 'MAIN' | 'SUB' | 'BOARD';
@@ -1478,7 +1487,7 @@ export const Constants = {
     public: {
         Enums: {
             user_role: ['SYSTEM_ADMIN', 'ADMIN', 'USER', 'APPLICANT'],
-            user_status: ['PENDING_PROFILE', 'PENDING_APPROVAL', 'APPROVED', 'REJECTED'],
+            user_status: ['PRE_REGISTERED', 'PENDING_PROFILE', 'PENDING_APPROVAL', 'APPROVED', 'REJECTED'],
             auth_provider: ['kakao', 'naver', 'email'],
             admin_invite_status: ['PENDING', 'USED', 'EXPIRED'],
             member_invite_status: ['PENDING', 'USED', 'EXPIRED'],
@@ -1528,7 +1537,7 @@ export type NewUserAuthLink = Database['public']['Tables']['user_auth_links']['I
 export type UpdateUserAuthLink = Database['public']['Tables']['user_auth_links']['Update'];
 
 // 사용자 상태 타입
-export type UserStatus = 'PENDING_PROFILE' | 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED';
+export type UserStatus = 'PRE_REGISTERED' | 'PENDING_PROFILE' | 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED';
 export type UserRole = 'SYSTEM_ADMIN' | 'ADMIN' | 'USER' | 'APPLICANT';
 export type AuthProvider = 'kakao' | 'naver' | 'email';
 export type AdminInviteStatus = 'PENDING' | 'USED' | 'EXPIRED';
