@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -84,13 +84,6 @@ interface RpcParcelData {
     official_price: number | null;
     owner_count: number | null;
     boundary_geojson: GeoJSON.Geometry | null;
-}
-
-// 실패 주소 타입
-interface FailedAddress {
-    address: string;
-    reason: string;
-    index: number;
 }
 
 // 금액 포맷팅 함수
@@ -229,23 +222,33 @@ export default function GisSyncPage() {
             if (!selectedUnionId) return null;
 
             // RPC 함수를 사용하여 GeoJSON 데이터 조회 (PostGIS geometry를 JSON으로 변환)
-            const { data: parcels, error } = await supabase.rpc('get_union_parcels_geojson', {
-                p_union_id: selectedUnionId,
-            });
+            // PostgREST 기본 limit이 1000개이므로 충분히 큰 값으로 설정
+            const [parcelsResult, parcelsWithoutBoundaryResult] = await Promise.all([
+                supabase.rpc('get_union_parcels_geojson', { p_union_id: selectedUnionId }).limit(10000),
+                supabase.rpc('get_union_parcels_without_boundary', { p_union_id: selectedUnionId }).limit(10000),
+            ]);
 
-            if (error) {
-                console.error('RPC get_union_parcels_geojson error:', error);
-                throw error;
+            if (parcelsResult.error) {
+                console.error('RPC get_union_parcels_geojson error:', parcelsResult.error);
+                throw parcelsResult.error;
             }
+
+            if (parcelsWithoutBoundaryResult.error) {
+                console.error('RPC get_union_parcels_without_boundary error:', parcelsWithoutBoundaryResult.error);
+                throw parcelsWithoutBoundaryResult.error;
+            }
+
+            const parcels = parcelsResult.data || [];
+            const parcelsWithoutBoundary = parcelsWithoutBoundaryResult.data || [];
 
             // 필지 데이터 맵 생성 (PNU -> 상세정보)
             const parcelMap = new Map<string, RpcParcelData>();
-            (parcels || []).forEach((p: RpcParcelData) => {
+            parcels.forEach((p: RpcParcelData) => {
                 parcelMap.set(p.pnu, p);
             });
 
             // GeoJSON FeatureCollection 생성
-            const features = (parcels || [])
+            const features = parcels
                 .filter((p: RpcParcelData) => p.boundary_geojson !== null)
                 .map((p: RpcParcelData) => ({
                     type: 'Feature' as const,
@@ -262,7 +265,7 @@ export default function GisSyncPage() {
             };
 
             // EChartsMap용 데이터 생성 (추가 필드 포함)
-            const mapDataArray: ParcelData[] = (parcels || [])
+            const mapDataArray: ParcelData[] = parcels
                 .filter((p: RpcParcelData) => p.boundary_geojson !== null)
                 .map((p: RpcParcelData) => ({
                     pnu: p.pnu,
@@ -273,42 +276,27 @@ export default function GisSyncPage() {
                     status: 'NONE_AGREED' as const,
                 }));
 
-            // 통계 데이터
+            // 통계 데이터 (전체 필지 = 경계 있음 + 경계 없음)
             const stats = {
-                totalLots: parcels?.length || 0,
-                withBoundary: features.length,
-                withoutBoundary: (parcels?.length || 0) - features.length,
+                totalLots: parcels.length + parcelsWithoutBoundary.length,
+                withBoundary: parcels.length,
+                withoutBoundary: parcelsWithoutBoundary.length,
             };
 
-            return { geoJson, mapDataArray, parcelMap, stats };
+            return { geoJson, mapDataArray, parcelMap, stats, parcelsWithoutBoundary };
         },
         enabled: !!selectedUnionId && !!selectedJobId && !isNewJobMode,
     });
 
-    // 실패 주소 목록 파싱
-    const failedAddresses = useMemo<FailedAddress[]>(() => {
-        if (!selectedJob?.error_log) return [];
+    // 경계 없는 필지 주소 복사
+    const handleCopyParcelsWithoutBoundary = async () => {
+        const parcels = mapData?.parcelsWithoutBoundary;
+        if (!parcels || parcels.length === 0) return;
 
         try {
-            const errorData = JSON.parse(selectedJob.error_log);
-            return errorData.failedAddresses || [];
-        } catch {
-            return [];
-        }
-    }, [selectedJob?.error_log]);
-
-    // 실패 주소를 콤마로 구분된 문자열로 변환
-    const failedAddressesString = useMemo(() => {
-        return failedAddresses.map((f) => f.address).join(', ');
-    }, [failedAddresses]);
-
-    // 클립보드 복사
-    const handleCopyFailedAddresses = async () => {
-        if (!failedAddressesString) return;
-
-        try {
-            await navigator.clipboard.writeText(failedAddressesString);
-            toast.success('실패 주소가 클립보드에 복사되었습니다.');
+            const addressString = parcels.map((p: { address: string }) => p.address).join(', ');
+            await navigator.clipboard.writeText(addressString);
+            toast.success('경계 없는 필지 주소가 클립보드에 복사되었습니다.');
         } catch {
             toast.error('복사에 실패했습니다.');
         }
@@ -1032,18 +1020,18 @@ export default function GisSyncPage() {
                                                         <strong>{mapData?.stats?.totalLots || 0}</strong> 필지
                                                     </span>
                                                 </div>
-                                                {selectedJob.preview_data && (
+                                                {mapData?.stats && (
                                                     <>
                                                         <div className="flex items-center gap-2">
                                                             <CheckCircle2 className="w-4 h-4 text-green-500" />
                                                             <span className="text-sm text-green-600">
-                                                                성공 {selectedJob.preview_data.successCount || 0}
+                                                                성공 {mapData.stats.withBoundary}
                                                             </span>
                                                         </div>
                                                         <div className="flex items-center gap-2">
                                                             <AlertCircle className="w-4 h-4 text-red-500" />
                                                             <span className="text-sm text-red-600">
-                                                                실패 {selectedJob.preview_data.failedCount || 0}
+                                                                실패 {mapData.stats.withoutBoundary}
                                                             </span>
                                                         </div>
                                                     </>
@@ -1074,12 +1062,13 @@ export default function GisSyncPage() {
                                             </div>
                                         </div>
 
-                                        {/* 실패 주소 목록 표시 */}
-                                        {failedAddresses.length > 0 && (
+                                        {/* 경계 없는 필지 목록 표시 (지도에 표시되지 않는 실패 데이터) */}
+                                        {(mapData?.parcelsWithoutBoundary?.length ?? 0) > 0 && (
                                             <div className="mt-4 p-3 bg-red-50 rounded-lg border border-red-200">
                                                 <div className="flex items-center justify-between mb-2">
                                                     <p className="text-xs text-red-600 font-medium">
-                                                        실패 주소 ({failedAddresses.length}건)
+                                                        경계 없는 필지 ({mapData?.parcelsWithoutBoundary?.length}건) -
+                                                        지도에 표시되지 않음
                                                     </p>
                                                     <div className="flex items-center gap-1">
                                                         <Button
@@ -1094,7 +1083,7 @@ export default function GisSyncPage() {
                                                         <Button
                                                             variant="ghost"
                                                             size="sm"
-                                                            onClick={handleCopyFailedAddresses}
+                                                            onClick={handleCopyParcelsWithoutBoundary}
                                                             className="text-xs text-red-600 hover:text-red-700 hover:bg-red-100 h-7 px-2"
                                                         >
                                                             <Copy className="w-3 h-3 mr-1" />
@@ -1103,22 +1092,26 @@ export default function GisSyncPage() {
                                                     </div>
                                                 </div>
                                                 <div className="text-xs text-red-500 max-h-[120px] overflow-y-auto">
-                                                    {failedAddresses.map((item, idx) => (
-                                                        <div
-                                                            key={idx}
-                                                            className="flex items-center justify-between py-1 border-b border-red-100 last:border-b-0 hover:bg-red-100/50 rounded px-1"
-                                                        >
-                                                            <span className="truncate flex-1">{item.address}</span>
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="sm"
-                                                                onClick={() => openManualInputModal(item.address)}
-                                                                className="text-xs text-blue-500 hover:text-blue-600 h-5 px-1 ml-2"
+                                                    {mapData?.parcelsWithoutBoundary?.map(
+                                                        (item: { pnu: string; address: string }, idx: number) => (
+                                                            <div
+                                                                key={idx}
+                                                                className="flex items-center justify-between py-1 border-b border-red-100 last:border-b-0 hover:bg-red-100/50 rounded px-1"
                                                             >
-                                                                <Edit className="w-3 h-3" />
-                                                            </Button>
-                                                        </div>
-                                                    ))}
+                                                                <span className="truncate flex-1">
+                                                                    {item.address || item.pnu}
+                                                                </span>
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    onClick={() => openManualInputModal(item.address)}
+                                                                    className="text-xs text-blue-500 hover:text-blue-600 h-5 px-1 ml-2"
+                                                                >
+                                                                    <Edit className="w-3 h-3" />
+                                                                </Button>
+                                                            </div>
+                                                        )
+                                                    )}
                                                 </div>
                                             </div>
                                         )}
@@ -1253,9 +1246,7 @@ export default function GisSyncPage() {
                             GIS 데이터 전체 초기화
                         </AlertDialogTitle>
                         <AlertDialogDescription className="space-y-2">
-                            <p className="font-semibold text-slate-900">
-                                이 조합의 모든 GIS 데이터가 삭제됩니다.
-                            </p>
+                            <p className="font-semibold text-slate-900">이 조합의 모든 GIS 데이터가 삭제됩니다.</p>
                             <ul className="list-disc list-inside text-sm text-slate-600 space-y-1">
                                 <li>동기화 작업 기록 (sync_jobs)</li>
                                 <li>조합 필지 연결 정보 (union_land_lots)</li>
