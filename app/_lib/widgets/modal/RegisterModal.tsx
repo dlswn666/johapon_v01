@@ -25,6 +25,7 @@ import { TermsModal } from './TermsModal';
 import { BirthDatePicker } from '@/app/_lib/widgets/common/date-picker/BirthDatePicker';
 import { KakaoAddressSearch, AddressData } from '@/app/_lib/widgets/common/address/KakaoAddressSearch';
 import { generatePNU } from '@/app/_lib/shared/utils/pnu-utils';
+import { normalizeDong, createNormalizedHo, isBasementHo, extractHoNumber } from '@/app/_lib/shared/utils/dong-ho-utils';
 
 // 거주 유형 타입 정의
 type PropertyType = 'DETACHED_HOUSE' | 'VILLA' | 'APARTMENT' | 'COMMERCIAL' | 'MIXED';
@@ -46,6 +47,7 @@ type StepKey =
     | 'property_address' 
     | 'property_type'
     | 'property_dong'
+    | 'property_floor_type'  // 지상/지하 선택
     | 'property_ho'
     | 'resident_address'
     | 'resident_address_detail'
@@ -118,9 +120,19 @@ const STEPS: StepConfig[] = [
         label: '동',
         placeholder: '101',
         description: '동 번호를 입력해주세요.',
-        subDescription: '예: 101동, A동',
+        subDescription: '예: 101, A (동 없이 입력)',
         required: false, // 동적으로 변경됨
         type: 'text',
+        icon: <Building2 className="w-6 h-6 md:w-7 md:h-7" />,
+    },
+    {
+        key: 'property_floor_type',
+        label: '층 구분',
+        placeholder: '',
+        description: '지상층 또는 지하층을 선택해주세요.',
+        subDescription: '호수 입력 전 선택이 필요합니다.',
+        required: false,
+        type: 'text',  // 실제로는 라디오 버튼으로 렌더링
         icon: <Building2 className="w-6 h-6 md:w-7 md:h-7" />,
     },
     {
@@ -128,7 +140,7 @@ const STEPS: StepConfig[] = [
         label: '호수',
         placeholder: '1001',
         description: '호수를 입력해주세요.',
-        subDescription: '예: 1001호, 101호',
+        subDescription: '숫자만 입력 (예: 101, 1001)',
         required: false, // 동적으로 변경됨
         type: 'text',
         icon: <Building2 className="w-6 h-6 md:w-7 md:h-7" />,
@@ -185,6 +197,7 @@ interface FormData {
     property_pnu: string;
     property_type: PropertyType | '';
     property_dong: string;
+    property_is_basement: boolean;  // 지하층 여부
     property_ho: string;
     resident_address: string;
     resident_address_detail: string;
@@ -228,6 +241,7 @@ export function RegisterModal({
         property_pnu: '',
         property_type: '',
         property_dong: '',
+        property_is_basement: false,
         property_ho: '',
         resident_address: '',
         resident_address_detail: '',
@@ -272,6 +286,7 @@ export function RegisterModal({
                     property_pnu: '',
                     property_type: '',
                     property_dong: '',
+                    property_is_basement: false,
                     property_ho: '',
                     resident_address: '',
                     resident_address_detail: '',
@@ -295,6 +310,7 @@ export function RegisterModal({
                     property_pnu: '',
                     property_type: '',
                     property_dong: '',
+                    property_is_basement: false,
                     property_ho: '',
                     resident_address: '',
                     resident_address_detail: '',
@@ -325,6 +341,11 @@ export function RegisterModal({
                 const { data: userData } = await supabase.from('users').select('*').eq('id', authLink.user_id).single();
 
                 if (userData) {
+                    // 기존 호수에서 지하 여부 판단
+                    const existingHo = userData.property_ho || '';
+                    const isBasement = isBasementHo(existingHo);
+                    const hoNumber = isBasement ? extractHoNumber(existingHo) || '' : existingHo;
+
                     setFormData({
                         name: userData.name || '',
                         phone_number: userData.phone_number || '',
@@ -337,7 +358,8 @@ export function RegisterModal({
                         property_pnu: userData.property_pnu || '',
                         property_type: (userData.property_type as PropertyType) || '',
                         property_dong: userData.property_dong || '',
-                        property_ho: userData.property_ho || '',
+                        property_is_basement: isBasement,
+                        property_ho: hoNumber,
                         resident_address: userData.resident_address || '',
                         resident_address_detail: userData.resident_address_detail || '',
                         resident_address_road: userData.resident_address_road || '',
@@ -404,6 +426,12 @@ export function RegisterModal({
             if (propertyType === 'DETACHED_HOUSE') return true;
             return false;
         }
+
+        if (stepKey === 'property_floor_type') {
+            // 단독주택은 지상/지하 선택 스킵
+            if (propertyType === 'DETACHED_HOUSE') return true;
+            return false;
+        }
         
         if (stepKey === 'property_ho') {
             // 단독주택은 호수 스킵
@@ -447,7 +475,10 @@ export function RegisterModal({
     const getCurrentValue = useCallback((): string => {
         const config = getCurrentStepConfig();
         if (!config) return '';
-        return formData[config.key as keyof FormData] || '';
+        // property_floor_type은 별도로 처리 (boolean 타입이므로)
+        if (config.key === 'property_floor_type') return '';
+        const value = formData[config.key as keyof FormData];
+        return typeof value === 'string' ? value : '';
     }, [getCurrentStepConfig, formData]);
 
     // 값 변경 핸들러
@@ -659,8 +690,12 @@ export function RegisterModal({
             let finalUserId: string | null = null;
             let isExistingPreRegistered = false;
 
+            // 동호수 정규화 적용
+            const normalizedDong = normalizeDong(formData.property_dong);
+            const normalizedHo = createNormalizedHo(formData.property_is_basement, formData.property_ho);
+
             if (unionId && formData.property_pnu) {
-                // PRE_REGISTERED 사용자 검색
+                // PRE_REGISTERED 사용자 검색 (정규화된 동호수로 비교)
                 let preRegisteredQuery = supabase
                     .from('users')
                     .select('*')
@@ -669,15 +704,15 @@ export function RegisterModal({
                     .eq('property_pnu', formData.property_pnu)
                     .eq('user_status', 'PRE_REGISTERED');
 
-                // 동/호수 조건 추가
-                if (formData.property_dong) {
-                    preRegisteredQuery = preRegisteredQuery.eq('property_dong', formData.property_dong);
+                // 동/호수 조건 추가 (정규화된 값 사용)
+                if (normalizedDong) {
+                    preRegisteredQuery = preRegisteredQuery.eq('property_dong', normalizedDong);
                 } else {
                     preRegisteredQuery = preRegisteredQuery.is('property_dong', null);
                 }
 
-                if (formData.property_ho) {
-                    preRegisteredQuery = preRegisteredQuery.eq('property_ho', formData.property_ho);
+                if (normalizedHo) {
+                    preRegisteredQuery = preRegisteredQuery.eq('property_ho', normalizedHo);
                 } else {
                     preRegisteredQuery = preRegisteredQuery.is('property_ho', null);
                 }
@@ -685,7 +720,7 @@ export function RegisterModal({
                 const { data: preRegistered } = await preRegisteredQuery.single();
 
                 if (preRegistered) {
-                    // 기존 PRE_REGISTERED 레코드 업데이트
+                    // 기존 PRE_REGISTERED 레코드 업데이트 (정규화된 동호수 사용)
                     const { error: updateError } = await supabase
                         .from('users')
                         .update({
@@ -695,11 +730,13 @@ export function RegisterModal({
                             user_status: userStatus,
                             birth_date: formData.birth_date || null,
                             property_address: formData.property_address,
-                            property_address_detail: [formData.property_dong, formData.property_ho].filter(Boolean).join(' ') || null,
+                            property_address_detail: [normalizedDong, normalizedHo].filter(Boolean).join(' ') || null,
                             property_address_road: formData.property_address_road || null,
                             property_address_jibun: formData.property_address_jibun || null,
                             property_zonecode: formData.property_zonecode || null,
                             property_type: formData.property_type || null,
+                            property_dong: normalizedDong,
+                            property_ho: normalizedHo,
                             resident_address: formData.resident_address || null,
                             resident_address_detail: formData.resident_address_detail || null,
                             resident_address_road: formData.resident_address_road || null,
@@ -723,8 +760,8 @@ export function RegisterModal({
                 // UUID 생성: crypto.randomUUID() 사용
                 const newUserId = crypto.randomUUID();
 
-                // property_address_detail은 동/호수를 합쳐서 저장 (하위 호환성)
-                const propertyAddressDetail = [formData.property_dong, formData.property_ho]
+                // property_address_detail은 정규화된 동/호수를 합쳐서 저장 (하위 호환성)
+                const propertyAddressDetail = [normalizedDong, normalizedHo]
                     .filter(Boolean)
                     .join(' ') || null;
 
@@ -744,8 +781,8 @@ export function RegisterModal({
                     property_zonecode: formData.property_zonecode || null,
                     property_pnu: formData.property_pnu || null,
                     property_type: formData.property_type || null,
-                    property_dong: formData.property_dong || null,
-                    property_ho: formData.property_ho || null,
+                    property_dong: normalizedDong,
+                    property_ho: normalizedHo,
                     resident_address: formData.resident_address || null,
                     resident_address_detail: formData.resident_address_detail || null,
                     resident_address_road: formData.resident_address_road || null,
@@ -1214,6 +1251,46 @@ export function RegisterModal({
                                                         )}
                                                     </button>
                                                 ))}
+                                            </div>
+                                        ) : stepConfig.key === 'property_floor_type' ? (
+                                            // 지상/지하 선택: 라디오 버튼 UI
+                                            <div className="space-y-3">
+                                                <button
+                                                    onClick={() => setFormData(prev => ({ ...prev, property_is_basement: false }))}
+                                                    className={cn(
+                                                        'w-full p-4 rounded-xl border-2 text-left transition-all flex items-center gap-4',
+                                                        !formData.property_is_basement
+                                                            ? 'border-[#4E8C6D] bg-[#4E8C6D]/5'
+                                                            : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                                                    )}
+                                                >
+                                                    <span className="text-2xl">🏢</span>
+                                                    <div className="flex-1">
+                                                        <p className="font-medium text-gray-900">지상층</p>
+                                                        <p className="text-sm text-gray-500">1층 이상 (예: 101호, 1001호)</p>
+                                                    </div>
+                                                    {!formData.property_is_basement && (
+                                                        <Check className="w-5 h-5 text-[#4E8C6D]" />
+                                                    )}
+                                                </button>
+                                                <button
+                                                    onClick={() => setFormData(prev => ({ ...prev, property_is_basement: true }))}
+                                                    className={cn(
+                                                        'w-full p-4 rounded-xl border-2 text-left transition-all flex items-center gap-4',
+                                                        formData.property_is_basement
+                                                            ? 'border-[#4E8C6D] bg-[#4E8C6D]/5'
+                                                            : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                                                    )}
+                                                >
+                                                    <span className="text-2xl">🅱️</span>
+                                                    <div className="flex-1">
+                                                        <p className="font-medium text-gray-900">지하층</p>
+                                                        <p className="text-sm text-gray-500">지하 1층 이하 (예: B101, 비01)</p>
+                                                    </div>
+                                                    {formData.property_is_basement && (
+                                                        <Check className="w-5 h-5 text-[#4E8C6D]" />
+                                                    )}
+                                                </button>
                                             </div>
                                         ) : stepConfig.key === 'resident_address' ? (
                                             // 실 거주지 주소: KakaoAddressSearch 사용 + 복사 버튼

@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@supabase/supabase-js';
+import { normalizeDong, normalizeHo } from '@/app/_lib/shared/utils/dong-ho-utils';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -175,10 +176,14 @@ export async function savePreRegisteredMembers(
     for (const result of matchingResults) {
         const { row, pnu } = result;
 
+        // 동호수 정규화 적용 (이미 정규화된 값이어도 안전하게 한 번 더 처리)
+        const normalizedDong = normalizeDong(row.dong);
+        const normalizedHo = normalizeHo(row.ho);
+
         // PNU가 매칭되지 않은 경우도 저장 (나중에 수동 매칭 가능)
-        // 중복 체크
+        // 중복 체크 (정규화된 동호수로 비교)
         if (pnu) {
-            const duplicateCheck = await checkDuplicatePnu(unionId, pnu, row.dong || null, row.ho || null);
+            const duplicateCheck = await checkDuplicatePnu(unionId, pnu, normalizedDong, normalizedHo);
             if (duplicateCheck.isDuplicate) {
                 errors.push(
                     `${row.name}: 이미 등록된 소유지입니다. (기존 등록자: ${duplicateCheck.existingUser?.name})`
@@ -190,7 +195,7 @@ export async function savePreRegisteredMembers(
         // UUID 생성 (서버에서 생성)
         const id = crypto.randomUUID();
 
-        // users 테이블에 저장
+        // users 테이블에 저장 (정규화된 동호수 사용)
         const { error } = await supabase.from('users').insert({
             id,
             name: row.name,
@@ -202,8 +207,8 @@ export async function savePreRegisteredMembers(
             resident_address: row.residentAddress || null,
             property_pnu: pnu,
             property_address_jibun: row.propertyAddress,
-            property_dong: row.dong || null,
-            property_ho: row.ho || null,
+            property_dong: normalizedDong,
+            property_ho: normalizedHo,
         });
 
         if (error) {
@@ -238,6 +243,10 @@ export async function manualMatchUser(
     ho?: string
 ): Promise<{ success: boolean; error?: string; pnu?: string }> {
     try {
+        // 동호수 정규화 적용
+        const normalizedDong = normalizeDong(dong);
+        const normalizedHo = normalizeHo(ho);
+
         // 새 주소로 PNU 매칭 시도
         const matchResult = await matchAddressToPnu(unionId, newPropertyAddress);
 
@@ -245,8 +254,8 @@ export async function manualMatchUser(
             return { success: false, error: '해당 주소를 GIS 데이터에서 찾을 수 없습니다.' };
         }
 
-        // 중복 체크
-        const duplicateCheck = await checkDuplicatePnu(unionId, matchResult.pnu, dong || null, ho || null, userId);
+        // 중복 체크 (정규화된 동호수로 비교)
+        const duplicateCheck = await checkDuplicatePnu(unionId, matchResult.pnu, normalizedDong, normalizedHo, userId);
         if (duplicateCheck.isDuplicate) {
             return {
                 success: false,
@@ -254,14 +263,14 @@ export async function manualMatchUser(
             };
         }
 
-        // 사용자 정보 업데이트
+        // 사용자 정보 업데이트 (정규화된 동호수 사용)
         const { error } = await supabase
             .from('users')
             .update({
                 property_pnu: matchResult.pnu,
                 property_address_jibun: newPropertyAddress,
-                property_dong: dong || null,
-                property_ho: ho || null,
+                property_dong: normalizedDong,
+                property_ho: normalizedHo,
             })
             .eq('id', userId);
 

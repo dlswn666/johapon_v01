@@ -64,6 +64,7 @@ import {
     manualMatchUser,
 } from '@/app/_lib/features/gis/actions/memberMatching';
 import { supabase } from '@/app/_lib/shared/supabase/client';
+import { normalizeDong, normalizeHo } from '@/app/_lib/shared/utils/dong-ho-utils';
 
 interface Union {
     id: string;
@@ -233,8 +234,9 @@ export default function MemberManagementPage() {
                 phoneNumber: row['핸드폰번호'] ? String(row['핸드폰번호']).trim() : undefined,
                 residentAddress: row['거주주소'] ? String(row['거주주소']).trim() : undefined,
                 propertyAddress: String(row['소유지 지번'] || '').trim(),
-                dong: row['동'] ? String(row['동']).trim() : undefined,
-                ho: row['호수'] ? String(row['호수']).trim() : undefined,
+                // 동호수 정규화 적용: 접미사 제거 및 지하층 표시 통일
+                dong: row['동'] ? normalizeDong(String(row['동'])) ?? undefined : undefined,
+                ho: row['호수'] ? normalizeHo(String(row['호수'])) ?? undefined : undefined,
             })).filter((m) => m.name && m.propertyAddress); // 필수 필드가 있는 것만
 
             setUploadedData(members);
@@ -308,12 +310,16 @@ export default function MemberManagementPage() {
 
         setIsManualMatching(true);
         try {
+            // 동호수 정규화 적용
+            const normalizedDong = normalizeDong(manualMatchModal.dong);
+            const normalizedHo = normalizeHo(manualMatchModal.ho);
+
             const result = await manualMatchUser(
                 manualMatchModal.member.id,
                 selectedUnionId,
                 manualMatchModal.newAddress,
-                manualMatchModal.dong,
-                manualMatchModal.ho
+                normalizedDong ?? undefined,
+                normalizedHo ?? undefined
             );
 
             if (result.success) {
