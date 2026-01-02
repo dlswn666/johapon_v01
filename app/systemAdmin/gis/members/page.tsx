@@ -16,7 +16,6 @@ import {
     Users,
     Edit,
     Loader2,
-    Clock,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -59,9 +58,6 @@ import {
 } from '@/components/ui/alert-dialog';
 import {
     MemberExcelRow,
-    MatchingResult,
-    matchMembersWithGis,
-    savePreRegisteredMembers,
     getPreRegisteredMembers,
     deletePreRegisteredMember,
     manualMatchUser,
@@ -99,19 +95,18 @@ export default function MemberManagementPage() {
 
     // 엑셀 업로드 관련
     const [isUploading, setIsUploading] = useState(false);
-    const [uploadedData, setUploadedData] = useState<MemberExcelRow[]>([]);
-    const [matchingResults, setMatchingResults] = useState<MatchingResult[]>([]);
-    const [isMatching, setIsMatching] = useState(false);
-    const [isSaving, setIsSaving] = useState(false);
+    const [uploadedCount, setUploadedCount] = useState(0);
     const [saveResult, setSaveResult] = useState<{
         success: boolean;
         savedCount: number;
+        matchedCount: number;
+        unmatchedCount: number;
+        duplicateCount: number;
         errors: string[];
     } | null>(null);
     
     // 비동기 처리 관련
     const [currentJobId, setCurrentJobId] = useState<string | null>(null);
-    const ASYNC_THRESHOLD = 50; // 50건 이상이면 비동기 처리
     
     // 비동기 작업 상태 조회
     const { data: jobStatus } = useQuery({
@@ -138,22 +133,34 @@ export default function MemberManagementPage() {
             setSaveResult({
                 success: true,
                 savedCount: result?.savedCount || 0,
+                matchedCount: result?.matchedCount || 0,
+                unmatchedCount: result?.unmatchedCount || 0,
+                duplicateCount: result?.duplicateCount || 0,
                 errors: result?.errors || [],
             });
             setCurrentJobId(null);
-            setUploadedData([]);
-            setMatchingResults([]);
+            setUploadedCount(0);
             fetchMembers();
         } else if (jobStatus?.status === 'failed') {
             setSaveResult({
                 success: false,
                 savedCount: 0,
-                errors: [jobStatus.error || '저장 처리 중 오류가 발생했습니다.'],
+                matchedCount: 0,
+                unmatchedCount: 0,
+                duplicateCount: 0,
+                errors: [jobStatus.error || '처리 중 오류가 발생했습니다.'],
             });
             setCurrentJobId(null);
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [jobStatus?.status]);
+    
+    // 조합 선택 변경 시 상태 초기화
+    const resetUploadState = useCallback(() => {
+        setUploadedCount(0);
+        setCurrentJobId(null);
+        setSaveResult(null);
+    }, []);
 
     // 기존 조합원 목록
     const [preRegisteredMembers, setPreRegisteredMembers] = useState<PreRegisteredMember[]>([]);
@@ -205,13 +212,14 @@ export default function MemberManagementPage() {
         fetchUnions();
     }, [selectedUnionId]);
 
-    // 조합 선택 시 URL 업데이트 및 조합원 목록 조회
+    // 조합 선택 시 URL 업데이트 및 조합원 목록 조회 + 상태 초기화
     useEffect(() => {
         if (selectedUnionId) {
             const url = new URL(window.location.href);
             url.searchParams.set('unionId', selectedUnionId);
             router.replace(url.pathname + url.search, { scroll: false });
             fetchMembers();
+            resetUploadState(); // 조합 변경 시 업로드 상태 초기화
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedUnionId]);
@@ -263,14 +271,14 @@ export default function MemberManagementPage() {
         XLSX.writeFile(workbook, '조합원_업로드_템플릿.xlsx');
     };
 
-    // 엑셀 파일 업로드 처리
+    // 엑셀 파일 업로드 처리 → 바로 비동기 처리 시작
     const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
-        if (!file) return;
+        if (!file || !selectedUnionId) return;
 
         setIsUploading(true);
-        setMatchingResults([]);
         setSaveResult(null);
+        setCurrentJobId(null);
 
         try {
             const arrayBuffer = await file.arrayBuffer();
@@ -288,79 +296,38 @@ export default function MemberManagementPage() {
                 ho: row['호수'] ? normalizeHo(String(row['호수'])) ?? undefined : undefined,
             })).filter((m) => m.name && m.propertyAddress); // 필수 필드가 있는 것만
 
-            setUploadedData(members);
+            if (members.length === 0) {
+                alert('유효한 데이터가 없습니다. 소유주명과 소유지 지번은 필수입니다.');
+                return;
+            }
+
+            setUploadedCount(members.length);
+
+            // 바로 비동기 처리 시작 (GIS 매칭 + 저장)
+            const response = await fetch('/api/member-invite/pre-register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    unionId: selectedUnionId,
+                    members: members,
+                }),
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || '비동기 처리 요청에 실패했습니다.');
+            }
+            
+            const result = await response.json();
+            setCurrentJobId(result.jobId);
+            
         } catch (error) {
-            console.error('Excel parsing error:', error);
-            alert('엑셀 파일 읽기에 실패했습니다.');
+            console.error('Excel upload/process error:', error);
+            alert('처리 중 오류가 발생했습니다.');
+            setUploadedCount(0);
         } finally {
             setIsUploading(false);
             event.target.value = ''; // 파일 입력 초기화
-        }
-    };
-
-    // GIS 매칭 실행
-    const handleMatch = async () => {
-        if (!selectedUnionId || uploadedData.length === 0) return;
-
-        setIsMatching(true);
-        try {
-            const results = await matchMembersWithGis(selectedUnionId, uploadedData);
-            setMatchingResults(results);
-        } catch (error) {
-            console.error('Matching error:', error);
-            alert('매칭 중 오류가 발생했습니다.');
-        } finally {
-            setIsMatching(false);
-        }
-    };
-
-    // 저장 실행
-    const handleSave = async () => {
-        if (!selectedUnionId || matchingResults.length === 0) return;
-
-        setIsSaving(true);
-        setSaveResult(null);
-        
-        try {
-            // 대량 데이터는 비동기 처리
-            if (matchingResults.length >= ASYNC_THRESHOLD) {
-                const response = await fetch('/api/member-invite/pre-register', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        unionId: selectedUnionId,
-                        members: matchingResults,
-                    }),
-                });
-                
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || '비동기 저장 요청에 실패했습니다.');
-                }
-                
-                const result = await response.json();
-                setCurrentJobId(result.jobId);
-                // 비동기 처리 시작됨 - UI는 jobStatus로 업데이트됨
-            } else {
-                // 소량 데이터는 기존 동기 처리
-                const result = await savePreRegisteredMembers(selectedUnionId, matchingResults);
-                setSaveResult({
-                    success: result.success,
-                    savedCount: result.savedCount,
-                    errors: result.errors,
-                });
-
-                if (result.savedCount > 0) {
-                    await fetchMembers();
-                    setUploadedData([]);
-                    setMatchingResults([]);
-                }
-            }
-        } catch (error) {
-            console.error('Save error:', error);
-            alert('저장 중 오류가 발생했습니다.');
-        } finally {
-            setIsSaving(false);
         }
     };
 
@@ -437,9 +404,6 @@ export default function MemberManagementPage() {
             member.property_address_jibun?.toLowerCase().includes(term)
         );
     });
-
-    const matchedCount = matchingResults.filter((r) => r.matched).length;
-    const unmatchedCount = matchingResults.filter((r) => !r.matched).length;
 
     return (
         <div className="space-y-6">
@@ -526,166 +490,114 @@ export default function MemberManagementPage() {
                                 </div>
                             </div>
 
-                            {/* 업로드된 데이터 미리보기 */}
-                            {uploadedData.length > 0 && (
-                                <div className="mt-4 space-y-4">
-                                    <div className="flex items-center justify-between">
-                                        <p className="text-sm text-slate-300">
-                                            업로드된 데이터: {uploadedData.length}건
-                                        </p>
-                                        <Button
-                                            onClick={handleMatch}
-                                            disabled={isMatching}
-                                            className="bg-emerald-600 hover:bg-emerald-700"
-                                        >
-                                            <Search className="w-4 h-4 mr-2" />
-                                            {isMatching ? 'GIS 매칭 중...' : 'GIS 매칭 시작'}
-                                        </Button>
-                                    </div>
-
-                                    {/* 매칭 결과 */}
-                                    {matchingResults.length > 0 && (
-                                        <div className="space-y-4">
-                                            <div className="flex items-center gap-4">
-                                                <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
-                                                    <CheckCircle className="w-3 h-3 mr-1" />
-                                                    매칭됨: {matchedCount}건
-                                                </Badge>
-                                                <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30">
-                                                    <AlertTriangle className="w-3 h-3 mr-1" />
-                                                    비매칭: {unmatchedCount}건
-                                                </Badge>
-                                            </div>
-
-                                            <div className="max-h-64 overflow-auto rounded-lg border border-slate-700">
-                                                <Table>
-                                                    <TableHeader className="bg-slate-900/50 sticky top-0">
-                                                        <TableRow className="border-slate-700 hover:bg-transparent">
-                                                            <TableHead className="text-slate-400">상태</TableHead>
-                                                            <TableHead className="text-slate-400">소유주명</TableHead>
-                                                            <TableHead className="text-slate-400">소유지 지번</TableHead>
-                                                            <TableHead className="text-slate-400">동/호수</TableHead>
-                                                            <TableHead className="text-slate-400">매칭된 PNU</TableHead>
-                                                        </TableRow>
-                                                    </TableHeader>
-                                                    <TableBody>
-                                                        {matchingResults.map((result, idx) => (
-                                                            <TableRow key={idx} className="border-slate-700">
-                                                                <TableCell>
-                                                                    {result.matched ? (
-                                                                        <CheckCircle className="w-5 h-5 text-emerald-400" />
-                                                                    ) : (
-                                                                        <XCircle className="w-5 h-5 text-amber-400" />
-                                                                    )}
-                                                                </TableCell>
-                                                                <TableCell className="text-white">{result.row.name}</TableCell>
-                                                                <TableCell className="text-slate-300">{result.row.propertyAddress}</TableCell>
-                                                                <TableCell className="text-slate-300">
-                                                                    {result.row.dong && result.row.ho
-                                                                        ? `${result.row.dong}동 ${result.row.ho}호`
-                                                                        : '-'}
-                                                                </TableCell>
-                                                                <TableCell className="text-slate-300 font-mono text-xs">
-                                                                    {result.pnu || '-'}
-                                                                </TableCell>
-                                                            </TableRow>
-                                                        ))}
-                                                    </TableBody>
-                                                </Table>
-                                            </div>
-
-                                            <div className="flex items-center gap-4">
-                                                <Button
-                                                    onClick={handleSave}
-                                                    disabled={isSaving || !!currentJobId}
-                                                    className="bg-blue-600 hover:bg-blue-700"
-                                                >
-                                                    {isSaving ? (
-                                                        <>
-                                                            <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                                                            저장 중...
-                                                        </>
-                                                    ) : (
-                                                        '사전 등록 저장'
-                                                    )}
-                                                </Button>
-
-                                                <Button
-                                                    variant="outline"
-                                                    onClick={() => {
-                                                        setUploadedData([]);
-                                                        setMatchingResults([]);
-                                                        setSaveResult(null);
-                                                        setCurrentJobId(null);
-                                                    }}
-                                                    disabled={!!currentJobId && jobStatus?.status === 'processing'}
-                                                    className="border-slate-600 text-slate-300 hover:bg-slate-700"
-                                                >
-                                                    초기화
-                                                </Button>
-                                                
-                                                {matchingResults.length >= ASYNC_THRESHOLD && (
-                                                    <span className="text-xs text-amber-400">
-                                                        * {ASYNC_THRESHOLD}건 이상은 백그라운드에서 처리됩니다
-                                                    </span>
+                            {/* 비동기 처리 진행률 표시 */}
+                            {currentJobId && jobStatus && (
+                                <div className="mt-4 p-4 bg-blue-900/30 rounded-lg border border-blue-500/30">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <div className="flex items-center gap-2">
+                                            {(jobStatus.status === 'processing' || jobStatus.status === 'pending') && (
+                                                <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />
+                                            )}
+                                            <span className="text-sm font-medium text-blue-300">
+                                                {jobStatus.status === 'pending' && '대기 중...'}
+                                                {jobStatus.status === 'processing' && (
+                                                    jobStatus.result?.phase === 'MATCHING' 
+                                                        ? 'GIS 매칭 중...' 
+                                                        : jobStatus.result?.phase === 'SAVING'
+                                                            ? 'DB 저장 중...'
+                                                            : '처리 중...'
                                                 )}
-                                            </div>
-                                            
-                                            {/* 비동기 처리 진행률 표시 */}
-                                            {currentJobId && jobStatus && (
-                                                <div className="mt-4 p-4 bg-blue-900/30 rounded-lg border border-blue-500/30">
-                                                    <div className="flex items-center justify-between mb-2">
-                                                        <div className="flex items-center gap-2">
-                                                            {jobStatus.status === 'processing' && (
-                                                                <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />
-                                                            )}
-                                                            {jobStatus.status === 'pending' && (
-                                                                <Clock className="w-4 h-4 text-yellow-400" />
-                                                            )}
-                                                            <span className="text-sm font-medium text-blue-300">
-                                                                {jobStatus.status === 'pending' && '대기 중...'}
-                                                                {jobStatus.status === 'processing' && '사전 등록 처리 중...'}
-                                                            </span>
-                                                        </div>
-                                                        <span className="text-sm font-semibold text-blue-300">
-                                                            {jobStatus.progress}%
-                                                        </span>
-                                                    </div>
-                                                    <div className="w-full bg-blue-900 rounded-full h-2">
-                                                        <div 
-                                                            className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                                                            style={{ width: `${jobStatus.progress}%` }}
-                                                        />
-                                                    </div>
-                                                    <p className="mt-2 text-xs text-blue-400">
-                                                        총 {jobStatus.totalCount}명 중 {jobStatus.processedCount || 0}명 처리됨
-                                                    </p>
-                                                </div>
-                                            )}
-
-                                            {/* 저장 결과 */}
-                                            {saveResult && (
-                                                <div
-                                                    className={`p-4 rounded-lg ${
-                                                        saveResult.success
-                                                            ? 'bg-emerald-500/20 border border-emerald-500/30'
-                                                            : 'bg-amber-500/20 border border-amber-500/30'
-                                                    }`}
-                                                >
-                                                    <p className={saveResult.success ? 'text-emerald-400' : 'text-amber-400'}>
-                                                        {saveResult.savedCount}건이 저장되었습니다.
-                                                    </p>
-                                                    {saveResult.errors.length > 0 && (
-                                                        <ul className="mt-2 text-sm text-amber-300 list-disc list-inside">
-                                                            {saveResult.errors.map((err, idx) => (
-                                                                <li key={idx}>{err}</li>
-                                                            ))}
-                                                        </ul>
-                                                    )}
-                                                </div>
-                                            )}
+                                            </span>
                                         </div>
+                                        <span className="text-sm font-semibold text-blue-300">
+                                            {jobStatus.progress}%
+                                        </span>
+                                    </div>
+                                    <div className="w-full bg-blue-900 rounded-full h-2">
+                                        <div 
+                                            className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                                            style={{ width: `${jobStatus.progress}%` }}
+                                        />
+                                    </div>
+                                    <div className="mt-2 flex flex-wrap gap-4 text-xs text-blue-400">
+                                        <span>총 {jobStatus.totalCount || uploadedCount}건</span>
+                                        {jobStatus.result?.matchedCount !== undefined && (
+                                            <span className="text-emerald-400">
+                                                <CheckCircle className="w-3 h-3 inline mr-1" />
+                                                매칭: {jobStatus.result.matchedCount}건
+                                            </span>
+                                        )}
+                                        {jobStatus.result?.unmatchedCount !== undefined && (
+                                            <span className="text-amber-400">
+                                                <AlertTriangle className="w-3 h-3 inline mr-1" />
+                                                비매칭: {jobStatus.result.unmatchedCount}건
+                                            </span>
+                                        )}
+                                        {jobStatus.result?.savedCount !== undefined && (
+                                            <span className="text-emerald-400">
+                                                저장됨: {jobStatus.result.savedCount}건
+                                            </span>
+                                        )}
+                                        {jobStatus.result?.duplicateCount !== undefined && jobStatus.result.duplicateCount > 0 && (
+                                            <span className="text-amber-400">
+                                                중복: {jobStatus.result.duplicateCount}건
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                            
+                            {/* 처리 결과 표시 */}
+                            {saveResult && !currentJobId && (
+                                <div
+                                    className={`mt-4 p-4 rounded-lg ${
+                                        saveResult.success
+                                            ? 'bg-emerald-500/20 border border-emerald-500/30'
+                                            : 'bg-amber-500/20 border border-amber-500/30'
+                                    }`}
+                                >
+                                    <div className="flex flex-wrap gap-4 mb-2">
+                                        <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
+                                            <CheckCircle className="w-3 h-3 mr-1" />
+                                            매칭됨: {saveResult.matchedCount}건
+                                        </Badge>
+                                        <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30">
+                                            <AlertTriangle className="w-3 h-3 mr-1" />
+                                            비매칭: {saveResult.unmatchedCount}건
+                                        </Badge>
+                                        {saveResult.duplicateCount > 0 && (
+                                            <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30">
+                                                <XCircle className="w-3 h-3 mr-1" />
+                                                중복: {saveResult.duplicateCount}건
+                                            </Badge>
+                                        )}
+                                    </div>
+                                    <p className={`font-medium ${saveResult.success ? 'text-emerald-400' : 'text-amber-400'}`}>
+                                        {saveResult.savedCount}건이 저장되었습니다.
+                                    </p>
+                                    {saveResult.errors.length > 0 && (
+                                        <details className="mt-2">
+                                            <summary className="text-sm text-amber-300 cursor-pointer">
+                                                오류 목록 ({saveResult.errors.length}건)
+                                            </summary>
+                                            <ul className="mt-2 text-sm text-amber-300 list-disc list-inside max-h-32 overflow-auto">
+                                                {saveResult.errors.slice(0, 20).map((err, idx) => (
+                                                    <li key={idx}>{err}</li>
+                                                ))}
+                                                {saveResult.errors.length > 20 && (
+                                                    <li>외 {saveResult.errors.length - 20}건...</li>
+                                                )}
+                                            </ul>
+                                        </details>
                                     )}
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={resetUploadState}
+                                        className="mt-3 border-slate-600 text-slate-300 hover:bg-slate-700"
+                                    >
+                                        확인
+                                    </Button>
                                 </div>
                             )}
                         </CardContent>
