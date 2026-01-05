@@ -3,6 +3,7 @@ export type {
     ColumnDef,
     DataTableProps,
     PaginationProps,
+    InfiniteScrollProps,
     SelectableProps,
     ActionsProps,
     TableVariant,

@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Search, Users, AlertTriangle, Ban, CheckCircle, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { useApprovedMembers, MemberWithLandInfo } from '@/app/_lib/features/member-management/api/useMemberHook';
+import { useApprovedMembersInfinite, MemberWithLandInfo } from '@/app/_lib/features/member-management/api/useMemberHook';
 import { useLogAccessEvent } from '@/app/_lib/features/member-management/api/useAccessLogHook';
 import useMemberStore, { BlockedFilter } from '@/app/_lib/features/member-management/model/useMemberStore';
 import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
@@ -39,7 +39,8 @@ export default function MemberListTab() {
     const unionId = union?.id;
 
     // Store 상태
-    const { filter, page, pageSize, setFilter, setPage } = useMemberStore();
+    const { filter, setFilter } = useMemberStore();
+    const pageSize = 20;
 
     // 로컬 상태
     const [searchInput, setSearchInput] = useState(filter.searchQuery);
@@ -47,21 +48,34 @@ export default function MemberListTab() {
     const [showEditModal, setShowEditModal] = useState(false);
     const [showBlockModal, setShowBlockModal] = useState(false);
 
-    // API 호출
-    const { data, isLoading, refetch } = useApprovedMembers({
+    // API 호출 (무한 스크롤)
+    const {
+        data,
+        isLoading,
+        refetch,
+        fetchNextPage,
+        hasNextPage,
+        isFetchingNextPage,
+    } = useApprovedMembersInfinite({
         unionId,
         searchQuery: filter.searchQuery,
         blockedFilter: filter.blockedFilter,
-        page,
         pageSize,
     });
+
+    // 페이지 데이터 평탄화
+    const members = useMemo(() => {
+        return data?.pages.flatMap((page) => page.members) || [];
+    }, [data?.pages]);
+
+    const totalCount = data?.pages[0]?.total || 0;
 
     // 접속 로그 기록
     const { mutate: logAccessEvent } = useLogAccessEvent();
 
-    // 목록 조회 시 로그 기록 (페이지 변경 시마다)
+    // 목록 조회 시 로그 기록 (첫 로드 시)
     useEffect(() => {
-        if (unionId && user?.id && user?.name && data?.members && data.members.length > 0) {
+        if (unionId && user?.id && user?.name && members.length > 0) {
             logAccessEvent({
                 unionId,
                 viewerId: user.id,
@@ -70,9 +84,7 @@ export default function MemberListTab() {
             });
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [unionId, user?.id, user?.name, page, filter.searchQuery, filter.blockedFilter]);
-
-    const totalPages = Math.ceil((data?.total || 0) / pageSize);
+    }, [unionId, user?.id, user?.name, filter.searchQuery, filter.blockedFilter]);
 
     // 테이블 컬럼 정의
     const memberColumns: ColumnDef<MemberWithLandInfo>[] = useMemo(
@@ -81,7 +93,7 @@ export default function MemberListTab() {
                 key: 'rowNumber',
                 header: '번호',
                 width: '60px',
-                render: (_, __, index) => (page - 1) * pageSize + index + 1,
+                render: (_, __, index) => index + 1,
             },
             {
                 key: 'name',
@@ -185,7 +197,7 @@ export default function MemberListTab() {
                     ),
             },
         ],
-        [page, pageSize]
+        []
     );
 
     // 검색 실행
@@ -293,14 +305,14 @@ export default function MemberListTab() {
                         </div>
                         <div>
                             <h2 className="text-lg font-semibold text-gray-900">조합원 목록</h2>
-                            <p className="text-sm text-gray-600">총 {data?.total || 0}명</p>
+                            <p className="text-sm text-gray-600">총 {totalCount}명</p>
                         </div>
                     </div>
                 </div>
 
                 {/* 테이블 */}
                 <DataTable<MemberWithLandInfo>
-                    data={data?.members || []}
+                    data={members}
                     columns={memberColumns}
                     keyExtractor={(row) => row.id}
                     isLoading={isLoading}
@@ -308,12 +320,11 @@ export default function MemberListTab() {
                     emptyIcon={<Users className="w-12 h-12 text-gray-300" />}
                     onRowClick={handleMemberClick}
                     getRowClassName={(row) => (row.is_blocked ? 'bg-red-50/50' : '')}
-                    pagination={{
-                        currentPage: page,
-                        totalPages,
-                        totalItems: data?.total || 0,
-                        pageSize,
-                        onPageChange: setPage,
+                    infiniteScroll={{
+                        hasNextPage: hasNextPage ?? false,
+                        isFetchingNextPage,
+                        fetchNextPage,
+                        totalItems: totalCount,
                     }}
                     minWidth="900px"
                 />

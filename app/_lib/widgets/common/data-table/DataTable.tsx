@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
     Table,
     TableBody,
@@ -11,8 +11,9 @@ import {
 } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ChevronLeft, ChevronRight, Inbox } from 'lucide-react';
+import { Inbox, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useInView } from 'react-intersection-observer';
 import { DataTableProps, TableStyles, TableVariant } from './types';
 
 /**
@@ -76,7 +77,8 @@ export function DataTable<T extends object>({
     isLoading = false,
     emptyMessage = '데이터가 없습니다.',
     emptyIcon,
-    pagination,
+    pagination: _pagination,
+    infiniteScroll,
     onRowClick,
     getRowClassName,
     selectable,
@@ -88,6 +90,19 @@ export function DataTable<T extends object>({
     renderLoading,
 }: DataTableProps<T>) {
     const styles = variantStyles[variant];
+
+    // 무한 스크롤: Intersection Observer 설정
+    const { ref: loadMoreRef, inView } = useInView({
+        threshold: 0,
+        rootMargin: '100px',
+    });
+
+    // 무한 스크롤: 하단 도달 시 자동으로 다음 페이지 로드
+    useEffect(() => {
+        if (infiniteScroll && inView && infiniteScroll.hasNextPage && !infiniteScroll.isFetchingNextPage) {
+            infiniteScroll.fetchNextPage();
+        }
+    }, [inView, infiniteScroll]);
 
     // 전체 선택 상태 계산
     const selectableRows = selectable?.isSelectable
@@ -314,49 +329,28 @@ export function DataTable<T extends object>({
                 </Table>
             </div>
 
-            {/* 페이지네이션 */}
-            {pagination && pagination.totalPages > 1 && (
-                <div className="flex items-center justify-between px-4 py-4 border-t border-gray-100">
-                    <div className="text-[14px] text-gray-600">
-                        총 {pagination.totalItems}건 중{' '}
-                        {(pagination.currentPage - 1) * pagination.pageSize + 1}-
-                        {Math.min(
-                            pagination.currentPage * pagination.pageSize,
-                            pagination.totalItems
-                        )}
-                        건
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <button
-                            type="button"
-                            onClick={() =>
-                                pagination.onPageChange(
-                                    Math.max(1, pagination.currentPage - 1)
-                                )
-                            }
-                            disabled={pagination.currentPage === 1}
-                            className="p-2 rounded-lg border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 cursor-pointer transition-colors"
-                            aria-label="이전 페이지"
-                        >
-                            <ChevronLeft className="w-5 h-5" />
-                        </button>
-                        <span className="text-[14px] text-gray-900 font-medium px-2">
-                            {pagination.currentPage} / {pagination.totalPages}
-                        </span>
-                        <button
-                            type="button"
-                            onClick={() =>
-                                pagination.onPageChange(
-                                    Math.min(pagination.totalPages, pagination.currentPage + 1)
-                                )
-                            }
-                            disabled={pagination.currentPage === pagination.totalPages}
-                            className="p-2 rounded-lg border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 cursor-pointer transition-colors"
-                            aria-label="다음 페이지"
-                        >
-                            <ChevronRight className="w-5 h-5" />
-                        </button>
-                    </div>
+            {/* 무한 스크롤 로딩 영역 */}
+            {infiniteScroll && (
+                <div
+                    ref={loadMoreRef}
+                    className="flex items-center justify-center py-4 border-t border-gray-100"
+                >
+                    {infiniteScroll.isFetchingNextPage ? (
+                        <div className="flex items-center gap-2 text-gray-500">
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                            <span className="text-[14px]">데이터를 불러오는 중...</span>
+                        </div>
+                    ) : infiniteScroll.hasNextPage ? (
+                        <div className="text-[14px] text-gray-400">
+                            스크롤하여 더 보기
+                        </div>
+                    ) : data.length > 0 ? (
+                        <div className="text-[14px] text-gray-400">
+                            {infiniteScroll.totalItems 
+                                ? `총 ${infiniteScroll.totalItems}건 모두 로드됨`
+                                : '모든 데이터를 불러왔습니다'}
+                        </div>
+                    ) : null}
                 </div>
             )}
         </div>
