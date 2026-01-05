@@ -7,14 +7,6 @@ import { ActionButton } from '@/app/_lib/widgets/common/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
-import {
     Dialog,
     DialogContent,
     DialogHeader,
@@ -30,6 +22,8 @@ import {
 import useAlimtalkPricingStore from '@/app/_lib/features/alimtalk/model/useAlimtalkPricingStore';
 import { AlertCircle, Wallet, Edit2, MessageSquare, Phone, FileText } from 'lucide-react';
 import Link from 'next/link';
+import { DataTable, ColumnDef } from '@/app/_lib/widgets/common/data-table';
+import { AlimtalkPricing } from '@/app/_lib/shared/type/database.types';
 
 // 메시지 타입 한글 변환
 function getMessageTypeLabel(type: string): string {
@@ -76,6 +70,37 @@ function formatDate(dateString: string): string {
         day: '2-digit',
     });
 }
+
+// 단가 이력 테이블 컬럼 정의
+const pricingColumns: ColumnDef<AlimtalkPricing>[] = [
+    {
+        key: 'message_type',
+        header: '발송 유형',
+        render: (value) => (
+            <div className="flex items-center gap-2">
+                {getMessageTypeIcon(value as string)}
+                {getMessageTypeLabel(value as string)}
+            </div>
+        ),
+    },
+    {
+        key: 'unit_price',
+        header: '단가',
+        className: 'font-medium',
+        render: (value) => formatCost(value as number),
+    },
+    {
+        key: 'effective_from',
+        header: '적용 시작일',
+        render: (value) => formatDate(value as string),
+    },
+    {
+        key: 'created_at',
+        header: '등록일',
+        className: 'text-muted-foreground',
+        render: (value) => formatDate(value as string),
+    },
+];
 
 export default function SystemAdminPricingPage() {
     // 단가 목록 조회
@@ -208,50 +233,15 @@ export default function SystemAdminPricingPage() {
                             <CardTitle>단가 변경 이력</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            {isLoading ? (
-                                <div className="space-y-3">
-                                    {[...Array(5)].map((_, i) => (
-                                        <Skeleton key={i} className="h-12 w-full" />
-                                    ))}
-                                </div>
-                            ) : pricingList.length === 0 ? (
-                                <div className="text-center py-8">
-                                    <Wallet className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                                    <p className="text-muted-foreground">단가 이력이 없습니다.</p>
-                                </div>
-                            ) : (
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>발송 유형</TableHead>
-                                            <TableHead>단가</TableHead>
-                                            <TableHead>적용 시작일</TableHead>
-                                            <TableHead>등록일</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {pricingList.map((pricing) => (
-                                            <TableRow key={pricing.id}>
-                                                <TableCell>
-                                                    <div className="flex items-center gap-2">
-                                                        {getMessageTypeIcon(pricing.message_type)}
-                                                        {getMessageTypeLabel(pricing.message_type)}
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell className="font-medium">
-                                                    {formatCost(pricing.unit_price)}
-                                                </TableCell>
-                                                <TableCell>
-                                                    {formatDate(pricing.effective_from)}
-                                                </TableCell>
-                                                <TableCell className="text-muted-foreground">
-                                                    {formatDate(pricing.created_at)}
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            )}
+                            <DataTable<AlimtalkPricing>
+                                data={pricingList}
+                                columns={pricingColumns}
+                                keyExtractor={(row) => row.id}
+                                isLoading={isLoading}
+                                emptyMessage="단가 이력이 없습니다."
+                                emptyIcon={<Wallet className="w-12 h-12 text-muted-foreground" />}
+                                minWidth="600px"
+                            />
                         </CardContent>
                     </Card>
 

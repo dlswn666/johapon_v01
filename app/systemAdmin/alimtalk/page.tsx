@@ -12,20 +12,11 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
-import {
     Dialog,
     DialogContent,
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAllAlimtalkLogs } from '@/app/_lib/features/alimtalk/api/useAlimtalkLogHook';
 import useAlimtalkLogStore from '@/app/_lib/features/alimtalk/model/useAlimtalkLogStore';
@@ -41,6 +32,7 @@ import {
     Building2,
 } from 'lucide-react';
 import Link from 'next/link';
+import { DataTable, ColumnDef } from '@/app/_lib/widgets/common/data-table';
 
 // 비용 포맷
 function formatCost(cost: number): string {
@@ -73,6 +65,71 @@ function calculateSuccessRate(
     const rate = ((kakaoCount + smsCount) / total) * 100;
     return `${rate.toFixed(1)}%`;
 }
+
+// 알림톡 로그 테이블 컬럼 정의
+const logColumns: ColumnDef<AlimtalkLogWithUnion>[] = [
+    {
+        key: 'sent_at',
+        header: '일시',
+        render: (value) => formatDate(value as string),
+    },
+    {
+        key: 'union',
+        header: '조합명',
+        accessor: (row) => row.union?.name || '-',
+        render: (value) => (
+            <div className="flex items-center gap-1">
+                <Building2 className="w-4 h-4 text-muted-foreground" />
+                {value as string}
+            </div>
+        ),
+    },
+    {
+        key: 'sender_channel_name',
+        header: '발송채널',
+        render: (value) => (
+            <span className="flex items-center gap-1">
+                {value as string}
+                {value === '조합온' && <span className="text-blue-500">🔷</span>}
+            </span>
+        ),
+    },
+    {
+        key: 'template_name',
+        header: '템플릿명',
+        render: (value) => (value as string) || '-',
+    },
+    {
+        key: 'kakao_success_count',
+        header: '카카오',
+        align: 'center',
+        render: (value) => (
+            <span className="text-yellow-600 font-medium">{(value as number) || 0}</span>
+        ),
+    },
+    {
+        key: 'sms_success_count',
+        header: '문자',
+        align: 'center',
+        render: (value) => (
+            <span className="text-blue-600 font-medium">{(value as number) || 0}</span>
+        ),
+    },
+    {
+        key: 'fail_count',
+        header: '실패',
+        align: 'center',
+        render: (value) => (
+            <span className="text-red-600 font-medium">{value as number}</span>
+        ),
+    },
+    {
+        key: 'estimated_cost',
+        header: '비용',
+        align: 'right',
+        render: (value) => formatCost((value as number) || 0),
+    },
+];
 
 export default function SystemAdminAlimtalkPage() {
     // 조합 목록 조회
@@ -264,89 +321,33 @@ export default function SystemAdminAlimtalkPage() {
                     {/* 로그 테이블 */}
                     <Card>
                         <CardContent className="pt-6">
-                            {isLoading ? (
-                                <div className="space-y-3">
-                                    {[...Array(5)].map((_, i) => (
-                                        <Skeleton key={i} className="h-12 w-full" />
-                                    ))}
-                                </div>
-                            ) : error ? (
+                            {error ? (
                                 <div className="text-center py-12">
                                     <AlertCircle className="w-12 h-12 mx-auto text-red-500 mb-4" />
                                     <p className="text-red-500">데이터를 불러오는데 실패했습니다.</p>
                                 </div>
-                            ) : logs.length === 0 ? (
-                                <div className="text-center py-12">
-                                    <MessageSquare className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                                    <p className="text-muted-foreground">발송 내역이 없습니다.</p>
-                                </div>
                             ) : (
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>일시</TableHead>
-                                            <TableHead>조합명</TableHead>
-                                            <TableHead>발송채널</TableHead>
-                                            <TableHead>템플릿명</TableHead>
-                                            <TableHead className="text-center">카카오</TableHead>
-                                            <TableHead className="text-center">문자</TableHead>
-                                            <TableHead className="text-center">실패</TableHead>
-                                            <TableHead className="text-right">비용</TableHead>
-                                            <TableHead></TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {logs.map((log) => (
-                                            <TableRow key={log.id}>
-                                                <TableCell className="whitespace-nowrap">
-                                                    {formatDate(log.sent_at)}
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="flex items-center gap-1">
-                                                        <Building2 className="w-4 h-4 text-muted-foreground" />
-                                                        {log.union?.name || '-'}
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <span className="flex items-center gap-1">
-                                                        {log.sender_channel_name}
-                                                        {log.sender_channel_name === '조합온' && (
-                                                            <span className="text-blue-500">🔷</span>
-                                                        )}
-                                                    </span>
-                                                </TableCell>
-                                                <TableCell>{log.template_name || '-'}</TableCell>
-                                                <TableCell className="text-center">
-                                                    <span className="text-yellow-600 font-medium">
-                                                        {log.kakao_success_count || 0}
-                                                    </span>
-                                                </TableCell>
-                                                <TableCell className="text-center">
-                                                    <span className="text-blue-600 font-medium">
-                                                        {log.sms_success_count || 0}
-                                                    </span>
-                                                </TableCell>
-                                                <TableCell className="text-center">
-                                                    <span className="text-red-600 font-medium">
-                                                        {log.fail_count}
-                                                    </span>
-                                                </TableCell>
-                                                <TableCell className="text-right whitespace-nowrap">
-                                                    {formatCost(log.estimated_cost || 0)}
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={() => handleViewDetail(log)}
-                                                    >
-                                                        상세
-                                                    </Button>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
+                                <DataTable<AlimtalkLogWithUnion>
+                                    data={logs}
+                                    columns={logColumns}
+                                    keyExtractor={(row) => row.id}
+                                    isLoading={isLoading}
+                                    emptyMessage="발송 내역이 없습니다."
+                                    emptyIcon={<MessageSquare className="w-12 h-12 text-muted-foreground" />}
+                                    actions={{
+                                        render: (log) => (
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => handleViewDetail(log)}
+                                            >
+                                                상세
+                                            </Button>
+                                        ),
+                                        headerText: '',
+                                    }}
+                                    minWidth="900px"
+                                />
                             )}
                         </CardContent>
                     </Card>

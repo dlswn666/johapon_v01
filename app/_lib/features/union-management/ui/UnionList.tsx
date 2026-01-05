@@ -3,14 +3,13 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { Search, Plus, CheckCircle2, XCircle } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Search, Plus, CheckCircle2, XCircle, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { UnionWithActive } from '../model/useUnionManagementStore';
+import { DataTable, ColumnDef } from '@/app/_lib/widgets/common/data-table';
 
 interface UnionListProps {
     unions: UnionWithActive[];
@@ -21,6 +20,74 @@ interface UnionListProps {
     onFilterChange: (status: 'all' | 'active' | 'inactive') => void;
     onSearch: () => void;
 }
+
+// 날짜 포맷 함수
+function formatDate(dateString: string) {
+    return new Date(dateString).toLocaleDateString('ko-KR', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+    });
+}
+
+// 조합 목록 테이블 컬럼 정의
+const unionColumns: ColumnDef<UnionWithActive>[] = [
+    {
+        key: 'name',
+        header: '조합명',
+        className: 'font-medium',
+        render: (_, row) => (
+            <div className="flex items-center gap-2">
+                {row.logo_url && (
+                    <div className="relative w-8 h-8">
+                        <Image
+                            src={row.logo_url}
+                            alt={row.name}
+                            fill
+                            className="rounded-full object-cover"
+                        />
+                    </div>
+                )}
+                {row.name}
+            </div>
+        ),
+    },
+    {
+        key: 'address',
+        header: '주소',
+        className: 'text-gray-600',
+        render: (value) => (value as string) || '-',
+    },
+    {
+        key: 'phone',
+        header: '전화번호',
+        className: 'text-gray-600',
+        render: (value) => (value as string) || '-',
+    },
+    {
+        key: 'is_active',
+        header: '활성 여부',
+        align: 'center',
+        render: (value) =>
+            value ? (
+                <div className="inline-flex items-center gap-1 px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-medium">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    활성
+                </div>
+            ) : (
+                <div className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-medium">
+                    <XCircle className="w-3.5 h-3.5" />
+                    비활성
+                </div>
+            ),
+    },
+    {
+        key: 'created_at',
+        header: '생성일',
+        className: 'text-gray-600',
+        render: (value) => formatDate(value as string),
+    },
+];
 
 export default function UnionList({
     unions,
@@ -33,8 +100,8 @@ export default function UnionList({
 }: UnionListProps) {
     const router = useRouter();
 
-    const handleRowClick = (unionId: string) => {
-        router.push(`/admin/unions/${unionId}`);
+    const handleRowClick = (union: UnionWithActive) => {
+        router.push(`/admin/unions/${union.id}`);
     };
 
     const handleAddClick = () => {
@@ -45,14 +112,6 @@ export default function UnionList({
         if (e.key === 'Enter') {
             onSearch();
         }
-    };
-
-    const formatDate = (dateString: string) => {
-        return new Date(dateString).toLocaleDateString('ko-KR', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-        });
     };
 
     return (
@@ -100,72 +159,17 @@ export default function UnionList({
 
                 {/* 테이블 */}
                 <div className="border rounded-lg overflow-hidden">
-                    <Table>
-                        <TableHeader>
-                            <TableRow className="bg-gray-50">
-                                <TableHead className="font-semibold">조합명</TableHead>
-                                <TableHead className="font-semibold">주소</TableHead>
-                                <TableHead className="font-semibold">전화번호</TableHead>
-                                <TableHead className="font-semibold text-center">활성 여부</TableHead>
-                                <TableHead className="font-semibold">생성일</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {isLoading ? (
-                                <TableRow>
-                                    <TableCell colSpan={5} className="p-0">
-                                        <Skeleton className="h-[400px] w-full rounded-none opacity-50" />
-                                    </TableCell>
-                                </TableRow>
-                            ) : unions.length === 0 ? (
-                                <TableRow>
-                                    <TableCell colSpan={5} className="h-32 text-center text-gray-500">
-                                        조회된 조합이 없습니다.
-                                    </TableCell>
-                                </TableRow>
-                            ) : (
-                                unions.map((union) => (
-                                    <TableRow
-                                        key={union.id}
-                                        onClick={() => handleRowClick(union.id)}
-                                        className="cursor-pointer hover:bg-blue-50 transition-colors"
-                                    >
-                                        <TableCell className="font-medium">
-                                            <div className="flex items-center gap-2">
-                                                {union.logo_url && (
-                                                    <div className="relative w-8 h-8">
-                                                        <Image
-                                                            src={union.logo_url}
-                                                            alt={union.name}
-                                                            fill
-                                                            className="rounded-full object-cover"
-                                                        />
-                                                    </div>
-                                                )}
-                                                {union.name}
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="text-gray-600">{union.address || '-'}</TableCell>
-                                        <TableCell className="text-gray-600">{union.phone || '-'}</TableCell>
-                                        <TableCell className="text-center">
-                                            {union.is_active ? (
-                                                <div className="inline-flex items-center gap-1 px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-medium">
-                                                    <CheckCircle2 className="w-3.5 h-3.5" />
-                                                    활성
-                                                </div>
-                                            ) : (
-                                                <div className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-medium">
-                                                    <XCircle className="w-3.5 h-3.5" />
-                                                    비활성
-                                                </div>
-                                            )}
-                                        </TableCell>
-                                        <TableCell className="text-gray-600">{formatDate(union.created_at)}</TableCell>
-                                    </TableRow>
-                                ))
-                            )}
-                        </TableBody>
-                    </Table>
+                    <DataTable<UnionWithActive>
+                        data={unions}
+                        columns={unionColumns}
+                        keyExtractor={(row) => row.id}
+                        isLoading={isLoading}
+                        emptyMessage="조회된 조합이 없습니다."
+                        emptyIcon={<Building2 className="w-12 h-12 text-gray-300" />}
+                        onRowClick={handleRowClick}
+                        getRowClassName={() => 'hover:bg-blue-50'}
+                        minWidth="700px"
+                    />
                 </div>
             </CardContent>
         </Card>

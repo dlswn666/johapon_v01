@@ -8,8 +8,6 @@ import {
     Calendar,
     Building,
     Trash2,
-    ChevronLeft,
-    ChevronRight,
     User,
     AlertTriangle,
 } from 'lucide-react';
@@ -34,7 +32,79 @@ import {
     useUnionsForFilter,
     ACCESS_TYPE_LABELS,
 } from '@/app/_lib/features/member-management/api/useAccessLogHook';
+import { AccessType } from '@/app/_lib/shared/type/database.types';
 import { SelectBox } from '@/app/_lib/widgets/common/select-box';
+import { DataTable, ColumnDef } from '@/app/_lib/widgets/common/data-table';
+
+// 접속 로그 타입 정의
+interface AccessLog {
+    id: string;
+    union?: { name: string } | null;
+    viewer_name: string;
+    access_type: string;
+    ip_address: string | null;
+    accessed_at: string;
+}
+
+// 날짜 포맷 함수
+function formatDate(dateStr: string) {
+    const date = new Date(dateStr);
+    return date.toLocaleString('ko-KR', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+}
+
+// 접속 로그 테이블 컬럼 정의
+const accessLogColumns: ColumnDef<AccessLog>[] = [
+    {
+        key: 'union',
+        header: '조합',
+        accessor: (row) => row.union?.name || '-',
+    },
+    {
+        key: 'viewer_name',
+        header: '관리자',
+        render: (value) => (
+            <div className="flex items-center gap-2">
+                <User className="w-4 h-4 text-gray-400" />
+                <span className="font-medium text-gray-900">{value as string}</span>
+            </div>
+        ),
+    },
+    {
+        key: 'access_type',
+        header: '접근 유형',
+        render: (value) => (
+            <span
+                className={cn(
+                    'inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium',
+                    value === 'LIST_VIEW' && 'bg-blue-100 text-blue-700',
+                    value === 'DETAIL_VIEW' && 'bg-green-100 text-green-700',
+                    value === 'MEMBER_UPDATE' && 'bg-yellow-100 text-yellow-700',
+                    value === 'MEMBER_BLOCK' && 'bg-red-100 text-red-700'
+                )}
+            >
+                {ACCESS_TYPE_LABELS[value as AccessType]}
+            </span>
+        ),
+    },
+    {
+        key: 'ip_address',
+        header: 'IP 주소',
+        className: 'text-gray-600 font-mono',
+        render: (value) => (value as string) || '-',
+    },
+    {
+        key: 'accessed_at',
+        header: '접속 일시',
+        className: 'text-gray-600',
+        render: (value) => formatDate(value as string),
+    },
+];
 
 export default function AccessLogsPage() {
     const router = useRouter();
@@ -97,18 +167,6 @@ export default function AccessLogsPage() {
             console.error('로그 삭제 오류:', error);
             toast.error('로그 삭제에 실패했습니다.');
         }
-    };
-
-    // 날짜 포맷
-    const formatDate = (dateStr: string) => {
-        const date = new Date(dateStr);
-        return date.toLocaleString('ko-KR', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit',
-        });
     };
 
     // 권한 체크 중
@@ -217,7 +275,7 @@ export default function AccessLogsPage() {
                 </div>
 
                 {/* 로그 목록 */}
-                <div className="bg-white rounded-xl shadow-sm overflow-hidden relative min-h-[400px]">
+                <div className="bg-white rounded-xl shadow-sm overflow-hidden">
                     {/* 헤더 */}
                     <div className="p-6 border-b border-gray-100">
                         <div className="flex items-center gap-3">
@@ -231,118 +289,23 @@ export default function AccessLogsPage() {
                         </div>
                     </div>
 
-                    {/* 로딩 상태 */}
-                    {logsLoading && (
-                        <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] z-10 flex items-center justify-center">
-                            <div className="flex flex-col items-center gap-2">
-                                <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-                                <p className="text-sm font-medium text-gray-500">데이터를 불러오는 중...</p>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* 빈 상태 */}
-                    {!logsLoading && (!logsData?.logs || logsData.logs.length === 0) ? (
-                        <div className="p-8 text-center text-gray-500 text-[18px]">
-                            접속 기록이 없습니다.
-                        </div>
-                    ) : (
-                        <>
-                            {/* 테이블 */}
-                            <div className="overflow-x-auto">
-                                <table className="w-full min-w-[800px]">
-                                    <thead className="bg-gray-50 border-b border-gray-200">
-                                        <tr>
-                                            <th className="px-4 py-4 text-left text-[14px] font-bold text-gray-700">
-                                                조합
-                                            </th>
-                                            <th className="px-4 py-4 text-left text-[14px] font-bold text-gray-700">
-                                                관리자
-                                            </th>
-                                            <th className="px-4 py-4 text-left text-[14px] font-bold text-gray-700">
-                                                접근 유형
-                                            </th>
-                                            <th className="px-4 py-4 text-left text-[14px] font-bold text-gray-700">
-                                                IP 주소
-                                            </th>
-                                            <th className="px-4 py-4 text-left text-[14px] font-bold text-gray-700">
-                                                접속 일시
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-100">
-                                        {logsData?.logs.map((log) => (
-                                            <tr key={log.id} className="hover:bg-gray-50 transition-colors">
-                                                <td className="px-4 py-4 text-[14px] text-gray-900">
-                                                    {log.union?.name || '-'}
-                                                </td>
-                                                <td className="px-4 py-4">
-                                                    <div className="flex items-center gap-2">
-                                                        <User className="w-4 h-4 text-gray-400" />
-                                                        <span className="text-[14px] font-medium text-gray-900">
-                                                            {log.viewer_name}
-                                                        </span>
-                                                    </div>
-                                                </td>
-                                                <td className="px-4 py-4">
-                                                    <span
-                                                        className={cn(
-                                                            'inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium',
-                                                            log.access_type === 'LIST_VIEW' &&
-                                                                'bg-blue-100 text-blue-700',
-                                                            log.access_type === 'DETAIL_VIEW' &&
-                                                                'bg-green-100 text-green-700',
-                                                            log.access_type === 'MEMBER_UPDATE' &&
-                                                                'bg-yellow-100 text-yellow-700',
-                                                            log.access_type === 'MEMBER_BLOCK' &&
-                                                                'bg-red-100 text-red-700'
-                                                        )}
-                                                    >
-                                                        {ACCESS_TYPE_LABELS[log.access_type]}
-                                                    </span>
-                                                </td>
-                                                <td className="px-4 py-4 text-[14px] text-gray-600 font-mono">
-                                                    {log.ip_address || '-'}
-                                                </td>
-                                                <td className="px-4 py-4 text-[14px] text-gray-600">
-                                                    {formatDate(log.accessed_at)}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-
-                            {/* 페이지네이션 */}
-                            {totalPages > 1 && (
-                                <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100">
-                                    <div className="text-[14px] text-gray-600">
-                                        총 {logsData?.total}건 중 {(page - 1) * pageSize + 1}-
-                                        {Math.min(page * pageSize, logsData?.total || 0)}건
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <button
-                                            onClick={() => setPage(Math.max(1, page - 1))}
-                                            disabled={page === 1}
-                                            className="p-2 rounded-lg border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 cursor-pointer"
-                                        >
-                                            <ChevronLeft className="w-5 h-5" />
-                                        </button>
-                                        <span className="text-[14px] text-gray-900 font-medium px-2">
-                                            {page} / {totalPages}
-                                        </span>
-                                        <button
-                                            onClick={() => setPage(Math.min(totalPages, page + 1))}
-                                            disabled={page === totalPages}
-                                            className="p-2 rounded-lg border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 cursor-pointer"
-                                        >
-                                            <ChevronRight className="w-5 h-5" />
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-                        </>
-                    )}
+                    {/* 테이블 */}
+                    <DataTable<AccessLog>
+                        data={(logsData?.logs || []) as AccessLog[]}
+                        columns={accessLogColumns}
+                        keyExtractor={(row) => row.id}
+                        isLoading={logsLoading}
+                        emptyMessage="접속 기록이 없습니다."
+                        emptyIcon={<ClipboardList className="w-12 h-12 text-gray-300" />}
+                        pagination={{
+                            currentPage: page,
+                            totalPages,
+                            totalItems: logsData?.total || 0,
+                            pageSize,
+                            onPageChange: setPage,
+                        }}
+                        minWidth="800px"
+                    />
                 </div>
 
                 {/* 안내 문구 */}

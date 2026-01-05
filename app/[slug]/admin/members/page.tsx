@@ -22,13 +22,10 @@ import {
     Phone,
     MapPin,
     Calendar,
-    ChevronLeft,
-    ChevronRight,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import {
@@ -62,6 +59,7 @@ import ManualInviteModal from './ManualInviteModal';
 import MemberListTab from './MemberListTab';
 import { cn } from '@/lib/utils';
 import { SelectBox } from '@/app/_lib/widgets/common/select-box';
+import { DataTable, ColumnDef } from '@/app/_lib/widgets/common/data-table';
 
 // 탭 타입
 type TabType = 'members' | 'invite' | 'approval';
@@ -650,7 +648,117 @@ export default function MemberManagementPage() {
     ];
 
     const pendingCount = filteredInvites.filter((i) => i.status === 'PENDING').length;
-    const allPendingSelected = pendingCount > 0 && selectedIds.length === pendingCount;
+    const _allPendingSelected = pendingCount > 0 && selectedIds.length === pendingCount;
+
+    // 초대 목록 테이블 컬럼 정의
+    const inviteColumns: ColumnDef<MemberInvite>[] = [
+        {
+            key: 'name',
+            header: '이름',
+            className: 'text-gray-900',
+        },
+        {
+            key: 'phone_number',
+            header: '핸드폰번호',
+            className: 'text-gray-600',
+            render: (value) => maskPhoneNumber(value as string),
+        },
+        {
+            key: 'status',
+            header: '상태',
+            render: (value) => getStatusBadge(value as string),
+        },
+    ];
+
+    // 승인 관리 테이블 컬럼 정의
+    const userColumns: ColumnDef<User>[] = useMemo(
+        () => [
+            {
+                key: 'user_status',
+                header: '상태',
+                render: (value) => (
+                    <span
+                        className={cn(
+                            'inline-flex items-center px-3 py-1 rounded-full text-[12px] font-medium',
+                            USER_STATUS_COLORS[value as UserStatus]
+                        )}
+                    >
+                        {USER_STATUS_LABELS[value as UserStatus]}
+                    </span>
+                ),
+            },
+            {
+                key: 'name',
+                header: '이름',
+                className: 'text-gray-900 font-medium',
+                render: (_, row) => (
+                    <div className="flex flex-col gap-1">
+                        <span className="text-[14px] font-medium text-gray-900">{row.name}</span>
+                        {row.property_pnu && (
+                            <div className="flex items-center gap-1">
+                                {landLotPnuSet.has(row.property_pnu) ? (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                        매칭 완료
+                                    </span>
+                                ) : (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">
+                                        PNU 확인 필요
+                                    </span>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                ),
+            },
+            {
+                key: 'phone_number',
+                header: '전화번호',
+                className: 'text-gray-600',
+                render: (value) => maskPhoneNumber(value as string),
+            },
+            {
+                key: 'address',
+                header: '주소 (물건지/실거주)',
+                className: 'text-gray-600',
+                wrap: true,
+                render: (_, row) => (
+                    <div className="flex flex-col gap-2">
+                        <div>
+                            <div className="font-medium text-gray-900">{row.property_address_road || '-'}</div>
+                            {row.property_address_jibun && (
+                                <div className="text-[12px] text-gray-400 mt-0.5">
+                                    (물건지 지번) {row.property_address_jibun}
+                                </div>
+                            )}
+                        </div>
+                        {(row.resident_address_road || row.resident_address) && (
+                            <div className="pt-1 border-t border-gray-100">
+                                <div className="text-[13px] text-gray-600">
+                                    <span className="text-[11px] bg-[#4E8C6D]/10 text-[#4E8C6D] px-1 rounded mr-1">
+                                        실거주
+                                    </span>
+                                    {row.resident_address_road || row.resident_address}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                ),
+            },
+            {
+                key: 'role',
+                header: '등급',
+                className: 'text-gray-600',
+                render: (value) => USER_ROLE_LABELS[value as string] || (value as string),
+            },
+            {
+                key: 'created_at',
+                header: '가입일',
+                className: 'text-gray-600',
+                render: (value) => new Date(value as string).toLocaleDateString('ko-KR'),
+            },
+        ],
+        [landLotPnuSet]
+    );
 
     if (!union && !unionLoading) {
         return (
@@ -849,94 +957,51 @@ export default function MemberManagementPage() {
                                         </div>
                                     </div>
                                 )}
-                                {filteredInvites.length === 0 && !invitesLoading ? (
-                                    <div className="text-center py-12">
-                                        <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                                        <p className="text-gray-600">초대된 조합원이 없습니다</p>
-                                        <p className="text-sm text-gray-500 mt-1">
-                                            엑셀 파일을 업로드하여 조합원을 추가하세요
-                                        </p>
-                                    </div>
-                                ) : (
-                                    <>
-                                        <div className="overflow-x-auto">
-                                            <table className="w-full">
-                                                <thead className="bg-gray-50 border-b">
-                                                    <tr>
-                                                        <th className="py-3 px-4 text-left">
-                                                            <Checkbox
-                                                                checked={allPendingSelected}
-                                                                onCheckedChange={handleSelectAllPending}
-                                                                disabled={pendingCount === 0}
-                                                                className="border-gray-300"
-                                                            />
-                                                        </th>
-                                                        <th className="py-3 px-4 text-left text-sm font-medium text-gray-700">
-                                                            이름
-                                                        </th>
-                                                        <th className="py-3 px-4 text-left text-sm font-medium text-gray-700">
-                                                            핸드폰번호
-                                                        </th>
-                                                        <th className="py-3 px-4 text-left text-sm font-medium text-gray-700">
-                                                            상태
-                                                        </th>
-                                                        <th className="py-3 px-4 text-center text-sm font-medium text-gray-700">
-                                                            관리
-                                                        </th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="divide-y divide-gray-100">
-                                                    {filteredInvites.map((invite) => (
-                                                        <tr key={invite.id} className="hover:bg-gray-50">
-                                                            <td className="py-3 px-4">
-                                                                <Checkbox
-                                                                    checked={selectedIds.includes(invite.id)}
-                                                                    onCheckedChange={() => toggleSelect(invite.id)}
-                                                                    disabled={invite.status !== 'PENDING'}
-                                                                    className="border-gray-300"
-                                                                />
-                                                            </td>
-                                                            <td className="py-3 px-4 text-sm text-gray-900">
-                                                                {invite.name}
-                                                            </td>
-                                                            <td className="py-3 px-4 text-sm text-gray-600">
-                                                                {maskPhoneNumber(invite.phone_number)}
-                                                            </td>
-                                                            <td className="py-3 px-4">
-                                                                {getStatusBadge(invite.status)}
-                                                            </td>
-                                                            <td className="py-3 px-4 text-center">
-                                                                <button
-                                                                    onClick={() => setDeleteTarget(invite)}
-                                                                    className="p-2 text-gray-500 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-                                                                >
-                                                                    <Trash2 className="w-4 h-4" />
-                                                                </button>
-                                                            </td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
-                                        </div>
-
-                                        <div className="mt-4 flex justify-between items-center border-t pt-4">
-                                            <div className="text-sm text-gray-600">
-                                                {selectedIds.length > 0 && `${selectedIds.length}명 선택됨`}
-                                            </div>
-                                            <Button
-                                                onClick={handleBulkInvite}
-                                                disabled={selectedIds.length === 0 || isSendingAlimtalk}
-                                                className="bg-[#4E8C6D] hover:bg-[#3d7058] text-white"
+                                <DataTable<MemberInvite>
+                                    data={filteredInvites}
+                                    columns={inviteColumns}
+                                    keyExtractor={(row) => row.id}
+                                    isLoading={invitesLoading}
+                                    emptyMessage="초대된 조합원이 없습니다"
+                                    emptyIcon={<Users className="w-12 h-12 text-gray-300" />}
+                                    selectable={{
+                                        selectedKeys: selectedIds,
+                                        onSelect: (key) => toggleSelect(key as string),
+                                        onSelectAll: () => handleSelectAllPending(),
+                                        isSelectable: (row) => (row as MemberInvite).status === 'PENDING',
+                                    }}
+                                    actions={{
+                                        render: (invite) => (
+                                            <button
+                                                onClick={() => setDeleteTarget(invite)}
+                                                className="p-2 text-gray-500 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                                             >
-                                                {isSendingAlimtalk ? (
-                                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                                ) : (
-                                                    <Send className="w-4 h-4 mr-2" />
-                                                )}
-                                                {isSendingAlimtalk ? '발송 중...' : '알림톡 일괄 발송'}
-                                            </Button>
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        ),
+                                        headerText: '관리',
+                                    }}
+                                    minWidth="600px"
+                                />
+                                
+                                {filteredInvites.length > 0 && (
+                                    <div className="mt-4 flex justify-between items-center border-t pt-4">
+                                        <div className="text-sm text-gray-600">
+                                            {selectedIds.length > 0 && `${selectedIds.length}명 선택됨`}
                                         </div>
-                                    </>
+                                        <Button
+                                            onClick={handleBulkInvite}
+                                            disabled={selectedIds.length === 0 || isSendingAlimtalk}
+                                            className="bg-[#4E8C6D] hover:bg-[#3d7058] text-white"
+                                        >
+                                            {isSendingAlimtalk ? (
+                                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                            ) : (
+                                                <Send className="w-4 h-4 mr-2" />
+                                            )}
+                                            {isSendingAlimtalk ? '발송 중...' : '알림톡 일괄 발송'}
+                                        </Button>
+                                    </div>
                                 )}
                             </div>
                         </div>
@@ -1010,148 +1075,27 @@ export default function MemberManagementPage() {
                         </div>
 
                         {/* 사용자 목록 */}
-                        <div className="bg-white rounded-xl shadow-sm overflow-hidden relative min-h-[300px]">
-                            {usersLoading && (
-                                <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] z-10 flex items-center justify-center">
-                                    <div className="flex flex-col items-center gap-2">
-                                        <Loader2 className="w-8 h-8 animate-spin text-[#4E8C6D]" />
-                                        <p className="text-sm font-medium text-gray-500">데이터를 불러오는 중...</p>
-                                    </div>
-                                </div>
-                            )}
-                            {usersData?.users.length === 0 && !usersLoading ? (
-                                <div className="p-8 text-center text-gray-500 text-[18px]">검색 결과가 없습니다.</div>
-                            ) : (
-                                <>
-                                    <div className="overflow-x-auto">
-                                        <table className="w-full min-w-[800px]">
-                                            <thead className="bg-gray-50 border-b border-gray-200">
-                                                <tr>
-                                                    <th className="px-6 py-4 text-left text-[14px] font-bold text-gray-700">
-                                                        상태
-                                                    </th>
-                                                    <th className="px-6 py-4 text-left text-[14px] font-bold text-gray-700">
-                                                        이름
-                                                    </th>
-                                                    <th className="px-6 py-4 text-left text-[14px] font-bold text-gray-700">
-                                                        전화번호
-                                                    </th>
-                                                    <th className="px-6 py-4 text-left text-[14px] font-bold text-gray-700">
-                                                        주소 (물건지/실거주)
-                                                    </th>
-                                                    <th className="px-6 py-4 text-left text-[14px] font-bold text-gray-700">
-                                                        등급
-                                                    </th>
-                                                    <th className="px-6 py-4 text-left text-[14px] font-bold text-gray-700">
-                                                        가입일
-                                                    </th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-gray-100">
-                                                {usersData?.users.map((userData: User) => (
-                                                    <tr
-                                                        key={userData.id}
-                                                        className={cn(
-                                                            'hover:bg-gray-50 cursor-pointer transition-colors',
-                                                            userData.user_status === 'PENDING_APPROVAL' &&
-                                                                'bg-yellow-50/50'
-                                                        )}
-                                                        onClick={() => openUserDetailModal(userData)}
-                                                    >
-                                                        <td className="px-6 py-4 whitespace-nowrap">
-                                                            <span
-                                                                className={cn(
-                                                                    'inline-flex items-center px-3 py-1 rounded-full text-[12px] font-medium',
-                                                                    USER_STATUS_COLORS[userData.user_status]
-                                                                )}
-                                                            >
-                                                                {USER_STATUS_LABELS[userData.user_status]}
-                                                            </span>
-                                                        </td>
-                                                        <td className="px-6 py-4 text-[14px] text-gray-900 font-medium whitespace-nowrap">
-                                                            <div className="flex flex-col gap-1">
-                                                                <span className="text-[14px] font-medium text-gray-900">
-                                                                    {userData.name}
-                                                                </span>
-                                                                {userData.property_pnu && (
-                                                                    <div className="flex items-center gap-1">
-                                                                        {landLotPnuSet.has(userData.property_pnu) ? (
-                                                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                                                                                매칭 완료
-                                                                            </span>
-                                                                        ) : (
-                                                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">
-                                                                                PNU 확인 필요
-                                                                            </span>
-                                                                        )}
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        </td>
-                                                        <td className="px-6 py-4 text-[14px] text-gray-600  whitespace-nowrap">
-                                                            {maskPhoneNumber(userData.phone_number)}
-                                                        </td>
-                                                        <td className="px-6 py-4 text-[14px] text-gray-600">
-                                                            <div className="flex flex-col gap-2">
-                                                                <div>
-                                                                    <div className="font-medium text-gray-900">{userData.property_address_road || '-'}</div>
-                                                                    {userData.property_address_jibun && (
-                                                                        <div className="text-[12px] text-gray-400 mt-0.5">
-                                                                            (물건지 지번) {userData.property_address_jibun}
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                                {(userData.resident_address_road || userData.resident_address) && (
-                                                                    <div className="pt-1 border-t border-gray-100">
-                                                                        <div className="text-[13px] text-gray-600">
-                                                                            <span className="text-[11px] bg-[#4E8C6D]/10 text-[#4E8C6D] px-1 rounded mr-1">실거주</span>
-                                                                            {userData.resident_address_road || userData.resident_address}
-                                                                        </div>
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        </td>
-                                                        <td className="px-6 py-4 text-[14px] text-gray-600 whitespace-nowrap">
-                                                            {USER_ROLE_LABELS[userData.role] || userData.role}
-                                                        </td>
-                                                        <td className="px-6 py-4 text-[14px] text-gray-600 whitespace-nowrap">
-                                                            {new Date(userData.created_at).toLocaleDateString('ko-KR')}
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-
-                                    {totalPages > 1 && (
-                                        <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100">
-                                            <div className="text-[14px] text-gray-600">
-                                                총 {usersData?.total}명 중 {(page - 1) * pageSize + 1}-
-                                                {Math.min(page * pageSize, usersData?.total || 0)}명
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <button
-                                                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                                                    disabled={page === 1}
-                                                    className="p-2 rounded-lg border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 cursor-pointer"
-                                                >
-                                                    <ChevronLeft className="w-5 h-5" />
-                                                </button>
-                                                <span className="text-[14px] text-gray-900 font-medium px-2">
-                                                    {page} / {totalPages}
-                                                </span>
-                                                <button
-                                                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                                                    disabled={page === totalPages}
-                                                    className="p-2 rounded-lg border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 cursor-pointer"
-                                                >
-                                                    <ChevronRight className="w-5 h-5" />
-                                                </button>
-                                            </div>
-                                        </div>
-                                    )}
-                                </>
-                            )}
+                        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+                            <DataTable<User>
+                                data={usersData?.users || []}
+                                columns={userColumns}
+                                keyExtractor={(row) => row.id}
+                                isLoading={usersLoading}
+                                emptyMessage="검색 결과가 없습니다."
+                                emptyIcon={<Users className="w-12 h-12 text-gray-300" />}
+                                onRowClick={openUserDetailModal}
+                                getRowClassName={(row) =>
+                                    row.user_status === 'PENDING_APPROVAL' ? 'bg-yellow-50/50' : ''
+                                }
+                                pagination={{
+                                    currentPage: page,
+                                    totalPages,
+                                    totalItems: usersData?.total || 0,
+                                    pageSize,
+                                    onPageChange: setPage,
+                                }}
+                                minWidth="900px"
+                            />
                         </div>
                     </>
                 )}

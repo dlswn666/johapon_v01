@@ -24,14 +24,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
-import {
     Dialog,
     DialogContent,
     DialogDescription,
@@ -64,6 +56,7 @@ import {
 } from '@/app/_lib/features/gis/actions/memberMatching';
 import { supabase } from '@/app/_lib/shared/supabase/client';
 import { normalizeDong, normalizeHo } from '@/app/_lib/shared/utils/dong-ho-utils';
+import { DataTable, ColumnDef } from '@/app/_lib/widgets/common/data-table';
 
 interface Union {
     id: string;
@@ -82,6 +75,58 @@ interface PreRegisteredMember {
     resident_address: string | null;
     created_at: string;
 }
+
+// 조합원 테이블 컬럼 정의
+const memberColumns: ColumnDef<PreRegisteredMember>[] = [
+    {
+        key: 'property_pnu',
+        header: '매칭',
+        render: (value) =>
+            value ? (
+                <CheckCircle className="w-5 h-5 text-emerald-400" />
+            ) : (
+                <XCircle className="w-5 h-5 text-amber-400" />
+            ),
+    },
+    {
+        key: 'name',
+        header: '소유주명',
+        className: 'text-white font-medium',
+    },
+    {
+        key: 'phone_number',
+        header: '전화번호',
+        className: 'text-slate-300',
+        render: (value) => (value as string) || '-',
+    },
+    {
+        key: 'property_address_jibun',
+        header: '소유지 지번',
+        className: 'text-slate-300 max-w-xs truncate',
+        render: (value) => (value as string) || '-',
+    },
+    {
+        key: 'dong_ho',
+        header: '동/호수',
+        className: 'text-slate-300',
+        accessor: (row) =>
+            row.property_dong && row.property_ho
+                ? `${row.property_dong}동 ${row.property_ho}호`
+                : '-',
+    },
+    {
+        key: 'pnu_display',
+        header: 'PNU',
+        className: 'text-slate-400 font-mono text-xs',
+        accessor: (row) => (row.property_pnu ? row.property_pnu.substring(0, 19) : '-'),
+    },
+    {
+        key: 'created_at',
+        header: '등록일',
+        className: 'text-slate-400 text-sm',
+        render: (value) => new Date(value as string).toLocaleDateString('ko-KR'),
+    },
+];
 
 export default function MemberManagementPage() {
     const router = useRouter();
@@ -642,87 +687,41 @@ export default function MemberManagementPage() {
                             </div>
 
                             <div className="max-h-96 overflow-auto rounded-lg border border-slate-700">
-                                <Table>
-                                    <TableHeader className="bg-slate-900/50 sticky top-0">
-                                        <TableRow className="border-slate-700 hover:bg-transparent">
-                                            <TableHead className="text-slate-400">매칭</TableHead>
-                                            <TableHead className="text-slate-400">소유주명</TableHead>
-                                            <TableHead className="text-slate-400">전화번호</TableHead>
-                                            <TableHead className="text-slate-400">소유지 지번</TableHead>
-                                            <TableHead className="text-slate-400">동/호수</TableHead>
-                                            <TableHead className="text-slate-400">PNU</TableHead>
-                                            <TableHead className="text-slate-400">등록일</TableHead>
-                                            <TableHead className="text-slate-400">작업</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {isLoadingMembers ? (
-                                            <TableRow>
-                                                <TableCell colSpan={8} className="text-center text-slate-400 py-8">
-                                                    로딩 중...
-                                                </TableCell>
-                                            </TableRow>
-                                        ) : filteredMembers.length === 0 ? (
-                                            <TableRow>
-                                                <TableCell colSpan={8} className="text-center text-slate-400 py-8">
-                                                    {searchTerm ? '검색 결과가 없습니다.' : '사전 등록된 조합원이 없습니다.'}
-                                                </TableCell>
-                                            </TableRow>
-                                        ) : (
-                                            filteredMembers.map((member) => (
-                                                <TableRow key={member.id} className="border-slate-700">
-                                                    <TableCell>
-                                                        {member.property_pnu ? (
-                                                            <CheckCircle className="w-5 h-5 text-emerald-400" />
-                                                        ) : (
-                                                            <XCircle className="w-5 h-5 text-amber-400" />
-                                                        )}
-                                                    </TableCell>
-                                                    <TableCell className="text-white font-medium">{member.name}</TableCell>
-                                                    <TableCell className="text-slate-300">
-                                                        {member.phone_number || '-'}
-                                                    </TableCell>
-                                                    <TableCell className="text-slate-300 max-w-xs truncate">
-                                                        {member.property_address_jibun || '-'}
-                                                    </TableCell>
-                                                    <TableCell className="text-slate-300">
-                                                        {member.property_dong && member.property_ho
-                                                            ? `${member.property_dong}동 ${member.property_ho}호`
-                                                            : '-'}
-                                                    </TableCell>
-                                                    <TableCell className="text-slate-400 font-mono text-xs">
-                                                        {member.property_pnu ? member.property_pnu.substring(0, 19) : '-'}
-                                                    </TableCell>
-                                                    <TableCell className="text-slate-400 text-sm">
-                                                        {new Date(member.created_at).toLocaleDateString('ko-KR')}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <div className="flex items-center gap-1">
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                onClick={() => openManualMatchModal(member)}
-                                                                className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/20"
-                                                                title="수동 매칭"
-                                                            >
-                                                                <Edit className="w-4 h-4" />
-                                                            </Button>
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                onClick={() => setDeleteConfirm({ open: true, member })}
-                                                                className="text-red-400 hover:text-red-300 hover:bg-red-500/20"
-                                                                title="삭제"
-                                                            >
-                                                                <Trash2 className="w-4 h-4" />
-                                                            </Button>
-                                                        </div>
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))
-                                        )}
-                                    </TableBody>
-                                </Table>
+                                <DataTable<PreRegisteredMember>
+                                    data={filteredMembers}
+                                    columns={memberColumns}
+                                    keyExtractor={(row) => row.id}
+                                    isLoading={isLoadingMembers}
+                                    emptyMessage={searchTerm ? '검색 결과가 없습니다.' : '사전 등록된 조합원이 없습니다.'}
+                                    emptyIcon={<Users className="w-12 h-12 text-slate-500" />}
+                                    variant="dark"
+                                    actions={{
+                                        render: (member) => (
+                                            <div className="flex items-center gap-1">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => openManualMatchModal(member)}
+                                                    className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/20"
+                                                    title="수동 매칭"
+                                                >
+                                                    <Edit className="w-4 h-4" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => setDeleteConfirm({ open: true, member })}
+                                                    className="text-red-400 hover:text-red-300 hover:bg-red-500/20"
+                                                    title="삭제"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </Button>
+                                            </div>
+                                        ),
+                                        headerText: '작업',
+                                    }}
+                                    minWidth="900px"
+                                />
                             </div>
                         </CardContent>
                     </Card>

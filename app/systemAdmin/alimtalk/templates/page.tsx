@@ -3,20 +3,11 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
-import {
     Dialog,
     DialogContent,
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -39,6 +30,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import Link from 'next/link';
 import { useState } from 'react';
+import { DataTable, ColumnDef } from '@/app/_lib/widgets/common/data-table';
 
 // 상태 배지 컴포넌트
 function StatusBadge({ status }: { status: string | null }) {
@@ -121,6 +113,34 @@ function formatDate(dateString: string | null): string {
         minute: '2-digit',
     });
 }
+
+// 템플릿 테이블 컬럼 정의
+const templateColumns: ColumnDef<AlimtalkTemplate>[] = [
+    {
+        key: 'template_code',
+        header: '템플릿 코드',
+        className: 'font-mono',
+    },
+    {
+        key: 'template_name',
+        header: '템플릿 이름',
+    },
+    {
+        key: 'status',
+        header: '상태',
+        render: (value) => <StatusBadge status={value as string | null} />,
+    },
+    {
+        key: 'insp_status',
+        header: '승인상태',
+        render: (value) => <InspStatusBadge status={value as string | null} />,
+    },
+    {
+        key: 'synced_at',
+        header: '마지막 동기화',
+        render: (value) => formatDate(value as string | null),
+    },
+];
 
 export default function SystemAdminTemplatesPage() {
     // 템플릿 목록 조회
@@ -228,76 +248,38 @@ export default function SystemAdminTemplatesPage() {
                     {/* 템플릿 테이블 */}
                     <Card>
                         <CardContent className="pt-6">
-                            {isLoading ? (
-                                <div className="space-y-3">
-                                    {[...Array(5)].map((_, i) => (
-                                        <Skeleton key={i} className="h-12 w-full" />
-                                    ))}
-                                </div>
-                            ) : error ? (
+                            {error ? (
                                 <div className="text-center py-12">
                                     <AlertCircle className="w-12 h-12 mx-auto text-red-500 mb-4" />
                                     <p className="text-red-500">데이터를 불러오는데 실패했습니다.</p>
                                 </div>
-                            ) : templates.length === 0 ? (
-                                <div className="text-center py-12">
-                                    <FileText className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                                    <p className="text-muted-foreground">
-                                        등록된 템플릿이 없습니다.
-                                    </p>
-                                    <p className="text-sm text-muted-foreground mt-2">
-                                        &quot;알리고 동기화&quot; 버튼을 클릭하여 템플릿을 가져오세요.
-                                    </p>
-                                </div>
                             ) : (
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>템플릿 코드</TableHead>
-                                            <TableHead>템플릿 이름</TableHead>
-                                            <TableHead>상태</TableHead>
-                                            <TableHead>승인상태</TableHead>
-                                            <TableHead>마지막 동기화</TableHead>
-                                            <TableHead></TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {templates.map((template) => (
-                                            <TableRow 
-                                                key={template.id}
-                                                className="hover:bg-gray-50 transition-colors cursor-pointer"
-                                                onClick={() => handleViewDetail(template)}
+                                <DataTable<AlimtalkTemplate>
+                                    data={templates}
+                                    columns={templateColumns}
+                                    keyExtractor={(row) => row.id}
+                                    isLoading={isLoading}
+                                    emptyMessage="등록된 템플릿이 없습니다."
+                                    emptyIcon={<FileText className="w-12 h-12 text-muted-foreground" />}
+                                    onRowClick={handleViewDetail}
+                                    actions={{
+                                        render: (template) => (
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="text-[#4E8C6D] hover:text-[#3d7058] hover:bg-[#4E8C6D]/10"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleViewDetail(template);
+                                                }}
                                             >
-                                                <TableCell className="font-mono">
-                                                    {template.template_code}
-                                                </TableCell>
-                                                <TableCell>{template.template_name}</TableCell>
-                                                <TableCell>
-                                                    <StatusBadge status={template.status} />
-                                                </TableCell>
-                                                <TableCell>
-                                                    <InspStatusBadge status={template.insp_status} />
-                                                </TableCell>
-                                                <TableCell>
-                                                    {formatDate(template.synced_at)}
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="text-[#4E8C6D] hover:text-[#3d7058] hover:bg-[#4E8C6D]/10"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            handleViewDetail(template);
-                                                        }}
-                                                    >
-                                                        상세
-                                                    </Button>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
+                                                상세
+                                            </Button>
+                                        ),
+                                        headerText: '',
+                                    }}
+                                    minWidth="700px"
+                                />
                             )}
                         </CardContent>
                     </Card>

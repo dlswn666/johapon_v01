@@ -1,17 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import {
-    Search,
-    Users,
-    Loader2,
-    AlertTriangle,
-    Ban,
-    CheckCircle,
-    ChevronLeft,
-    ChevronRight,
-    MapPin,
-} from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Search, Users, AlertTriangle, Ban, CheckCircle, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useApprovedMembers, MemberWithLandInfo } from '@/app/_lib/features/member-management/api/useMemberHook';
@@ -21,6 +11,7 @@ import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import MemberEditModal from './MemberEditModal';
 import BlockMemberModal from './BlockMemberModal';
+import { DataTable, ColumnDef } from '@/app/_lib/widgets/common/data-table';
 
 // 면적 포맷 함수 (㎡)
 const formatArea = (area: number | null | undefined): string => {
@@ -81,6 +72,94 @@ export default function MemberListTab() {
     }, [unionId, user?.id, user?.name, page, filter.searchQuery, filter.blockedFilter]);
 
     const totalPages = Math.ceil((data?.total || 0) / pageSize);
+
+    // 테이블 컬럼 정의
+    const memberColumns: ColumnDef<MemberWithLandInfo>[] = useMemo(
+        () => [
+            {
+                key: 'rowNumber',
+                header: '번호',
+                width: '60px',
+                render: (_, __, index) => (page - 1) * pageSize + index + 1,
+            },
+            {
+                key: 'name',
+                header: '이름',
+                render: (_, row) => (
+                    <div className="flex flex-col gap-1">
+                        <span className="text-[14px] font-medium text-gray-900">{row.name}</span>
+                        {!row.isPnuMatched && row.property_pnu && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 w-fit">
+                                <AlertTriangle className="w-3 h-3 mr-1" />
+                                PNU 미매칭
+                            </span>
+                        )}
+                        {!row.property_pnu && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600 w-fit">
+                                <MapPin className="w-3 h-3 mr-1" />
+                                PNU 없음
+                            </span>
+                        )}
+                    </div>
+                ),
+            },
+            {
+                key: 'resident_address',
+                header: '거주지',
+                className: 'text-gray-600 max-w-[200px]',
+                accessor: (row) => row.resident_address_road || row.resident_address || '-',
+                render: (value) => <div className="truncate">{value as string}</div>,
+            },
+            {
+                key: 'property_address',
+                header: '물건지',
+                className: 'text-gray-600 max-w-[200px]',
+                accessor: (row) => row.property_address_road || row.property_address || '-',
+                render: (value) => <div className="truncate">{value as string}</div>,
+            },
+            {
+                key: 'area',
+                header: '면적',
+                align: 'right',
+                accessor: (row) => row.land_lot?.area,
+                render: (value) => formatArea(value as number | null | undefined),
+            },
+            {
+                key: 'official_price',
+                header: '공시지가',
+                align: 'right',
+                accessor: (row) => row.land_lot?.official_price,
+                render: (value) => formatPrice(value as number | null | undefined),
+            },
+            {
+                key: 'notes',
+                header: '특이사항',
+                className: 'text-gray-600 max-w-[150px]',
+                render: (value) => <div className="truncate">{(value as string) || '-'}</div>,
+            },
+            {
+                key: 'is_blocked',
+                header: '상태',
+                align: 'center',
+                render: (value, row) =>
+                    value ? (
+                        <span
+                            className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700"
+                            title={row.blocked_reason || '차단 사유 없음'}
+                        >
+                            <Ban className="w-3 h-3 mr-1" />
+                            차단됨
+                        </span>
+                    ) : (
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                            <CheckCircle className="w-3 h-3 mr-1" />
+                            정상
+                        </span>
+                    ),
+            },
+        ],
+        [page, pageSize]
+    );
 
     // 검색 실행
     const handleSearch = () => {
@@ -178,7 +257,7 @@ export default function MemberListTab() {
             </div>
 
             {/* 조합원 목록 */}
-            <div className="bg-white rounded-xl shadow-sm overflow-hidden relative min-h-[400px]">
+            <div className="bg-white rounded-xl shadow-sm overflow-hidden">
                 {/* 헤더 */}
                 <div className="p-6 border-b border-gray-100">
                     <div className="flex items-center gap-3">
@@ -192,159 +271,25 @@ export default function MemberListTab() {
                     </div>
                 </div>
 
-                {/* 로딩 상태 */}
-                {isLoading && (
-                    <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] z-10 flex items-center justify-center">
-                        <div className="flex flex-col items-center gap-2">
-                            <Loader2 className="w-8 h-8 animate-spin text-[#4E8C6D]" />
-                            <p className="text-sm font-medium text-gray-500">데이터를 불러오는 중...</p>
-                        </div>
-                    </div>
-                )}
-
-                {/* 빈 상태 */}
-                {!isLoading && (!data?.members || data.members.length === 0) ? (
-                    <div className="p-8 text-center text-gray-500 text-[18px]">
-                        {filter.searchQuery
-                            ? '검색 결과가 없습니다.'
-                            : '승인된 조합원이 없습니다.'}
-                    </div>
-                ) : (
-                    <>
-                        {/* 테이블 */}
-                        <div className="overflow-x-auto">
-                            <table className="w-full min-w-[900px]">
-                                <thead className="bg-gray-50 border-b border-gray-200">
-                                    <tr>
-                                        <th className="px-4 py-4 text-left text-[14px] font-bold text-gray-700 w-16">
-                                            번호
-                                        </th>
-                                        <th className="px-4 py-4 text-left text-[14px] font-bold text-gray-700">
-                                            이름
-                                        </th>
-                                        <th className="px-4 py-4 text-left text-[14px] font-bold text-gray-700">
-                                            거주지
-                                        </th>
-                                        <th className="px-4 py-4 text-left text-[14px] font-bold text-gray-700">
-                                            물건지
-                                        </th>
-                                        <th className="px-4 py-4 text-right text-[14px] font-bold text-gray-700">
-                                            면적
-                                        </th>
-                                        <th className="px-4 py-4 text-right text-[14px] font-bold text-gray-700">
-                                            공시지가
-                                        </th>
-                                        <th className="px-4 py-4 text-left text-[14px] font-bold text-gray-700">
-                                            특이사항
-                                        </th>
-                                        <th className="px-4 py-4 text-center text-[14px] font-bold text-gray-700">
-                                            상태
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-100">
-                                    {data?.members.map((member, index) => (
-                                        <tr
-                                            key={member.id}
-                                            className={cn(
-                                                'hover:bg-gray-50 cursor-pointer transition-colors',
-                                                member.is_blocked && 'bg-red-50/50'
-                                            )}
-                                            onClick={() => handleMemberClick(member)}
-                                        >
-                                            <td className="px-4 py-4 text-[14px] text-gray-600">
-                                                {(page - 1) * pageSize + index + 1}
-                                            </td>
-                                            <td className="px-4 py-4">
-                                                <div className="flex flex-col gap-1">
-                                                    <span className="text-[14px] font-medium text-gray-900">
-                                                        {member.name}
-                                                    </span>
-                                                    {!member.isPnuMatched && member.property_pnu && (
-                                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 w-fit">
-                                                            <AlertTriangle className="w-3 h-3 mr-1" />
-                                                            PNU 미매칭
-                                                        </span>
-                                                    )}
-                                                    {!member.property_pnu && (
-                                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600 w-fit">
-                                                            <MapPin className="w-3 h-3 mr-1" />
-                                                            PNU 없음
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </td>
-                                            <td className="px-4 py-4 text-[14px] text-gray-600 max-w-[200px]">
-                                                <div className="truncate">
-                                                    {member.resident_address_road || member.resident_address || '-'}
-                                                </div>
-                                            </td>
-                                            <td className="px-4 py-4 text-[14px] text-gray-600 max-w-[200px]">
-                                                <div className="truncate">
-                                                    {member.property_address_road || member.property_address || '-'}
-                                                </div>
-                                            </td>
-                                            <td className="px-4 py-4 text-[14px] text-gray-600 text-right whitespace-nowrap">
-                                                {formatArea(member.land_lot?.area)}
-                                            </td>
-                                            <td className="px-4 py-4 text-[14px] text-gray-600 text-right whitespace-nowrap">
-                                                {formatPrice(member.land_lot?.official_price)}
-                                            </td>
-                                            <td className="px-4 py-4 text-[14px] text-gray-600 max-w-[150px]">
-                                                <div className="truncate">{member.notes || '-'}</div>
-                                            </td>
-                                            <td className="px-4 py-4 text-center">
-                                                {member.is_blocked ? (
-                                                    <span
-                                                        className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700"
-                                                        title={member.blocked_reason || '차단 사유 없음'}
-                                                    >
-                                                        <Ban className="w-3 h-3 mr-1" />
-                                                        차단됨
-                                                    </span>
-                                                ) : (
-                                                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
-                                                        <CheckCircle className="w-3 h-3 mr-1" />
-                                                        정상
-                                                    </span>
-                                                )}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-
-                        {/* 페이지네이션 */}
-                        {totalPages > 1 && (
-                            <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100">
-                                <div className="text-[14px] text-gray-600">
-                                    총 {data?.total}명 중 {(page - 1) * pageSize + 1}-
-                                    {Math.min(page * pageSize, data?.total || 0)}명
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <button
-                                        onClick={() => setPage(Math.max(1, page - 1))}
-                                        disabled={page === 1}
-                                        className="p-2 rounded-lg border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 cursor-pointer"
-                                    >
-                                        <ChevronLeft className="w-5 h-5" />
-                                    </button>
-                                    <span className="text-[14px] text-gray-900 font-medium px-2">
-                                        {page} / {totalPages}
-                                    </span>
-                                    <button
-                                        onClick={() => setPage(Math.min(totalPages, page + 1))}
-                                        disabled={page === totalPages}
-                                        className="p-2 rounded-lg border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 cursor-pointer"
-                                    >
-                                        <ChevronRight className="w-5 h-5" />
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-                    </>
-                )}
+                {/* 테이블 */}
+                <DataTable<MemberWithLandInfo>
+                    data={data?.members || []}
+                    columns={memberColumns}
+                    keyExtractor={(row) => row.id}
+                    isLoading={isLoading}
+                    emptyMessage={filter.searchQuery ? '검색 결과가 없습니다.' : '승인된 조합원이 없습니다.'}
+                    emptyIcon={<Users className="w-12 h-12 text-gray-300" />}
+                    onRowClick={handleMemberClick}
+                    getRowClassName={(row) => (row.is_blocked ? 'bg-red-50/50' : '')}
+                    pagination={{
+                        currentPage: page,
+                        totalPages,
+                        totalItems: data?.total || 0,
+                        pageSize,
+                        onPageChange: setPage,
+                    }}
+                    minWidth="900px"
+                />
             </div>
 
             {/* 상세/수정 모달 */}
