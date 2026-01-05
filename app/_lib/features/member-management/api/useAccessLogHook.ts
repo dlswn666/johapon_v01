@@ -86,6 +86,11 @@ interface InfiniteAccessLogsResponse {
 export function useAccessLogsInfinite({ unionId, startDate, endDate, pageSize = 20 }: UseAccessLogsInfiniteParams) {
     return useInfiniteQuery<InfiniteAccessLogsResponse>({
         queryKey: ['access-logs-infinite', unionId, startDate, endDate, pageSize],
+        // 접속 시 한 번만 조회하도록 설정
+        staleTime: Infinity,
+        refetchOnWindowFocus: false,
+        refetchOnReconnect: false,
+        refetchOnMount: false,
         queryFn: async ({ pageParam }): Promise<InfiniteAccessLogsResponse> => {
             const page = pageParam as number;
 

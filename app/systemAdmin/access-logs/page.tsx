@@ -264,14 +264,6 @@ export default function AccessLogsPage() {
                             >
                                 초기화
                             </Button>
-                            <Button
-                                variant="destructive"
-                                onClick={() => setShowDeleteConfirm(true)}
-                                className="h-10"
-                            >
-                                <Trash2 className="w-4 h-4 mr-2" />
-                                1년 경과 로그 정리
-                            </Button>
                         </div>
                     </div>
                 </div>
@@ -323,6 +315,18 @@ export default function AccessLogsPage() {
                             </p>
                         </div>
                     </div>
+                </div>
+
+                {/* 1년 경과 로그 정리 버튼 */}
+                <div className="flex justify-end">
+                    <Button
+                        variant="destructive"
+                        onClick={() => setShowDeleteConfirm(true)}
+                        className="h-10"
+                    >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        1년 경과 로그 정리
+                    </Button>
                 </div>
             </div>
 
