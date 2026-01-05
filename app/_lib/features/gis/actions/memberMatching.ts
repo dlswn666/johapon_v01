@@ -2,6 +2,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { normalizeDong, normalizeHo } from '@/app/_lib/shared/utils/dong-ho-utils';
+import { OwnershipType } from '@/app/_lib/shared/type/database.types';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -15,8 +16,15 @@ export interface MemberExcelRow {
     phoneNumber?: string;
     residentAddress?: string;
     propertyAddress: string; // 소유지 지번 (필수)
+    propertyRoadAddress?: string; // 물건지 도로명 주소
+    buildingName?: string; // 건물이름 (아파트/빌라 등)
     dong?: string;
     ho?: string;
+    area?: number; // 면적(m2)
+    officialPrice?: number; // 공시지가(원)
+    ownershipType?: OwnershipType; // 소유유형
+    ownershipRatio?: number; // 지분율(%)
+    notes?: string; // 특이사항
 }
 
 // 매칭 결과 타입

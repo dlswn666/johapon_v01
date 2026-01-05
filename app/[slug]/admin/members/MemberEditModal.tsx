@@ -14,14 +14,19 @@ import {
     AlertTriangle,
     CheckCircle,
     Link2,
+    Building,
+    Star,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import toast from 'react-hot-toast';
+import { cn } from '@/lib/utils';
 import {
     useUpdateMember,
     useUpdateMemberPnu,
     useUnionLandLots,
+    useUpdateOwnershipType,
+    useSetPrimaryPropertyUnit,
     MemberWithLandInfo,
 } from '@/app/_lib/features/member-management/api/useMemberHook';
 import { useLogAccessEvent } from '@/app/_lib/features/member-management/api/useAccessLogHook';
@@ -29,6 +34,12 @@ import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import { SelectBox } from '@/app/_lib/widgets/common/select-box';
 import { KakaoAddressSearch, AddressData } from '@/app/_lib/widgets/common/address/KakaoAddressSearch';
+import {
+    OwnershipType,
+    OWNERSHIP_TYPE_LABELS,
+    OWNERSHIP_TYPE_STYLES,
+    MemberPropertyUnitInfo,
+} from '@/app/_lib/shared/type/database.types';
 
 interface MemberEditModalProps {
     member: MemberWithLandInfo;
@@ -70,14 +81,26 @@ export default function MemberEditModal({ member, onClose, onBlock }: MemberEdit
     const [selectedPnu, setSelectedPnu] = useState('');
     const [manualPnu, setManualPnu] = useState('');
 
+    // 소유유형 수정 상태
+    const [editingPropertyUnit, setEditingPropertyUnit] = useState<string | null>(null);
+    const [editOwnershipType, setEditOwnershipType] = useState<OwnershipType>('OWNER');
+    const [editOwnershipRatio, setEditOwnershipRatio] = useState<string>('');
+
     const [isSaving, setIsSaving] = useState(false);
     const [isPnuSaving, setIsPnuSaving] = useState(false);
+    const [isOwnershipSaving, setIsOwnershipSaving] = useState(false);
 
     // API 호출
     const { mutateAsync: updateMember } = useUpdateMember();
     const { mutateAsync: updateMemberPnu } = useUpdateMemberPnu();
+    const { mutateAsync: updateOwnershipType } = useUpdateOwnershipType();
+    const { mutateAsync: setPrimaryPropertyUnit } = useSetPrimaryPropertyUnit();
     const { data: unionLandLots } = useUnionLandLots(unionId);
     const { mutate: logAccessEvent } = useLogAccessEvent();
+
+    // 물건지 목록
+    const propertyUnits = member.property_units || [];
+    const hasPropertyUnits = propertyUnits.length > 0;
 
     // 저장
     const handleSave = async () => {
@@ -166,6 +189,69 @@ export default function MemberEditModal({ member, onClose, onBlock }: MemberEdit
         });
     };
 
+    // 소유유형 수정 시작
+    const handleStartEditOwnership = (propertyUnit: MemberPropertyUnitInfo) => {
+        setEditingPropertyUnit(propertyUnit.id);
+        setEditOwnershipType(propertyUnit.ownership_type);
+        setEditOwnershipRatio(propertyUnit.ownership_ratio?.toString() || '');
+    };
+
+    // 소유유형 수정 취소
+    const handleCancelEditOwnership = () => {
+        setEditingPropertyUnit(null);
+        setEditOwnershipType('OWNER');
+        setEditOwnershipRatio('');
+    };
+
+    // 소유유형 저장
+    const handleSaveOwnership = async () => {
+        if (!editingPropertyUnit) return;
+
+        setIsOwnershipSaving(true);
+        try {
+            await updateOwnershipType({
+                propertyUnitId: editingPropertyUnit,
+                ownershipType: editOwnershipType,
+                ownershipRatio: editOwnershipType === 'CO_OWNER' && editOwnershipRatio 
+                    ? parseFloat(editOwnershipRatio) 
+                    : null,
+            });
+
+            // 수정 로그 기록
+            if (unionId && user?.id && user?.name) {
+                logAccessEvent({
+                    unionId,
+                    viewerId: user.id,
+                    viewerName: user.name,
+                    accessType: 'MEMBER_UPDATE',
+                });
+            }
+
+            toast.success('소유유형이 저장되었습니다.');
+            handleCancelEditOwnership();
+        } catch (error) {
+            console.error('소유유형 저장 오류:', error);
+            toast.error('소유유형 저장에 실패했습니다.');
+        } finally {
+            setIsOwnershipSaving(false);
+        }
+    };
+
+    // 대표 물건지 변경
+    const handleSetPrimary = async (propertyUnitId: string) => {
+        try {
+            await setPrimaryPropertyUnit({
+                memberId: member.id,
+                propertyUnitId,
+            });
+
+            toast.success('대표 물건지가 변경되었습니다.');
+        } catch (error) {
+            console.error('대표 물건지 변경 오류:', error);
+            toast.error('대표 물건지 변경에 실패했습니다.');
+        }
+    };
+
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -246,6 +332,159 @@ export default function MemberEditModal({ member, onClose, onBlock }: MemberEdit
                                 </p>
                             </div>
                         </div>
+
+                        {/* 물건지 목록 섹션 (새로운 user_property_units 기반) */}
+                        {hasPropertyUnits && (
+                            <div className="bg-gray-50 rounded-xl p-4">
+                                <div className="flex items-center gap-2 mb-4">
+                                    <Building className="w-5 h-5 text-gray-600" />
+                                    <h4 className="text-[14px] font-semibold text-gray-700">
+                                        물건지 목록 ({propertyUnits.length}건)
+                                    </h4>
+                                </div>
+                                <div className="space-y-3">
+                                    {propertyUnits.map((pu) => (
+                                        <div
+                                            key={pu.id}
+                                            className={cn(
+                                                'p-4 rounded-lg border',
+                                                pu.is_primary
+                                                    ? 'bg-blue-50 border-blue-200'
+                                                    : 'bg-white border-gray-200'
+                                            )}
+                                        >
+                                            {/* 물건지 헤더 */}
+                                            <div className="flex items-start justify-between mb-2">
+                                                <div className="flex-1">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        {pu.is_primary && (
+                                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700">
+                                                                <Star className="w-3 h-3 mr-1" />
+                                                                대표
+                                                            </span>
+                                                        )}
+                                                        <span
+                                                            className={cn(
+                                                                'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium',
+                                                                OWNERSHIP_TYPE_STYLES[pu.ownership_type]
+                                                            )}
+                                                        >
+                                                            {OWNERSHIP_TYPE_LABELS[pu.ownership_type]}
+                                                            {pu.ownership_type === 'CO_OWNER' &&
+                                                                pu.ownership_ratio && (
+                                                                    <span className="ml-1">
+                                                                        ({pu.ownership_ratio}%)
+                                                                    </span>
+                                                                )}
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-[14px] font-medium text-gray-900">
+                                                        {pu.address || '-'}
+                                                    </p>
+                                                    {(pu.dong || pu.ho) && (
+                                                        <p className="text-[13px] text-gray-600 mt-0.5">
+                                                            {pu.building_name && `${pu.building_name} `}
+                                                            {pu.dong && `${pu.dong}동 `}
+                                                            {pu.ho && `${pu.ho}호`}
+                                                        </p>
+                                                    )}
+                                                    <div className="flex gap-4 mt-1 text-[12px] text-gray-500">
+                                                        <span>면적: {formatArea(pu.area)}</span>
+                                                        <span>공시지가: {formatPrice(pu.official_price)}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* 소유유형 수정 폼 */}
+                                            {editingPropertyUnit === pu.id ? (
+                                                <div className="mt-3 pt-3 border-t border-gray-200 space-y-3">
+                                                    <div>
+                                                        <label className="block text-[13px] font-medium text-gray-700 mb-1">
+                                                            소유유형
+                                                        </label>
+                                                        <SelectBox
+                                                            value={editOwnershipType}
+                                                            onChange={(value) =>
+                                                                setEditOwnershipType(value as OwnershipType)
+                                                            }
+                                                            options={[
+                                                                { value: 'OWNER', label: '소유주' },
+                                                                { value: 'CO_OWNER', label: '공동소유' },
+                                                                { value: 'FAMILY', label: '소유주 가족' },
+                                                            ]}
+                                                            className="w-full"
+                                                        />
+                                                    </div>
+                                                    {editOwnershipType === 'CO_OWNER' && (
+                                                        <div>
+                                                            <label className="block text-[13px] font-medium text-gray-700 mb-1">
+                                                                지분율 (%)
+                                                            </label>
+                                                            <Input
+                                                                type="number"
+                                                                value={editOwnershipRatio}
+                                                                onChange={(e) =>
+                                                                    setEditOwnershipRatio(e.target.value)
+                                                                }
+                                                                placeholder="예: 50"
+                                                                min={0}
+                                                                max={100}
+                                                                step={0.01}
+                                                                className="h-10"
+                                                            />
+                                                        </div>
+                                                    )}
+                                                    <div className="flex gap-2">
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={handleCancelEditOwnership}
+                                                            className="flex-1"
+                                                        >
+                                                            취소
+                                                        </Button>
+                                                        <Button
+                                                            size="sm"
+                                                            onClick={handleSaveOwnership}
+                                                            disabled={isOwnershipSaving}
+                                                            className="flex-1 bg-[#4E8C6D] hover:bg-[#3d7058] text-white"
+                                                        >
+                                                            {isOwnershipSaving ? (
+                                                                <Loader2 className="w-4 h-4 animate-spin" />
+                                                            ) : (
+                                                                '저장'
+                                                            )}
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="mt-3 pt-3 border-t border-gray-200 flex gap-2">
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => handleStartEditOwnership(pu)}
+                                                        className="text-[12px]"
+                                                    >
+                                                        소유유형 수정
+                                                    </Button>
+                                                    {!pu.is_primary && (
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={() => handleSetPrimary(pu.id)}
+                                                            className="text-[12px] border-blue-300 text-blue-600 hover:bg-blue-50"
+                                                        >
+                                                            <Star className="w-3 h-3 mr-1" />
+                                                            대표로 설정
+                                                        </Button>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
 
                         {/* PNU 매칭 섹션 */}
                         {(!member.property_pnu || !member.isPnuMatched) && (

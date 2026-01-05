@@ -1,16 +1,27 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/app/_lib/shared/supabase/client';
-import { User, UpdateUser } from '@/app/_lib/shared/type/database.types';
+import {
+    User,
+    UpdateUser,
+    MemberPropertyUnitInfo,
+    MemberWithProperties,
+    OwnershipType,
+} from '@/app/_lib/shared/type/database.types';
 import useMemberStore, { BlockedFilter } from '../model/useMemberStore';
 
-// 조합원 + 필지 정보 타입
+// 기존 호환성 유지를 위한 타입 (deprecated)
 export interface MemberWithLandInfo extends User {
     land_lot?: {
         area: number | null;
         official_price: number | null;
     } | null;
     isPnuMatched: boolean;
+    // 새로 추가: 물건지 목록
+    property_units?: MemberPropertyUnitInfo[];
 }
+
+// 새로운 타입 재export
+export type { MemberWithProperties, MemberPropertyUnitInfo };
 
 // 조합원 목록 조회 파라미터
 interface UseApprovedMembersParams {
@@ -21,7 +32,7 @@ interface UseApprovedMembersParams {
     pageSize?: number;
 }
 
-// 승인된 조합원 목록 조회 (land_lots 조인으로 면적/공시지가 포함)
+// 승인된 조합원 목록 조회 (land_lots + user_property_units 조인으로 물건지 정보 포함)
 export function useApprovedMembers({
     unionId,
     searchQuery = '',
@@ -75,7 +86,7 @@ export function useApprovedMembers({
 
             const unionPnuSet = new Set(unionLandLots?.map((l) => l.pnu) || []);
 
-            // 3. 사용자 PNU로 land_lots 정보 조회
+            // 3. 사용자 PNU로 land_lots 정보 조회 (기존 호환성)
             const pnuList = users?.map((u) => u.property_pnu).filter(Boolean) as string[];
             let landLotsMap: Record<string, { area: number | null; official_price: number | null }> = {};
 
@@ -96,11 +107,85 @@ export function useApprovedMembers({
                 }
             }
 
-            // 4. 조합원 정보와 필지 정보 결합
+            // 4. user_property_units에서 사용자별 물건지 정보 조회
+            const userIds = users?.map((u) => u.id) || [];
+            const propertyUnitsMap: Record<string, MemberPropertyUnitInfo[]> = {};
+
+            if (userIds.length > 0) {
+                const { data: propertyUnits } = await supabase
+                    .from('user_property_units')
+                    .select(
+                        `
+                        id,
+                        user_id,
+                        building_unit_id,
+                        ownership_type,
+                        ownership_ratio,
+                        is_primary,
+                        notes,
+                        building_units!inner (
+                            dong,
+                            ho,
+                            area,
+                            official_price,
+                            buildings!inner (
+                                building_name,
+                                pnu,
+                                land_lots!inner (
+                                    address
+                                )
+                            )
+                        )
+                    `
+                    )
+                    .in('user_id', userIds)
+                    .order('is_primary', { ascending: false });
+
+                if (propertyUnits) {
+                    propertyUnits.forEach((pu) => {
+                        const userId = pu.user_id;
+                        if (!propertyUnitsMap[userId]) {
+                            propertyUnitsMap[userId] = [];
+                        }
+
+                        // 타입 안전하게 처리
+                        const buildingUnit = pu.building_units as unknown as {
+                            dong: string | null;
+                            ho: string | null;
+                            area: number | null;
+                            official_price: number | null;
+                            buildings: {
+                                building_name: string | null;
+                                pnu: string;
+                                land_lots: { address: string };
+                            };
+                        };
+
+                        propertyUnitsMap[userId].push({
+                            id: pu.id,
+                            building_unit_id: pu.building_unit_id,
+                            ownership_type: pu.ownership_type as OwnershipType,
+                            ownership_ratio: pu.ownership_ratio,
+                            is_primary: pu.is_primary,
+                            notes: pu.notes,
+                            dong: buildingUnit?.dong || null,
+                            ho: buildingUnit?.ho || null,
+                            area: buildingUnit?.area || null,
+                            official_price: buildingUnit?.official_price || null,
+                            building_name: buildingUnit?.buildings?.building_name || null,
+                            pnu: buildingUnit?.buildings?.pnu || null,
+                            address: buildingUnit?.buildings?.land_lots?.address || null,
+                        });
+                    });
+                }
+            }
+
+            // 5. 조합원 정보와 필지/물건지 정보 결합
             const membersWithLandInfo: MemberWithLandInfo[] = (users || []).map((user) => ({
                 ...user,
                 land_lot: user.property_pnu ? landLotsMap[user.property_pnu] || null : null,
                 isPnuMatched: user.property_pnu ? unionPnuSet.has(user.property_pnu) : false,
+                property_units: propertyUnitsMap[user.id] || [],
             }));
 
             setMembers(users || []);
@@ -262,5 +347,146 @@ export function useUnionLandLots(unionId: string | undefined) {
             return data || [];
         },
         enabled: !!unionId,
+    });
+}
+
+// 사용자별 물건지 목록 조회
+export function useMemberPropertyUnits(memberId: string | undefined) {
+    return useQuery({
+        queryKey: ['member-property-units', memberId],
+        queryFn: async () => {
+            if (!memberId) return [];
+
+            const { data, error } = await supabase
+                .from('user_property_units')
+                .select(
+                    `
+                    id,
+                    user_id,
+                    building_unit_id,
+                    ownership_type,
+                    ownership_ratio,
+                    is_primary,
+                    notes,
+                    building_units!inner (
+                        dong,
+                        ho,
+                        area,
+                        official_price,
+                        buildings!inner (
+                            building_name,
+                            pnu,
+                            land_lots!inner (
+                                address
+                            )
+                        )
+                    )
+                `
+                )
+                .eq('user_id', memberId)
+                .order('is_primary', { ascending: false });
+
+            if (error) throw error;
+
+            // 데이터 변환
+            return (data || []).map((pu) => {
+                const buildingUnit = pu.building_units as unknown as {
+                    dong: string | null;
+                    ho: string | null;
+                    area: number | null;
+                    official_price: number | null;
+                    buildings: {
+                        building_name: string | null;
+                        pnu: string;
+                        land_lots: { address: string };
+                    };
+                };
+
+                return {
+                    id: pu.id,
+                    building_unit_id: pu.building_unit_id,
+                    ownership_type: pu.ownership_type as OwnershipType,
+                    ownership_ratio: pu.ownership_ratio,
+                    is_primary: pu.is_primary,
+                    notes: pu.notes,
+                    dong: buildingUnit?.dong || null,
+                    ho: buildingUnit?.ho || null,
+                    area: buildingUnit?.area || null,
+                    official_price: buildingUnit?.official_price || null,
+                    building_name: buildingUnit?.buildings?.building_name || null,
+                    pnu: buildingUnit?.buildings?.pnu || null,
+                    address: buildingUnit?.buildings?.land_lots?.address || null,
+                } as MemberPropertyUnitInfo;
+            });
+        },
+        enabled: !!memberId,
+    });
+}
+
+// 소유유형 수정
+export function useUpdateOwnershipType() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({
+            propertyUnitId,
+            ownershipType,
+            ownershipRatio,
+        }: {
+            propertyUnitId: string;
+            ownershipType: OwnershipType;
+            ownershipRatio?: number | null;
+        }) => {
+            const { error } = await supabase
+                .from('user_property_units')
+                .update({
+                    ownership_type: ownershipType,
+                    ownership_ratio: ownershipRatio ?? null,
+                    updated_at: new Date().toISOString(),
+                })
+                .eq('id', propertyUnitId);
+
+            if (error) throw error;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['approved-members'] });
+            queryClient.invalidateQueries({ queryKey: ['member-property-units'] });
+            queryClient.invalidateQueries({ queryKey: ['member-detail'] });
+        },
+    });
+}
+
+// 대표 물건지 변경
+export function useSetPrimaryPropertyUnit() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({
+            memberId,
+            propertyUnitId,
+        }: {
+            memberId: string;
+            propertyUnitId: string;
+        }) => {
+            // 1. 해당 사용자의 모든 물건지를 is_primary = false로 설정
+            const { error: resetError } = await supabase
+                .from('user_property_units')
+                .update({ is_primary: false, updated_at: new Date().toISOString() })
+                .eq('user_id', memberId);
+
+            if (resetError) throw resetError;
+
+            // 2. 선택된 물건지를 is_primary = true로 설정
+            const { error: setError } = await supabase
+                .from('user_property_units')
+                .update({ is_primary: true, updated_at: new Date().toISOString() })
+                .eq('id', propertyUnitId);
+
+            if (setError) throw setError;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['approved-members'] });
+            queryClient.invalidateQueries({ queryKey: ['member-property-units'] });
+        },
     });
 }

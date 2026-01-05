@@ -235,6 +235,7 @@ export type Database = {
                     ho: string | null;
                     floor: number | null;
                     area: number | null;
+                    official_price: number | null;
                     created_at: string;
                 };
                 Insert: {
@@ -244,6 +245,7 @@ export type Database = {
                     ho?: string | null;
                     floor?: number | null;
                     area?: number | null;
+                    official_price?: number | null;
                     created_at?: string;
                 };
                 Update: {
@@ -253,6 +255,7 @@ export type Database = {
                     ho?: string | null;
                     floor?: number | null;
                     area?: number | null;
+                    official_price?: number | null;
                     created_at?: string;
                 };
                 Relationships: [
@@ -261,6 +264,57 @@ export type Database = {
                         columns: ['building_id'];
                         isOneToOne: false;
                         referencedRelation: 'buildings';
+                        referencedColumns: ['id'];
+                    }
+                ];
+            };
+            user_property_units: {
+                Row: {
+                    id: string;
+                    user_id: string;
+                    building_unit_id: string;
+                    ownership_type: 'OWNER' | 'CO_OWNER' | 'FAMILY';
+                    ownership_ratio: number | null;
+                    is_primary: boolean;
+                    notes: string | null;
+                    created_at: string;
+                    updated_at: string;
+                };
+                Insert: {
+                    id?: string;
+                    user_id: string;
+                    building_unit_id: string;
+                    ownership_type?: 'OWNER' | 'CO_OWNER' | 'FAMILY';
+                    ownership_ratio?: number | null;
+                    is_primary?: boolean;
+                    notes?: string | null;
+                    created_at?: string;
+                    updated_at?: string;
+                };
+                Update: {
+                    id?: string;
+                    user_id?: string;
+                    building_unit_id?: string;
+                    ownership_type?: 'OWNER' | 'CO_OWNER' | 'FAMILY';
+                    ownership_ratio?: number | null;
+                    is_primary?: boolean;
+                    notes?: string | null;
+                    created_at?: string;
+                    updated_at?: string;
+                };
+                Relationships: [
+                    {
+                        foreignKeyName: 'user_property_units_user_id_fkey';
+                        columns: ['user_id'];
+                        isOneToOne: false;
+                        referencedRelation: 'users';
+                        referencedColumns: ['id'];
+                    },
+                    {
+                        foreignKeyName: 'user_property_units_building_unit_id_fkey';
+                        columns: ['building_unit_id'];
+                        isOneToOne: false;
+                        referencedRelation: 'building_units';
                         referencedColumns: ['id'];
                     }
                 ];
@@ -1435,6 +1489,7 @@ export type Database = {
             building_type_enum: 'DETACHED_HOUSE' | 'VILLA' | 'APARTMENT' | 'COMMERCIAL' | 'MIXED' | 'NONE';
             agreement_status_enum: 'AGREED' | 'DISAGREED' | 'PENDING';
             sync_status_enum: 'PROCESSING' | 'COMPLETED' | 'FAILED';
+            ownership_type_enum: 'OWNER' | 'CO_OWNER' | 'FAMILY';
         };
         CompositeTypes: {
             [_ in never]: never;
@@ -1559,9 +1614,25 @@ export const Constants = {
             auth_provider: ['kakao', 'naver', 'email'],
             admin_invite_status: ['PENDING', 'USED', 'EXPIRED'],
             member_invite_status: ['PENDING', 'USED', 'EXPIRED'],
+            ownership_type: ['OWNER', 'CO_OWNER', 'FAMILY'],
         },
     },
 } as const;
+
+// 소유유형 타입 및 라벨
+export type OwnershipType = 'OWNER' | 'CO_OWNER' | 'FAMILY';
+
+export const OWNERSHIP_TYPE_LABELS: Record<OwnershipType, string> = {
+    OWNER: '소유주',
+    CO_OWNER: '공동소유',
+    FAMILY: '소유주 가족',
+};
+
+export const OWNERSHIP_TYPE_STYLES: Record<OwnershipType, string> = {
+    OWNER: 'bg-blue-100 text-blue-700',
+    CO_OWNER: 'bg-purple-100 text-purple-700',
+    FAMILY: 'bg-green-100 text-green-700',
+};
 
 // --- Type Exports ---
 export type Notice = Database['public']['Tables']['notices']['Row'];
@@ -1695,3 +1766,40 @@ export type UpdateMemberAccessLog = Database['public']['Tables']['member_access_
 export type MemberAccessLogWithUnion = MemberAccessLog & { 
     union: { id: string; name: string; slug: string } | null 
 };
+
+// 사용자-호실 소유 관계 타입
+export type UserPropertyUnit = Database['public']['Tables']['user_property_units']['Row'];
+export type NewUserPropertyUnit = Database['public']['Tables']['user_property_units']['Insert'];
+export type UpdateUserPropertyUnit = Database['public']['Tables']['user_property_units']['Update'];
+
+// 사용자-호실 조인 정보 (조합원 리스트용)
+export interface MemberPropertyUnitInfo {
+    id: string;
+    building_unit_id: string;
+    ownership_type: OwnershipType;
+    ownership_ratio: number | null;
+    is_primary: boolean;
+    notes: string | null;
+    // building_units 조인 정보
+    dong: string | null;
+    ho: string | null;
+    area: number | null;
+    official_price: number | null;
+    // buildings 조인 정보
+    building_name: string | null;
+    pnu: string | null;
+    address: string | null;
+}
+
+// 다주택자 지원을 위한 조합원 + 물건지 정보
+export interface MemberWithProperties extends User {
+    property_units: MemberPropertyUnitInfo[];
+    land_lot?: { area: number | null; official_price: number | null } | null;
+    isPnuMatched: boolean;
+}
+
+// 그룹화된 조합원 데이터 (테이블 rowSpan용)
+export interface GroupedMemberRow {
+    group: MemberWithProperties;
+    items: MemberPropertyUnitInfo[];
+}
