@@ -6,6 +6,7 @@ import { supabase } from '@/app/_lib/shared/supabase/client';
 import { User } from '@/app/_lib/shared/type/database.types';
 import { Session, User as SupabaseUser } from '@supabase/supabase-js';
 import { KAKAO_SERVICE_TERMS_STRING } from '@/app/_lib/shared/constants/kakaoServiceTerms';
+import BlockedUserModal from '@/app/_lib/widgets/common/BlockedUserModal';
 
 // 사용자 역할 타입
 export type UserRole = 'SYSTEM_ADMIN' | 'ADMIN' | 'USER' | 'APPLICANT';
@@ -20,6 +21,7 @@ interface AuthContextType {
     isAuthenticated: boolean; // 로그인 여부
     isSystemAdmin: boolean; // 시스템 관리자 여부
     isAdmin: boolean; // 관리자(조합/시스템) 여부
+    isBlocked: boolean; // 차단 여부
     login: (provider: 'kakao' | 'naver', slug?: string) => Promise<void>;
     loginWithEmail: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
     logout: () => Promise<void>;
@@ -363,6 +365,29 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     const isAdmin = isSystemAdmin || user?.role === 'ADMIN';
     const isAuthenticated = !!authUser;
     const userStatus = user?.user_status ?? null;
+    const isBlocked = user?.is_blocked ?? false;
+
+    // 조합 전화번호 상태 (차단 모달용)
+    const [unionPhone, setUnionPhone] = useState<string | null>(null);
+
+    // 차단된 사용자의 조합 전화번호 조회
+    useEffect(() => {
+        const fetchUnionPhone = async () => {
+            if (isBlocked && user?.union_id) {
+                const { data } = await supabase
+                    .from('unions')
+                    .select('phone')
+                    .eq('id', user.union_id)
+                    .single();
+                if (data?.phone) {
+                    setUnionPhone(data.phone);
+                }
+            } else {
+                setUnionPhone(null);
+            }
+        };
+        fetchUnionPhone();
+    }, [isBlocked, user?.union_id]);
 
     const value = useMemo(
         () => ({
@@ -375,6 +400,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
             isAuthenticated,
             isSystemAdmin,
             isAdmin,
+            isBlocked,
             login,
             loginWithEmail,
             logout,
@@ -390,6 +416,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
             isAuthenticated,
             isSystemAdmin,
             isAdmin,
+            isBlocked,
             login,
             loginWithEmail,
             logout,
@@ -397,7 +424,18 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
         ]
     );
 
-    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+    return (
+        <AuthContext.Provider value={value}>
+            {children}
+            {/* 차단된 사용자 모달 (관리자는 제외) */}
+            {isBlocked && !isAdmin && (
+                <BlockedUserModal 
+                    reason={user?.blocked_reason || null} 
+                    unionPhone={unionPhone}
+                />
+            )}
+        </AuthContext.Provider>
+    );
 }
 
 export const useAuth = () => {

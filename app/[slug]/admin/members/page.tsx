@@ -59,11 +59,12 @@ import { supabase } from '@/app/_lib/shared/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import MemberDetailModal from './MemberDetailModal';
 import ManualInviteModal from './ManualInviteModal';
+import MemberListTab from './MemberListTab';
 import { cn } from '@/lib/utils';
 import { SelectBox } from '@/app/_lib/widgets/common/select-box';
 
 // 탭 타입
-type TabType = 'invite' | 'approval';
+type TabType = 'members' | 'invite' | 'approval';
 
 // 사용자 상태 필터 타입
 type UserStatusFilter = 'ALL' | UserStatus;
@@ -111,13 +112,13 @@ export default function MemberManagementPage() {
     const unionId = union?.id;
 
     // 탭 상태 (URL 파라미터로부터 초기화)
-    const initialTab = (searchParams.get('tab') as TabType) || 'invite';
+    const initialTab = (searchParams.get('tab') as TabType) || 'members';
     const [activeTab, setActiveTab] = useState<TabType>(initialTab);
 
     // URL 파라미터 변경 감지
     useEffect(() => {
         const tab = searchParams.get('tab') as TabType;
-        if (tab === 'approval' || tab === 'invite') {
+        if (tab === 'members' || tab === 'approval' || tab === 'invite') {
             setActiveTab(tab);
         }
     }, [searchParams]);
@@ -674,6 +675,18 @@ export default function MemberManagementPage() {
                     <div className="border-b border-gray-200">
                         <nav className="flex -mb-px">
                             <button
+                                onClick={() => setActiveTab('members')}
+                                className={cn(
+                                    'flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors cursor-pointer',
+                                    activeTab === 'members'
+                                        ? 'border-[#4E8C6D] text-[#4E8C6D]'
+                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                )}
+                            >
+                                <Users className="w-4 h-4" />
+                                조합원 관리
+                            </button>
+                            <button
                                 onClick={() => setActiveTab('invite')}
                                 className={cn(
                                     'flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors cursor-pointer',
@@ -702,7 +715,10 @@ export default function MemberManagementPage() {
                 </div>
 
                 {/* 탭 컨텐츠 */}
-                {activeTab === 'invite' ? (
+                {activeTab === 'members' ? (
+                    // ====== 조합원 관리 탭 ======
+                    <MemberListTab />
+                ) : activeTab === 'invite' ? (
                     // ====== 초대 관리 탭 ======
                     <>
                         {/* 엑셀 업로드 카드 */}

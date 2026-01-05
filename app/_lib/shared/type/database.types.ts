@@ -874,6 +874,10 @@ export type Database = {
                     executive_sort_order: number;
                     property_pnu: string | null;
                     property_unit_id: string | null;
+                    notes: string | null;
+                    is_blocked: boolean;
+                    blocked_at: string | null;
+                    blocked_reason: string | null;
                     created_at: string;
                     updated_at: string;
                 };
@@ -907,6 +911,10 @@ export type Database = {
                     executive_sort_order?: number;
                     property_pnu?: string | null;
                     property_unit_id?: string | null;
+                    notes?: string | null;
+                    is_blocked?: boolean;
+                    blocked_at?: string | null;
+                    blocked_reason?: string | null;
                     created_at?: string;
                     updated_at?: string;
                 };
@@ -940,6 +948,10 @@ export type Database = {
                     executive_sort_order?: number;
                     property_pnu?: string | null;
                     property_unit_id?: string | null;
+                    notes?: string | null;
+                    is_blocked?: boolean;
+                    blocked_at?: string | null;
+                    blocked_reason?: string | null;
                     created_at?: string;
                     updated_at?: string;
                 };
@@ -1285,6 +1297,57 @@ export type Database = {
                     }
                 ];
             };
+            member_access_logs: {
+                Row: {
+                    id: string;
+                    union_id: string;
+                    viewer_id: string;
+                    viewer_name: string;
+                    access_type: 'LIST_VIEW' | 'DETAIL_VIEW' | 'MEMBER_UPDATE' | 'MEMBER_BLOCK';
+                    ip_address: string | null;
+                    user_agent: string | null;
+                    accessed_at: string;
+                    created_at: string;
+                };
+                Insert: {
+                    id?: string;
+                    union_id: string;
+                    viewer_id: string;
+                    viewer_name: string;
+                    access_type: 'LIST_VIEW' | 'DETAIL_VIEW' | 'MEMBER_UPDATE' | 'MEMBER_BLOCK';
+                    ip_address?: string | null;
+                    user_agent?: string | null;
+                    accessed_at?: string;
+                    created_at?: string;
+                };
+                Update: {
+                    id?: string;
+                    union_id?: string;
+                    viewer_id?: string;
+                    viewer_name?: string;
+                    access_type?: 'LIST_VIEW' | 'DETAIL_VIEW' | 'MEMBER_UPDATE' | 'MEMBER_BLOCK';
+                    ip_address?: string | null;
+                    user_agent?: string | null;
+                    accessed_at?: string;
+                    created_at?: string;
+                };
+                Relationships: [
+                    {
+                        foreignKeyName: 'member_access_logs_union_id_fkey';
+                        columns: ['union_id'];
+                        isOneToOne: false;
+                        referencedRelation: 'unions';
+                        referencedColumns: ['id'];
+                    },
+                    {
+                        foreignKeyName: 'member_access_logs_viewer_id_fkey';
+                        columns: ['viewer_id'];
+                        isOneToOne: false;
+                        referencedRelation: 'users';
+                        referencedColumns: ['id'];
+                    }
+                ];
+            };
         };
         Views: {
             v_pnu_consent_status: {
@@ -1351,12 +1414,17 @@ export type Database = {
                 Args: Record<string, never>;
                 Returns: { message_type: string; unit_price: number }[];
             };
+            delete_old_access_logs: {
+                Args: { months_to_keep?: number };
+                Returns: number;
+            };
         };
         Enums: {
             user_role: 'SYSTEM_ADMIN' | 'ADMIN' | 'USER' | 'APPLICANT';
             user_status: 'PRE_REGISTERED' | 'PENDING_PROFILE' | 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED';
             auth_provider: 'kakao' | 'naver' | 'email';
             admin_invite_status: 'PENDING' | 'USED' | 'EXPIRED';
+            access_type: 'LIST_VIEW' | 'DETAIL_VIEW' | 'MEMBER_UPDATE' | 'MEMBER_BLOCK';
             ad_type: 'MAIN' | 'SUB' | 'BOARD';
             business_type_enum:
                 | 'REDEVELOPMENT'
@@ -1541,6 +1609,7 @@ export type UserStatus = 'PRE_REGISTERED' | 'PENDING_PROFILE' | 'PENDING_APPROVA
 export type UserRole = 'SYSTEM_ADMIN' | 'ADMIN' | 'USER' | 'APPLICANT';
 export type AuthProvider = 'kakao' | 'naver' | 'email';
 export type AdminInviteStatus = 'PENDING' | 'USED' | 'EXPIRED';
+export type AccessType = 'LIST_VIEW' | 'DETAIL_VIEW' | 'MEMBER_UPDATE' | 'MEMBER_BLOCK';
 
 // 관리자 초대 타입
 export type AdminInvite = Database['public']['Tables']['admin_invites']['Row'];
@@ -1616,3 +1685,13 @@ export type PnuConsentStatus = Database['public']['Views']['v_pnu_consent_status
 
 // 건물 유형 타입
 export type BuildingTypeEnum = Database['public']['Enums']['building_type_enum'];
+
+// 조합원 접속 로그 타입
+export type MemberAccessLog = Database['public']['Tables']['member_access_logs']['Row'];
+export type NewMemberAccessLog = Database['public']['Tables']['member_access_logs']['Insert'];
+export type UpdateMemberAccessLog = Database['public']['Tables']['member_access_logs']['Update'];
+
+// 조합원 접속 로그 + 조합 정보 타입
+export type MemberAccessLogWithUnion = MemberAccessLog & { 
+    union: { id: string; name: string; slug: string } | null 
+};

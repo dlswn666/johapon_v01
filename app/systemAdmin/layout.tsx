@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Shield, Building2, Users, LogOut, Home, MessageSquare, ChevronDown, MapPin } from 'lucide-react';
+import { Shield, Building2, Users, LogOut, Home, MessageSquare, ChevronDown, MapPin, ClipboardList } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import AuthProvider, { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import { Button } from '@/components/ui/button';
@@ -46,6 +46,7 @@ function SystemAdminHeader() {
                 { href: '/systemAdmin/alimtalk/pricing', label: '가격 관리' },
             ],
         },
+        { href: '/systemAdmin/access-logs', label: '접속 로그', icon: ClipboardList },
     ];
 
     const handleLogout = async () => {
