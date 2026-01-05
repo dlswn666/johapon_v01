@@ -57,12 +57,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import MemberDetailModal from './MemberDetailModal';
 import ManualInviteModal from './ManualInviteModal';
 import MemberListTab from './MemberListTab';
+import ConsentManagementTab from './ConsentManagementTab';
 import { cn } from '@/lib/utils';
+import { Percent } from 'lucide-react';
 import { SelectBox } from '@/app/_lib/widgets/common/select-box';
 import { DataTable, ColumnDef } from '@/app/_lib/widgets/common/data-table';
 
 // 탭 타입
-type TabType = 'members' | 'invite' | 'approval';
+type TabType = 'members' | 'consent' | 'invite' | 'approval';
 
 // 사용자 상태 필터 타입
 type UserStatusFilter = 'ALL' | UserStatus;
@@ -116,7 +118,7 @@ export default function MemberManagementPage() {
     // URL 파라미터 변경 감지
     useEffect(() => {
         const tab = searchParams.get('tab') as TabType;
-        if (tab === 'members' || tab === 'approval' || tab === 'invite') {
+        if (tab === 'members' || tab === 'consent' || tab === 'approval' || tab === 'invite') {
             setActiveTab(tab);
         }
     }, [searchParams]);
@@ -795,6 +797,18 @@ export default function MemberManagementPage() {
                                 조합원 관리
                             </button>
                             <button
+                                onClick={() => setActiveTab('consent')}
+                                className={cn(
+                                    'flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors cursor-pointer',
+                                    activeTab === 'consent'
+                                        ? 'border-[#4E8C6D] text-[#4E8C6D]'
+                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                )}
+                            >
+                                <Percent className="w-4 h-4" />
+                                동의율 관리
+                            </button>
+                            <button
                                 onClick={() => setActiveTab('invite')}
                                 className={cn(
                                     'flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors cursor-pointer',
@@ -826,6 +840,9 @@ export default function MemberManagementPage() {
                 {activeTab === 'members' ? (
                     // ====== 조합원 관리 탭 ======
                     <MemberListTab />
+                ) : activeTab === 'consent' ? (
+                    // ====== 동의율 관리 탭 ======
+                    <ConsentManagementTab />
                 ) : activeTab === 'invite' ? (
                     // ====== 초대 관리 탭 ======
                     <>

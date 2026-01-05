@@ -31,12 +31,24 @@ export interface ConsentStageStatus {
     is_completed: boolean;
 }
 
+// 건물 유형 한글 매핑
+export const BUILDING_TYPE_LABELS: Record<string, string> = {
+    DETACHED_HOUSE: '단독',
+    VILLA: '다세대/빌라',
+    APARTMENT: '아파트',
+    COMMERCIAL: '상업',
+    MIXED: '복합',
+    NONE: '미분류',
+};
+
 // 필지 상세 정보 타입
 export interface ParcelDetail {
     pnu: string;
     address: string;
     land_area: number | null;
     official_price: number | null;
+    building_type: string | null;
+    building_name: string | null;
     building_units: BuildingUnit[];
     consent_stages: ConsentStageStatus[];
     summary: {
@@ -79,7 +91,14 @@ export const useParcelDetail = (pnu: string | null, stageId: string | null) => {
                 // 에러 발생 시 null 반환 (쿼리는 성공으로 처리하되 데이터는 null)
             }
 
-            // 2. union_land_lots에서 union_id 조회
+            // 2. 건물 정보 조회
+            const { data: buildingInfo } = await supabase
+                .from('buildings')
+                .select('building_type, building_name')
+                .eq('pnu', pnu)
+                .single();
+
+            // 3. union_land_lots에서 union_id 조회
             const { data: unionLot } = await supabase
                 .from('union_land_lots')
                 .select('union_id')
@@ -89,7 +108,7 @@ export const useParcelDetail = (pnu: string | null, stageId: string | null) => {
 
             const unionId = unionLot?.union_id;
 
-            // 3. 해당 PNU와 연결된 조합원(users) 조회
+            // 4. 해당 PNU와 연결된 조합원(users) 조회
             let members: {
                 id: string;
                 name: string;
@@ -117,7 +136,7 @@ export const useParcelDetail = (pnu: string | null, stageId: string | null) => {
                 members = usersData || [];
             }
 
-            // 4. 동의 단계 목록 조회 (모든 단계)
+            // 5. 동의 단계 목록 조회 (모든 단계)
             const { data: allStages, error: stagesError } = await supabase
                 .from('consent_stages')
                 .select('id, stage_name, stage_code, required_rate, sort_order')
@@ -132,10 +151,10 @@ export const useParcelDetail = (pnu: string | null, stageId: string | null) => {
                 });
             }
 
-            // 5. 조합원 ID 목록 추출
+            // 6. 조합원 ID 목록 추출
             const memberIds = members.map((m) => m.id);
 
-            // 6. 조합원별 동의 현황 조회 (user_consents)
+            // 7. 조합원별 동의 현황 조회 (user_consents)
             let memberConsents: { user_id: string; stage_id: string; status: string; consent_date: string | null }[] =
                 [];
             if (memberIds.length > 0) {
@@ -156,7 +175,7 @@ export const useParcelDetail = (pnu: string | null, stageId: string | null) => {
                 memberConsents = consents || [];
             }
 
-            // 7. 조합원에게 현재 선택된 단계의 동의 상태 추가
+            // 8. 조합원에게 현재 선택된 단계의 동의 상태 추가
             const ownersWithConsent: Owner[] = members.map((member) => {
                 const consent = memberConsents.find((c) => c.user_id === member.id && c.stage_id === stageId);
                 return {
@@ -173,7 +192,7 @@ export const useParcelDetail = (pnu: string | null, stageId: string | null) => {
                 };
             });
 
-            // 8. 동의 단계별 통계 계산
+            // 9. 동의 단계별 통계 계산
             const consentStagesStatus: ConsentStageStatus[] = (allStages || []).map((stage) => {
                 let agreed = 0;
                 let disagreed = 0;
@@ -203,7 +222,7 @@ export const useParcelDetail = (pnu: string | null, stageId: string | null) => {
                 };
             });
 
-            // 9. 호수별로 그룹화 (building_units 호환성 유지)
+            // 10. 호수별로 그룹화 (building_units 호환성 유지)
             const unitMap = new Map<string, BuildingUnit>();
             ownersWithConsent.forEach((owner) => {
                 const unitKey = `${owner.property_unit_dong || ''}-${owner.property_unit_ho || ''}`;
@@ -229,6 +248,8 @@ export const useParcelDetail = (pnu: string | null, stageId: string | null) => {
                 address: landLot?.address || pnu,
                 land_area: landLot?.area || null,
                 official_price: landLot?.official_price || null,
+                building_type: buildingInfo?.building_type || null,
+                building_name: buildingInfo?.building_name || null,
                 building_units: buildingUnits,
                 consent_stages: consentStagesStatus,
                 summary: {

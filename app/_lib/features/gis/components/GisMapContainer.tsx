@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/app/_lib/shared/supabase/client';
 import { useConsentMap } from '../hooks/useConsentMap';
@@ -10,12 +10,22 @@ import ParcelDetailModal from './ParcelDetailModal';
 import ConsentStatusBar from './ConsentStatusBar';
 import { useUnionConsentRate } from '../api/useParcelDetail';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Info, LayoutGrid, Search, MapPin, X, CheckCircle2, XCircle, Clock, Users } from 'lucide-react';
+import { Loader2, Info, LayoutGrid, Search, MapPin, X, CheckCircle2, XCircle, Clock, Users, Building2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import { useUnionMembers } from '../hooks/useUnionMembers';
+import { cn } from '@/lib/utils';
+
+// 사업 유형 한글 매핑
+const BUSINESS_TYPE_LABELS: Record<string, string> = {
+    REDEVELOPMENT: '재개발',
+    RECONSTRUCTION: '재건축',
+    STREET_HOUSING: '가로주택정비',
+    SMALL_RECONSTRUCTION: '소규모재건축',
+    HOUSING_ASSOCIATION: '지역주택',
+};
 
 // 금액 포맷팅 함수
 function formatPrice(price: number | undefined): string {
@@ -46,6 +56,11 @@ export default function GisMapContainer() {
     const [searchQuery, setSearchQuery] = useState('');
     const [searchedPnu, setSearchedPnu] = useState<string | null>(null);
     const [hoveredPnu, setHoveredPnu] = useState<string | null>(null);
+
+    // 다중 선택 상태 (클릭한 필지들 리스트)
+    const [selectedPnuList, setSelectedPnuList] = useState<string[]>([]);
+    const lastClickTime = useRef<number>(0);
+    const lastClickPnu = useRef<string | null>(null);
 
     // 동의 단계 목록 조회
     const { data: stages, isLoading: stagesLoading } = useQuery({
@@ -231,7 +246,7 @@ export default function GisMapContainer() {
         enabled: !!searchedPnu && !!unionId && parcelMembers.length > 0 && !!selectedStageId,
     });
 
-    // 주소 검색 함수
+    // 주소 검색 함수 - 검색 시 이전 선택 취소하고 검색한 값만 표시
     const handleSearch = useCallback(() => {
         if (!searchQuery.trim()) {
             setSearchedPnu(null);
@@ -240,11 +255,15 @@ export default function GisMapContainer() {
 
         const query = searchQuery.trim().toLowerCase();
 
+        // 검색 시 이전 선택된 값 초기화
+        setSelectedPnuList([]);
+
         // 동의 현황 데이터에서 검색
         const foundConsent = consentData.find((d) => d.address?.toLowerCase().includes(query) || d.pnu.includes(query));
 
         if (foundConsent) {
             setSearchedPnu(foundConsent.pnu);
+            setSelectedPnuList([foundConsent.pnu]);
             return;
         }
 
@@ -255,6 +274,7 @@ export default function GisMapContainer() {
 
         if (foundReg) {
             setSearchedPnu(foundReg.pnu);
+            setSelectedPnuList([foundReg.pnu]);
             return;
         }
 
@@ -274,11 +294,30 @@ export default function GisMapContainer() {
         setHoveredPnu(pnu);
     }, []);
 
-    // 필지 클릭 핸들러 - 카드에 표시하고 모달 대신 하단 카드로 표시
+    // 필지 클릭 핸들러 - 다중 선택 및 더블클릭 취소 기능
     const handleParcelClick = useCallback((pnu: string) => {
-        setSearchedPnu(pnu);
-        setSelectedPnu(pnu);
-    }, []);
+        const now = Date.now();
+        const isDoubleClick = lastClickPnu.current === pnu && now - lastClickTime.current < 300;
+        
+        if (isDoubleClick) {
+            // 더블클릭: 해당 필지 선택 취소
+            setSelectedPnuList(prev => prev.filter(p => p !== pnu));
+            if (searchedPnu === pnu) {
+                setSearchedPnu(null);
+            }
+        } else {
+            // 단일 클릭: 리스트에 추가 (이미 있으면 맨 위로 이동)
+            setSelectedPnuList(prev => {
+                const filtered = prev.filter(p => p !== pnu);
+                return [pnu, ...filtered];
+            });
+            setSearchedPnu(pnu);
+            setSelectedPnu(pnu);
+        }
+        
+        lastClickTime.current = now;
+        lastClickPnu.current = pnu;
+    }, [searchedPnu]);
 
     // 현재 단계의 필수 동의율
     const requiredRate = useMemo(() => {
@@ -315,22 +354,16 @@ export default function GisMapContainer() {
                 {/* 동의 현황일 때만 사업 유형 및 단계 선택 표시 */}
                 {viewMode === 'consent' && (
                     <>
-                        <div className="flex items-center gap-2">
+                        {/* 사업 유형: 텍스트로 표시 (수정 불가) */}
+                        <div className="flex items-center gap-2 px-3 py-2 bg-slate-100 rounded-lg">
+                            <Building2 className="w-4 h-4 text-slate-500" />
                             <span className="text-sm font-semibold text-slate-600">사업 유형:</span>
-                            <Select value={selectedBusinessType} disabled>
-                                <SelectTrigger className="w-[150px]">
-                                    <SelectValue placeholder="사업 유형 선택" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="REDEVELOPMENT">재개발</SelectItem>
-                                    <SelectItem value="RECONSTRUCTION">재건축</SelectItem>
-                                    <SelectItem value="STREET_HOUSING">가로주택정비</SelectItem>
-                                    <SelectItem value="SMALL_RECONSTRUCTION">소규모재건축</SelectItem>
-                                    <SelectItem value="HOUSING_ASSOCIATION">지역주택</SelectItem>
-                                </SelectContent>
-                            </Select>
+                            <span className="text-sm font-medium text-slate-800">
+                                {BUSINESS_TYPE_LABELS[selectedBusinessType] || selectedBusinessType}
+                            </span>
                         </div>
 
+                        {/* 동의 단계: 수정 가능 */}
                         <div className="flex items-center gap-2">
                             <span className="text-sm font-semibold text-slate-600">동의 단계:</span>
                             <Select value={selectedStageId || ''} onValueChange={setSelectedStageId}>
@@ -441,121 +474,177 @@ export default function GisMapContainer() {
             {/* 지도 범례 */}
             <MapLegend mode={viewMode} />
 
-            {/* 선택된 필지 정보 패널 */}
-            {displayParcelInfo && (
-                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm animate-in slide-in-from-bottom-2 duration-200 space-y-4">
-                    {/* 기본 정보 */}
-                    <div className="flex items-start gap-4">
-                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                            <MapPin className="w-5 h-5 text-primary" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                                <h3 className="font-semibold text-slate-900 truncate">
-                                    {displayParcelInfo.address || '주소 정보 없음'}
-                                </h3>
-                                <span
-                                    className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                                        displayParcelInfo.status === 'FULL_AGREED' ||
-                                        displayParcelInfo.status === 'ALL_REGISTERED'
-                                            ? 'bg-green-100 text-green-700'
-                                            : displayParcelInfo.status === 'PARTIAL_AGREED' ||
-                                              displayParcelInfo.status === 'PARTIAL_REGISTERED'
-                                            ? 'bg-yellow-100 text-yellow-700'
-                                            : displayParcelInfo.status === 'NONE_AGREED' ||
-                                              displayParcelInfo.status === 'NONE_REGISTERED'
-                                            ? 'bg-red-100 text-red-700'
-                                            : 'bg-slate-100 text-slate-600'
-                                    }`}
-                                >
-                                    {displayParcelInfo.statusLabel}
-                                </span>
-                            </div>
-                            <div className="flex flex-wrap items-center gap-4 text-sm text-slate-500">
-                                {displayParcelInfo.area && (
-                                    <span>
-                                        면적:{' '}
-                                        <strong className="text-slate-700">
-                                            {displayParcelInfo.area.toLocaleString()}㎡
-                                        </strong>
-                                    </span>
-                                )}
-                                {displayParcelInfo.officialPrice && (
-                                    <span>
-                                        공시지가:{' '}
-                                        <strong className="text-slate-700">
-                                            {formatPrice(displayParcelInfo.officialPrice)}
-                                        </strong>
-                                    </span>
-                                )}
-                                <span>
-                                    소유주: <strong className="text-slate-700">{displayParcelInfo.totalOwners}</strong>
-                                    명
-                                </span>
-                            </div>
+            {/* 선택된 필지 리스트 패널 */}
+            {selectedPnuList.length > 0 && (
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm animate-in slide-in-from-bottom-2 duration-200">
+                    {/* 헤더 */}
+                    <div className="p-3 border-b border-slate-100 flex items-center justify-between bg-slate-50 rounded-t-xl">
+                        <div className="flex items-center gap-2">
+                            <MapPin className="w-4 h-4 text-primary" />
+                            <span className="font-semibold text-slate-700">선택된 필지</span>
+                            <Badge variant="secondary" className="text-xs">{selectedPnuList.length}개</Badge>
                         </div>
                         <Button
-                            variant="outline"
+                            variant="ghost"
                             size="sm"
                             onClick={() => {
-                                setSelectedPnu(displayParcelInfo.pnu);
-                                setIsModalOpen(true);
+                                setSelectedPnuList([]);
+                                setSearchedPnu(null);
                             }}
-                            className="shrink-0"
+                            className="text-slate-500 hover:text-slate-700 h-7"
                         >
-                            상세 보기
+                            <X className="w-4 h-4 mr-1" />
+                            전체 해제
                         </Button>
                     </div>
+                    
+                    {/* 선택된 필지 목록 */}
+                    <div className="max-h-[300px] overflow-y-auto divide-y divide-slate-100">
+                        {selectedPnuList.map((pnu) => {
+                            const parcelInfo = viewMode === 'registration' 
+                                ? registrationData.find(d => d.pnu === pnu)
+                                : consentData.find(d => d.pnu === pnu);
+                            
+                            if (!parcelInfo) return null;
+                            
+                            const statusLabel = viewMode === 'registration'
+                                ? (parcelInfo as typeof registrationData[0]).registration_status === 'ALL_REGISTERED'
+                                    ? '전체 가입'
+                                    : (parcelInfo as typeof registrationData[0]).registration_status === 'PARTIAL_REGISTERED'
+                                    ? '일부 가입'
+                                    : (parcelInfo as typeof registrationData[0]).registration_status === 'NONE_REGISTERED'
+                                    ? '미가입'
+                                    : '미제출'
+                                : (parcelInfo as typeof consentData[0]).display_status === 'FULL_AGREED'
+                                    ? '동의 완료'
+                                    : (parcelInfo as typeof consentData[0]).display_status === 'PARTIAL_AGREED'
+                                    ? '일부 동의'
+                                    : (parcelInfo as typeof consentData[0]).display_status === 'NONE_AGREED'
+                                    ? '미동의'
+                                    : '미제출';
+                            
+                            const statusColor = viewMode === 'registration'
+                                ? (parcelInfo as typeof registrationData[0]).registration_status === 'ALL_REGISTERED'
+                                    ? 'bg-green-100 text-green-700'
+                                    : (parcelInfo as typeof registrationData[0]).registration_status === 'PARTIAL_REGISTERED'
+                                    ? 'bg-yellow-100 text-yellow-700'
+                                    : (parcelInfo as typeof registrationData[0]).registration_status === 'NONE_REGISTERED'
+                                    ? 'bg-red-100 text-red-700'
+                                    : 'bg-slate-100 text-slate-600'
+                                : (parcelInfo as typeof consentData[0]).display_status === 'FULL_AGREED'
+                                    ? 'bg-green-100 text-green-700'
+                                    : (parcelInfo as typeof consentData[0]).display_status === 'PARTIAL_AGREED'
+                                    ? 'bg-yellow-100 text-yellow-700'
+                                    : (parcelInfo as typeof consentData[0]).display_status === 'NONE_AGREED'
+                                    ? 'bg-red-100 text-red-700'
+                                    : 'bg-slate-100 text-slate-600';
 
-                    {/* 조합원 목록 */}
-                    {parcelMembers && parcelMembers.length > 0 && (
-                        <div className="border-t border-slate-100 pt-3">
-                            <div className="flex items-center gap-2 mb-2">
-                                <Users className="w-4 h-4 text-slate-400" />
-                                <span className="text-sm font-medium text-slate-600">등록된 조합원</span>
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                                {parcelMembers.map((member) => {
-                                    const consent = memberConsents?.find((c) => c.user_id === member.id);
-                                    const status = consent?.status || 'PENDING';
-
-                                    return (
-                                        <div
-                                            key={member.id}
-                                            className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 rounded-lg"
-                                        >
-                                            <span className="text-sm font-medium text-slate-700">{member.name}</span>
-                                            <Badge
-                                                variant="outline"
-                                                className={`text-xs ${
-                                                    status === 'AGREED'
-                                                        ? 'text-green-600 border-green-200 bg-green-50'
-                                                        : status === 'DISAGREED'
-                                                        ? 'text-red-600 border-red-200 bg-red-50'
-                                                        : 'text-slate-500 border-slate-200 bg-slate-50'
-                                                }`}
-                                            >
-                                                {status === 'AGREED' && <CheckCircle2 className="w-3 h-3 mr-1" />}
-                                                {status === 'DISAGREED' && <XCircle className="w-3 h-3 mr-1" />}
-                                                {status === 'PENDING' && <Clock className="w-3 h-3 mr-1" />}
-                                                {status === 'AGREED'
-                                                    ? '동의'
-                                                    : status === 'DISAGREED'
-                                                    ? '미동의'
-                                                    : '미제출'}
-                                            </Badge>
+                            return (
+                                <div 
+                                    key={pnu}
+                                    className={cn(
+                                        "p-3 flex items-center gap-3 hover:bg-slate-50 cursor-pointer transition-colors",
+                                        searchedPnu === pnu && "bg-primary/5"
+                                    )}
+                                    onClick={() => setSearchedPnu(pnu)}
+                                >
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <h4 className="text-sm font-medium text-slate-900 truncate">
+                                                {parcelInfo.address || '주소 정보 없음'}
+                                            </h4>
+                                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusColor}`}>
+                                                {statusLabel}
+                                            </span>
                                         </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    )}
-                    {membersLoading && (
-                        <div className="border-t border-slate-100 pt-3 flex items-center gap-2 text-sm text-slate-400">
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                            조합원 정보 로딩 중...
-                        </div>
-                    )}
+                                        <div className="flex items-center gap-3 text-xs text-slate-500">
+                                            <span>면적: {parcelInfo.area?.toLocaleString() || '-'}㎡</span>
+                                            <span>공시지가: {formatPrice(parcelInfo.official_price ?? undefined)}</span>
+                                            <span>소유주: {parcelInfo.total_owners}명</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2 shrink-0">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setSelectedPnu(pnu);
+                                                setIsModalOpen(true);
+                                            }}
+                                            className="h-7 text-xs"
+                                        >
+                                            상세
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setSelectedPnuList(prev => prev.filter(p => p !== pnu));
+                                                if (searchedPnu === pnu) setSearchedPnu(null);
+                                            }}
+                                            className="h-7 w-7 p-0 text-slate-400 hover:text-red-500"
+                                        >
+                                            <X className="w-4 h-4" />
+                                        </Button>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+
+            {/* 현재 선택/호버된 필지의 조합원 정보 */}
+            {displayParcelInfo && parcelMembers && parcelMembers.length > 0 && (
+                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                    <div className="flex items-center gap-2 mb-3">
+                        <Users className="w-4 h-4 text-slate-400" />
+                        <span className="text-sm font-medium text-slate-600">
+                            {displayParcelInfo.address} - 등록된 조합원
+                        </span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                        {parcelMembers.map((member) => {
+                            const consent = memberConsents?.find((c) => c.user_id === member.id);
+                            const status = consent?.status || 'PENDING';
+
+                            return (
+                                <div
+                                    key={member.id}
+                                    className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 rounded-lg"
+                                >
+                                    <span className="text-sm font-medium text-slate-700">{member.name}</span>
+                                    <Badge
+                                        variant="outline"
+                                        className={`text-xs ${
+                                            status === 'AGREED'
+                                                ? 'text-green-600 border-green-200 bg-green-50'
+                                                : status === 'DISAGREED'
+                                                ? 'text-red-600 border-red-200 bg-red-50'
+                                                : 'text-slate-500 border-slate-200 bg-slate-50'
+                                        }`}
+                                    >
+                                        {status === 'AGREED' && <CheckCircle2 className="w-3 h-3 mr-1" />}
+                                        {status === 'DISAGREED' && <XCircle className="w-3 h-3 mr-1" />}
+                                        {status === 'PENDING' && <Clock className="w-3 h-3 mr-1" />}
+                                        {status === 'AGREED'
+                                            ? '동의'
+                                            : status === 'DISAGREED'
+                                            ? '미동의'
+                                            : '미제출'}
+                                    </Badge>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+            {displayParcelInfo && membersLoading && (
+                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-2 text-sm text-slate-400">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    조합원 정보 로딩 중...
                 </div>
             )}
 

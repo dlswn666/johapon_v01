@@ -36,7 +36,7 @@ import {
     Trash2,
     Loader2
 } from 'lucide-react';
-import { useParcelDetail, ParcelDetail, ConsentStageStatus, Owner } from '../api/useParcelDetail';
+import { useParcelDetail, ParcelDetail, ConsentStageStatus, Owner, BUILDING_TYPE_LABELS } from '../api/useParcelDetail';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { updateParcelInfo, deleteParcel } from '../actions/parcelActions';
@@ -107,13 +107,7 @@ export default function ParcelDetailModal({
                                     onDelete={() => setIsDeleteDialogOpen(true)}
                                 />
 
-                                {/* 동의 단계별 현황 */}
-                                <ConsentStagesSection 
-                                    stages={parcel.consent_stages} 
-                                    currentStageId={stageId}
-                                />
-
-                                {/* 소유주 목록 */}
+                                {/* 소유주 목록 (조합원 정보) */}
                                 <OwnersSection parcel={parcel} />
                             </>
                         ) : (
@@ -177,6 +171,17 @@ export default function ParcelDetailModal({
     );
 }
 
+// 금액 포맷팅 함수
+function formatPrice(price: number | null | undefined): string {
+    if (!price) return '-';
+    if (price >= 100000000) {
+        return `${(price / 100000000).toFixed(1)}억원`;
+    } else if (price >= 10000) {
+        return `${(price / 10000).toFixed(0)}만원`;
+    }
+    return `${price.toLocaleString()}원`;
+}
+
 // 필지 기본 정보
 function ParcelBasicInfo({ 
     parcel, 
@@ -188,10 +193,11 @@ function ParcelBasicInfo({
     onDelete: () => void;
 }) {
     return (
-        <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+        <div className="bg-gray-50 rounded-xl p-4 space-y-4">
+            {/* 지번 주소 */}
             <div className="flex items-start justify-between">
                 <div>
-                    <p className="text-sm text-gray-500 mb-1">주소</p>
+                    <p className="text-sm text-gray-500 mb-1">지번 주소</p>
                     <p className="font-semibold text-gray-900">{parcel.address}</p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -216,18 +222,23 @@ function ParcelBasicInfo({
                 </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-4 pt-3 border-t border-gray-200">
+            {/* 건물 유형, 소유주 수, 면적, 공시지가 */}
+            <div className="grid grid-cols-4 gap-4 pt-3 border-t border-gray-200">
                 <div className="text-center">
                     <div className="flex items-center justify-center gap-1 text-gray-500 mb-1">
                         <Building2 className="w-4 h-4" />
-                        <span className="text-xs">호수</span>
+                        <span className="text-xs">건물 유형</span>
                     </div>
-                    <p className="text-lg font-bold text-gray-900">{parcel.summary.total_units}</p>
+                    <p className="text-sm font-bold text-gray-900">
+                        {parcel.building_type 
+                            ? BUILDING_TYPE_LABELS[parcel.building_type] || parcel.building_type 
+                            : '-'}
+                    </p>
                 </div>
                 <div className="text-center">
                     <div className="flex items-center justify-center gap-1 text-gray-500 mb-1">
                         <Users className="w-4 h-4" />
-                        <span className="text-xs">소유주</span>
+                        <span className="text-xs">소유주 수</span>
                     </div>
                     <p className="text-lg font-bold text-gray-900">{parcel.summary.total_owners}</p>
                 </div>
@@ -236,8 +247,17 @@ function ParcelBasicInfo({
                         <MapPin className="w-4 h-4" />
                         <span className="text-xs">면적</span>
                     </div>
-                    <p className="text-lg font-bold text-gray-900">
+                    <p className="text-sm font-bold text-gray-900">
                         {parcel.land_area ? `${parcel.land_area.toLocaleString()}㎡` : '-'}
+                    </p>
+                </div>
+                <div className="text-center">
+                    <div className="flex items-center justify-center gap-1 text-gray-500 mb-1">
+                        <Percent className="w-4 h-4" />
+                        <span className="text-xs">공시지가</span>
+                    </div>
+                    <p className="text-sm font-bold text-gray-900">
+                        {formatPrice(parcel.official_price)}
                     </p>
                 </div>
             </div>
@@ -348,7 +368,7 @@ function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: Edi
 }
 
 // 동의 단계별 현황
-function ConsentStagesSection({ 
+function _ConsentStagesSection({ 
     stages, 
     currentStageId 
 }: { 
@@ -434,31 +454,45 @@ function ConsentStagesSection({
     );
 }
 
-// 소유주 목록
+// 소유 유형 한글 매핑
+const OWNERSHIP_TYPE_LABELS: Record<string, string> = {
+    OWNER: '소유주',
+    CO_OWNER: '공동소유',
+    FAMILY: '소유주 가족',
+};
+
+// 소유주 목록 (조합원 정보)
 function OwnersSection({ parcel }: { parcel: ParcelDetail }) {
-    // 소유주 정보가 없으면 섹션 자체를 숨김
+    // 소유주 정보가 없으면 안내 메시지 표시
     if (parcel.building_units.length === 0) {
-        return null;
+        return (
+            <div className="bg-gray-50 rounded-lg p-4 text-center text-gray-500 text-sm">
+                등록된 조합원이 없습니다.
+            </div>
+        );
     }
 
     return (
         <div>
             <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
                 <Users className="w-4 h-4" />
-                소유주 목록
+                조합원 정보
             </h3>
             <div className="space-y-3">
                 {parcel.building_units.map((unit) => (
                     <div key={unit.id} className="border border-gray-200 rounded-lg overflow-hidden">
                         {/* 호수 정보 */}
-                        <div className="bg-gray-50 px-3 py-2 border-b border-gray-200 flex items-center gap-2">
-                            <Building2 className="w-4 h-4 text-gray-400" />
-                            <span className="text-sm font-medium">
-                                {unit.dong && `${unit.dong}동 `}
-                                {unit.ho ? `${unit.ho}호` : '호수 정보 없음'}
-                            </span>
+                        <div className="bg-gray-50 px-3 py-2 border-b border-gray-200 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <Building2 className="w-4 h-4 text-gray-400" />
+                                <span className="text-sm font-medium">
+                                    {parcel.building_name && `${parcel.building_name} `}
+                                    {unit.dong && `${unit.dong}동 `}
+                                    {unit.ho ? `${unit.ho}호` : parcel.building_type === 'DETACHED_HOUSE' ? '단독' : '호수 정보 없음'}
+                                </span>
+                            </div>
                             {unit.exclusive_area && (
-                                <span className="text-xs text-gray-400 ml-auto">
+                                <span className="text-xs text-gray-500">
                                     전용 {unit.exclusive_area}㎡
                                 </span>
                             )}
@@ -477,7 +511,7 @@ function OwnersSection({ parcel }: { parcel: ParcelDetail }) {
     );
 }
 
-// 소유주 행
+// 소유주 행 - 조합원 이름, 건물이름/동/호수, 소유유형, 지분율 표시
 function OwnerRow({ owner }: { owner: Owner }) {
     const statusConfig = {
         AGREED: { icon: CheckCircle2, color: 'text-green-500', bg: 'bg-green-50', label: '동의' },
@@ -489,31 +523,45 @@ function OwnerRow({ owner }: { owner: Owner }) {
     const StatusIcon = status.icon;
 
     return (
-        <div className="px-3 py-2 flex items-center gap-3 hover:bg-gray-50/50">
-            <div className={cn("w-8 h-8 rounded-full flex items-center justify-center", status.bg)}>
+        <div className="px-3 py-3 flex items-center gap-3 hover:bg-gray-50/50">
+            <div className={cn("w-8 h-8 rounded-full flex items-center justify-center shrink-0", status.bg)}>
                 <StatusIcon className={cn("w-4 h-4", status.color)} />
             </div>
             <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                     <User className="w-3 h-3 text-gray-400" />
-                    <span className="font-medium text-sm truncate">{owner.name}</span>
+                    <span className="font-medium text-sm">{owner.name}</span>
                     {owner.is_representative && (
                         <Badge variant="secondary" className="text-xs py-0">대표</Badge>
                     )}
+                </div>
+                <div className="flex items-center gap-3 text-xs text-gray-500 mt-1 flex-wrap">
+                    {/* 소유유형 */}
+                    <span className="flex items-center gap-1">
+                        <span className="text-gray-400">소유유형:</span>
+                        <span className="font-medium">
+                            {OWNERSHIP_TYPE_LABELS['OWNER']}
+                        </span>
+                    </span>
+                    {/* 지분율 */}
                     {owner.share && (
-                        <span className="text-xs text-gray-400">지분: {owner.share}</span>
+                        <span className="flex items-center gap-1">
+                            <span className="text-gray-400">지분율:</span>
+                            <span className="font-medium">{owner.share}</span>
+                        </span>
+                    )}
+                    {/* 연락처 */}
+                    {owner.phone && (
+                        <span className="flex items-center gap-1">
+                            <Phone className="w-3 h-3 text-gray-400" />
+                            {owner.phone}
+                        </span>
                     )}
                 </div>
-                {owner.phone && (
-                    <div className="flex items-center gap-1 text-xs text-gray-400 mt-0.5">
-                        <Phone className="w-3 h-3" />
-                        {owner.phone}
-                    </div>
-                )}
             </div>
             <Badge 
                 variant="outline" 
-                className={cn("text-xs", status.color)}
+                className={cn("text-xs shrink-0", status.color)}
             >
                 {status.label}
             </Badge>

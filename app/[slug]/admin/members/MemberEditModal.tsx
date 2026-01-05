@@ -13,10 +13,16 @@ import {
     Loader2,
     AlertTriangle,
     CheckCircle,
+    CheckCircle2,
+    XCircle,
+    Clock,
     Link2,
     Building,
     Star,
+    Percent,
 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/app/_lib/shared/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import toast from 'react-hot-toast';
@@ -97,6 +103,52 @@ export default function MemberEditModal({ member, onClose, onBlock }: MemberEdit
     const { mutateAsync: setPrimaryPropertyUnit } = useSetPrimaryPropertyUnit();
     const { data: unionLandLots } = useUnionLandLots(unionId);
     const { mutate: logAccessEvent } = useLogAccessEvent();
+
+    // 조합원 동의 단계별 현황 조회
+    const { data: memberConsentStatus, isLoading: isConsentLoading } = useQuery({
+        queryKey: ['member-consent-status', member.id, union?.business_type],
+        queryFn: async () => {
+            if (!member.id || !union?.business_type) return [];
+
+            // 1. 해당 사업 유형의 동의 단계 목록 조회
+            const { data: stages, error: stagesError } = await supabase
+                .from('consent_stages')
+                .select('id, stage_name, stage_code, required_rate, sort_order')
+                .eq('business_type', union.business_type)
+                .order('sort_order', { ascending: true });
+
+            if (stagesError) {
+                console.error('동의 단계 조회 오류:', stagesError);
+                return [];
+            }
+
+            if (!stages || stages.length === 0) return [];
+
+            // 2. 조합원의 동의 현황 조회
+            const { data: consents, error: consentsError } = await supabase
+                .from('user_consents')
+                .select('stage_id, status, consent_date')
+                .eq('user_id', member.id);
+
+            if (consentsError) {
+                console.error('동의 현황 조회 오류:', consentsError);
+            }
+
+            // 3. 단계별 동의 상태 매핑
+            return stages.map((stage) => {
+                const consent = consents?.find((c) => c.stage_id === stage.id);
+                return {
+                    stage_id: stage.id,
+                    stage_name: stage.stage_name,
+                    stage_code: stage.stage_code,
+                    required_rate: stage.required_rate,
+                    status: (consent?.status as 'AGREED' | 'DISAGREED' | 'PENDING') || 'PENDING',
+                    consent_date: consent?.consent_date || null,
+                };
+            });
+        },
+        enabled: !!member.id && !!union?.business_type,
+    });
 
     // 물건지 목록
     const propertyUnits = member.property_units || [];
@@ -666,6 +718,84 @@ export default function MemberEditModal({ member, onClose, onBlock }: MemberEdit
                             )}
                         </div>
                     )}
+
+                    {/* 동의 단계별 현황 */}
+                    <div className="space-y-4 pt-4 border-t border-gray-200">
+                        <h4 className="text-[16px] font-semibold text-gray-900 flex items-center gap-2">
+                            <Percent className="w-4 h-4" />
+                            동의 단계별 현황
+                        </h4>
+                        
+                        {isConsentLoading ? (
+                            <div className="flex items-center justify-center py-4 text-gray-400">
+                                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                                동의 현황 조회 중...
+                            </div>
+                        ) : memberConsentStatus && memberConsentStatus.length > 0 ? (
+                            <div className="space-y-2">
+                                {memberConsentStatus.map((stage) => {
+                                    const statusConfig = {
+                                        AGREED: { 
+                                            icon: CheckCircle2, 
+                                            color: 'text-green-600', 
+                                            bg: 'bg-green-50 border-green-200', 
+                                            label: '동의' 
+                                        },
+                                        DISAGREED: { 
+                                            icon: XCircle, 
+                                            color: 'text-red-600', 
+                                            bg: 'bg-red-50 border-red-200', 
+                                            label: '미동의' 
+                                        },
+                                        PENDING: { 
+                                            icon: Clock, 
+                                            color: 'text-gray-500', 
+                                            bg: 'bg-gray-50 border-gray-200', 
+                                            label: '미제출' 
+                                        },
+                                    };
+                                    const config = statusConfig[stage.status];
+                                    const StatusIcon = config.icon;
+
+                                    return (
+                                        <div 
+                                            key={stage.stage_id}
+                                            className={cn(
+                                                "p-3 rounded-lg border flex items-center justify-between",
+                                                config.bg
+                                            )}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <StatusIcon className={cn("w-5 h-5", config.color)} />
+                                                <div>
+                                                    <p className="text-[14px] font-medium text-gray-900">
+                                                        {stage.stage_name}
+                                                    </p>
+                                                    <p className="text-[12px] text-gray-500">
+                                                        필요 동의율: {stage.required_rate}%
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="text-right">
+                                                <span className={cn("text-[14px] font-bold", config.color)}>
+                                                    {config.label}
+                                                </span>
+                                                {stage.consent_date && (
+                                                    <p className="text-[11px] text-gray-400 mt-0.5">
+                                                        {new Date(stage.consent_date).toLocaleDateString('ko-KR')}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        ) : (
+                            <div className="text-center py-4 text-gray-400 text-[14px]">
+                                등록된 동의 단계가 없습니다.
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 {/* 버튼 */}
