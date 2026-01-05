@@ -107,7 +107,7 @@ const STEPS: StepConfig[] = [
     },
     {
         key: 'property_type',
-        label: '거주 유형',
+        label: '물건지 유형',
         placeholder: '',
         description: '건물 유형을 선택해주세요.',
         subDescription: '유형에 따라 동/호수 입력이 달라집니다.',
@@ -326,7 +326,7 @@ export function RegisterModal({
         }
     }, [isOpen, inviteData, prefillName, prefillPhone]);
 
-    // 기존 사용자 정보 로드 (재신청 시)
+    // 기존 사용자 정보 로드 (재신청 시) - 수동 등록/일괄 초대/사전 등록 회원의 경우 마지막 확인 단계로 바로 이동
     useEffect(() => {
         const loadExistingUserData = async () => {
             if (!authUserId || !isOpen) return;
@@ -346,7 +346,7 @@ export function RegisterModal({
                     const isBasement = isBasementHo(existingHo);
                     const hoNumber = isBasement ? extractHoNumber(existingHo) || '' : existingHo;
 
-                    setFormData({
+                    const loadedFormData = {
                         name: userData.name || '',
                         phone_number: userData.phone_number || '',
                         birth_date: userData.birth_date || '',
@@ -365,13 +365,29 @@ export function RegisterModal({
                         resident_address_road: userData.resident_address_road || '',
                         resident_address_jibun: userData.resident_address_jibun || '',
                         resident_zonecode: userData.resident_zonecode || '',
-                    });
+                    };
+
+                    setFormData(loadedFormData);
+
+                    // 수동 등록/일괄 초대/사전 등록 회원: 필수 정보가 모두 있으면 마지막 확인 단계로 바로 이동
+                    // PRE_REGISTERED 상태이거나 초대 데이터가 있는 경우
+                    const hasAllRequiredData = 
+                        loadedFormData.name && 
+                        loadedFormData.phone_number && 
+                        loadedFormData.property_address &&
+                        loadedFormData.property_type &&
+                        loadedFormData.resident_address;
+                    
+                    if (hasAllRequiredData && (userData.user_status === 'PRE_REGISTERED' || inviteData)) {
+                        // 마지막 확인 단계로 이동 (STEPS.length가 confirm step의 인덱스)
+                        setCurrentStep(STEPS.length);
+                    }
                 }
             }
         };
 
         loadExistingUserData();
-    }, [authUserId, isOpen]);
+    }, [authUserId, isOpen, inviteData]);
 
     // 카카오 주소 선택 핸들러
     const handleAddressSelect = useCallback((addressData: AddressData) => {
@@ -517,8 +533,15 @@ export function RegisterModal({
 
         // property_type 선택 시 추가 검증
         if (stepKey === 'property_type' && !formData.property_type) {
-            setError('거주 유형을 선택해주세요.');
+            setError('물건지 유형을 선택해주세요.');
             return;
+        }
+
+        // property_floor_type 선택 검증 (빌라/아파트/주상복합인 경우 필수)
+        if (stepKey === 'property_floor_type') {
+            // 층 구분은 빌라/아파트/주상복합에서 표시되므로, 값이 선택되어 있어야 함
+            // property_is_basement는 boolean이므로 항상 값이 있음 (기본값 false)
+            // 따라서 별도 검증 없이 다음으로 진행
         }
 
         setError('');
@@ -965,13 +988,28 @@ export function RegisterModal({
                                         } else if (step.key === 'resident_address' && formData.resident_address_road) {
                                             displayValue = `${formData.resident_address_road}${formData.resident_address_jibun ? ` (${formData.resident_address_jibun})` : ''}`;
                                         } else if (step.key === 'property_type') {
-                                            // 거주 유형은 라벨로 표시
+                                            // 물건지 유형은 라벨로 표시
                                             const typeOption = PROPERTY_TYPE_OPTIONS.find(o => o.value === formData.property_type);
                                             displayValue = typeOption ? `${typeOption.icon} ${typeOption.label}` : '';
+                                        } else if (step.key === 'property_floor_type') {
+                                            // 층 구분: property_is_basement 값으로 표시
+                                            displayValue = formData.property_is_basement ? '🅱️ 지하층' : '🏢 지상층';
                                         }
 
                                         return (
-                                            <div key={step.key} className="bg-gray-50 rounded-xl p-4">
+                                            <div 
+                                                key={step.key} 
+                                                className={cn(
+                                                    "bg-gray-50 rounded-xl p-4",
+                                                    !isEditing && "cursor-pointer hover:bg-gray-100 transition-colors"
+                                                )}
+                                                onClick={() => {
+                                                    // 수정 모드가 아닐 때만 클릭으로 수정 모드 진입 (모바일 UX 개선)
+                                                    if (!isEditing) {
+                                                        setEditingField(step.key);
+                                                    }
+                                                }}
+                                            >
                                                     <div className="flex items-center justify-between mb-2">
                                                                     <span className="text-sm font-medium text-gray-600">
                                                                         {step.label}
@@ -979,7 +1017,10 @@ export function RegisterModal({
                                                                     </span>
                                                     {!isEditing && (
                                                         <button
-                                                            onClick={() => setEditingField(step.key)}
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setEditingField(step.key);
+                                                            }}
                                                             className="flex items-center gap-1 text-sm text-[#4E8C6D] hover:text-[#3d7058]"
                                                         >
                                                             <Pencil className="w-4 h-4" />
@@ -991,7 +1032,7 @@ export function RegisterModal({
                                                     <div className="flex flex-col gap-2">
                                                         {step.key === 'birth_date' ? (
                                                             // 생년월일: BirthDatePicker 사용
-                                                            <div className="flex gap-2 items-center">
+                                                            <div className="flex gap-2 items-center" onClick={(e) => e.stopPropagation()}>
                                                                 <div className="flex-1">
                                                                     <BirthDatePicker
                                                                         value={typeof value === 'string' ? value : ''}
@@ -1001,19 +1042,23 @@ export function RegisterModal({
                                                                     />
                                                                 </div>
                                                                 <button
-                                                                    onClick={() => setEditingField(null)}
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        setEditingField(null);
+                                                                    }}
                                                                     className="h-12 px-4 bg-[#4E8C6D] text-white rounded-lg hover:bg-[#3d7058] flex-shrink-0"
                                                                 >
                                                                     <Check className="w-5 h-5" />
                                                                 </button>
                                                             </div>
                                                         ) : step.key === 'property_type' ? (
-                                                            // 거주 유형: 카드형 선택 UI
+                                                            // 물건지 유형: 카드형 선택 UI
                                                             <div className="space-y-2">
                                                                 {PROPERTY_TYPE_OPTIONS.map((option) => (
                                                                     <button
                                                                         key={option.value}
-                                                                        onClick={() => {
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
                                                                             setFormData(prev => ({ 
                                                                                 ...prev, 
                                                                                 property_type: option.value,
@@ -1036,7 +1081,59 @@ export function RegisterModal({
                                                                     </button>
                                                                 ))}
                                                                 <button
-                                                                    onClick={() => setEditingField(null)}
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        setEditingField(null);
+                                                                    }}
+                                                                    className="h-10 px-4 bg-[#4E8C6D] text-white rounded-lg hover:bg-[#3d7058] w-full mt-2"
+                                                                >
+                                                                    완료
+                                                                </button>
+                                                            </div>
+                                                        ) : step.key === 'property_floor_type' ? (
+                                                            // 층 구분: 라디오 버튼 UI
+                                                            <div className="space-y-2">
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        setFormData(prev => ({ ...prev, property_is_basement: false }));
+                                                                    }}
+                                                                    className={cn(
+                                                                        'w-full p-3 rounded-lg border text-left transition-all flex items-center gap-3',
+                                                                        !formData.property_is_basement
+                                                                            ? 'border-[#4E8C6D] bg-[#4E8C6D]/5'
+                                                                            : 'border-gray-200 hover:border-gray-300'
+                                                                    )}
+                                                                >
+                                                                    <span className="text-xl">🏢</span>
+                                                                    <span className="font-medium text-gray-900">지상층</span>
+                                                                    {!formData.property_is_basement && (
+                                                                        <Check className="w-4 h-4 text-[#4E8C6D] ml-auto" />
+                                                                    )}
+                                                                </button>
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        setFormData(prev => ({ ...prev, property_is_basement: true }));
+                                                                    }}
+                                                                    className={cn(
+                                                                        'w-full p-3 rounded-lg border text-left transition-all flex items-center gap-3',
+                                                                        formData.property_is_basement
+                                                                            ? 'border-[#4E8C6D] bg-[#4E8C6D]/5'
+                                                                            : 'border-gray-200 hover:border-gray-300'
+                                                                    )}
+                                                                >
+                                                                    <span className="text-xl">🅱️</span>
+                                                                    <span className="font-medium text-gray-900">지하층</span>
+                                                                    {formData.property_is_basement && (
+                                                                        <Check className="w-4 h-4 text-[#4E8C6D] ml-auto" />
+                                                                    )}
+                                                                </button>
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        setEditingField(null);
+                                                                    }}
                                                                     className="h-10 px-4 bg-[#4E8C6D] text-white rounded-lg hover:bg-[#3d7058] w-full mt-2"
                                                                 >
                                                                     완료
@@ -1044,7 +1141,7 @@ export function RegisterModal({
                                                             </div>
                                                         ) : step.key === 'property_address' ? (
                                                             // 물건지 주소: KakaoAddressSearch 사용
-                                                            <div className="flex flex-col gap-2">
+                                                            <div className="flex flex-col gap-2" onClick={(e) => e.stopPropagation()}>
                                                                 <KakaoAddressSearch
                                                                     value={typeof value === 'string' ? value : ''}
                                                                     onAddressSelect={(addressData) => {
@@ -1067,7 +1164,10 @@ export function RegisterModal({
                                                                     placeholder={step.placeholder}
                                                                 />
                                                                 <button
-                                                                    onClick={() => setEditingField(null)}
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        setEditingField(null);
+                                                                    }}
                                                                     className="h-12 px-4 bg-[#4E8C6D] text-white rounded-lg hover:bg-[#3d7058] w-full"
                                                                 >
                                                                     <span className="flex items-center justify-center gap-2">
@@ -1078,7 +1178,7 @@ export function RegisterModal({
                                                             </div>
                                                         ) : step.key === 'resident_address' ? (
                                                             // 실 거주지 주소: KakaoAddressSearch 사용
-                                                            <div className="flex flex-col gap-2">
+                                                            <div className="flex flex-col gap-2" onClick={(e) => e.stopPropagation()}>
                                                                 <KakaoAddressSearch
                                                                     value={typeof value === 'string' ? value : ''}
                                                                     onAddressSelect={(addressData) => {
@@ -1095,7 +1195,10 @@ export function RegisterModal({
                                                                     placeholder={step.placeholder}
                                                                 />
                                                                 <button
-                                                                    onClick={() => setEditingField(null)}
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        setEditingField(null);
+                                                                    }}
                                                                     className="h-12 px-4 bg-[#4E8C6D] text-white rounded-lg hover:bg-[#3d7058] w-full"
                                                                 >
                                                                     <span className="flex items-center justify-center gap-2">
@@ -1106,7 +1209,7 @@ export function RegisterModal({
                                                             </div>
                                                         ) : (
                                                             // 기본 입력 필드
-                                                            <div className="flex gap-2">
+                                                            <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                                                                 <input
                                                                     type={step.type}
                                                                     value={typeof value === 'string' ? value : ''}
@@ -1121,7 +1224,10 @@ export function RegisterModal({
                                                                     )}
                                                                 />
                                                                 <button
-                                                                    onClick={() => setEditingField(null)}
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        setEditingField(null);
+                                                                    }}
                                                                     className="h-12 px-4 bg-[#4E8C6D] text-white rounded-lg hover:bg-[#3d7058]"
                                                                 >
                                                                     <Check className="w-5 h-5" />
@@ -1333,6 +1439,12 @@ export function RegisterModal({
                                         {stepConfig.subDescription && (
                                             <p className="text-sm md:text-base text-gray-400 mt-1">
                                                 {stepConfig.subDescription}
+                                            </p>
+                                        )}
+                                        {/* 빌라 선택 시 동 입력 안내 문구 */}
+                                        {stepConfig.key === 'property_dong' && formData.property_type === 'VILLA' && (
+                                            <p className="text-sm text-[#4E8C6D] mt-3 bg-[#4E8C6D]/10 rounded-lg p-3">
+                                                💡 한 개동 빌라/다세대 주택은 동을 작성하지 않아도 됩니다.
                                             </p>
                                         )}
                                     </div>
