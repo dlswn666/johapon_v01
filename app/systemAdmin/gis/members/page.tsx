@@ -153,6 +153,18 @@ export default function MemberManagementPage() {
     // 비동기 처리 관련
     const [currentJobId, setCurrentJobId] = useState<string | null>(null);
     
+    // GIS 동기화 관련
+    const [syncJobId, setSyncJobId] = useState<string | null>(null);
+    const [isSyncing, setIsSyncing] = useState(false);
+    const [syncResult, setSyncResult] = useState<{
+        success: boolean;
+        totalCount: number;
+        syncedCount: number;
+        skippedCount: number;
+        failedCount: number;
+        errors: string[];
+    } | null>(null);
+    
     // 비동기 작업 상태 조회
     const { data: jobStatus } = useQuery({
         queryKey: ['pre-register-job-status', currentJobId],
@@ -165,7 +177,7 @@ export default function MemberManagementPage() {
         },
         enabled: !!currentJobId,
         refetchInterval: (query) => {
-            const status = query.state.data?.status;
+            const status = query.state.data?.status?.toLowerCase();
             if (status === 'completed' || status === 'failed') return false;
             return 2000;
         },
@@ -173,7 +185,8 @@ export default function MemberManagementPage() {
     
     // 작업 완료 시 처리
     useEffect(() => {
-        if (jobStatus?.status === 'completed') {
+        const status = jobStatus?.status?.toLowerCase();
+        if (status === 'completed') {
             const result = jobStatus.result;
             setSaveResult({
                 success: true,
@@ -186,25 +199,77 @@ export default function MemberManagementPage() {
             setCurrentJobId(null);
             setUploadedCount(0);
             fetchMembers();
-        } else if (jobStatus?.status === 'failed') {
+        } else if (status === 'failed') {
             setSaveResult({
                 success: false,
                 savedCount: 0,
                 matchedCount: 0,
                 unmatchedCount: 0,
                 duplicateCount: 0,
-                errors: [jobStatus.error || '처리 중 오류가 발생했습니다.'],
+                errors: [jobStatus?.error || '처리 중 오류가 발생했습니다.'],
             });
             setCurrentJobId(null);
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [jobStatus?.status]);
     
+    // GIS 동기화 작업 상태 조회
+    const { data: syncJobStatus } = useQuery({
+        queryKey: ['sync-properties-job-status', syncJobId],
+        queryFn: async () => {
+            if (!syncJobId) throw new Error('Job ID is required');
+            const response = await fetch(`/api/member-invite/job/${syncJobId}`);
+            if (!response.ok) throw new Error('Job status fetch failed');
+            const result = await response.json();
+            return result.data;
+        },
+        enabled: !!syncJobId,
+        refetchInterval: (query) => {
+            const status = query.state.data?.status?.toLowerCase();
+            if (status === 'completed' || status === 'failed') return false;
+            return 2000;
+        },
+    });
+    
+    // GIS 동기화 작업 완료 시 처리
+    useEffect(() => {
+        const status = syncJobStatus?.status?.toLowerCase();
+        if (status === 'completed') {
+            const result = syncJobStatus.result;
+            setSyncResult({
+                success: true,
+                totalCount: result?.totalCount || 0,
+                syncedCount: result?.syncedCount || 0,
+                skippedCount: result?.skippedCount || 0,
+                failedCount: result?.failedCount || 0,
+                errors: result?.errors || [],
+            });
+            setSyncJobId(null);
+            setIsSyncing(false);
+            fetchMembers();
+        } else if (status === 'failed') {
+            setSyncResult({
+                success: false,
+                totalCount: 0,
+                syncedCount: 0,
+                skippedCount: 0,
+                failedCount: 0,
+                errors: [syncJobStatus?.error || 'GIS 동기화 중 오류가 발생했습니다.'],
+            });
+            setSyncJobId(null);
+            setIsSyncing(false);
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [syncJobStatus?.status]);
+    
     // 조합 선택 변경 시 상태 초기화
     const resetUploadState = useCallback(() => {
         setUploadedCount(0);
         setCurrentJobId(null);
         setSaveResult(null);
+        setSyncJobId(null);
+        setSyncResult(null);
+        setIsSyncing(false);
     }, []);
 
     // 기존 조합원 목록
@@ -247,9 +312,7 @@ export default function MemberManagementPage() {
 
             if (!error && data) {
                 setUnions(data);
-                if (!selectedUnionId && data.length > 0) {
-                    setSelectedUnionId(data[0].id);
-                }
+                // 디폴트 선택 제거 - 사용자가 직접 선택하도록 함
             }
             setIsLoadingUnions(false);
         };
@@ -470,7 +533,16 @@ export default function MemberManagementPage() {
             const arrayBuffer = await file.arrayBuffer();
             const workbook = XLSX.read(arrayBuffer);
             const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-            const jsonData = XLSX.utils.sheet_to_json(worksheet) as Record<string, unknown>[];
+            const rawJsonData = XLSX.utils.sheet_to_json(worksheet) as Record<string, unknown>[];
+            
+            // 엑셀 헤더의 앞뒤 공백 제거 (예: "소유지 지번 " → "소유지 지번")
+            const jsonData = rawJsonData.map(row => {
+                const normalizedRow: Record<string, unknown> = {};
+                for (const [key, value] of Object.entries(row)) {
+                    normalizedRow[key.trim()] = value;
+                }
+                return normalizedRow;
+            });
 
             // flatMap을 사용하여 쉼표로 구분된 지번을 분리 처리
             const members: MemberExcelRow[] = jsonData.flatMap((row) => {
@@ -618,6 +690,35 @@ export default function MemberManagementPage() {
         }
     };
 
+    // GIS 동기화 실행
+    const handleSyncProperties = async () => {
+        if (!selectedUnionId) return;
+
+        setIsSyncing(true);
+        setSyncResult(null);
+
+        try {
+            const response = await fetch('/api/member-invite/sync-properties', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ unionId: selectedUnionId }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'GIS 동기화 요청에 실패했습니다.');
+            }
+
+            const result = await response.json();
+            setSyncJobId(result.jobId);
+
+        } catch (error) {
+            console.error('Sync properties error:', error);
+            alert('GIS 동기화 중 오류가 발생했습니다.');
+            setIsSyncing(false);
+        }
+    };
+
     // 필터링된 조합원 목록
     const filteredMembers = preRegisteredMembers.filter((member) => {
         if (!searchTerm) return true;
@@ -628,6 +729,9 @@ export default function MemberManagementPage() {
             member.property_address_jibun?.toLowerCase().includes(term)
         );
     });
+
+    // 선택된 조합 객체
+    const selectedUnion = unions.find((u) => u.id === selectedUnionId);
 
     return (
         <div className="space-y-6">
@@ -679,7 +783,7 @@ export default function MemberManagementPage() {
                         <CardHeader>
                             <CardTitle className="text-white flex items-center gap-2">
                                 <Upload className="w-5 h-5" />
-                                조합원 일괄 등록
+                                {selectedUnion?.name} - 조합원 일괄 등록
                             </CardTitle>
                             <CardDescription className="text-slate-400">
                                 엑셀 파일을 업로드하여 조합원을 사전 등록합니다. GIS 데이터와 자동 매칭됩니다.
@@ -690,9 +794,9 @@ export default function MemberManagementPage() {
                                 <Button
                                     variant="outline"
                                     onClick={handleDownloadTemplate}
-                                    className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                                    className="bg-white border-slate-300 text-slate-900 hover:bg-slate-100"
                                 >
-                                    <Download className="w-4 h-4 mr-2" />
+                                    <Download className="w-4 h-4 mr-2 text-slate-900" />
                                     템플릿 다운로드
                                 </Button>
 
@@ -840,19 +944,128 @@ export default function MemberManagementPage() {
                                         총 {preRegisteredMembers.length}명
                                     </CardDescription>
                                 </div>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={fetchMembers}
-                                    disabled={isLoadingMembers}
-                                    className="border-slate-600 text-slate-300 hover:bg-slate-700"
-                                >
-                                    <RefreshCw className={`w-4 h-4 mr-2 ${isLoadingMembers ? 'animate-spin' : ''}`} />
-                                    새로고침
-                                </Button>
+                                <div className="flex items-center gap-2">
+                                    <Button
+                                        size="sm"
+                                        onClick={handleSyncProperties}
+                                        disabled={isSyncing || !!syncJobId}
+                                        className="bg-emerald-600 hover:bg-emerald-700"
+                                    >
+                                        <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing || syncJobId ? 'animate-spin' : ''}`} />
+                                        {isSyncing || syncJobId ? 'GIS 동기화 중...' : 'GIS 동기화'}
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={fetchMembers}
+                                        disabled={isLoadingMembers}
+                                        className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                                    >
+                                        <RefreshCw className={`w-4 h-4 mr-2 ${isLoadingMembers ? 'animate-spin' : ''}`} />
+                                        새로고침
+                                    </Button>
+                                </div>
                             </div>
                         </CardHeader>
                         <CardContent>
+                            {/* GIS 동기화 진행률 표시 */}
+                            {syncJobId && syncJobStatus && (
+                                <div className="mb-4 p-4 bg-emerald-900/30 rounded-lg border border-emerald-500/30">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <div className="flex items-center gap-2">
+                                            <Loader2 className="w-4 h-4 text-emerald-400 animate-spin" />
+                                            <span className="text-sm font-medium text-emerald-300">
+                                                GIS 동기화 중...
+                                            </span>
+                                        </div>
+                                        <span className="text-sm font-semibold text-emerald-300">
+                                            {syncJobStatus.progress}%
+                                        </span>
+                                    </div>
+                                    <div className="w-full bg-emerald-900 rounded-full h-2">
+                                        <div 
+                                            className="bg-emerald-500 h-2 rounded-full transition-all duration-300"
+                                            style={{ width: `${syncJobStatus.progress}%` }}
+                                        />
+                                    </div>
+                                    <div className="mt-2 flex flex-wrap gap-4 text-xs text-emerald-400">
+                                        <span>총 {syncJobStatus.totalCount || 0}건</span>
+                                        {syncJobStatus.result?.syncedCount !== undefined && (
+                                            <span className="text-emerald-400">
+                                                <CheckCircle className="w-3 h-3 inline mr-1" />
+                                                동기화: {syncJobStatus.result.syncedCount}건
+                                            </span>
+                                        )}
+                                        {syncJobStatus.result?.skippedCount !== undefined && syncJobStatus.result.skippedCount > 0 && (
+                                            <span className="text-slate-400">
+                                                스킵: {syncJobStatus.result.skippedCount}건
+                                            </span>
+                                        )}
+                                        {syncJobStatus.result?.failedCount !== undefined && syncJobStatus.result.failedCount > 0 && (
+                                            <span className="text-amber-400">
+                                                <AlertTriangle className="w-3 h-3 inline mr-1" />
+                                                실패: {syncJobStatus.result.failedCount}건
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                            
+                            {/* GIS 동기화 결과 표시 */}
+                            {syncResult && !syncJobId && (
+                                <div
+                                    className={`mb-4 p-4 rounded-lg ${
+                                        syncResult.failedCount === 0
+                                            ? 'bg-emerald-500/20 border border-emerald-500/30'
+                                            : 'bg-amber-500/20 border border-amber-500/30'
+                                    }`}
+                                >
+                                    <div className="flex flex-wrap gap-4 mb-2">
+                                        <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
+                                            <CheckCircle className="w-3 h-3 mr-1" />
+                                            동기화: {syncResult.syncedCount}건
+                                        </Badge>
+                                        {syncResult.skippedCount > 0 && (
+                                            <Badge className="bg-slate-500/20 text-slate-400 border-slate-500/30">
+                                                스킵: {syncResult.skippedCount}건 (이미 연결됨)
+                                            </Badge>
+                                        )}
+                                        {syncResult.failedCount > 0 && (
+                                            <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30">
+                                                <AlertTriangle className="w-3 h-3 mr-1" />
+                                                실패: {syncResult.failedCount}건
+                                            </Badge>
+                                        )}
+                                    </div>
+                                    <p className={`font-medium ${syncResult.failedCount === 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                                        GIS 동기화 완료 - {syncResult.syncedCount}건이 연결되었습니다.
+                                    </p>
+                                    {syncResult.errors.length > 0 && (
+                                        <details className="mt-2">
+                                            <summary className="text-sm text-amber-300 cursor-pointer">
+                                                오류 목록 ({syncResult.errors.length}건)
+                                            </summary>
+                                            <ul className="mt-2 text-sm text-amber-300 list-disc list-inside max-h-32 overflow-auto">
+                                                {syncResult.errors.slice(0, 20).map((err, idx) => (
+                                                    <li key={idx}>{err}</li>
+                                                ))}
+                                                {syncResult.errors.length > 20 && (
+                                                    <li>외 {syncResult.errors.length - 20}건...</li>
+                                                )}
+                                            </ul>
+                                        </details>
+                                    )}
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setSyncResult(null)}
+                                        className="mt-3 border-slate-600 text-slate-300 hover:bg-slate-700"
+                                    >
+                                        확인
+                                    </Button>
+                                </div>
+                            )}
+
                             <div className="mb-4">
                                 <div className="relative">
                                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
