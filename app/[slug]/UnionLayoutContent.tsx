@@ -25,6 +25,9 @@ export default function UnionLayoutContent({ children }: UnionLayoutContentProps
     // 홈 페이지 여부 확인
     const isHomePage = pathname === `/${slug}`;
 
+    // 관리자 페이지 여부 확인 (admin 경로)
+    const isAdminPage = pathname.startsWith(`/${slug}/admin`);
+
     // 랜딩 페이지 여부 확인 (비로그인 + 홈페이지)
     const isLandingPage = isHomePage && !isAuthenticated;
 
@@ -68,6 +71,29 @@ export default function UnionLayoutContent({ children }: UnionLayoutContentProps
                 <MainBannerWidget />
                 <main className="flex-1">{children}</main>
                 {union && <UnionInfoFooter union={union} />}
+                <UserStatusModal />
+            </div>
+        );
+    }
+
+    // 관리자 페이지 레이아웃 (광고 영역 없이 전체 너비 사용)
+    if (isAdminPage) {
+        return (
+            <div className="min-h-[1080px] bg-gray-50 flex flex-col">
+                <MainBannerWidget />
+                {/* Header - 모든 페이지에서 공통 렌더링 */}
+                <UnionHomeHeader />
+
+                {/* Breadcrumb */}
+                <UnionBreadcrumb />
+
+                {/* 전체 너비 메인 콘텐츠 (광고 영역 없음) */}
+                <main className="flex-1 min-h-[1200px]">{children}</main>
+
+                {/* Footer 표시 */}
+                {union && <UnionInfoFooter union={union} />}
+
+                {/* 사용자 상태 모달 (승인대기/반려) */}
                 <UserStatusModal />
             </div>
         );

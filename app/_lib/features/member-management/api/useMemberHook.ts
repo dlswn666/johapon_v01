@@ -18,6 +18,9 @@ export interface MemberWithLandInfo extends User {
     isPnuMatched: boolean;
     // 새로 추가: 물건지 목록
     property_units?: MemberPropertyUnitInfo[];
+    // 동일인 그룹핑 관련 필드
+    grouped_user_ids?: string[];
+    total_property_count?: number;
 }
 
 // 새로운 타입 재export
@@ -47,13 +50,13 @@ export function useApprovedMembers({
         queryFn: async () => {
             if (!unionId) return { members: [], total: 0 };
 
-            // 1. 먼저 사용자 목록 조회
+            // 1. 먼저 사용자 목록 조회 (지번 오름차순 정렬)
             let query = supabase
                 .from('users')
                 .select('*', { count: 'exact' })
                 .eq('union_id', unionId)
                 .in('user_status', ['PRE_REGISTERED', 'APPROVED'])
-                .order('created_at', { ascending: false });
+                .order('property_address_jibun', { ascending: true, nullsFirst: false });
 
             // 차단 필터 적용
             if (blockedFilter === 'normal') {
@@ -132,7 +135,9 @@ export function useApprovedMembers({
                                 building_name,
                                 pnu,
                                 land_lots!inner (
-                                    address
+                                    address,
+                                    area,
+                                    official_price
                                 )
                             )
                         )
@@ -157,9 +162,17 @@ export function useApprovedMembers({
                             buildings: {
                                 building_name: string | null;
                                 pnu: string;
-                                land_lots: { address: string };
+                                land_lots: { 
+                                    address: string;
+                                    area: number | null;
+                                    official_price: number | null;
+                                };
                             };
                         };
+
+                        // land_lots에서 면적/공시지가 우선 사용 (building_units에 데이터가 없음)
+                        const landLotArea = buildingUnit?.buildings?.land_lots?.area;
+                        const landLotPrice = buildingUnit?.buildings?.land_lots?.official_price;
 
                         propertyUnitsMap[userId].push({
                             id: pu.id,
@@ -170,8 +183,8 @@ export function useApprovedMembers({
                             notes: pu.notes,
                             dong: buildingUnit?.dong || null,
                             ho: buildingUnit?.ho || null,
-                            area: buildingUnit?.area || null,
-                            official_price: buildingUnit?.official_price || null,
+                            area: landLotArea ?? buildingUnit?.area ?? null,
+                            official_price: landLotPrice ?? buildingUnit?.official_price ?? null,
                             building_name: buildingUnit?.buildings?.building_name || null,
                             pnu: buildingUnit?.buildings?.pnu || null,
                             address: buildingUnit?.buildings?.land_lots?.address || null,
@@ -228,13 +241,13 @@ export function useApprovedMembersInfinite({
 
             const page = pageParam as number;
 
-            // 1. 먼저 사용자 목록 조회
+            // 1. 먼저 사용자 목록 조회 (지번 오름차순 정렬)
             let query = supabase
                 .from('users')
                 .select('*', { count: 'exact' })
                 .eq('union_id', unionId)
                 .in('user_status', ['PRE_REGISTERED', 'APPROVED'])
-                .order('created_at', { ascending: false });
+                .order('property_address_jibun', { ascending: true, nullsFirst: false });
 
             // 차단 필터 적용
             if (blockedFilter === 'normal') {
@@ -313,7 +326,9 @@ export function useApprovedMembersInfinite({
                                 building_name,
                                 pnu,
                                 land_lots!inner (
-                                    address
+                                    address,
+                                    area,
+                                    official_price
                                 )
                             )
                         )
@@ -338,9 +353,17 @@ export function useApprovedMembersInfinite({
                             buildings: {
                                 building_name: string | null;
                                 pnu: string;
-                                land_lots: { address: string };
+                                land_lots: { 
+                                    address: string;
+                                    area: number | null;
+                                    official_price: number | null;
+                                };
                             };
                         };
+
+                        // land_lots에서 면적/공시지가 우선 사용 (building_units에 데이터가 없음)
+                        const landLotArea = buildingUnit?.buildings?.land_lots?.area;
+                        const landLotPrice = buildingUnit?.buildings?.land_lots?.official_price;
 
                         propertyUnitsMap[userId].push({
                             id: pu.id,
@@ -351,8 +374,8 @@ export function useApprovedMembersInfinite({
                             notes: pu.notes,
                             dong: buildingUnit?.dong || null,
                             ho: buildingUnit?.ho || null,
-                            area: buildingUnit?.area || null,
-                            official_price: buildingUnit?.official_price || null,
+                            area: landLotArea ?? buildingUnit?.area ?? null,
+                            official_price: landLotPrice ?? buildingUnit?.official_price ?? null,
                             building_name: buildingUnit?.buildings?.building_name || null,
                             pnu: buildingUnit?.buildings?.pnu || null,
                             address: buildingUnit?.buildings?.land_lots?.address || null,

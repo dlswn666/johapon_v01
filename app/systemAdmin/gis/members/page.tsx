@@ -1305,7 +1305,7 @@ export default function MemberManagementPage() {
                                 </Select>
                             </div>
 
-                            <div className="max-h-[576px] overflow-auto rounded-lg border border-slate-700">
+                            <div className="max-h-[676px] overflow-auto rounded-lg border border-slate-700">
                                 <DataTable<PreRegisteredMember>
                                     data={filteredMembers}
                                     columns={memberColumns}

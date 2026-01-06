@@ -91,10 +91,10 @@ export function DataTable<T extends object>({
 }: DataTableProps<T>) {
     const styles = variantStyles[variant];
 
-    // 무한 스크롤: Intersection Observer 설정
+    // 무한 스크롤: Intersection Observer 설정 (50% 스크롤 시점에서 재조회)
     const { ref: loadMoreRef, inView } = useInView({
-        threshold: 0,
-        rootMargin: '100px',
+        threshold: 0.5,
+        rootMargin: '0px',
     });
 
     // 무한 스크롤: 하단 도달 시 자동으로 다음 페이지 로드

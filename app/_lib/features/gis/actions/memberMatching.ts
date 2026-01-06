@@ -340,13 +340,13 @@ export async function getPreRegisteredMembers(
 
         const totalCount = count || 0;
 
-        // 페이지네이션 적용하여 데이터 조회
+        // 페이지네이션 적용하여 데이터 조회 (지번 기준 정렬)
         const { data, error } = await supabase
             .from('users')
             .select('id, name, phone_number, property_pnu, property_address_jibun, property_dong, property_ho, resident_address, created_at')
             .eq('union_id', unionId)
             .eq('user_status', 'PRE_REGISTERED')
-            .order('created_at', { ascending: false })
+            .order('property_address_jibun', { ascending: true, nullsFirst: false })
             .range(offset, offset + limit - 1);
 
         if (error) {
