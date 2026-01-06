@@ -53,7 +53,7 @@ import {
     getPreRegisteredMembers,
     deletePreRegisteredMember,
     deleteAllPreRegisteredMembers,
-    manualMatchUser,
+    updateUnmatchedMember,
 } from '@/app/_lib/features/gis/actions/memberMatching';
 import { supabase } from '@/app/_lib/shared/supabase/client';
 import { normalizeDong, normalizeHo } from '@/app/_lib/shared/utils/dong-ho-utils';
@@ -701,19 +701,30 @@ export default function MemberManagementPage() {
         }
     };
 
-    // 수동 매칭 모달 열기
-    const openManualMatchModal = (member: PreRegisteredMember) => {
-        setManualMatchModal({
-            open: true,
-            member,
-            newAddress: member.property_address_jibun || '',
-            dong: member.property_dong || '',
-            ho: member.property_ho || '',
-        });
+    // 비매칭 조합원 수정 모달 열기 (행 클릭 시)
+    const handleUnmatchedRowClick = (member: PreRegisteredMember) => {
+        // 비매칭(property_pnu가 null)인 경우에만 모달 열기
+        if (!member.property_pnu) {
+            setManualMatchModal({
+                open: true,
+                member,
+                newAddress: member.property_address_jibun || '',
+                dong: member.property_dong || '',
+                ho: member.property_ho || '',
+            });
+        }
     };
 
-    // 수동 매칭 실행
-    const handleManualMatch = async () => {
+    // 행 스타일 - 비매칭인 경우 클릭 가능함을 표시
+    const getRowClassName = (member: PreRegisteredMember) => {
+        if (!member.property_pnu) {
+            return 'cursor-pointer hover:bg-amber-900/20';
+        }
+        return '';
+    };
+
+    // 비매칭 조합원 정보 수정 및 GIS 재매칭
+    const handleUpdateUnmatchedMember = async () => {
         if (!manualMatchModal.member || !selectedUnionId) return;
 
         setIsManualMatching(true);
@@ -722,7 +733,7 @@ export default function MemberManagementPage() {
             const normalizedDong = normalizeDong(manualMatchModal.dong);
             const normalizedHo = normalizeHo(manualMatchModal.ho);
 
-            const result = await manualMatchUser(
+            const result = await updateUnmatchedMember(
                 manualMatchModal.member.id,
                 selectedUnionId,
                 manualMatchModal.newAddress,
@@ -731,15 +742,19 @@ export default function MemberManagementPage() {
             );
 
             if (result.success) {
-                alert('매칭이 완료되었습니다.');
+                if (result.matched) {
+                    alert('GIS 매칭이 완료되었습니다.');
+                } else {
+                    alert('정보가 저장되었습니다. (GIS 매칭 실패 - 주소를 확인해주세요)');
+                }
                 setManualMatchModal({ open: false, member: null, newAddress: '', dong: '', ho: '' });
                 await fetchMembers();
             } else {
-                alert(`매칭 실패: ${result.error}`);
+                alert(`저장 실패: ${result.error}`);
             }
         } catch (error) {
-            console.error('Manual match error:', error);
-            alert('수동 매칭 중 오류가 발생했습니다.');
+            console.error('Update unmatched member error:', error);
+            alert('정보 수정 중 오류가 발생했습니다.');
         } finally {
             setIsManualMatching(false);
         }
@@ -1231,22 +1246,33 @@ export default function MemberManagementPage() {
                                     }
                                     emptyIcon={<Users className="w-12 h-12 text-slate-500" />}
                                     variant="dark"
+                                    onRowClick={handleUnmatchedRowClick}
+                                    getRowClassName={getRowClassName}
                                     actions={{
                                         render: (member) => (
                                             <div className="flex items-center gap-1">
+                                                {/* 비매칭인 경우에만 수정 버튼 표시 */}
+                                                {!member.property_pnu && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleUnmatchedRowClick(member);
+                                                        }}
+                                                        className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/20"
+                                                        title="주소 수정"
+                                                    >
+                                                        <Edit className="w-4 h-4" />
+                                                    </Button>
+                                                )}
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
-                                                    onClick={() => openManualMatchModal(member)}
-                                                    className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/20"
-                                                    title="수동 매칭"
-                                                >
-                                                    <Edit className="w-4 h-4" />
-                                                </Button>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    onClick={() => setDeleteConfirm({ open: true, member })}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setDeleteConfirm({ open: true, member });
+                                                    }}
                                                     className="text-red-400 hover:text-red-300 hover:bg-red-500/20"
                                                     title="삭제"
                                                 >
@@ -1264,28 +1290,55 @@ export default function MemberManagementPage() {
                 </>
             )}
 
-            {/* 수동 매칭 모달 */}
+            {/* 비매칭 조합원 수정 모달 */}
             <Dialog
                 open={manualMatchModal.open}
                 onOpenChange={(open) => !open && setManualMatchModal({ open: false, member: null, newAddress: '', dong: '', ho: '' })}
             >
-                <DialogContent className="bg-slate-800 border-slate-700">
+                <DialogContent className="bg-slate-800 border-slate-700 max-w-md">
                     <DialogHeader>
-                        <DialogTitle className="text-white">수동 매칭</DialogTitle>
+                        <DialogTitle className="text-white flex items-center gap-2">
+                            <XCircle className="w-5 h-5 text-amber-400" />
+                            비매칭 조합원 정보 수정
+                        </DialogTitle>
                         <DialogDescription className="text-slate-400">
-                            {manualMatchModal.member?.name}님의 소유지 주소를 수정하여 GIS 데이터와 매칭합니다.
+                            소유지 정보를 수정하고 GIS 데이터와 재매칭합니다.
                         </DialogDescription>
                     </DialogHeader>
 
                     <div className="space-y-4">
+                        {/* 읽기 전용 정보 */}
+                        <div className="p-3 bg-slate-900/50 rounded-lg border border-slate-700">
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <Label className="text-slate-500 text-xs">소유주명</Label>
+                                    <p className="text-white font-medium mt-1">
+                                        {manualMatchModal.member?.name || '-'}
+                                    </p>
+                                </div>
+                                <div>
+                                    <Label className="text-slate-500 text-xs">전화번호</Label>
+                                    <p className="text-slate-300 mt-1">
+                                        {manualMatchModal.member?.phone_number || '-'}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* 수정 가능 필드 */}
                         <div>
-                            <Label className="text-slate-300">소유지 지번 주소</Label>
+                            <Label className="text-slate-300">
+                                소유지 지번 <span className="text-amber-400">*</span>
+                            </Label>
                             <Input
                                 value={manualMatchModal.newAddress}
                                 onChange={(e) => setManualMatchModal((prev) => ({ ...prev, newAddress: e.target.value }))}
                                 placeholder="예: 서울시 강남구 역삼동 123-4"
                                 className="mt-1 bg-slate-700 border-slate-600 text-white"
                             />
+                            <p className="text-xs text-slate-500 mt-1">
+                                법정동 + 지번 형식으로 입력하세요
+                            </p>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div>
@@ -1309,7 +1362,7 @@ export default function MemberManagementPage() {
                         </div>
                     </div>
 
-                    <DialogFooter>
+                    <DialogFooter className="gap-2">
                         <Button
                             variant="outline"
                             onClick={() => setManualMatchModal({ open: false, member: null, newAddress: '', dong: '', ho: '' })}
@@ -1318,11 +1371,18 @@ export default function MemberManagementPage() {
                             취소
                         </Button>
                         <Button
-                            onClick={handleManualMatch}
+                            onClick={handleUpdateUnmatchedMember}
                             disabled={isManualMatching || !manualMatchModal.newAddress}
                             className="bg-blue-600 hover:bg-blue-700"
                         >
-                            {isManualMatching ? '매칭 중...' : '매칭 실행'}
+                            {isManualMatching ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    저장 중...
+                                </>
+                            ) : (
+                                '저장 및 재매칭'
+                            )}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
