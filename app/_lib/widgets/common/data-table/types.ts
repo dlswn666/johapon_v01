@@ -28,7 +28,8 @@ export interface ColumnDef<T> {
 }
 
 /**
- * 페이지네이션 Props
+ * 페이지네이션 Props (레거시 - 하위 호환성 유지)
+ * @deprecated 무한 스크롤(InfiniteScrollProps)을 사용하세요
  */
 export interface PaginationProps {
     /** 현재 페이지 (1부터 시작) */
@@ -41,6 +42,20 @@ export interface PaginationProps {
     pageSize: number;
     /** 페이지 변경 핸들러 */
     onPageChange: (page: number) => void;
+}
+
+/**
+ * 무한 스크롤 Props
+ */
+export interface InfiniteScrollProps {
+    /** 다음 페이지 존재 여부 */
+    hasNextPage: boolean;
+    /** 다음 페이지 로딩 중 여부 */
+    isFetchingNextPage: boolean;
+    /** 다음 페이지 로드 함수 */
+    fetchNextPage: () => void;
+    /** 전체 아이템 수 (선택적, 표시용) */
+    totalItems?: number;
 }
 
 /**
@@ -95,9 +110,11 @@ export interface DataTableProps<T> {
     /** 빈 상태 아이콘 */
     emptyIcon?: React.ReactNode;
 
-    // === 페이지네이션 ===
-    /** 페이지네이션 설정 (없으면 페이지네이션 미표시) */
+    // === 페이지네이션 / 무한 스크롤 ===
+    /** 페이지네이션 설정 (레거시, 무한 스크롤 권장) */
     pagination?: PaginationProps;
+    /** 무한 스크롤 설정 (권장) */
+    infiniteScroll?: InfiniteScrollProps;
 
     // === 행 동작 ===
     /** 행 클릭 핸들러 */

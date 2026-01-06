@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/app/_lib/shared/supabase/client';
 import {
     User,
@@ -193,6 +193,200 @@ export function useApprovedMembers({
 
             return { members: membersWithLandInfo, total: count || 0 };
         },
+        enabled: !!unionId,
+    });
+}
+
+// 무한 스크롤용 조합원 목록 조회 파라미터
+interface UseApprovedMembersInfiniteParams {
+    unionId: string | undefined;
+    searchQuery?: string;
+    blockedFilter?: BlockedFilter;
+    pageSize?: number;
+}
+
+// 무한 스크롤용 응답 타입
+interface InfiniteMembersResponse {
+    members: MemberWithLandInfo[];
+    total: number;
+    nextPage: number | undefined;
+}
+
+// 승인된 조합원 목록 조회 (무한 스크롤)
+export function useApprovedMembersInfinite({
+    unionId,
+    searchQuery = '',
+    blockedFilter = 'all',
+    pageSize = 20,
+}: UseApprovedMembersInfiniteParams) {
+    const { setMembers, setTotalCount } = useMemberStore();
+
+    return useInfiniteQuery<InfiniteMembersResponse>({
+        queryKey: ['approved-members-infinite', unionId, searchQuery, blockedFilter, pageSize],
+        queryFn: async ({ pageParam }): Promise<InfiniteMembersResponse> => {
+            if (!unionId) return { members: [], total: 0, nextPage: undefined };
+
+            const page = pageParam as number;
+
+            // 1. 먼저 사용자 목록 조회
+            let query = supabase
+                .from('users')
+                .select('*', { count: 'exact' })
+                .eq('union_id', unionId)
+                .in('user_status', ['PRE_REGISTERED', 'APPROVED'])
+                .order('created_at', { ascending: false });
+
+            // 차단 필터 적용
+            if (blockedFilter === 'normal') {
+                query = query.eq('is_blocked', false);
+            } else if (blockedFilter === 'blocked') {
+                query = query.eq('is_blocked', true);
+            }
+
+            // 검색 필터 적용 (이름 또는 물건지 주소)
+            if (searchQuery) {
+                query = query.or(
+                    `name.ilike.%${searchQuery}%,property_address_road.ilike.%${searchQuery}%,property_address_jibun.ilike.%${searchQuery}%`
+                );
+            }
+
+            // 페이지네이션
+            const from = (page - 1) * pageSize;
+            const to = from + pageSize - 1;
+            query = query.range(from, to);
+
+            const { data: users, error, count } = await query;
+
+            if (error) throw error;
+
+            // 2. union_land_lots에서 해당 조합의 PNU 목록 조회
+            const { data: unionLandLots } = await supabase
+                .from('union_land_lots')
+                .select('pnu')
+                .eq('union_id', unionId);
+
+            const unionPnuSet = new Set(unionLandLots?.map((l) => l.pnu) || []);
+
+            // 3. 사용자 PNU로 land_lots 정보 조회 (기존 호환성)
+            const pnuList = users?.map((u) => u.property_pnu).filter(Boolean) as string[];
+            let landLotsMap: Record<string, { area: number | null; official_price: number | null }> = {};
+
+            if (pnuList.length > 0) {
+                const { data: landLots } = await supabase
+                    .from('land_lots')
+                    .select('pnu, area, official_price')
+                    .in('pnu', pnuList);
+
+                if (landLots) {
+                    landLotsMap = landLots.reduce(
+                        (acc, lot) => {
+                            acc[lot.pnu] = { area: lot.area, official_price: lot.official_price };
+                            return acc;
+                        },
+                        {} as Record<string, { area: number | null; official_price: number | null }>
+                    );
+                }
+            }
+
+            // 4. user_property_units에서 사용자별 물건지 정보 조회
+            const userIds = users?.map((u) => u.id) || [];
+            const propertyUnitsMap: Record<string, MemberPropertyUnitInfo[]> = {};
+
+            if (userIds.length > 0) {
+                const { data: propertyUnits } = await supabase
+                    .from('user_property_units')
+                    .select(
+                        `
+                        id,
+                        user_id,
+                        building_unit_id,
+                        ownership_type,
+                        ownership_ratio,
+                        is_primary,
+                        notes,
+                        building_units!inner (
+                            dong,
+                            ho,
+                            area,
+                            official_price,
+                            buildings!inner (
+                                building_name,
+                                pnu,
+                                land_lots!inner (
+                                    address
+                                )
+                            )
+                        )
+                    `
+                    )
+                    .in('user_id', userIds)
+                    .order('is_primary', { ascending: false });
+
+                if (propertyUnits) {
+                    propertyUnits.forEach((pu) => {
+                        const userId = pu.user_id;
+                        if (!propertyUnitsMap[userId]) {
+                            propertyUnitsMap[userId] = [];
+                        }
+
+                        // 타입 안전하게 처리
+                        const buildingUnit = pu.building_units as unknown as {
+                            dong: string | null;
+                            ho: string | null;
+                            area: number | null;
+                            official_price: number | null;
+                            buildings: {
+                                building_name: string | null;
+                                pnu: string;
+                                land_lots: { address: string };
+                            };
+                        };
+
+                        propertyUnitsMap[userId].push({
+                            id: pu.id,
+                            building_unit_id: pu.building_unit_id,
+                            ownership_type: pu.ownership_type as OwnershipType,
+                            ownership_ratio: pu.ownership_ratio,
+                            is_primary: pu.is_primary,
+                            notes: pu.notes,
+                            dong: buildingUnit?.dong || null,
+                            ho: buildingUnit?.ho || null,
+                            area: buildingUnit?.area || null,
+                            official_price: buildingUnit?.official_price || null,
+                            building_name: buildingUnit?.buildings?.building_name || null,
+                            pnu: buildingUnit?.buildings?.pnu || null,
+                            address: buildingUnit?.buildings?.land_lots?.address || null,
+                        });
+                    });
+                }
+            }
+
+            // 5. 조합원 정보와 필지/물건지 정보 결합
+            const membersWithLandInfo: MemberWithLandInfo[] = (users || []).map((user) => ({
+                ...user,
+                land_lot: user.property_pnu ? landLotsMap[user.property_pnu] || null : null,
+                isPnuMatched: user.property_pnu ? unionPnuSet.has(user.property_pnu) : false,
+                property_units: propertyUnitsMap[user.id] || [],
+            }));
+
+            // Store 업데이트는 첫 페이지에서만
+            if (page === 1) {
+                setMembers(users || []);
+                setTotalCount(count || 0);
+            }
+
+            const totalCount = count || 0;
+            const totalPages = Math.ceil(totalCount / pageSize);
+            const hasNextPage = page < totalPages;
+
+            return {
+                members: membersWithLandInfo,
+                total: totalCount,
+                nextPage: hasNextPage ? page + 1 : undefined,
+            };
+        },
+        initialPageParam: 1,
+        getNextPageParam: (lastPage) => lastPage.nextPage,
         enabled: !!unionId,
     });
 }

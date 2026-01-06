@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import {
     ClipboardList,
@@ -27,7 +27,7 @@ import toast from 'react-hot-toast';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import {
-    useAccessLogs,
+    useAccessLogsInfinite,
     useDeleteOldLogs,
     useUnionsForFilter,
     ACCESS_TYPE_LABELS,
@@ -114,7 +114,6 @@ export default function AccessLogsPage() {
     const [selectedUnionId, setSelectedUnionId] = useState<string>('');
     const [startDate, setStartDate] = useState<string>('');
     const [endDate, setEndDate] = useState<string>('');
-    const [page, setPage] = useState(1);
     const pageSize = 20;
 
     // 로그 삭제 확인 모달
@@ -130,30 +129,36 @@ export default function AccessLogsPage() {
     // 조합 목록 조회
     const { data: unions } = useUnionsForFilter();
 
-    // 접속 로그 조회
+    // 접속 로그 조회 (무한 스크롤)
     const {
         data: logsData,
         isLoading: logsLoading,
         refetch: refetchLogs,
-    } = useAccessLogs({
+        fetchNextPage,
+        hasNextPage,
+        isFetchingNextPage,
+    } = useAccessLogsInfinite({
         unionId: selectedUnionId || undefined,
         startDate: startDate || undefined,
         endDate: endDate || undefined,
-        page,
         pageSize,
     });
 
     // 로그 삭제 mutation
     const { mutateAsync: deleteOldLogs, isPending: isDeleting } = useDeleteOldLogs();
 
-    const totalPages = Math.ceil((logsData?.total || 0) / pageSize);
+    // 페이지 데이터 평탄화
+    const logs = useMemo(() => {
+        return logsData?.pages.flatMap((page) => page.logs) || [];
+    }, [logsData?.pages]);
+
+    const totalCount = logsData?.pages[0]?.total || 0;
 
     // 필터 초기화
     const handleResetFilters = () => {
         setSelectedUnionId('');
         setStartDate('');
         setEndDate('');
-        setPage(1);
     };
 
     // 로그 삭제 실행
@@ -206,7 +211,6 @@ export default function AccessLogsPage() {
                                 value={selectedUnionId}
                                 onChange={(value) => {
                                     setSelectedUnionId(value);
-                                    setPage(1);
                                 }}
                                 options={[
                                     { value: '', label: '전체 조합' },
@@ -230,7 +234,6 @@ export default function AccessLogsPage() {
                                 value={startDate}
                                 onChange={(e) => {
                                     setStartDate(e.target.value);
-                                    setPage(1);
                                 }}
                                 className="h-10"
                             />
@@ -247,7 +250,6 @@ export default function AccessLogsPage() {
                                 value={endDate}
                                 onChange={(e) => {
                                     setEndDate(e.target.value);
-                                    setPage(1);
                                 }}
                                 className="h-10"
                             />
@@ -261,14 +263,6 @@ export default function AccessLogsPage() {
                                 className="h-10 border-gray-300 text-gray-700"
                             >
                                 초기화
-                            </Button>
-                            <Button
-                                variant="destructive"
-                                onClick={() => setShowDeleteConfirm(true)}
-                                className="h-10"
-                            >
-                                <Trash2 className="w-4 h-4 mr-2" />
-                                1년 경과 로그 정리
                             </Button>
                         </div>
                     </div>
@@ -284,25 +278,24 @@ export default function AccessLogsPage() {
                             </div>
                             <div>
                                 <h2 className="text-lg font-semibold text-gray-900">접속 기록</h2>
-                                <p className="text-sm text-gray-600">총 {logsData?.total || 0}건</p>
+                                <p className="text-sm text-gray-600">총 {totalCount}건</p>
                             </div>
                         </div>
                     </div>
 
                     {/* 테이블 */}
                     <DataTable<AccessLog>
-                        data={(logsData?.logs || []) as AccessLog[]}
+                        data={logs as AccessLog[]}
                         columns={accessLogColumns}
                         keyExtractor={(row) => row.id}
                         isLoading={logsLoading}
                         emptyMessage="접속 기록이 없습니다."
                         emptyIcon={<ClipboardList className="w-12 h-12 text-gray-300" />}
-                        pagination={{
-                            currentPage: page,
-                            totalPages,
-                            totalItems: logsData?.total || 0,
-                            pageSize,
-                            onPageChange: setPage,
+                        infiniteScroll={{
+                            hasNextPage: hasNextPage ?? false,
+                            isFetchingNextPage,
+                            fetchNextPage,
+                            totalItems: totalCount,
                         }}
                         minWidth="800px"
                     />
@@ -322,6 +315,18 @@ export default function AccessLogsPage() {
                             </p>
                         </div>
                     </div>
+                </div>
+
+                {/* 1년 경과 로그 정리 버튼 */}
+                <div className="flex justify-end">
+                    <Button
+                        variant="destructive"
+                        onClick={() => setShowDeleteConfirm(true)}
+                        className="h-10"
+                    >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        1년 경과 로그 정리
+                    </Button>
                 </div>
             </div>
 

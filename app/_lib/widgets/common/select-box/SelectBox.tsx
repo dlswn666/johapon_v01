@@ -2,14 +2,12 @@
 
 import React from 'react';
 import { ChevronDown } from 'lucide-react';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+
+// Radix UI Select는 빈 문자열을 선택 해제용으로 예약하므로,
+// 빈 문자열 값을 가진 옵션은 특수 플레이스홀더 값으로 변환합니다.
+const EMPTY_VALUE_PLACEHOLDER = '__EMPTY_VALUE__';
 
 export interface SelectBoxOption {
     value: string;
@@ -42,8 +40,16 @@ export function SelectBox({
     className,
     disabled = false,
 }: SelectBoxProps) {
+    // 빈 문자열 값을 플레이스홀더로 변환
+    const transformedValue = value === '' ? EMPTY_VALUE_PLACEHOLDER : value;
+
+    // onChange 핸들러에서 플레이스홀더를 다시 빈 문자열로 변환
+    const handleValueChange = (newValue: string) => {
+        onChange(newValue === EMPTY_VALUE_PLACEHOLDER ? '' : newValue);
+    };
+
     return (
-        <Select value={value} onValueChange={onChange} disabled={disabled}>
+        <Select value={transformedValue} onValueChange={handleValueChange} disabled={disabled}>
             <SelectTrigger
                 className={cn(
                     // 기본 스타일
@@ -67,39 +73,33 @@ export function SelectBox({
                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 pointer-events-none" />
             </SelectTrigger>
             <SelectContent
-                className={cn(
-                    'bg-white rounded-xl border border-gray-200 shadow-lg',
-                    'max-h-60 overflow-y-auto'
-                )}
+                className={cn('bg-white rounded-xl border border-gray-200 shadow-lg', 'max-h-60 overflow-y-auto')}
             >
-                {options.map((option) => (
-                    <SelectItem
-                        key={option.value}
-                        value={option.value}
-                        disabled={option.disabled}
-                        className={cn(
-                            'text-[14px] text-gray-900 px-4 py-3 cursor-pointer',
-                            // 호버 효과 - 회색 계열
-                            'hover:bg-gray-100 focus:bg-gray-100',
-                            // 선택된 항목 스타일
-                            'data-[state=checked]:bg-gray-100 data-[state=checked]:text-[#4E8C6D] data-[state=checked]:font-medium',
-                            // 트랜지션
-                            'transition-colors duration-150'
-                        )}
-                    >
-                        {option.label}
-                    </SelectItem>
-                ))}
+                {options.map((option) => {
+                    // 옵션 값도 빈 문자열이면 플레이스홀더로 변환
+                    const optionValue = option.value === '' ? EMPTY_VALUE_PLACEHOLDER : option.value;
+                    return (
+                        <SelectItem
+                            key={optionValue}
+                            value={optionValue}
+                            disabled={option.disabled}
+                            className={cn(
+                                'text-[14px] text-gray-900 px-4 py-3 cursor-pointer',
+                                // 호버 효과 - 회색 계열
+                                'hover:bg-gray-100 focus:bg-gray-100',
+                                // 선택된 항목 스타일
+                                'data-[state=checked]:bg-gray-100 data-[state=checked]:text-[#4E8C6D] data-[state=checked]:font-medium',
+                                // 트랜지션
+                                'transition-colors duration-150'
+                            )}
+                        >
+                            {option.label}
+                        </SelectItem>
+                    );
+                })}
             </SelectContent>
         </Select>
     );
 }
 
 export default SelectBox;
-
-
-
-
-
-
-

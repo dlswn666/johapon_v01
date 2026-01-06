@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/app/_lib/shared/supabase/client';
 import { MemberAccessLog, AccessType } from '@/app/_lib/shared/type/database.types';
 
@@ -21,13 +21,7 @@ interface UseAccessLogsParams {
 }
 
 // 접속 로그 목록 조회 (시스템 관리자용)
-export function useAccessLogs({
-    unionId,
-    startDate,
-    endDate,
-    page = 1,
-    pageSize = 20,
-}: UseAccessLogsParams) {
+export function useAccessLogs({ unionId, startDate, endDate, page = 1, pageSize = 20 }: UseAccessLogsParams) {
     return useQuery({
         queryKey: ['access-logs', unionId, startDate, endDate, page, pageSize],
         queryFn: async () => {
@@ -70,6 +64,82 @@ export function useAccessLogs({
                 total: count || 0,
             };
         },
+    });
+}
+
+// 무한 스크롤용 접속 로그 조회 파라미터
+interface UseAccessLogsInfiniteParams {
+    unionId?: string;
+    startDate?: string;
+    endDate?: string;
+    pageSize?: number;
+}
+
+// 무한 스크롤용 응답 타입
+interface InfiniteAccessLogsResponse {
+    logs: AccessLogWithUnion[];
+    total: number;
+    nextPage: number | undefined;
+}
+
+// 접속 로그 목록 조회 (무한 스크롤)
+export function useAccessLogsInfinite({ unionId, startDate, endDate, pageSize = 20 }: UseAccessLogsInfiniteParams) {
+    return useInfiniteQuery<InfiniteAccessLogsResponse>({
+        queryKey: ['access-logs-infinite', unionId, startDate, endDate, pageSize],
+        // 접속 시 한 번만 조회하도록 설정
+        staleTime: Infinity,
+        refetchOnWindowFocus: false,
+        refetchOnReconnect: false,
+        refetchOnMount: false,
+        queryFn: async ({ pageParam }): Promise<InfiniteAccessLogsResponse> => {
+            const page = pageParam as number;
+
+            let query = supabase
+                .from('member_access_logs')
+                .select(
+                    `
+                    *,
+                    union:unions!member_access_logs_union_id_fkey(id, name, slug)
+                `,
+                    { count: 'exact' }
+                )
+                .order('accessed_at', { ascending: false });
+
+            // 조합 필터
+            if (unionId) {
+                query = query.eq('union_id', unionId);
+            }
+
+            // 기간 필터
+            if (startDate) {
+                query = query.gte('accessed_at', startDate);
+            }
+            if (endDate) {
+                // endDate는 해당 날짜의 끝까지 포함
+                query = query.lte('accessed_at', `${endDate}T23:59:59.999Z`);
+            }
+
+            // 페이지네이션
+            const from = (page - 1) * pageSize;
+            const to = from + pageSize - 1;
+            query = query.range(from, to);
+
+            const { data, error, count } = await query;
+
+            if (error) throw error;
+
+            const totalCount = count || 0;
+            const totalPages = Math.ceil(totalCount / pageSize);
+            const hasNextPage = page < totalPages;
+
+            return {
+                logs: data as AccessLogWithUnion[],
+                total: totalCount,
+                nextPage: hasNextPage ? page + 1 : undefined,
+            };
+        },
+        initialPageParam: 1,
+        getNextPageParam: (lastPage) => lastPage.nextPage,
     });
 }
 
