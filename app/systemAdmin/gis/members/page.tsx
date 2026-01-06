@@ -371,13 +371,27 @@ export default function MemberManagementPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedUnionId]);
 
-    // 검색어 또는 매칭 필터 변경 시 조합원 목록 재조회
+    // 검색어 변경 시 조합원 목록 재조회 (1초 debounce)
+    useEffect(() => {
+        if (!selectedUnionId) return;
+
+        const timer = setTimeout(() => {
+            fetchMembers();
+        }, 1000); // 1초 딜레이
+
+        return () => {
+            clearTimeout(timer);
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [searchTerm]);
+
+    // 매칭 필터 변경 시 조합원 목록 즉시 재조회
     useEffect(() => {
         if (selectedUnionId) {
             fetchMembers();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [searchTerm, matchFilter]);
+    }, [matchFilter]);
 
     // 조합원 목록 조회 (초기 로드)
     const fetchMembers = useCallback(async () => {
@@ -387,11 +401,11 @@ export default function MemberManagementPage() {
         setPreRegisteredMembers([]);
         setHasMore(true);
 
-        const result = await getPreRegisteredMembers(selectedUnionId, { 
-            offset: 0, 
+        const result = await getPreRegisteredMembers(selectedUnionId, {
+            offset: 0,
             limit: ITEMS_PER_PAGE,
             searchTerm: searchTerm || undefined,
-            matchFilter: matchFilter
+            matchFilter: matchFilter,
         });
         if (result.success && result.data) {
             setPreRegisteredMembers(result.data);
@@ -412,7 +426,7 @@ export default function MemberManagementPage() {
             offset: currentOffset,
             limit: ITEMS_PER_PAGE,
             searchTerm: searchTerm || undefined,
-            matchFilter: matchFilter
+            matchFilter: matchFilter,
         });
 
         if (result.success && result.data) {
