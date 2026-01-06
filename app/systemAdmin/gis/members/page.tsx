@@ -283,7 +283,7 @@ export default function MemberManagementPage() {
 
     // 엑셀 템플릿 다운로드
     const handleDownloadTemplate = () => {
-        // 템플릿 데이터 (예시)
+        // 템플릿 데이터 (예시) - 소유유형은 시스템에서 지분율 기반으로 자동 분류
         const templateData = [
             {
                 소유주명: '홍길동',
@@ -299,7 +299,6 @@ export default function MemberManagementPage() {
                 '건축물소유면적(m2)': 84.5,
                 '건축물지분율(%)': 100,
                 '공시지가(원)': 850000000,
-                소유유형: '소유주',
                 특이사항: '',
             },
             {
@@ -312,11 +311,10 @@ export default function MemberManagementPage() {
                 동: '101',
                 호수: '1001',
                 '토지소유면적(m2)': 21.25,
-                '토지지분율(%)': 50,
+                '토지지분율(%)': '1/2',
                 '건축물소유면적(m2)': 42.25,
-                '건축물지분율(%)': 50,
+                '건축물지분율(%)': '50%',
                 '공시지가(원)': 850000000,
-                소유유형: '공동소유',
                 특이사항: '공동명의',
             },
             {
@@ -333,34 +331,36 @@ export default function MemberManagementPage() {
                 '건축물소유면적(m2)': '',
                 '건축물지분율(%)': '',
                 '공시지가(원)': '',
-                소유유형: '',
                 특이사항: '',
             },
         ];
 
-        // 안내 시트 데이터
+        // 안내 시트 데이터 (소유유형은 시스템에서 지분율 기반으로 자동 분류)
         const guideData = [
             { '항목': '소유주명', '필수여부': '필수', '설명': '조합원 이름' },
             { '항목': '핸드폰번호', '필수여부': '선택', '설명': '연락처 (하이픈 포함 가능)' },
             { '항목': '거주주소', '필수여부': '선택', '설명': '실거주 주소' },
-            { '항목': '소유지 지번', '필수여부': '필수', '설명': '물건지 지번 주소 (GIS 매칭용). 쉼표로 구분하여 여러 지번 입력 가능' },
+            { '항목': '소유지 지번', '필수여부': '필수', '설명': '법정동 주소 필수 (예: 서울특별시 강남구 역삼동 123-4). 시도+시군구+읍면동+지번 형식. 쉼표로 여러 지번 입력 가능' },
             { '항목': '소유지 도로명', '필수여부': '선택', '설명': '물건지 도로명 주소' },
             { '항목': '건물이름', '필수여부': '선택', '설명': '아파트/빌라 등 건물명' },
             { '항목': '동', '필수여부': '선택', '설명': '동 번호 (예: 101, A동, 제1호, 지하1)' },
             { '항목': '호수', '필수여부': '선택', '설명': '호수 (예: 1001, 101호, 비01)' },
-            { '항목': '토지소유면적(m2)', '필수여부': '선택', '설명': '토지 소유 면적' },
-            { '항목': '토지지분율(%)', '필수여부': '선택', '설명': '토지 지분율 (예: 50)' },
-            { '항목': '건축물소유면적(m2)', '필수여부': '선택', '설명': '건축물 소유 면적' },
-            { '항목': '건축물지분율(%)', '필수여부': '선택', '설명': '건축물 지분율 (예: 50)' },
+            { '항목': '토지소유면적(m2)', '필수여부': '선택', '설명': '토지 소유 면적 (0이나 빈값은 저장되지 않음)' },
+            { '항목': '토지지분율(%)', '필수여부': '선택', '설명': '토지 지분율 (예: 33.2/123, 1/2, 50%, 0.5, 50). 100% 미만이면 공동소유로 자동 분류' },
+            { '항목': '건축물소유면적(m2)', '필수여부': '선택', '설명': '건축물 소유 면적 (0이나 빈값은 저장되지 않음)' },
+            { '항목': '건축물지분율(%)', '필수여부': '선택', '설명': '건축물 지분율 (예: 33.2/123, 1/2, 50%, 0.5, 50). 100% 미만이면 공동소유로 자동 분류' },
             { '항목': '공시지가(원)', '필수여부': '선택', '설명': '공시지가 (원)' },
-            { '항목': '소유유형', '필수여부': '선택', '설명': '소유주 / 공동소유 / 소유주 가족' },
             { '항목': '특이사항', '필수여부': '선택', '설명': '기타 메모' },
+            { '항목': '', '필수여부': '', '설명': '' },
+            { '항목': '[주소 입력 주의사항]', '필수여부': '', '설명': '' },
+            { '항목': '올바른 형식', '필수여부': '', '설명': '서울특별시 강남구 역삼동 123-4 / 서울 강남구 역삼동 123 / 경기도 성남시 분당구 판교동 산 123' },
+            { '항목': '잘못된 형식', '필수여부': '', '설명': '역삼동 123-4 (시도/시군구 없음) / 123-4 (지번만) / 테헤란로 123 (도로명 주소)' },
         ];
 
         const worksheet = XLSX.utils.json_to_sheet(templateData);
         const guideSheet = XLSX.utils.json_to_sheet(guideData);
 
-        // 컬럼 너비 설정 (템플릿)
+        // 컬럼 너비 설정 (템플릿) - 소유유형 열 제거됨 (시스템 자동 분류)
         worksheet['!cols'] = [
             { wch: 12 }, // 소유주명
             { wch: 16 }, // 핸드폰번호
@@ -371,11 +371,10 @@ export default function MemberManagementPage() {
             { wch: 8 },  // 동
             { wch: 8 },  // 호수
             { wch: 16 }, // 토지소유면적
-            { wch: 12 }, // 토지지분율
+            { wch: 15 }, // 토지지분율 (분수 형식 입력 가능)
             { wch: 18 }, // 건축물소유면적
-            { wch: 14 }, // 건축물지분율
+            { wch: 15 }, // 건축물지분율 (분수 형식 입력 가능)
             { wch: 15 }, // 공시지가
-            { wch: 12 }, // 소유유형
             { wch: 20 }, // 특이사항
         ];
 
@@ -392,6 +391,72 @@ export default function MemberManagementPage() {
         XLSX.writeFile(workbook, '조합원_업로드_템플릿.xlsx');
     };
 
+    /**
+     * 지분율 파싱 - 다양한 형식을 퍼센트(0~100)로 변환
+     * 소수점 2째자리까지 반올림하여 반환
+     * 
+     * @param value - "33.2/123", "1/2", "50%", "0.5", "50", 0 등
+     * @returns 퍼센트 값 (예: 26.99) 또는 undefined
+     */
+    const parseOwnershipRatio = (value: unknown): number | undefined => {
+        if (value === null || value === undefined || value === '') return undefined;
+        
+        const str = String(value).trim();
+        if (!str || str === '0') return undefined; // 0은 소유 없음으로 처리
+        
+        let result: number | undefined;
+        
+        // 1. 분수 형식 (예: "1/2", "33.2/123", "3/4")
+        const fractionMatch = str.match(/^([\d.]+)\s*\/\s*([\d.]+)$/);
+        if (fractionMatch) {
+            const numerator = parseFloat(fractionMatch[1]);
+            const denominator = parseFloat(fractionMatch[2]);
+            if (!isNaN(numerator) && !isNaN(denominator) && denominator !== 0) {
+                result = (numerator / denominator) * 100;
+            }
+        }
+        
+        // 2. 퍼센트 형식 (예: "50%", "26.99%")
+        if (result === undefined) {
+            const percentMatch = str.match(/^([\d.]+)\s*%$/);
+            if (percentMatch) {
+                result = parseFloat(percentMatch[1]);
+            }
+        }
+        
+        // 3. 숫자 형식
+        if (result === undefined) {
+            const num = parseFloat(str);
+            if (!isNaN(num)) {
+                // 소수점 형식 (0 < value <= 1) → 퍼센트로 변환
+                if (num > 0 && num <= 1) {
+                    result = num * 100;
+                }
+                // 이미 퍼센트 형식 (1 < value <= 100)
+                else if (num > 1 && num <= 100) {
+                    result = num;
+                }
+            }
+        }
+        
+        // 소수점 2째자리까지 반올림
+        if (result !== undefined) {
+            return Math.round(result * 100) / 100;
+        }
+        
+        return undefined;
+    };
+
+    /**
+     * 면적 파싱 - 0 또는 빈 값은 undefined로 처리
+     */
+    const parseArea = (value: unknown): number | undefined => {
+        if (value === null || value === undefined || value === '') return undefined;
+        const parsed = parseFloat(String(value));
+        if (isNaN(parsed) || parsed === 0) return undefined;
+        return parsed;
+    };
+
     // 엑셀 파일 업로드 처리 → 바로 비동기 처리 시작
     const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -406,16 +471,6 @@ export default function MemberManagementPage() {
             const workbook = XLSX.read(arrayBuffer);
             const worksheet = workbook.Sheets[workbook.SheetNames[0]];
             const jsonData = XLSX.utils.sheet_to_json(worksheet) as Record<string, unknown>[];
-
-            // 소유유형 변환 함수
-            const parseOwnershipType = (value: unknown): 'OWNER' | 'CO_OWNER' | 'FAMILY' | undefined => {
-                if (!value) return undefined;
-                const str = String(value).trim();
-                if (str === '소유주' || str === 'OWNER') return 'OWNER';
-                if (str === '공동소유' || str === 'CO_OWNER') return 'CO_OWNER';
-                if (str === '소유주 가족' || str === '가족' || str === 'FAMILY') return 'FAMILY';
-                return undefined;
-            };
 
             // flatMap을 사용하여 쉼표로 구분된 지번을 분리 처리
             const members: MemberExcelRow[] = jsonData.flatMap((row) => {
@@ -443,19 +498,18 @@ export default function MemberManagementPage() {
                     // 동호수 정규화 적용: 접미사 제거 및 지하층 표시 통일
                     dong: row['동'] ? normalizeDong(String(row['동'])) ?? undefined : undefined,
                     ho: row['호수'] ? normalizeHo(String(row['호수'])) ?? undefined : undefined,
-                    // 토지 면적/지분율
-                    landArea: row['토지소유면적(m2)'] ? parseFloat(String(row['토지소유면적(m2)'])) : undefined,
-                    landOwnershipRatio: row['토지지분율(%)'] ? parseFloat(String(row['토지지분율(%)'])) : undefined,
-                    // 건축물 면적/지분율
-                    buildingArea: row['건축물소유면적(m2)'] ? parseFloat(String(row['건축물소유면적(m2)'])) : undefined,
-                    buildingOwnershipRatio: row['건축물지분율(%)'] ? parseFloat(String(row['건축물지분율(%)'])) : undefined,
+                    // 토지 면적/지분율 (0이나 빈 값은 undefined로 처리)
+                    landArea: parseArea(row['토지소유면적(m2)']),
+                    landOwnershipRatio: parseOwnershipRatio(row['토지지분율(%)']),
+                    // 건축물 면적/지분율 (0이나 빈 값은 undefined로 처리)
+                    buildingArea: parseArea(row['건축물소유면적(m2)']),
+                    buildingOwnershipRatio: parseOwnershipRatio(row['건축물지분율(%)']),
                     // 하위 호환성: 기존 면적/지분율 필드도 처리
-                    area: row['면적(m2)'] ? parseFloat(String(row['면적(m2)'])) : undefined,
-                    ownershipRatio: row['지분율(%)'] ? parseFloat(String(row['지분율(%)'])) : undefined,
+                    area: parseArea(row['면적(m2)']),
+                    ownershipRatio: parseOwnershipRatio(row['지분율(%)']),
                     // 공시지가
                     officialPrice: row['공시지가(원)'] ? parseInt(String(row['공시지가(원)']).replace(/[,\s]/g, ''), 10) : undefined,
-                    // 소유유형
-                    ownershipType: parseOwnershipType(row['소유유형']),
+                    // 소유유형: 시스템에서 지분율 기반으로 자동 분류 (엑셀에서 제거됨)
                     notes: row['특이사항'] ? String(row['특이사항']).trim() : undefined,
                 };
                 
