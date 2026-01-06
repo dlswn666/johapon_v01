@@ -86,15 +86,17 @@ export function DataTable<T extends object>({
     variant = 'default',
     className,
     minWidth = '800px',
+    maxHeight,
+    stickyHeader = false,
     renderEmpty,
     renderLoading,
 }: DataTableProps<T>) {
     const styles = variantStyles[variant];
 
-    // 무한 스크롤: Intersection Observer 설정
+    // 무한 스크롤: Intersection Observer 설정 (50% 스크롤 시점에서 재조회)
     const { ref: loadMoreRef, inView } = useInView({
-        threshold: 0,
-        rootMargin: '100px',
+        threshold: 0.5,
+        rootMargin: '0px',
     });
 
     // 무한 스크롤: 하단 도달 시 자동으로 다음 페이지 로드
@@ -169,10 +171,16 @@ export function DataTable<T extends object>({
 
     return (
         <div className={cn('space-y-0', className)}>
-            {/* 테이블 컨테이너 - 가로 스크롤 */}
-            <div className="overflow-x-auto">
+            {/* 테이블 컨테이너 - 가로/세로 스크롤 */}
+            <div 
+                className="overflow-x-auto overflow-y-auto"
+                style={{ maxHeight: maxHeight || undefined }}
+            >
                 <Table className={cn(`min-w-[${minWidth}]`)}>
-                    <TableHeader className={styles.header}>
+                    <TableHeader className={cn(
+                        styles.header,
+                        stickyHeader && maxHeight && 'sticky top-0 z-10 bg-gray-50'
+                    )}>
                         <TableRow className="hover:bg-transparent">
                             {/* 체크박스 헤더 */}
                             {selectable && (

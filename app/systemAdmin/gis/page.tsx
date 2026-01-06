@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -105,9 +106,12 @@ function formatArea(area: number | null | undefined): string {
 
 export default function GisSyncPage() {
     const queryClient = useQueryClient();
+    const searchParams = useSearchParams();
+    const router = useRouter();
+    const unionIdParam = searchParams.get('unionId');
 
     // 기본 상태
-    const [selectedUnionId, setSelectedUnionId] = useState<string>('');
+    const [selectedUnionId, setSelectedUnionId] = useState<string>(unionIdParam || '');
     const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
     const [isNewJobMode, setIsNewJobMode] = useState(false);
 
@@ -473,7 +477,12 @@ export default function GisSyncPage() {
         setPreviewData([]);
         setAllAddresses([]);
         setSelectedParcel(null);
-    }, []);
+        
+        // URL 쿼리 파라미터 업데이트
+        const url = new URL(window.location.href);
+        url.searchParams.set('unionId', unionId);
+        router.replace(url.pathname + url.search, { scroll: false });
+    }, [router]);
 
     // 템플릿 다운로드
     const handleDownloadTemplate = () => {

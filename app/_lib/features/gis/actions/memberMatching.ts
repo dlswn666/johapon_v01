@@ -300,8 +300,13 @@ export async function manualMatchUser(
 
 /**
  * 조합의 사전 등록된 조합원 목록을 조회합니다.
+ * @param unionId 조합 ID
+ * @param options 페이지네이션 옵션 (offset, limit)
  */
-export async function getPreRegisteredMembers(unionId: string): Promise<{
+export async function getPreRegisteredMembers(
+    unionId: string,
+    options?: { offset?: number; limit?: number }
+): Promise<{
     success: boolean;
     data?: Array<{
         id: string;
@@ -314,21 +319,43 @@ export async function getPreRegisteredMembers(unionId: string): Promise<{
         resident_address: string | null;
         created_at: string;
     }>;
+    totalCount?: number;
+    hasMore?: boolean;
     error?: string;
 }> {
     try {
+        const offset = options?.offset ?? 0;
+        const limit = options?.limit ?? 30;
+
+        // 전체 개수 조회
+        const { count, error: countError } = await supabase
+            .from('users')
+            .select('id', { count: 'exact', head: true })
+            .eq('union_id', unionId)
+            .eq('user_status', 'PRE_REGISTERED');
+
+        if (countError) {
+            return { success: false, error: countError.message };
+        }
+
+        const totalCount = count || 0;
+
+        // 페이지네이션 적용하여 데이터 조회 (지번 기준 정렬)
         const { data, error } = await supabase
             .from('users')
             .select('id, name, phone_number, property_pnu, property_address_jibun, property_dong, property_ho, resident_address, created_at')
             .eq('union_id', unionId)
             .eq('user_status', 'PRE_REGISTERED')
-            .order('created_at', { ascending: false });
+            .order('property_address_jibun', { ascending: true, nullsFirst: false })
+            .range(offset, offset + limit - 1);
 
         if (error) {
             return { success: false, error: error.message };
         }
 
-        return { success: true, data };
+        const hasMore = offset + (data?.length || 0) < totalCount;
+
+        return { success: true, data, totalCount, hasMore };
     } catch (error) {
         return { success: false, error: String(error) };
     }
@@ -364,6 +391,63 @@ export async function deletePreRegisteredMember(userId: string): Promise<{ succe
         return { success: true };
     } catch (error) {
         return { success: false, error: String(error) };
+    }
+}
+
+/**
+ * 비매칭 조합원의 소유지 정보를 수정하고 GIS 재매칭을 시도합니다.
+ * 엑셀 업로드와 동일한 매칭 로직을 사용하며, 매칭 실패 시에도 주소 정보는 저장됩니다.
+ */
+export async function updateUnmatchedMember(
+    userId: string,
+    unionId: string,
+    propertyAddress: string,
+    dong?: string,
+    ho?: string
+): Promise<{ success: boolean; matched: boolean; pnu?: string; error?: string }> {
+    try {
+        // 동호수 정규화 적용
+        const normalizedDong = normalizeDong(dong);
+        const normalizedHo = normalizeHo(ho);
+
+        // GIS 매칭 시도 (엑셀 업로드와 동일한 로직)
+        const matchResult = await matchAddressToPnu(unionId, propertyAddress);
+        const pnu = matchResult.pnu;
+
+        // PNU가 매칭된 경우 중복 체크
+        if (pnu) {
+            const duplicateCheck = await checkDuplicatePnu(unionId, pnu, normalizedDong, normalizedHo, userId);
+            if (duplicateCheck.isDuplicate) {
+                return {
+                    success: false,
+                    matched: false,
+                    error: `이미 다른 사용자(${duplicateCheck.existingUser?.name})에게 할당된 소유지입니다.`,
+                };
+            }
+        }
+
+        // 사용자 정보 업데이트 (매칭 실패 시에도 주소/동/호수는 저장)
+        const { error } = await supabase
+            .from('users')
+            .update({
+                property_pnu: pnu, // 매칭 실패 시 null
+                property_address_jibun: propertyAddress,
+                property_dong: normalizedDong,
+                property_ho: normalizedHo,
+            })
+            .eq('id', userId);
+
+        if (error) {
+            return { success: false, matched: false, error: error.message };
+        }
+
+        return { 
+            success: true, 
+            matched: !!pnu, 
+            pnu: pnu ?? undefined 
+        };
+    } catch (error) {
+        return { success: false, matched: false, error: String(error) };
     }
 }
 

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Search, Users, AlertTriangle, Ban, CheckCircle, MapPin } from 'lucide-react';
+import { Search, Users, AlertTriangle, Ban, CheckCircle, MapPin, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useApprovedMembersInfinite, MemberWithLandInfo } from '@/app/_lib/features/member-management/api/useMemberHook';
@@ -40,7 +40,7 @@ export default function MemberListTab() {
 
     // Store 상태
     const { filter, setFilter } = useMemberStore();
-    const pageSize = 20;
+    const pageSize = 100; // 무한 스크롤 최적화: 100개씩 조회
 
     // 로컬 상태
     const [searchInput, setSearchInput] = useState(filter.searchQuery);
@@ -64,11 +64,70 @@ export default function MemberListTab() {
     });
 
     // 페이지 데이터 평탄화
-    const members = useMemo(() => {
+    const rawMembers = useMemo(() => {
         return data?.pages.flatMap((page) => page.members) || [];
     }, [data?.pages]);
 
+    // 동일인 그룹핑 (이름 + 핸드폰번호 OR 이름 + 거주지가 동일한 경우)
+    const members = useMemo(() => {
+        if (rawMembers.length === 0) return [];
+
+        // 그룹핑 키 생성 함수
+        const getGroupKey = (member: MemberWithLandInfo): string => {
+            const name = member.name?.trim() || '';
+            const phone = member.phone_number?.replace(/[^0-9]/g, '') || '';
+            const resident = member.resident_address?.trim() || '';
+
+            // 핸드폰번호가 있으면 이름+핸드폰으로 그룹핑
+            if (phone) {
+                return `name_phone:${name}:${phone}`;
+            } else {
+                // 핸드폰이 없으면 이름+거주지로 그룹핑 (거주지가 없어도 빈 문자열로 처리)
+                return `name_resident:${name}:${resident}`;
+            }
+        };
+
+        // 그룹별로 멤버 수집
+        const groupMap = new Map<string, MemberWithLandInfo[]>();
+        rawMembers.forEach((member) => {
+            const key = getGroupKey(member);
+            if (!groupMap.has(key)) {
+                groupMap.set(key, []);
+            }
+            groupMap.get(key)!.push(member);
+        });
+
+        // 그룹핑된 멤버 생성 (대표 멤버만 반환, 추가 물건지 개수 포함)
+        const groupedMembers: MemberWithLandInfo[] = [];
+        groupMap.forEach((groupMembers) => {
+            // 첫 번째 멤버를 대표로 선택
+            const representative = { ...groupMembers[0] };
+            
+            // 그룹 내 모든 사용자의 물건지를 합침
+            const allPropertyUnits = groupMembers.flatMap((m) => {
+                // 해당 사용자의 물건지 목록 + 해당 사용자의 property_address_jibun을 물건지로 추가
+                const units = m.property_units || [];
+                return units;
+            });
+
+            // 그룹 내 모든 사용자 ID 수집
+            const allUserIds = groupMembers.map((m) => m.id);
+            
+            // 총 물건지 개수 (각 사용자당 최소 1개로 계산)
+            const totalPropertyCount = groupMembers.length;
+
+            representative.grouped_user_ids = allUserIds;
+            representative.total_property_count = totalPropertyCount;
+            representative.property_units = allPropertyUnits;
+
+            groupedMembers.push(representative);
+        });
+
+        return groupedMembers;
+    }, [rawMembers]);
+
     const totalCount = data?.pages[0]?.total || 0;
+    const groupedCount = members.length;
 
     // 접속 로그 기록
     const { mutate: logAccessEvent } = useLogAccessEvent();
@@ -99,16 +158,16 @@ export default function MemberListTab() {
                 key: 'name',
                 header: '이름',
                 render: (_, row) => (
-                    <div className="flex flex-col gap-1">
-                        <span className="text-[14px] font-medium text-gray-900">{row.name}</span>
+                    <div className="flex items-center gap-2">
+                        <span className="text-[14px] font-medium text-gray-900 whitespace-nowrap">{row.name}</span>
                         {!row.isPnuMatched && row.property_pnu && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 w-fit">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 whitespace-nowrap">
                                 <AlertTriangle className="w-3 h-3 mr-1" />
                                 PNU 미매칭
                             </span>
                         )}
                         {!row.property_pnu && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600 w-fit">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600 whitespace-nowrap">
                                 <MapPin className="w-3 h-3 mr-1" />
                                 PNU 없음
                             </span>
@@ -117,18 +176,26 @@ export default function MemberListTab() {
                 ),
             },
             {
-                key: 'resident_address',
-                header: '거주지',
-                className: 'text-gray-600 max-w-[200px]',
-                accessor: (row) => row.resident_address_road || row.resident_address || '-',
-                render: (value) => <div className="truncate">{value as string}</div>,
-            },
-            {
                 key: 'property_address',
                 header: '물건지',
-                className: 'text-gray-600 max-w-[200px]',
-                accessor: (row) => row.property_address_road || row.property_address || '-',
-                render: (value) => <div className="truncate">{value as string}</div>,
+                className: 'text-gray-600',
+                render: (_, row) => {
+                    const propertyAddress = row.property_address_jibun || row.property_address || '-';
+                    const totalCount = row.total_property_count || 1;
+                    const hasMultipleProperties = totalCount > 1;
+
+                    return (
+                        <div className="flex items-center gap-2">
+                            <span className="whitespace-nowrap">{propertyAddress}</span>
+                            {hasMultipleProperties && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700 whitespace-nowrap">
+                                    <Home className="w-3 h-3 mr-1" />
+                                    +{totalCount - 1}건
+                                </span>
+                            )}
+                        </div>
+                    );
+                },
             },
             {
                 key: 'area',
@@ -173,8 +240,8 @@ export default function MemberListTab() {
             {
                 key: 'notes',
                 header: '특이사항',
-                className: 'text-gray-600 max-w-[150px]',
-                render: (value) => <div className="truncate">{(value as string) || '-'}</div>,
+                className: 'text-gray-600',
+                render: (value) => <span className="whitespace-nowrap">{(value as string) || '-'}</span>,
             },
             {
                 key: 'is_blocked',
@@ -305,7 +372,14 @@ export default function MemberListTab() {
                         </div>
                         <div>
                             <h2 className="text-lg font-semibold text-gray-900">조합원 목록</h2>
-                            <p className="text-sm text-gray-600">총 {totalCount}명</p>
+                            <p className="text-sm text-gray-600">
+                                총 {totalCount}명 
+                                {groupedCount !== rawMembers.length && groupedCount > 0 && (
+                                    <span className="text-gray-400 ml-1">
+                                        (동일인 그룹핑: {groupedCount}명)
+                                    </span>
+                                )}
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -327,6 +401,8 @@ export default function MemberListTab() {
                         totalItems: totalCount,
                     }}
                     minWidth="900px"
+                    maxHeight="600px"
+                    stickyHeader={true}
                 />
             </div>
 

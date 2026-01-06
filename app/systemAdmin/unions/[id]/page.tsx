@@ -900,6 +900,22 @@ export default function UnionDetailPage() {
                         </CardContent>
                     </Card>
 
+                    {/* 6. 바로가기 버튼 영역 */}
+                    <div className="flex gap-4">
+                        <Link href={`/systemAdmin/gis?unionId=${unionId}`} className="flex-1">
+                            <Button className="w-full bg-emerald-600 hover:bg-emerald-700 h-12 text-base font-medium">
+                                <MapPin className="w-5 h-5 mr-2" />
+                                GIS 정보 관리
+                            </Button>
+                        </Link>
+                        <Link href={`/systemAdmin/gis/members?unionId=${unionId}`} className="flex-1">
+                            <Button className="w-full bg-purple-600 hover:bg-purple-700 h-12 text-base font-medium">
+                                <Users className="w-5 h-5 mr-2" />
+                                조합원 관리
+                            </Button>
+                        </Link>
+                    </div>
+
                     {/* 버튼 영역 */}
                     {isEditing && (
                         <div className="flex justify-end gap-3 pt-6 border-t border-slate-700">

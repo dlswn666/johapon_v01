@@ -137,6 +137,10 @@ export interface DataTableProps<T> {
     className?: string;
     /** 테이블 최소 너비 (기본값: '800px') */
     minWidth?: string;
+    /** 테이블 최대 높이 (스크롤 영역 생성, 예: '600px') */
+    maxHeight?: string;
+    /** 헤더 고정 여부 (maxHeight와 함께 사용, 기본값: false) */
+    stickyHeader?: boolean;
 
     // === 커스텀 렌더링 ===
     /** 커스텀 빈 상태 렌더링 */
