@@ -2,12 +2,13 @@
  * 동호수 정규화 유틸리티
  * 
  * 다양한 형식의 동호수 입력을 통일된 형식으로 정규화합니다.
- * - 동: 접미사 '동' 제거 (예: "101동" -> "101", "A동" -> "A")
+ * - 동: 접미사 '동', '호', '층' 제거 + 접두사 '제' 제거 + 지하 표시 통일
+ *   (예: "101동" -> "101", "제1호" -> "1", "1층" -> "1", "지하1" -> "B1")
  * - 호수: 접미사 '호' 제거 + 지하층 표시 통일 (예: "비01" -> "B01")
  */
 
 /**
- * 동 번호 정규화 (접미사 제거)
+ * 동 번호 정규화 (접두사/접미사 제거 + 지하 표시 통일)
  * 
  * @param dong 동 번호 문자열
  * @returns 정규화된 동 번호 또는 null
@@ -17,6 +18,11 @@
  * normalizeDong("A동")   // "A"
  * normalizeDong("가동")  // "가"
  * normalizeDong("101")   // "101"
+ * normalizeDong("제1호") // "1"
+ * normalizeDong("1층")   // "1"
+ * normalizeDong("B01")   // "B01"
+ * normalizeDong("지하1") // "B1"
+ * normalizeDong("지01")  // "B01"
  * normalizeDong(null)    // null
  */
 export function normalizeDong(dong: string | null | undefined): string | null {
@@ -24,8 +30,16 @@ export function normalizeDong(dong: string | null | undefined): string | null {
 
     let normalized = dong.trim();
 
-    // "동" 접미사 제거
-    normalized = normalized.replace(/동$/g, '');
+    // "제" 접두사 제거 (예: "제1호" -> "1호")
+    normalized = normalized.replace(/^제/g, '');
+
+    // "동", "호", "층" 접미사 제거
+    normalized = normalized.replace(/(동|호|층)$/g, '');
+
+    // 지하 표시 통일 (비, 지하, 지 → B)
+    normalized = normalized.replace(/^비/g, 'B');
+    normalized = normalized.replace(/^지하/g, 'B');
+    normalized = normalized.replace(/^지(?=\d)/g, 'B');
 
     return normalized.trim() || null;
 }

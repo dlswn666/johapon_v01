@@ -294,25 +294,29 @@ export default function MemberManagementPage() {
                 건물이름: '역삼 타워',
                 동: '101',
                 호수: '1001',
-                '면적(m2)': 84.5,
+                '토지소유면적(m2)': 42.5,
+                '토지지분율(%)': 100,
+                '건축물소유면적(m2)': 84.5,
+                '건축물지분율(%)': 100,
                 '공시지가(원)': 850000000,
                 소유유형: '소유주',
-                '지분율(%)': '',
                 특이사항: '',
             },
             {
                 소유주명: '김철수',
                 핸드폰번호: '010-9876-5432',
                 거주주소: '서울시 서초구 반포대로 789',
-                '소유지 지번': '서울시 강남구 역삼동 123-4',
+                '소유지 지번': '서울시 강남구 역삼동 123-4, 역삼동 123-5',
                 '소유지 도로명': '서울시 강남구 테헤란로 456',
                 건물이름: '역삼 타워',
                 동: '101',
                 호수: '1001',
-                '면적(m2)': 84.5,
+                '토지소유면적(m2)': 21.25,
+                '토지지분율(%)': 50,
+                '건축물소유면적(m2)': 42.25,
+                '건축물지분율(%)': 50,
                 '공시지가(원)': 850000000,
                 소유유형: '공동소유',
-                '지분율(%)': 50,
                 특이사항: '공동명의',
             },
             {
@@ -324,10 +328,12 @@ export default function MemberManagementPage() {
                 건물이름: '',
                 동: '',
                 호수: '',
-                '면적(m2)': '',
+                '토지소유면적(m2)': '',
+                '토지지분율(%)': '',
+                '건축물소유면적(m2)': '',
+                '건축물지분율(%)': '',
                 '공시지가(원)': '',
                 소유유형: '',
-                '지분율(%)': '',
                 특이사항: '',
             },
         ];
@@ -337,15 +343,17 @@ export default function MemberManagementPage() {
             { '항목': '소유주명', '필수여부': '필수', '설명': '조합원 이름' },
             { '항목': '핸드폰번호', '필수여부': '선택', '설명': '연락처 (하이픈 포함 가능)' },
             { '항목': '거주주소', '필수여부': '선택', '설명': '실거주 주소' },
-            { '항목': '소유지 지번', '필수여부': '필수', '설명': '물건지 지번 주소 (GIS 매칭용)' },
+            { '항목': '소유지 지번', '필수여부': '필수', '설명': '물건지 지번 주소 (GIS 매칭용). 쉼표로 구분하여 여러 지번 입력 가능' },
             { '항목': '소유지 도로명', '필수여부': '선택', '설명': '물건지 도로명 주소' },
             { '항목': '건물이름', '필수여부': '선택', '설명': '아파트/빌라 등 건물명' },
-            { '항목': '동', '필수여부': '선택', '설명': '동 번호 (예: 101, A동)' },
-            { '항목': '호수', '필수여부': '선택', '설명': '호수 (예: 1001, 101호)' },
-            { '항목': '면적(m2)', '필수여부': '선택', '설명': '면적/공시지가가 있으면 API 호출 생략' },
-            { '항목': '공시지가(원)', '필수여부': '선택', '설명': '면적/공시지가가 있으면 API 호출 생략' },
+            { '항목': '동', '필수여부': '선택', '설명': '동 번호 (예: 101, A동, 제1호, 지하1)' },
+            { '항목': '호수', '필수여부': '선택', '설명': '호수 (예: 1001, 101호, 비01)' },
+            { '항목': '토지소유면적(m2)', '필수여부': '선택', '설명': '토지 소유 면적' },
+            { '항목': '토지지분율(%)', '필수여부': '선택', '설명': '토지 지분율 (예: 50)' },
+            { '항목': '건축물소유면적(m2)', '필수여부': '선택', '설명': '건축물 소유 면적' },
+            { '항목': '건축물지분율(%)', '필수여부': '선택', '설명': '건축물 지분율 (예: 50)' },
+            { '항목': '공시지가(원)', '필수여부': '선택', '설명': '공시지가 (원)' },
             { '항목': '소유유형', '필수여부': '선택', '설명': '소유주 / 공동소유 / 소유주 가족' },
-            { '항목': '지분율(%)', '필수여부': '선택', '설명': '공동소유 시 지분율 (예: 50)' },
             { '항목': '특이사항', '필수여부': '선택', '설명': '기타 메모' },
         ];
 
@@ -357,23 +365,25 @@ export default function MemberManagementPage() {
             { wch: 12 }, // 소유주명
             { wch: 16 }, // 핸드폰번호
             { wch: 35 }, // 거주주소
-            { wch: 35 }, // 소유지 지번
+            { wch: 40 }, // 소유지 지번 (쉼표 구분 지번 가능하므로 넓게)
             { wch: 35 }, // 소유지 도로명
             { wch: 15 }, // 건물이름
             { wch: 8 },  // 동
             { wch: 8 },  // 호수
-            { wch: 12 }, // 면적
+            { wch: 16 }, // 토지소유면적
+            { wch: 12 }, // 토지지분율
+            { wch: 18 }, // 건축물소유면적
+            { wch: 14 }, // 건축물지분율
             { wch: 15 }, // 공시지가
             { wch: 12 }, // 소유유형
-            { wch: 10 }, // 지분율
             { wch: 20 }, // 특이사항
         ];
 
         // 컬럼 너비 설정 (안내)
         guideSheet['!cols'] = [
-            { wch: 15 }, // 항목
+            { wch: 20 }, // 항목
             { wch: 10 }, // 필수여부
-            { wch: 50 }, // 설명
+            { wch: 55 }, // 설명
         ];
 
         const workbook = XLSX.utils.book_new();
@@ -407,24 +417,54 @@ export default function MemberManagementPage() {
                 return undefined;
             };
 
-            const members: MemberExcelRow[] = jsonData.map((row) => ({
-                name: String(row['소유주명'] || '').trim(),
-                phoneNumber: row['핸드폰번호'] ? String(row['핸드폰번호']).replace(/[^\d]/g, '').trim() : undefined,
-                residentAddress: row['거주주소'] ? String(row['거주주소']).trim() : undefined,
-                propertyAddress: String(row['소유지 지번'] || '').trim(),
-                propertyRoadAddress: row['소유지 도로명'] ? String(row['소유지 도로명']).trim() : undefined,
-                buildingName: row['건물이름'] ? String(row['건물이름']).trim() : undefined,
-                // 동호수 정규화 적용: 접미사 제거 및 지하층 표시 통일
-                dong: row['동'] ? normalizeDong(String(row['동'])) ?? undefined : undefined,
-                ho: row['호수'] ? normalizeHo(String(row['호수'])) ?? undefined : undefined,
-                // 면적/공시지가 - 숫자로 변환
-                area: row['면적(m2)'] ? parseFloat(String(row['면적(m2)'])) : undefined,
-                officialPrice: row['공시지가(원)'] ? parseInt(String(row['공시지가(원)']).replace(/[,\s]/g, ''), 10) : undefined,
-                // 소유유형/지분율
-                ownershipType: parseOwnershipType(row['소유유형']),
-                ownershipRatio: row['지분율(%)'] ? parseFloat(String(row['지분율(%)'])) : undefined,
-                notes: row['특이사항'] ? String(row['특이사항']).trim() : undefined,
-            })).filter((m) => m.name && m.propertyAddress); // 필수 필드가 있는 것만
+            // flatMap을 사용하여 쉼표로 구분된 지번을 분리 처리
+            const members: MemberExcelRow[] = jsonData.flatMap((row) => {
+                const name = String(row['소유주명'] || '').trim();
+                const propertyAddressRaw = String(row['소유지 지번'] || '').trim();
+                
+                // 필수 필드 체크
+                if (!name || !propertyAddressRaw) return [];
+                
+                // 쉼표로 구분된 지번 분리 (예: "역삼동 123-4, 역삼동 123-5" → ["역삼동 123-4", "역삼동 123-5"])
+                const propertyAddresses = propertyAddressRaw
+                    .split(',')
+                    .map(addr => addr.trim())
+                    .filter(addr => addr.length > 0);
+                
+                if (propertyAddresses.length === 0) return [];
+                
+                // 공통 데이터 (지번 외 나머지)
+                const commonData = {
+                    name,
+                    phoneNumber: row['핸드폰번호'] ? String(row['핸드폰번호']).replace(/[^\d]/g, '').trim() : undefined,
+                    residentAddress: row['거주주소'] ? String(row['거주주소']).trim() : undefined,
+                    propertyRoadAddress: row['소유지 도로명'] ? String(row['소유지 도로명']).trim() : undefined,
+                    buildingName: row['건물이름'] ? String(row['건물이름']).trim() : undefined,
+                    // 동호수 정규화 적용: 접미사 제거 및 지하층 표시 통일
+                    dong: row['동'] ? normalizeDong(String(row['동'])) ?? undefined : undefined,
+                    ho: row['호수'] ? normalizeHo(String(row['호수'])) ?? undefined : undefined,
+                    // 토지 면적/지분율
+                    landArea: row['토지소유면적(m2)'] ? parseFloat(String(row['토지소유면적(m2)'])) : undefined,
+                    landOwnershipRatio: row['토지지분율(%)'] ? parseFloat(String(row['토지지분율(%)'])) : undefined,
+                    // 건축물 면적/지분율
+                    buildingArea: row['건축물소유면적(m2)'] ? parseFloat(String(row['건축물소유면적(m2)'])) : undefined,
+                    buildingOwnershipRatio: row['건축물지분율(%)'] ? parseFloat(String(row['건축물지분율(%)'])) : undefined,
+                    // 하위 호환성: 기존 면적/지분율 필드도 처리
+                    area: row['면적(m2)'] ? parseFloat(String(row['면적(m2)'])) : undefined,
+                    ownershipRatio: row['지분율(%)'] ? parseFloat(String(row['지분율(%)'])) : undefined,
+                    // 공시지가
+                    officialPrice: row['공시지가(원)'] ? parseInt(String(row['공시지가(원)']).replace(/[,\s]/g, ''), 10) : undefined,
+                    // 소유유형
+                    ownershipType: parseOwnershipType(row['소유유형']),
+                    notes: row['특이사항'] ? String(row['특이사항']).trim() : undefined,
+                };
+                
+                // 각 지번마다 별도 레코드 생성
+                return propertyAddresses.map(address => ({
+                    ...commonData,
+                    propertyAddress: address,
+                }));
+            });
 
             if (members.length === 0) {
                 alert('유효한 데이터가 없습니다. 소유주명과 소유지 지번은 필수입니다.');
