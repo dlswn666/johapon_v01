@@ -86,6 +86,8 @@ export function DataTable<T extends object>({
     variant = 'default',
     className,
     minWidth = '800px',
+    maxHeight,
+    stickyHeader = false,
     renderEmpty,
     renderLoading,
 }: DataTableProps<T>) {
@@ -169,10 +171,16 @@ export function DataTable<T extends object>({
 
     return (
         <div className={cn('space-y-0', className)}>
-            {/* 테이블 컨테이너 - 가로 스크롤 */}
-            <div className="overflow-x-auto">
+            {/* 테이블 컨테이너 - 가로/세로 스크롤 */}
+            <div 
+                className="overflow-x-auto overflow-y-auto"
+                style={{ maxHeight: maxHeight || undefined }}
+            >
                 <Table className={cn(`min-w-[${minWidth}]`)}>
-                    <TableHeader className={styles.header}>
+                    <TableHeader className={cn(
+                        styles.header,
+                        stickyHeader && maxHeight && 'sticky top-0 z-10 bg-gray-50'
+                    )}>
                         <TableRow className="hover:bg-transparent">
                             {/* 체크박스 헤더 */}
                             {selectable && (

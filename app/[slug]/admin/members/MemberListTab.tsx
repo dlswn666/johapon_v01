@@ -81,13 +81,10 @@ export default function MemberListTab() {
             // 핸드폰번호가 있으면 이름+핸드폰으로 그룹핑
             if (phone) {
                 return `name_phone:${name}:${phone}`;
-            }
-            // 거주지가 있으면 이름+거주지로 그룹핑
-            if (resident) {
+            } else {
+                // 핸드폰이 없으면 이름+거주지로 그룹핑 (거주지가 없어도 빈 문자열로 처리)
                 return `name_resident:${name}:${resident}`;
             }
-            // 둘 다 없으면 개별 처리 (id로 유니크하게)
-            return `unique:${member.id}`;
         };
 
         // 그룹별로 멤버 수집
@@ -161,16 +158,16 @@ export default function MemberListTab() {
                 key: 'name',
                 header: '이름',
                 render: (_, row) => (
-                    <div className="flex flex-col gap-1">
-                        <span className="text-[14px] font-medium text-gray-900">{row.name}</span>
+                    <div className="flex items-center gap-2">
+                        <span className="text-[14px] font-medium text-gray-900 whitespace-nowrap">{row.name}</span>
                         {!row.isPnuMatched && row.property_pnu && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 w-fit">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 whitespace-nowrap">
                                 <AlertTriangle className="w-3 h-3 mr-1" />
                                 PNU 미매칭
                             </span>
                         )}
                         {!row.property_pnu && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600 w-fit">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600 whitespace-nowrap">
                                 <MapPin className="w-3 h-3 mr-1" />
                                 PNU 없음
                             </span>
@@ -179,26 +176,19 @@ export default function MemberListTab() {
                 ),
             },
             {
-                key: 'resident_address',
-                header: '거주지',
-                className: 'text-gray-600 max-w-[200px]',
-                accessor: (row) => row.resident_address_road || row.resident_address || '-',
-                render: (value) => <div className="truncate">{value as string}</div>,
-            },
-            {
                 key: 'property_address',
                 header: '물건지',
-                className: 'text-gray-600 max-w-[250px]',
+                className: 'text-gray-600',
                 render: (_, row) => {
                     const propertyAddress = row.property_address_jibun || row.property_address || '-';
                     const totalCount = row.total_property_count || 1;
                     const hasMultipleProperties = totalCount > 1;
 
                     return (
-                        <div className="flex flex-col gap-1">
-                            <div className="truncate">{propertyAddress}</div>
+                        <div className="flex items-center gap-2">
+                            <span className="whitespace-nowrap">{propertyAddress}</span>
                             {hasMultipleProperties && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700 w-fit">
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700 whitespace-nowrap">
                                     <Home className="w-3 h-3 mr-1" />
                                     +{totalCount - 1}건
                                 </span>
@@ -250,8 +240,8 @@ export default function MemberListTab() {
             {
                 key: 'notes',
                 header: '특이사항',
-                className: 'text-gray-600 max-w-[150px]',
-                render: (value) => <div className="truncate">{(value as string) || '-'}</div>,
+                className: 'text-gray-600',
+                render: (value) => <span className="whitespace-nowrap">{(value as string) || '-'}</span>,
             },
             {
                 key: 'is_blocked',
@@ -411,6 +401,8 @@ export default function MemberListTab() {
                         totalItems: totalCount,
                     }}
                     minWidth="900px"
+                    maxHeight="600px"
+                    stickyHeader={true}
                 />
             </div>
 
