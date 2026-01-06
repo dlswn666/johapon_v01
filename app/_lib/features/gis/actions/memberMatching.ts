@@ -300,8 +300,13 @@ export async function manualMatchUser(
 
 /**
  * 조합의 사전 등록된 조합원 목록을 조회합니다.
+ * @param unionId 조합 ID
+ * @param options 페이지네이션 옵션 (offset, limit)
  */
-export async function getPreRegisteredMembers(unionId: string): Promise<{
+export async function getPreRegisteredMembers(
+    unionId: string,
+    options?: { offset?: number; limit?: number }
+): Promise<{
     success: boolean;
     data?: Array<{
         id: string;
@@ -314,21 +319,43 @@ export async function getPreRegisteredMembers(unionId: string): Promise<{
         resident_address: string | null;
         created_at: string;
     }>;
+    totalCount?: number;
+    hasMore?: boolean;
     error?: string;
 }> {
     try {
+        const offset = options?.offset ?? 0;
+        const limit = options?.limit ?? 30;
+
+        // 전체 개수 조회
+        const { count, error: countError } = await supabase
+            .from('users')
+            .select('id', { count: 'exact', head: true })
+            .eq('union_id', unionId)
+            .eq('user_status', 'PRE_REGISTERED');
+
+        if (countError) {
+            return { success: false, error: countError.message };
+        }
+
+        const totalCount = count || 0;
+
+        // 페이지네이션 적용하여 데이터 조회
         const { data, error } = await supabase
             .from('users')
             .select('id, name, phone_number, property_pnu, property_address_jibun, property_dong, property_ho, resident_address, created_at')
             .eq('union_id', unionId)
             .eq('user_status', 'PRE_REGISTERED')
-            .order('created_at', { ascending: false });
+            .order('created_at', { ascending: false })
+            .range(offset, offset + limit - 1);
 
         if (error) {
             return { success: false, error: error.message };
         }
 
-        return { success: true, data };
+        const hasMore = offset + (data?.length || 0) < totalCount;
+
+        return { success: true, data, totalCount, hasMore };
     } catch (error) {
         return { success: false, error: String(error) };
     }
