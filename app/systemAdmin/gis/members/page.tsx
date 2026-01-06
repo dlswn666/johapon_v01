@@ -305,7 +305,8 @@ export default function MemberManagementPage() {
     // 기존 조합원 목록
     const [preRegisteredMembers, setPreRegisteredMembers] = useState<PreRegisteredMember[]>([]);
     const [isLoadingMembers, setIsLoadingMembers] = useState(false);
-    const [searchTerm, setSearchTerm] = useState('');
+    const [inputValue, setInputValue] = useState(''); // 입력 필드용 (즉시 반영)
+    const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(''); // 검색용 (debounce 후 반영)
     const [matchFilter, setMatchFilter] = useState<'all' | 'matched' | 'unmatched'>('all');
 
     // 무한 스크롤 관련 상태
@@ -371,27 +372,22 @@ export default function MemberManagementPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedUnionId]);
 
-    // 검색어 변경 시 조합원 목록 재조회 (1초 debounce)
+    // inputValue 변경 시 1초 후 debouncedSearchTerm 업데이트
     useEffect(() => {
-        if (!selectedUnionId) return;
-
         const timer = setTimeout(() => {
-            fetchMembers();
-        }, 1000); // 1초 딜레이
+            setDebouncedSearchTerm(inputValue);
+        }, 1000);
 
-        return () => {
-            clearTimeout(timer);
-        };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [searchTerm]);
+        return () => clearTimeout(timer);
+    }, [inputValue]);
 
-    // 매칭 필터 변경 시 조합원 목록 즉시 재조회
+    // debouncedSearchTerm 또는 매칭 필터 변경 시 조합원 목록 재조회
     useEffect(() => {
         if (selectedUnionId) {
             fetchMembers();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [matchFilter]);
+    }, [debouncedSearchTerm, matchFilter]);
 
     // 조합원 목록 조회 (초기 로드)
     const fetchMembers = useCallback(async () => {
@@ -404,7 +400,7 @@ export default function MemberManagementPage() {
         const result = await getPreRegisteredMembers(selectedUnionId, {
             offset: 0,
             limit: ITEMS_PER_PAGE,
-            searchTerm: searchTerm || undefined,
+            searchTerm: debouncedSearchTerm || undefined,
             matchFilter: matchFilter,
         });
         if (result.success && result.data) {
@@ -413,7 +409,7 @@ export default function MemberManagementPage() {
             setHasMore(result.hasMore || false);
         }
         setIsLoadingMembers(false);
-    }, [selectedUnionId, searchTerm, matchFilter]);
+    }, [selectedUnionId, debouncedSearchTerm, matchFilter]);
 
     // 추가 조합원 로드 (무한 스크롤)
     const loadMoreMembers = useCallback(async () => {
@@ -425,7 +421,7 @@ export default function MemberManagementPage() {
         const result = await getPreRegisteredMembers(selectedUnionId, {
             offset: currentOffset,
             limit: ITEMS_PER_PAGE,
-            searchTerm: searchTerm || undefined,
+            searchTerm: debouncedSearchTerm || undefined,
             matchFilter: matchFilter,
         });
 
@@ -434,7 +430,7 @@ export default function MemberManagementPage() {
             setHasMore(result.hasMore || false);
         }
         setIsLoadingMore(false);
-    }, [selectedUnionId, isLoadingMore, hasMore, preRegisteredMembers.length, searchTerm, matchFilter]);
+    }, [selectedUnionId, isLoadingMore, hasMore, preRegisteredMembers.length, debouncedSearchTerm, matchFilter]);
 
     // IntersectionObserver를 사용한 무한 스크롤 감지
     useEffect(() => {
@@ -1301,8 +1297,8 @@ export default function MemberManagementPage() {
                                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
                                     <Input
                                         placeholder="이름, 전화번호, 주소로 검색..."
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        value={inputValue}
+                                        onChange={(e) => setInputValue(e.target.value)}
                                         className="pl-10 bg-slate-700 border-slate-600 text-white placeholder:text-slate-500"
                                     />
                                 </div>
@@ -1328,7 +1324,7 @@ export default function MemberManagementPage() {
                                     keyExtractor={(row) => row.id}
                                     isLoading={isLoadingMembers}
                                     emptyMessage={
-                                        searchTerm || matchFilter !== 'all'
+                                        inputValue || matchFilter !== 'all'
                                             ? '검색 결과가 없습니다.'
                                             : '사전 등록된 조합원이 없습니다.'
                                     }
