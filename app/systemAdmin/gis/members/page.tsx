@@ -52,6 +52,7 @@ import {
     MemberExcelRow,
     getPreRegisteredMembers,
     deletePreRegisteredMember,
+    deleteAllPreRegisteredMembers,
     manualMatchUser,
 } from '@/app/_lib/features/gis/actions/memberMatching';
 import { supabase } from '@/app/_lib/shared/supabase/client';
@@ -337,6 +338,10 @@ export default function MemberManagementPage() {
         open: false,
         member: null,
     });
+
+    // 전체 초기화 확인 다이얼로그
+    const [resetConfirm, setResetConfirm] = useState(false);
+    const [isResetting, setIsResetting] = useState(false);
 
     // 조합 목록 조회
     useEffect(() => {
@@ -759,6 +764,28 @@ export default function MemberManagementPage() {
         }
     };
 
+    // 전체 데이터 초기화 실행
+    const handleResetAll = async () => {
+        if (!selectedUnionId) return;
+
+        setIsResetting(true);
+        try {
+            const result = await deleteAllPreRegisteredMembers(selectedUnionId);
+            if (result.success) {
+                alert(`${result.deletedCount}명의 조합원 데이터가 초기화되었습니다.`);
+                await fetchMembers();
+            } else {
+                alert(`초기화 실패: ${result.error}`);
+            }
+        } catch (error) {
+            console.error('Reset all error:', error);
+            alert('초기화 중 오류가 발생했습니다.');
+        } finally {
+            setIsResetting(false);
+            setResetConfirm(false);
+        }
+    };
+
     // GIS 동기화 실행
     const handleSyncProperties = async () => {
         if (!selectedUnionId) return;
@@ -1050,10 +1077,19 @@ export default function MemberManagementPage() {
                                         size="sm"
                                         onClick={fetchMembers}
                                         disabled={isLoadingMembers}
-                                        className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                                        className="bg-white border-slate-300 text-black hover:bg-slate-100"
                                     >
-                                        <RefreshCw className={`w-4 h-4 mr-2 ${isLoadingMembers ? 'animate-spin' : ''}`} />
+                                        <RefreshCw className={`w-4 h-4 mr-2 text-black ${isLoadingMembers ? 'animate-spin' : ''}`} />
                                         새로고침
+                                    </Button>
+                                    <Button
+                                        size="sm"
+                                        onClick={() => setResetConfirm(true)}
+                                        disabled={isResetting || preRegisteredMembers.length === 0}
+                                        className="bg-red-600 hover:bg-red-700"
+                                    >
+                                        <Trash2 className="w-4 h-4 mr-2" />
+                                        데이터 초기화
                                     </Button>
                                 </div>
                             </div>
@@ -1312,6 +1348,55 @@ export default function MemberManagementPage() {
                             className="bg-red-600 hover:bg-red-700"
                         >
                             삭제
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            {/* 전체 초기화 확인 다이얼로그 */}
+            <AlertDialog open={resetConfirm} onOpenChange={setResetConfirm}>
+                <AlertDialogContent className="bg-slate-800 border-slate-700">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="text-white flex items-center gap-2">
+                            <AlertTriangle className="w-5 h-5 text-red-500" />
+                            조합원 데이터 초기화
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="text-slate-400">
+                            <span className="text-red-400 font-semibold">
+                                {selectedUnion?.name}
+                            </span>
+                            의 사전 등록된 조합원 데이터{' '}
+                            <span className="text-red-400 font-semibold">
+                                {preRegisteredMembers.length}명
+                            </span>
+                            을 모두 삭제하시겠습니까?
+                            <br />
+                            <br />
+                            <span className="text-red-400 font-medium">
+                                ⚠️ 이 작업은 되돌릴 수 없습니다.
+                            </span>
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel 
+                            className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                            disabled={isResetting}
+                        >
+                            취소
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleResetAll}
+                            disabled={isResetting}
+                            className="bg-red-600 hover:bg-red-700"
+                        >
+                            {isResetting ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    초기화 중...
+                                </>
+                            ) : (
+                                '전체 삭제'
+                            )}
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>

@@ -366,3 +366,57 @@ export async function deletePreRegisteredMember(userId: string): Promise<{ succe
         return { success: false, error: String(error) };
     }
 }
+
+/**
+ * 조합의 사전 등록된 조합원을 모두 삭제합니다. (데이터 초기화)
+ */
+export async function deleteAllPreRegisteredMembers(unionId: string): Promise<{ 
+    success: boolean; 
+    deletedCount: number;
+    error?: string 
+}> {
+    try {
+        // 먼저 삭제할 조합원 수 확인
+        const { data: members, error: fetchError } = await supabase
+            .from('users')
+            .select('id')
+            .eq('union_id', unionId)
+            .eq('user_status', 'PRE_REGISTERED');
+
+        if (fetchError) {
+            return { success: false, deletedCount: 0, error: fetchError.message };
+        }
+
+        if (!members || members.length === 0) {
+            return { success: true, deletedCount: 0 };
+        }
+
+        const memberIds = members.map(m => m.id);
+
+        // user_property_units 테이블에서 관련 레코드 삭제 (외래키 제약조건)
+        const { error: propertyUnitsError } = await supabase
+            .from('user_property_units')
+            .delete()
+            .in('user_id', memberIds);
+
+        if (propertyUnitsError) {
+            console.error('user_property_units 삭제 오류:', propertyUnitsError);
+            // 외래키 제약이 없을 수도 있으므로 계속 진행
+        }
+
+        // users 테이블에서 PRE_REGISTERED 상태 조합원 일괄 삭제
+        const { error: deleteError } = await supabase
+            .from('users')
+            .delete()
+            .eq('union_id', unionId)
+            .eq('user_status', 'PRE_REGISTERED');
+
+        if (deleteError) {
+            return { success: false, deletedCount: 0, error: deleteError.message };
+        }
+
+        return { success: true, deletedCount: members.length };
+    } catch (error) {
+        return { success: false, deletedCount: 0, error: String(error) };
+    }
+}
