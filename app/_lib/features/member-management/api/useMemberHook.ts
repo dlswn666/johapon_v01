@@ -21,6 +21,11 @@ export interface MemberWithLandInfo extends User {
     // 동일인 그룹핑 관련 필드
     grouped_user_ids?: string[];
     total_property_count?: number;
+    // 토지/건물 면적 및 지분율 (users 테이블 필드 확장)
+    land_area?: number | null;
+    building_area?: number | null;
+    land_ownership_ratio?: number | null;
+    building_ownership_ratio?: number | null;
 }
 
 // 새로운 타입 재export

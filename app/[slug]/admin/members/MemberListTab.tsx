@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Search, Users, AlertTriangle, Ban, CheckCircle, MapPin, Home } from 'lucide-react';
+import { Search, Users, AlertTriangle, MapPin, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useApprovedMembersInfinite, MemberWithLandInfo } from '@/app/_lib/features/member-management/api/useMemberHook';
@@ -17,13 +17,34 @@ import { DataTable, ColumnDef } from '@/app/_lib/widgets/common/data-table';
 // 면적 포맷 함수 (㎡)
 const formatArea = (area: number | null | undefined): string => {
     if (area === null || area === undefined) return '-';
-    return `${area.toLocaleString()} ㎡`;
+    return `${Number(area).toLocaleString()} ㎡`;
 };
 
-// 공시지가 포맷 함수 (원)
-const formatPrice = (price: number | null | undefined): string => {
+// 공시지가 단가 포맷 함수 (원/㎡)
+const formatUnitPrice = (price: number | null | undefined): string => {
     if (price === null || price === undefined) return '-';
-    return `${price.toLocaleString()} 원`;
+    return `${Number(price).toLocaleString()} 원/㎡`;
+};
+
+// 공시지가 총액 계산 및 포맷 함수
+const formatTotalPrice = (area: number | null | undefined, unitPrice: number | null | undefined): string => {
+    if (area === null || area === undefined || unitPrice === null || unitPrice === undefined) return '-';
+    const total = Number(area) * Number(unitPrice);
+    // 억 단위 이상이면 억으로 표시
+    if (total >= 100000000) {
+        return `${(total / 100000000).toFixed(1)}억원`;
+    }
+    // 만 단위 이상이면 만으로 표시
+    if (total >= 10000) {
+        return `${Math.round(total / 10000).toLocaleString()}만원`;
+    }
+    return `${total.toLocaleString()}원`;
+};
+
+// 지분율 포맷 함수 (%)
+const formatRatio = (ratio: number | null | undefined): string => {
+    if (ratio === null || ratio === undefined) return '-';
+    return `${Number(ratio).toFixed(1)}%`;
 };
 
 // 차단 필터 버튼 정의
@@ -68,7 +89,7 @@ export default function MemberListTab() {
         return data?.pages.flatMap((page) => page.members) || [];
     }, [data?.pages]);
 
-    // 동일인 그룹핑 (이름 + 핸드폰번호 OR 이름 + 거주지가 동일한 경우)
+    // 동일인 그룹핑 (이름 + 핸드폰번호 OR 이름 + 거주지가 동일한 경우) + 정렬
     const members = useMemo(() => {
         if (rawMembers.length === 0) return [];
 
@@ -123,6 +144,22 @@ export default function MemberListTab() {
             groupedMembers.push(representative);
         });
 
+        // 정렬: 1) 물건지 개수 오름차순 (단일 물건지 우선), 2) 이름순
+        groupedMembers.sort((a, b) => {
+            const aPropertyCount = a.total_property_count || 1;
+            const bPropertyCount = b.total_property_count || 1;
+            
+            // 1차 정렬: 물건지 개수 오름차순 (단일 물건지가 먼저)
+            if (aPropertyCount !== bPropertyCount) {
+                return aPropertyCount - bPropertyCount;
+            }
+            
+            // 2차 정렬: 이름순 (한글 정렬)
+            const aName = a.name?.trim() || '';
+            const bName = b.name?.trim() || '';
+            return aName.localeCompare(bName, 'ko');
+        });
+
         return groupedMembers;
     }, [rawMembers]);
 
@@ -151,12 +188,13 @@ export default function MemberListTab() {
             {
                 key: 'rowNumber',
                 header: '번호',
-                width: '60px',
+                width: '50px',
                 render: (_, __, index) => index + 1,
             },
             {
                 key: 'name',
                 header: '이름',
+                width: '100px',
                 render: (_, row) => (
                     <div className="flex items-center gap-2">
                         <span className="text-[14px] font-medium text-gray-900 whitespace-nowrap">{row.name}</span>
@@ -198,23 +236,55 @@ export default function MemberListTab() {
                 },
             },
             {
-                key: 'area',
-                header: '면적',
+                key: 'land_area',
+                header: '토지소유면적',
                 align: 'right',
-                accessor: (row) => row.land_lot?.area,
-                render: (value) => formatArea(value as number | null | undefined),
+                width: '110px',
+                render: (_, row) => {
+                    // users.land_area 우선, 없으면 land_lot.area 사용
+                    const area = row.land_area ?? row.land_lot?.area;
+                    return formatArea(area);
+                },
+            },
+            {
+                key: 'building_area',
+                header: '건물소유면적',
+                align: 'right',
+                width: '110px',
+                render: (_, row) => {
+                    return formatArea(row.building_area);
+                },
             },
             {
                 key: 'official_price',
                 header: '공시지가',
                 align: 'right',
-                accessor: (row) => row.land_lot?.official_price,
-                render: (value) => formatPrice(value as number | null | undefined),
+                width: '150px',
+                render: (_, row) => {
+                    // users.land_area 우선, 없으면 land_lot.area 사용
+                    const landArea = row.land_area ?? row.land_lot?.area;
+                    const unitPrice = row.land_lot?.official_price;
+                    
+                    const unitPriceStr = formatUnitPrice(unitPrice);
+                    const totalPriceStr = formatTotalPrice(landArea, unitPrice);
+                    
+                    if (unitPrice === null || unitPrice === undefined) {
+                        return <span className="text-gray-400">-</span>;
+                    }
+                    
+                    return (
+                        <div className="flex flex-col items-end">
+                            <span className="text-[13px] text-gray-900">{unitPriceStr}</span>
+                            <span className="text-[12px] text-gray-500">(총 {totalPriceStr})</span>
+                        </div>
+                    );
+                },
             },
             {
                 key: 'ownership_type',
                 header: '소유유형',
                 align: 'center',
+                width: '90px',
                 render: (_, row) => {
                     // 대표 물건지의 소유유형 표시
                     const primaryUnit = row.property_units?.find((pu) => pu.is_primary);
@@ -230,11 +300,26 @@ export default function MemberListTab() {
                             )}
                         >
                             {OWNERSHIP_TYPE_LABELS[ownershipType]}
-                            {ownershipType === 'CO_OWNER' && primaryUnit?.ownership_ratio && (
-                                <span className="ml-1">({primaryUnit.ownership_ratio}%)</span>
-                            )}
                         </span>
                     );
+                },
+            },
+            {
+                key: 'land_ownership_ratio',
+                header: '토지지분율',
+                align: 'right',
+                width: '90px',
+                render: (_, row) => {
+                    return formatRatio(row.land_ownership_ratio);
+                },
+            },
+            {
+                key: 'building_ownership_ratio',
+                header: '건물지분율',
+                align: 'right',
+                width: '90px',
+                render: (_, row) => {
+                    return formatRatio(row.building_ownership_ratio);
                 },
             },
             {
@@ -242,26 +327,6 @@ export default function MemberListTab() {
                 header: '특이사항',
                 className: 'text-gray-600',
                 render: (value) => <span className="whitespace-nowrap">{(value as string) || '-'}</span>,
-            },
-            {
-                key: 'is_blocked',
-                header: '상태',
-                align: 'center',
-                render: (value, row) =>
-                    value ? (
-                        <span
-                            className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700"
-                            title={row.blocked_reason || '차단 사유 없음'}
-                        >
-                            <Ban className="w-3 h-3 mr-1" />
-                            차단됨
-                        </span>
-                    ) : (
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
-                            <CheckCircle className="w-3 h-3 mr-1" />
-                            정상
-                        </span>
-                    ),
             },
         ],
         []
@@ -400,7 +465,7 @@ export default function MemberListTab() {
                         fetchNextPage,
                         totalItems: totalCount,
                     }}
-                    minWidth="900px"
+                    minWidth="1200px"
                     maxHeight="600px"
                     stickyHeader={true}
                 />
