@@ -371,6 +371,14 @@ export default function MemberManagementPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedUnionId]);
 
+    // 검색어 또는 매칭 필터 변경 시 조합원 목록 재조회
+    useEffect(() => {
+        if (selectedUnionId) {
+            fetchMembers();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [searchTerm, matchFilter]);
+
     // 조합원 목록 조회 (초기 로드)
     const fetchMembers = useCallback(async () => {
         if (!selectedUnionId) return;
@@ -379,14 +387,19 @@ export default function MemberManagementPage() {
         setPreRegisteredMembers([]);
         setHasMore(true);
 
-        const result = await getPreRegisteredMembers(selectedUnionId, { offset: 0, limit: ITEMS_PER_PAGE });
+        const result = await getPreRegisteredMembers(selectedUnionId, { 
+            offset: 0, 
+            limit: ITEMS_PER_PAGE,
+            searchTerm: searchTerm || undefined,
+            matchFilter: matchFilter
+        });
         if (result.success && result.data) {
             setPreRegisteredMembers(result.data);
             setTotalMemberCount(result.totalCount || 0);
             setHasMore(result.hasMore || false);
         }
         setIsLoadingMembers(false);
-    }, [selectedUnionId]);
+    }, [selectedUnionId, searchTerm, matchFilter]);
 
     // 추가 조합원 로드 (무한 스크롤)
     const loadMoreMembers = useCallback(async () => {
@@ -398,6 +411,8 @@ export default function MemberManagementPage() {
         const result = await getPreRegisteredMembers(selectedUnionId, {
             offset: currentOffset,
             limit: ITEMS_PER_PAGE,
+            searchTerm: searchTerm || undefined,
+            matchFilter: matchFilter
         });
 
         if (result.success && result.data) {
@@ -405,7 +420,7 @@ export default function MemberManagementPage() {
             setHasMore(result.hasMore || false);
         }
         setIsLoadingMore(false);
-    }, [selectedUnionId, isLoadingMore, hasMore, preRegisteredMembers.length]);
+    }, [selectedUnionId, isLoadingMore, hasMore, preRegisteredMembers.length, searchTerm, matchFilter]);
 
     // IntersectionObserver를 사용한 무한 스크롤 감지
     useEffect(() => {
@@ -893,21 +908,8 @@ export default function MemberManagementPage() {
         }
     };
 
-    // 필터링된 조합원 목록
-    const filteredMembers = preRegisteredMembers.filter((member) => {
-        // 매칭 필터 적용
-        if (matchFilter === 'matched' && !member.property_pnu) return false;
-        if (matchFilter === 'unmatched' && member.property_pnu) return false;
-
-        // 검색어 필터 적용
-        if (!searchTerm) return true;
-        const term = searchTerm.toLowerCase();
-        return (
-            member.name.toLowerCase().includes(term) ||
-            member.phone_number?.toLowerCase().includes(term) ||
-            member.property_address_jibun?.toLowerCase().includes(term)
-        );
-    });
+    // 서버에서 이미 필터링된 데이터이므로 그대로 사용
+    const filteredMembers = preRegisteredMembers;
 
     // 선택된 조합 객체
     const selectedUnion = unions.find((u) => u.id === selectedUnionId);

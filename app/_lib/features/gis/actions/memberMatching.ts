@@ -301,11 +301,11 @@ export async function manualMatchUser(
 /**
  * 조합의 사전 등록된 조합원 목록을 조회합니다.
  * @param unionId 조합 ID
- * @param options 페이지네이션 옵션 (offset, limit)
+ * @param options 페이지네이션 옵션 (offset, limit, searchTerm, matchFilter)
  */
 export async function getPreRegisteredMembers(
     unionId: string,
-    options?: { offset?: number; limit?: number }
+    options?: { offset?: number; limit?: number; searchTerm?: string; matchFilter?: 'all' | 'matched' | 'unmatched' }
 ): Promise<{
     success: boolean;
     data?: Array<{
@@ -326,13 +326,42 @@ export async function getPreRegisteredMembers(
     try {
         const offset = options?.offset ?? 0;
         const limit = options?.limit ?? 30;
+        const searchTerm = options?.searchTerm?.trim();
+        const matchFilter = options?.matchFilter ?? 'all';
 
-        // 전체 개수 조회
-        const { count, error: countError } = await supabase
+        // 기본 쿼리 구성
+        let countQuery = supabase
             .from('users')
             .select('id', { count: 'exact', head: true })
             .eq('union_id', unionId)
             .eq('user_status', 'PRE_REGISTERED');
+
+        let dataQuery = supabase
+            .from('users')
+            .select('id, name, phone_number, property_pnu, property_address_jibun, property_dong, property_ho, resident_address, created_at')
+            .eq('union_id', unionId)
+            .eq('user_status', 'PRE_REGISTERED');
+
+        // 매칭 필터 적용
+        if (matchFilter === 'matched') {
+            countQuery = countQuery.not('property_pnu', 'is', null);
+            dataQuery = dataQuery.not('property_pnu', 'is', null);
+        } else if (matchFilter === 'unmatched') {
+            countQuery = countQuery.is('property_pnu', null);
+            dataQuery = dataQuery.is('property_pnu', null);
+        }
+
+        // 검색어가 있으면 검색 조건 추가
+        if (searchTerm) {
+            const searchPattern = `%${searchTerm}%`;
+            const searchFilter = `name.ilike.${searchPattern},phone_number.ilike.${searchPattern},property_address_jibun.ilike.${searchPattern}`;
+            
+            countQuery = countQuery.or(searchFilter);
+            dataQuery = dataQuery.or(searchFilter);
+        }
+
+        // 전체 개수 조회
+        const { count, error: countError } = await countQuery;
 
         if (countError) {
             return { success: false, error: countError.message };
@@ -341,11 +370,7 @@ export async function getPreRegisteredMembers(
         const totalCount = count || 0;
 
         // 페이지네이션 적용하여 데이터 조회 (지번 기준 정렬)
-        const { data, error } = await supabase
-            .from('users')
-            .select('id, name, phone_number, property_pnu, property_address_jibun, property_dong, property_ho, resident_address, created_at')
-            .eq('union_id', unionId)
-            .eq('user_status', 'PRE_REGISTERED')
+        const { data, error } = await dataQuery
             .order('property_address_jibun', { ascending: true, nullsFirst: false })
             .range(offset, offset + limit - 1);
 
