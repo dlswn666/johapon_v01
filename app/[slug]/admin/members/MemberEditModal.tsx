@@ -18,7 +18,6 @@ import {
     Clock,
     Link2,
     Building,
-    Star,
     Percent,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
@@ -32,7 +31,6 @@ import {
     useUpdateMemberPnu,
     useUnionLandLots,
     useUpdateOwnershipType,
-    useSetPrimaryPropertyUnit,
     MemberWithLandInfo,
 } from '@/app/_lib/features/member-management/api/useMemberHook';
 import { useLogAccessEvent } from '@/app/_lib/features/member-management/api/useAccessLogHook';
@@ -100,7 +98,6 @@ export default function MemberEditModal({ member, onClose, onBlock }: MemberEdit
     const { mutateAsync: updateMember } = useUpdateMember();
     const { mutateAsync: updateMemberPnu } = useUpdateMemberPnu();
     const { mutateAsync: updateOwnershipType } = useUpdateOwnershipType();
-    const { mutateAsync: setPrimaryPropertyUnit } = useSetPrimaryPropertyUnit();
     const { data: unionLandLots } = useUnionLandLots(unionId);
     const { mutate: logAccessEvent } = useLogAccessEvent();
 
@@ -289,21 +286,6 @@ export default function MemberEditModal({ member, onClose, onBlock }: MemberEdit
         }
     };
 
-    // 대표 물건지 변경
-    const handleSetPrimary = async (propertyUnitId: string) => {
-        try {
-            await setPrimaryPropertyUnit({
-                memberId: member.id,
-                propertyUnitId,
-            });
-
-            toast.success('대표 물건지가 변경되었습니다.');
-        } catch (error) {
-            console.error('대표 물건지 변경 오류:', error);
-            toast.error('대표 물건지 변경에 실패했습니다.');
-        }
-    };
-
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -320,101 +302,374 @@ export default function MemberEditModal({ member, onClose, onBlock }: MemberEdit
 
                 {/* 본문 */}
                 <div className="p-6 space-y-6">
-                    {/* 상태 표시 */}
-                    <div className="flex items-center justify-between">
-                        <span className="text-[14px] text-gray-500">상태</span>
-                        <div className="flex gap-2">
-                            {member.is_blocked ? (
-                                <span className="inline-flex items-center px-3 py-1.5 rounded-full text-[14px] font-medium bg-red-100 text-red-700">
-                                    <Ban className="w-4 h-4 mr-1" />
-                                    차단됨
-                                </span>
-                            ) : (
-                                <span className="inline-flex items-center px-3 py-1.5 rounded-full text-[14px] font-medium bg-green-100 text-green-700">
-                                    <CheckCircle className="w-4 h-4 mr-1" />
-                                    정상
-                                </span>
-                            )}
-                            {!member.isPnuMatched && member.property_pnu && (
-                                <span className="inline-flex items-center px-3 py-1.5 rounded-full text-[14px] font-medium bg-amber-100 text-amber-700">
-                                    <AlertTriangle className="w-4 h-4 mr-1" />
-                                    PNU 미매칭
-                                </span>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* 읽기 전용 정보 */}
-                    <div className="space-y-4">
-                        <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl">
-                            <UserIcon className="w-6 h-6 text-gray-400" />
-                            <div>
-                                <p className="text-[12px] text-gray-500">이름</p>
+                    {/* 이름 + 상태 배지 */}
+                    <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl">
+                        <UserIcon className="w-6 h-6 text-gray-400" />
+                        <div className="flex-1">
+                            <p className="text-[12px] text-gray-500">이름</p>
+                            <div className="flex items-center gap-2">
                                 <p className="text-[16px] font-bold text-gray-900">{member.name}</p>
-                            </div>
-                        </div>
-
-                        <div className="flex items-start gap-4 p-4 bg-gray-50 rounded-xl">
-                            <MapPin className="w-6 h-6 text-gray-400 mt-1" />
-                            <div className="flex-1">
-                                <p className="text-[12px] text-gray-500">물건지 (읽기 전용)</p>
-                                <p className="text-[16px] font-bold text-gray-900">
-                                    {member.property_address_road || member.property_address || '-'}
-                                </p>
-                                {member.property_address_jibun && (
-                                    <p className="text-[13px] text-gray-500 mt-1">
-                                        <span className="bg-gray-200 px-1 rounded mr-1 text-[11px]">지번</span>
-                                        {member.property_address_jibun}
-                                    </p>
+                                {member.is_blocked ? (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[12px] font-medium bg-red-100 text-red-700">
+                                        <Ban className="w-3 h-3 mr-1" />
+                                        차단됨
+                                    </span>
+                                ) : (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[12px] font-medium bg-green-100 text-green-700">
+                                        <CheckCircle className="w-3 h-3 mr-1" />
+                                        정상
+                                    </span>
+                                )}
+                                {!member.isPnuMatched && member.property_pnu && (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[12px] font-medium bg-amber-100 text-amber-700">
+                                        <AlertTriangle className="w-3 h-3 mr-1" />
+                                        PNU 미매칭
+                                    </span>
                                 )}
                             </div>
                         </div>
+                    </div>
 
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="p-4 bg-gray-50 rounded-xl">
-                                <p className="text-[12px] text-gray-500">면적</p>
-                                <p className="text-[16px] font-bold text-gray-900">
-                                    {formatArea(member.land_lot?.area)}
-                                </p>
-                            </div>
-                            <div className="p-4 bg-gray-50 rounded-xl">
-                                <p className="text-[12px] text-gray-500">공시지가</p>
-                                <p className="text-[16px] font-bold text-gray-900">
-                                    {formatPrice(member.land_lot?.official_price)}
-                                </p>
+                    {/* 생년월일, 전화번호 */}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <label className="flex items-center gap-2 text-[14px] font-medium text-gray-700">
+                                <Calendar className="w-4 h-4" />
+                                생년월일
+                            </label>
+                            <Input
+                                type="date"
+                                value={birthDate}
+                                onChange={(e) => setBirthDate(e.target.value)}
+                                className="h-12"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="flex items-center gap-2 text-[14px] font-medium text-gray-700">
+                                <Phone className="w-4 h-4" />
+                                전화번호
+                            </label>
+                            <Input
+                                type="tel"
+                                value={phoneNumber}
+                                onChange={(e) => setPhoneNumber(e.target.value)}
+                                placeholder="010-0000-0000"
+                                className="h-12"
+                            />
+                        </div>
+                    </div>
+
+                    {/* 거주지 */}
+                    <div className="space-y-2">
+                        <label className="flex items-center gap-2 text-[14px] font-medium text-gray-700">
+                            <MapPin className="w-4 h-4" />
+                            거주지
+                        </label>
+                        <KakaoAddressSearch
+                            value={residentAddress.addressRoad || residentAddress.address}
+                            onAddressSelect={handleAddressSelect}
+                            placeholder="거주지 주소 검색"
+                        />
+                        {residentAddress.address && (
+                            <Input
+                                value={residentAddress.addressDetail}
+                                onChange={(e) =>
+                                    setResidentAddress((prev) => ({
+                                        ...prev,
+                                        addressDetail: e.target.value,
+                                    }))
+                                }
+                                placeholder="상세 주소"
+                                className="h-12"
+                            />
+                        )}
+                    </div>
+
+                    {/* 특이사항 */}
+                    <div className="space-y-2">
+                        <label className="flex items-center gap-2 text-[14px] font-medium text-gray-700">
+                            <FileText className="w-4 h-4" />
+                            특이사항
+                        </label>
+                        <textarea
+                            value={notes}
+                            onChange={(e) => setNotes(e.target.value)}
+                            placeholder="특이사항을 입력하세요..."
+                            rows={3}
+                            className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4E8C6D] focus:border-transparent resize-none text-[14px]"
+                        />
+                    </div>
+
+                    {/* 면적 정보 (토지/건물 분리) */}
+                    <div className="space-y-4">
+                        {/* 토지 정보 */}
+                        <div className="p-4 bg-gray-50 rounded-xl">
+                            <p className="text-[12px] text-gray-500 mb-2">토지</p>
+                            <div className="grid grid-cols-3 gap-4">
+                                <div>
+                                    <p className="text-[11px] text-gray-400">소유면적</p>
+                                    <p className="text-[14px] font-bold text-gray-900">
+                                        {formatArea(member.land_lot?.area)}
+                                    </p>
+                                </div>
+                                <div>
+                                    <p className="text-[11px] text-gray-400">소유지분</p>
+                                    <p className="text-[14px] font-bold text-gray-900">
+                                        {propertyUnits.length > 0 && propertyUnits[0].ownership_ratio
+                                            ? `${propertyUnits[0].ownership_ratio}%`
+                                            : '100%'}
+                                    </p>
+                                </div>
+                                <div>
+                                    <p className="text-[11px] text-gray-400">공시지가</p>
+                                    <p className="text-[14px] font-bold text-gray-900">
+                                        {formatPrice(member.land_lot?.official_price)}
+                                    </p>
+                                </div>
                             </div>
                         </div>
 
-                        {/* 물건지 목록 섹션 (새로운 user_property_units 기반) */}
-                        {hasPropertyUnits && (
-                            <div className="bg-gray-50 rounded-xl p-4">
-                                <div className="flex items-center gap-2 mb-4">
-                                    <Building className="w-5 h-5 text-gray-600" />
-                                    <h4 className="text-[14px] font-semibold text-gray-700">
-                                        물건지 목록 ({propertyUnits.length}건)
-                                    </h4>
+                        {/* 건물 정보 */}
+                        <div className="p-4 bg-gray-50 rounded-xl">
+                            <p className="text-[12px] text-gray-500 mb-2">건물</p>
+                            <div className="grid grid-cols-3 gap-4">
+                                <div>
+                                    <p className="text-[11px] text-gray-400">소유면적</p>
+                                    <p className="text-[14px] font-bold text-gray-900">
+                                        {formatArea(
+                                            propertyUnits.reduce((sum, pu) => sum + (pu.area || 0), 0)
+                                        )}
+                                    </p>
                                 </div>
-                                <div className="space-y-3">
-                                    {propertyUnits.map((pu) => (
+                                <div>
+                                    <p className="text-[11px] text-gray-400">소유지분</p>
+                                    <p className="text-[14px] font-bold text-gray-900">
+                                        {propertyUnits.length > 0 && propertyUnits[0].ownership_ratio
+                                            ? `${propertyUnits[0].ownership_ratio}%`
+                                            : '100%'}
+                                    </p>
+                                </div>
+                                <div>
+                                    <p className="text-[11px] text-gray-400">공시지가</p>
+                                    <p className="text-[14px] font-bold text-gray-900">
+                                        {formatPrice(
+                                            propertyUnits.reduce(
+                                                (sum, pu) => sum + (pu.official_price || 0),
+                                                0
+                                            )
+                                        )}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* PNU 매칭 섹션 */}
+                        {(!member.property_pnu || !member.isPnuMatched) && (
+                            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                                <div className="flex items-start gap-3 mb-3">
+                                    <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5" />
+                                    <div className="flex-1">
+                                        <p className="text-[14px] font-medium text-amber-800">
+                                            물건지 PNU {member.property_pnu ? '미매칭' : '없음'}
+                                        </p>
+                                        <p className="text-[13px] text-amber-700 mt-1">
+                                            입력된 주소: {member.property_address || '없음'}
+                                        </p>
+                                        {member.property_pnu && (
+                                            <p className="text-[12px] text-amber-600 mt-1">
+                                                현재 PNU: {member.property_pnu}
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {!showPnuMatching ? (
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => setShowPnuMatching(true)}
+                                        className="w-full border-amber-300 text-amber-700 hover:bg-amber-100"
+                                    >
+                                        <Link2 className="w-4 h-4 mr-2" />
+                                        PNU 수동 매칭
+                                    </Button>
+                                ) : (
+                                    <div className="space-y-3 mt-3 pt-3 border-t border-amber-200">
+                                        <div>
+                                            <label className="block text-[13px] font-medium text-amber-800 mb-1">
+                                                구역 내 물건지 선택
+                                            </label>
+                                            <SelectBox
+                                                value={selectedPnu}
+                                                onChange={(value) => {
+                                                    setSelectedPnu(value);
+                                                    setManualPnu('');
+                                                }}
+                                                options={[
+                                                    { value: '', label: '선택하세요' },
+                                                    ...(unionLandLots?.map((lot) => ({
+                                                        value: lot.pnu,
+                                                        label: `${lot.address_text || lot.pnu}`,
+                                                    })) || []),
+                                                ]}
+                                                className="w-full"
+                                            />
+                                        </div>
+
+                                        <div className="text-center text-[12px] text-gray-500">또는</div>
+
+                                        <div>
+                                            <label className="block text-[13px] font-medium text-amber-800 mb-1">
+                                                PNU 직접 입력 (19자리)
+                                            </label>
+                                            <Input
+                                                value={manualPnu}
+                                                onChange={(e) => {
+                                                    setManualPnu(e.target.value);
+                                                    setSelectedPnu('');
+                                                }}
+                                                placeholder="19자리 PNU 코드"
+                                                maxLength={19}
+                                                className="font-mono"
+                                            />
+                                        </div>
+
+                                        <div className="flex gap-2">
+                                            <Button
+                                                variant="outline"
+                                                onClick={() => setShowPnuMatching(false)}
+                                                className="flex-1"
+                                            >
+                                                취소
+                                            </Button>
+                                            <Button
+                                                onClick={handlePnuMatch}
+                                                disabled={isPnuSaving || (!selectedPnu && !manualPnu)}
+                                                className="flex-1 bg-amber-500 hover:bg-amber-600 text-white"
+                                            >
+                                                {isPnuSaving ? (
+                                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                                ) : (
+                                                    'PNU 적용'
+                                                )}
+                                            </Button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    {/* 차단 정보 */}
+                    {member.is_blocked && member.blocked_reason && (
+                        <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+                            <p className="text-[14px] font-bold text-red-800 mb-2">차단 사유</p>
+                            <p className="text-[14px] text-red-700">{member.blocked_reason}</p>
+                            {member.blocked_at && (
+                                <p className="text-[12px] text-red-500 mt-2">
+                                    차단일: {new Date(member.blocked_at).toLocaleString('ko-KR')}
+                                </p>
+                            )}
+                        </div>
+                    )}
+
+                    {/* 동의 단계별 현황 */}
+                    <div className="space-y-4 pt-4 border-t border-gray-200">
+                        <h4 className="text-[16px] font-semibold text-gray-900 flex items-center gap-2">
+                            <Percent className="w-4 h-4" />
+                            동의 단계별 현황
+                        </h4>
+                        
+                        {isConsentLoading ? (
+                            <div className="flex items-center justify-center py-4 text-gray-400">
+                                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                                동의 현황 조회 중...
+                            </div>
+                        ) : memberConsentStatus && memberConsentStatus.length > 0 ? (
+                            <div className="space-y-2">
+                                {memberConsentStatus.map((stage) => {
+                                    const statusConfig = {
+                                        AGREED: { 
+                                            icon: CheckCircle2, 
+                                            color: 'text-green-600', 
+                                            bg: 'bg-green-50 border-green-200', 
+                                            label: '동의' 
+                                        },
+                                        DISAGREED: { 
+                                            icon: XCircle, 
+                                            color: 'text-red-600', 
+                                            bg: 'bg-red-50 border-red-200', 
+                                            label: '미동의' 
+                                        },
+                                        PENDING: { 
+                                            icon: Clock, 
+                                            color: 'text-gray-500', 
+                                            bg: 'bg-gray-50 border-gray-200', 
+                                            label: '미제출' 
+                                        },
+                                    };
+                                    const config = statusConfig[stage.status];
+                                    const StatusIcon = config.icon;
+
+                                    return (
+                                        <div 
+                                            key={stage.stage_id}
+                                            className={cn(
+                                                "p-3 rounded-lg border flex items-center justify-between",
+                                                config.bg
+                                            )}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <StatusIcon className={cn("w-5 h-5", config.color)} />
+                                                <div>
+                                                    <p className="text-[14px] font-medium text-gray-900">
+                                                        {stage.stage_name}
+                                                    </p>
+                                                    <p className="text-[12px] text-gray-500">
+                                                        필요 동의율: {stage.required_rate}%
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="text-right">
+                                                <span className={cn("text-[14px] font-bold", config.color)}>
+                                                    {config.label}
+                                                </span>
+                                                {stage.consent_date && (
+                                                    <p className="text-[11px] text-gray-400 mt-0.5">
+                                                        {new Date(stage.consent_date).toLocaleDateString('ko-KR')}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        ) : (
+                            <div className="text-center py-4 text-gray-400 text-[14px]">
+                                등록된 동의 단계가 없습니다.
+                            </div>
+                        )}
+                    </div>
+
+                    {/* 물건지 목록 (맨 아래) */}
+                    {hasPropertyUnits && (
+                        <div className="bg-gray-50 rounded-xl p-4">
+                            <div className="flex items-center gap-2 mb-4">
+                                <Building className="w-5 h-5 text-gray-600" />
+                                <h4 className="text-[14px] font-semibold text-gray-700">
+                                    물건지 목록 ({propertyUnits.length}건)
+                                </h4>
+                            </div>
+                            <div className="space-y-3 max-h-[280px] overflow-y-auto">
+                                {[...propertyUnits]
+                                    .sort((a, b) => (a.address || '').localeCompare(b.address || '', 'ko'))
+                                    .map((pu) => (
                                         <div
                                             key={pu.id}
-                                            className={cn(
-                                                'p-4 rounded-lg border',
-                                                pu.is_primary
-                                                    ? 'bg-blue-50 border-blue-200'
-                                                    : 'bg-white border-gray-200'
-                                            )}
+                                            className="p-4 rounded-lg border bg-white border-gray-200"
                                         >
                                             {/* 물건지 헤더 */}
                                             <div className="flex items-start justify-between mb-2">
                                                 <div className="flex-1">
                                                     <div className="flex items-center gap-2 mb-1">
-                                                        {pu.is_primary && (
-                                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700">
-                                                                <Star className="w-3 h-3 mr-1" />
-                                                                대표
-                                                            </span>
-                                                        )}
                                                         <span
                                                             className={cn(
                                                                 'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium',
@@ -519,283 +774,13 @@ export default function MemberEditModal({ member, onClose, onBlock }: MemberEdit
                                                     >
                                                         소유유형 수정
                                                     </Button>
-                                                    {!pu.is_primary && (
-                                                        <Button
-                                                            variant="outline"
-                                                            size="sm"
-                                                            onClick={() => handleSetPrimary(pu.id)}
-                                                            className="text-[12px] border-blue-300 text-blue-600 hover:bg-blue-50"
-                                                        >
-                                                            <Star className="w-3 h-3 mr-1" />
-                                                            대표로 설정
-                                                        </Button>
-                                                    )}
                                                 </div>
                                             )}
                                         </div>
                                     ))}
-                                </div>
                             </div>
-                        )}
-
-                        {/* PNU 매칭 섹션 */}
-                        {(!member.property_pnu || !member.isPnuMatched) && (
-                            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-                                <div className="flex items-start gap-3 mb-3">
-                                    <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5" />
-                                    <div className="flex-1">
-                                        <p className="text-[14px] font-medium text-amber-800">
-                                            물건지 PNU {member.property_pnu ? '미매칭' : '없음'}
-                                        </p>
-                                        <p className="text-[13px] text-amber-700 mt-1">
-                                            입력된 주소: {member.property_address || '없음'}
-                                        </p>
-                                        {member.property_pnu && (
-                                            <p className="text-[12px] text-amber-600 mt-1">
-                                                현재 PNU: {member.property_pnu}
-                                            </p>
-                                        )}
-                                    </div>
-                                </div>
-
-                                {!showPnuMatching ? (
-                                    <Button
-                                        variant="outline"
-                                        onClick={() => setShowPnuMatching(true)}
-                                        className="w-full border-amber-300 text-amber-700 hover:bg-amber-100"
-                                    >
-                                        <Link2 className="w-4 h-4 mr-2" />
-                                        PNU 수동 매칭
-                                    </Button>
-                                ) : (
-                                    <div className="space-y-3 mt-3 pt-3 border-t border-amber-200">
-                                        <div>
-                                            <label className="block text-[13px] font-medium text-amber-800 mb-1">
-                                                구역 내 물건지 선택
-                                            </label>
-                                            <SelectBox
-                                                value={selectedPnu}
-                                                onChange={(value) => {
-                                                    setSelectedPnu(value);
-                                                    setManualPnu('');
-                                                }}
-                                                options={[
-                                                    { value: '', label: '선택하세요' },
-                                                    ...(unionLandLots?.map((lot) => ({
-                                                        value: lot.pnu,
-                                                        label: `${lot.address_text || lot.pnu}`,
-                                                    })) || []),
-                                                ]}
-                                                className="w-full"
-                                            />
-                                        </div>
-
-                                        <div className="text-center text-[12px] text-gray-500">또는</div>
-
-                                        <div>
-                                            <label className="block text-[13px] font-medium text-amber-800 mb-1">
-                                                PNU 직접 입력 (19자리)
-                                            </label>
-                                            <Input
-                                                value={manualPnu}
-                                                onChange={(e) => {
-                                                    setManualPnu(e.target.value);
-                                                    setSelectedPnu('');
-                                                }}
-                                                placeholder="19자리 PNU 코드"
-                                                maxLength={19}
-                                                className="font-mono"
-                                            />
-                                        </div>
-
-                                        <div className="flex gap-2">
-                                            <Button
-                                                variant="outline"
-                                                onClick={() => setShowPnuMatching(false)}
-                                                className="flex-1"
-                                            >
-                                                취소
-                                            </Button>
-                                            <Button
-                                                onClick={handlePnuMatch}
-                                                disabled={isPnuSaving || (!selectedPnu && !manualPnu)}
-                                                className="flex-1 bg-amber-500 hover:bg-amber-600 text-white"
-                                            >
-                                                {isPnuSaving ? (
-                                                    <Loader2 className="w-4 h-4 animate-spin" />
-                                                ) : (
-                                                    'PNU 적용'
-                                                )}
-                                            </Button>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </div>
-
-                    {/* 수정 가능 필드 */}
-                    <div className="space-y-4 pt-4 border-t border-gray-200">
-                        <h4 className="text-[16px] font-semibold text-gray-900">수정 가능 정보</h4>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <label className="flex items-center gap-2 text-[14px] font-medium text-gray-700">
-                                    <Calendar className="w-4 h-4" />
-                                    생년월일
-                                </label>
-                                <Input
-                                    type="date"
-                                    value={birthDate}
-                                    onChange={(e) => setBirthDate(e.target.value)}
-                                    className="h-12"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="flex items-center gap-2 text-[14px] font-medium text-gray-700">
-                                    <Phone className="w-4 h-4" />
-                                    전화번호
-                                </label>
-                                <Input
-                                    type="tel"
-                                    value={phoneNumber}
-                                    onChange={(e) => setPhoneNumber(e.target.value)}
-                                    placeholder="010-0000-0000"
-                                    className="h-12"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="space-y-2">
-                            <label className="flex items-center gap-2 text-[14px] font-medium text-gray-700">
-                                <MapPin className="w-4 h-4" />
-                                거주지
-                            </label>
-                            <KakaoAddressSearch
-                                value={residentAddress.addressRoad || residentAddress.address}
-                                onAddressSelect={handleAddressSelect}
-                                placeholder="거주지 주소 검색"
-                            />
-                            {residentAddress.address && (
-                                <Input
-                                    value={residentAddress.addressDetail}
-                                    onChange={(e) =>
-                                        setResidentAddress((prev) => ({
-                                            ...prev,
-                                            addressDetail: e.target.value,
-                                        }))
-                                    }
-                                    placeholder="상세 주소"
-                                    className="h-12"
-                                />
-                            )}
-                        </div>
-
-                        <div className="space-y-2">
-                            <label className="flex items-center gap-2 text-[14px] font-medium text-gray-700">
-                                <FileText className="w-4 h-4" />
-                                특이사항
-                            </label>
-                            <textarea
-                                value={notes}
-                                onChange={(e) => setNotes(e.target.value)}
-                                placeholder="특이사항을 입력하세요..."
-                                rows={3}
-                                className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4E8C6D] focus:border-transparent resize-none text-[14px]"
-                            />
-                        </div>
-                    </div>
-
-                    {/* 차단 정보 */}
-                    {member.is_blocked && member.blocked_reason && (
-                        <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-                            <p className="text-[14px] font-bold text-red-800 mb-2">차단 사유</p>
-                            <p className="text-[14px] text-red-700">{member.blocked_reason}</p>
-                            {member.blocked_at && (
-                                <p className="text-[12px] text-red-500 mt-2">
-                                    차단일: {new Date(member.blocked_at).toLocaleString('ko-KR')}
-                                </p>
-                            )}
                         </div>
                     )}
-
-                    {/* 동의 단계별 현황 */}
-                    <div className="space-y-4 pt-4 border-t border-gray-200">
-                        <h4 className="text-[16px] font-semibold text-gray-900 flex items-center gap-2">
-                            <Percent className="w-4 h-4" />
-                            동의 단계별 현황
-                        </h4>
-                        
-                        {isConsentLoading ? (
-                            <div className="flex items-center justify-center py-4 text-gray-400">
-                                <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                                동의 현황 조회 중...
-                            </div>
-                        ) : memberConsentStatus && memberConsentStatus.length > 0 ? (
-                            <div className="space-y-2">
-                                {memberConsentStatus.map((stage) => {
-                                    const statusConfig = {
-                                        AGREED: { 
-                                            icon: CheckCircle2, 
-                                            color: 'text-green-600', 
-                                            bg: 'bg-green-50 border-green-200', 
-                                            label: '동의' 
-                                        },
-                                        DISAGREED: { 
-                                            icon: XCircle, 
-                                            color: 'text-red-600', 
-                                            bg: 'bg-red-50 border-red-200', 
-                                            label: '미동의' 
-                                        },
-                                        PENDING: { 
-                                            icon: Clock, 
-                                            color: 'text-gray-500', 
-                                            bg: 'bg-gray-50 border-gray-200', 
-                                            label: '미제출' 
-                                        },
-                                    };
-                                    const config = statusConfig[stage.status];
-                                    const StatusIcon = config.icon;
-
-                                    return (
-                                        <div 
-                                            key={stage.stage_id}
-                                            className={cn(
-                                                "p-3 rounded-lg border flex items-center justify-between",
-                                                config.bg
-                                            )}
-                                        >
-                                            <div className="flex items-center gap-3">
-                                                <StatusIcon className={cn("w-5 h-5", config.color)} />
-                                                <div>
-                                                    <p className="text-[14px] font-medium text-gray-900">
-                                                        {stage.stage_name}
-                                                    </p>
-                                                    <p className="text-[12px] text-gray-500">
-                                                        필요 동의율: {stage.required_rate}%
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <div className="text-right">
-                                                <span className={cn("text-[14px] font-bold", config.color)}>
-                                                    {config.label}
-                                                </span>
-                                                {stage.consent_date && (
-                                                    <p className="text-[11px] text-gray-400 mt-0.5">
-                                                        {new Date(stage.consent_date).toLocaleDateString('ko-KR')}
-                                                    </p>
-                                                )}
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        ) : (
-                            <div className="text-center py-4 text-gray-400 text-[14px]">
-                                등록된 동의 단계가 없습니다.
-                            </div>
-                        )}
-                    </div>
                 </div>
 
                 {/* 버튼 */}
