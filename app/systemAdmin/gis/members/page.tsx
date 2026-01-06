@@ -144,6 +144,7 @@ export default function MemberManagementPage() {
     const [saveResult, setSaveResult] = useState<{
         success: boolean;
         savedCount: number;
+        updatedCount: number;
         matchedCount: number;
         unmatchedCount: number;
         duplicateCount: number;
@@ -191,6 +192,7 @@ export default function MemberManagementPage() {
             setSaveResult({
                 success: true,
                 savedCount: result?.savedCount || 0,
+                updatedCount: result?.updatedCount || 0,
                 matchedCount: result?.matchedCount || 0,
                 unmatchedCount: result?.unmatchedCount || 0,
                 duplicateCount: result?.duplicateCount || 0,
@@ -203,6 +205,7 @@ export default function MemberManagementPage() {
             setSaveResult({
                 success: false,
                 savedCount: 0,
+                updatedCount: 0,
                 matchedCount: 0,
                 unmatchedCount: 0,
                 duplicateCount: 0,
@@ -271,11 +274,44 @@ export default function MemberManagementPage() {
         setSyncResult(null);
         setIsSyncing(false);
     }, []);
+    
+    // 진행 중인 작업 조회 및 복구
+    const checkExistingJob = useCallback(async (unionId: string) => {
+        try {
+            // PRE_REGISTER 작업 조회
+            const { data: preRegisterJobs } = await supabase
+                .from('sync_jobs')
+                .select('id, status, progress, preview_data')
+                .eq('union_id', unionId)
+                .eq('status', 'PROCESSING')
+                .order('created_at', { ascending: false })
+                .limit(1);
+            
+            if (preRegisterJobs && preRegisterJobs.length > 0) {
+                const job = preRegisterJobs[0];
+                if (job.preview_data?.job_type === 'PRE_REGISTER') {
+                    setCurrentJobId(job.id);
+                    return; // PRE_REGISTER 작업 발견 시 종료
+                } else if (job.preview_data?.job_type === 'SYNC_PROPERTIES') {
+                    setSyncJobId(job.id);
+                    setIsSyncing(true);
+                    return; // SYNC_PROPERTIES 작업 발견 시 종료
+                }
+            }
+            
+            // 진행 중인 작업이 없으면 상태 초기화
+            resetUploadState();
+        } catch (error) {
+            console.error('진행 중인 작업 조회 실패:', error);
+            resetUploadState();
+        }
+    }, [resetUploadState]);
 
     // 기존 조합원 목록
     const [preRegisteredMembers, setPreRegisteredMembers] = useState<PreRegisteredMember[]>([]);
     const [isLoadingMembers, setIsLoadingMembers] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    const [matchFilter, setMatchFilter] = useState<'all' | 'matched' | 'unmatched'>('all');
 
     // 수동 매칭 모달
     const [manualMatchModal, setManualMatchModal] = useState<{
@@ -320,14 +356,14 @@ export default function MemberManagementPage() {
         fetchUnions();
     }, [selectedUnionId]);
 
-    // 조합 선택 시 URL 업데이트 및 조합원 목록 조회 + 상태 초기화
+    // 조합 선택 시 URL 업데이트 및 조합원 목록 조회 + 진행 중인 작업 확인
     useEffect(() => {
         if (selectedUnionId) {
             const url = new URL(window.location.href);
             url.searchParams.set('unionId', selectedUnionId);
             router.replace(url.pathname + url.search, { scroll: false });
             fetchMembers();
-            resetUploadState(); // 조합 변경 시 업로드 상태 초기화
+            checkExistingJob(selectedUnionId); // 진행 중인 작업 확인 및 복구
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedUnionId]);
@@ -721,6 +757,11 @@ export default function MemberManagementPage() {
 
     // 필터링된 조합원 목록
     const filteredMembers = preRegisteredMembers.filter((member) => {
+        // 매칭 필터 적용
+        if (matchFilter === 'matched' && !member.property_pnu) return false;
+        if (matchFilter === 'unmatched' && member.property_pnu) return false;
+        
+        // 검색어 필터 적용
         if (!searchTerm) return true;
         const term = searchTerm.toLowerCase();
         return (
@@ -863,7 +904,12 @@ export default function MemberManagementPage() {
                                         )}
                                         {jobStatus.result?.savedCount !== undefined && (
                                             <span className="text-emerald-400">
-                                                저장됨: {jobStatus.result.savedCount}건
+                                                신규: {jobStatus.result.savedCount}건
+                                            </span>
+                                        )}
+                                        {jobStatus.result?.updatedCount !== undefined && jobStatus.result.updatedCount > 0 && (
+                                            <span className="text-blue-400">
+                                                업데이트: {jobStatus.result.updatedCount}건
                                             </span>
                                         )}
                                         {jobStatus.result?.duplicateCount !== undefined && jobStatus.result.duplicateCount > 0 && (
@@ -893,6 +939,12 @@ export default function MemberManagementPage() {
                                             <AlertTriangle className="w-3 h-3 mr-1" />
                                             비매칭: {saveResult.unmatchedCount}건
                                         </Badge>
+                                        {saveResult.updatedCount > 0 && (
+                                            <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">
+                                                <RefreshCw className="w-3 h-3 mr-1" />
+                                                업데이트: {saveResult.updatedCount}건
+                                            </Badge>
+                                        )}
                                         {saveResult.duplicateCount > 0 && (
                                             <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30">
                                                 <XCircle className="w-3 h-3 mr-1" />
@@ -901,7 +953,13 @@ export default function MemberManagementPage() {
                                         )}
                                     </div>
                                     <p className={`font-medium ${saveResult.success ? 'text-emerald-400' : 'text-amber-400'}`}>
-                                        {saveResult.savedCount}건이 저장되었습니다.
+                                        {saveResult.savedCount > 0 
+                                            ? `${saveResult.savedCount}건이 신규 저장되었습니다.`
+                                            : saveResult.updatedCount > 0 
+                                            ? `${saveResult.updatedCount}건이 업데이트되었습니다.`
+                                            : '처리된 항목이 없습니다.'}
+                                        {saveResult.savedCount > 0 && saveResult.updatedCount > 0 && 
+                                            ` (업데이트: ${saveResult.updatedCount}건)`}
                                     </p>
                                     {saveResult.errors.length > 0 && (
                                         <details className="mt-2">
@@ -1066,8 +1124,8 @@ export default function MemberManagementPage() {
                                 </div>
                             )}
 
-                            <div className="mb-4">
-                                <div className="relative">
+                            <div className="mb-4 flex flex-wrap gap-4">
+                                <div className="relative flex-1 min-w-[200px]">
                                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
                                     <Input
                                         placeholder="이름, 전화번호, 주소로 검색..."
@@ -1076,6 +1134,19 @@ export default function MemberManagementPage() {
                                         className="pl-10 bg-slate-700 border-slate-600 text-white placeholder:text-slate-500"
                                     />
                                 </div>
+                                <Select
+                                    value={matchFilter}
+                                    onValueChange={(value) => setMatchFilter(value as 'all' | 'matched' | 'unmatched')}
+                                >
+                                    <SelectTrigger className="w-[140px] bg-slate-700 border-slate-600 text-white">
+                                        <SelectValue placeholder="매칭 상태" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">전체</SelectItem>
+                                        <SelectItem value="matched">매칭됨</SelectItem>
+                                        <SelectItem value="unmatched">비매칭</SelectItem>
+                                    </SelectContent>
+                                </Select>
                             </div>
 
                             <div className="max-h-96 overflow-auto rounded-lg border border-slate-700">
@@ -1084,7 +1155,11 @@ export default function MemberManagementPage() {
                                     columns={memberColumns}
                                     keyExtractor={(row) => row.id}
                                     isLoading={isLoadingMembers}
-                                    emptyMessage={searchTerm ? '검색 결과가 없습니다.' : '사전 등록된 조합원이 없습니다.'}
+                                    emptyMessage={
+                                        searchTerm || matchFilter !== 'all'
+                                            ? '검색 결과가 없습니다.'
+                                            : '사전 등록된 조합원이 없습니다.'
+                                    }
                                     emptyIcon={<Users className="w-12 h-12 text-slate-500" />}
                                     variant="dark"
                                     actions={{
