@@ -4,7 +4,10 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Search, Users, AlertTriangle, MapPin, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { useApprovedMembersInfinite, MemberWithLandInfo } from '@/app/_lib/features/member-management/api/useMemberHook';
+import {
+    useApprovedMembersInfinite,
+    MemberWithLandInfo,
+} from '@/app/_lib/features/member-management/api/useMemberHook';
 import { useLogAccessEvent } from '@/app/_lib/features/member-management/api/useAccessLogHook';
 import useMemberStore, { BlockedFilter } from '@/app/_lib/features/member-management/model/useMemberStore';
 import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
@@ -77,14 +80,7 @@ export default function MemberListTab() {
     const [showBlockModal, setShowBlockModal] = useState(false);
 
     // API 호출 (무한 스크롤) - DB에서 그룹핑/정렬 완료된 데이터 반환
-    const {
-        data,
-        isLoading,
-        refetch,
-        fetchNextPage,
-        hasNextPage,
-        isFetchingNextPage,
-    } = useApprovedMembersInfinite({
+    const { data, isLoading, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useApprovedMembersInfinite({
         unionId,
         searchQuery: filter.searchQuery,
         blockedFilter: filter.blockedFilter,
@@ -129,10 +125,11 @@ export default function MemberListTab() {
             {
                 key: 'name',
                 header: '이름',
-                width: '120px',
+                align: 'left',
+                width: '100px',
                 render: (_, row) => (
                     <div className="flex items-center gap-2">
-                        <span 
+                        <span
                             className="text-[14px] font-medium text-gray-900 whitespace-nowrap max-w-[80px] overflow-hidden text-ellipsis inline-block"
                             title={row.name || ''}
                         >
@@ -157,7 +154,7 @@ export default function MemberListTab() {
             {
                 key: 'ownership_type',
                 header: '소유유형',
-                align: 'center',
+                align: 'left',
                 width: '80px',
                 render: (_, row) => {
                     // 대표 물건지의 소유유형 표시
@@ -182,22 +179,20 @@ export default function MemberListTab() {
             {
                 key: 'property_address',
                 header: '물건지',
-                width: '220px',
+                width: '280px',
                 className: 'text-gray-600',
+                wrap: true,
                 render: (_, row) => {
                     const propertyAddress = row.property_address_jibun || row.property_address || '-';
                     const totalCount = row.total_property_count || 1;
                     const hasMultipleProperties = totalCount > 1;
 
                     return (
-                        <div className="flex items-center gap-2">
-                            <span className="whitespace-nowrap overflow-hidden text-ellipsis max-w-[180px]" title={propertyAddress}>
-                                {propertyAddress}
-                            </span>
+                        <div className="flex items-start gap-2">
+                            <span className="wrap-break-word">{propertyAddress}</span>
                             {hasMultipleProperties && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700 whitespace-nowrap">
-                                    <Home className="w-3 h-3 mr-1" />
-                                    +{totalCount - 1}건
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700 whitespace-nowrap shrink-0">
+                                    <Home className="w-3 h-3 mr-1" />+{totalCount - 1}건
                                 </span>
                             )}
                         </div>
@@ -208,8 +203,8 @@ export default function MemberListTab() {
             {
                 key: 'total_land_area',
                 header: '토지면적',
-                align: 'right',
-                width: '90px',
+                align: 'center',
+                width: '100px',
                 render: (_, row) => {
                     return formatArea(row.total_land_area);
                 },
@@ -218,8 +213,8 @@ export default function MemberListTab() {
             {
                 key: 'land_area',
                 header: '토지소유면적',
-                align: 'right',
-                width: '100px',
+                align: 'center',
+                width: '120px',
                 render: (_, row) => {
                     return formatArea(row.land_area);
                 },
@@ -228,8 +223,8 @@ export default function MemberListTab() {
             {
                 key: 'land_ownership_ratio',
                 header: '토지지분율',
-                align: 'right',
-                width: '80px',
+                align: 'center',
+                width: '100px',
                 render: (_, row) => {
                     return formatRatio(row.land_ownership_ratio);
                 },
@@ -238,8 +233,8 @@ export default function MemberListTab() {
             {
                 key: 'total_building_area',
                 header: '건축면적',
-                align: 'right',
-                width: '90px',
+                align: 'center',
+                width: '120px',
                 render: (_, row) => {
                     return formatArea(row.total_building_area);
                 },
@@ -248,8 +243,8 @@ export default function MemberListTab() {
             {
                 key: 'building_area',
                 header: '건축소유면적',
-                align: 'right',
-                width: '100px',
+                align: 'center',
+                width: '140px',
                 render: (_, row) => {
                     return formatArea(row.building_area);
                 },
@@ -258,8 +253,8 @@ export default function MemberListTab() {
             {
                 key: 'building_ownership_ratio',
                 header: '건축지분율',
-                align: 'right',
-                width: '80px',
+                align: 'center',
+                width: '120px',
                 render: (_, row) => {
                     return formatRatio(row.building_ownership_ratio);
                 },
@@ -268,20 +263,20 @@ export default function MemberListTab() {
             {
                 key: 'official_price',
                 header: '공시지가',
-                align: 'right',
-                width: '140px',
+                align: 'center',
+                width: '200px',
                 render: (_, row) => {
                     // 전체 토지면적 (land_lot.area) 기준으로 총액 계산
                     const totalLandArea = row.land_lot?.area;
                     const unitPrice = row.land_lot?.official_price;
-                    
+
                     const unitPriceStr = formatUnitPrice(unitPrice);
                     const totalPriceStr = formatTotalPrice(totalLandArea, unitPrice);
-                    
+
                     if (unitPrice === null || unitPrice === undefined) {
                         return <span className="text-gray-400">-</span>;
                     }
-                    
+
                     return (
                         <div className="flex flex-col items-end">
                             <span className="text-[13px] text-gray-900">{unitPriceStr}</span>
@@ -294,10 +289,14 @@ export default function MemberListTab() {
             {
                 key: 'notes',
                 header: '특이사항',
-                width: '100px',
+                width: '200px',
+                align: 'center',
                 className: 'text-gray-600',
                 render: (value) => (
-                    <span className="whitespace-nowrap overflow-hidden text-ellipsis max-w-[100px] inline-block" title={(value as string) || ''}>
+                    <span
+                        className="whitespace-nowrap overflow-hidden text-ellipsis max-w-[100px] inline-block"
+                        title={(value as string) || ''}
+                    >
                         {(value as string) || '-'}
                     </span>
                 ),
@@ -416,7 +415,7 @@ export default function MemberListTab() {
                     </div>
                 </div>
 
-                {/* 테이블 */}
+                {/* 테이블 - stickyHeader 모드에서 내부적으로 스크롤 관리 */}
                 <DataTable<MemberWithLandInfo>
                     data={members}
                     columns={memberColumns}
@@ -432,7 +431,7 @@ export default function MemberListTab() {
                         fetchNextPage,
                         totalItems: totalCount,
                     }}
-                    minWidth="1350px"
+                    minWidth="1610px"
                     maxHeight="600px"
                     stickyHeader={true}
                 />

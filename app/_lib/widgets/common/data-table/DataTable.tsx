@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useCallback, useState } from 'react';
 import {
     Table,
     TableBody,
@@ -93,10 +93,6 @@ export function DataTable<T extends object>({
 }: DataTableProps<T>) {
     const styles = variantStyles[variant];
 
-    // 헤더와 바디 스크롤 동기화를 위한 ref (stickyHeader 모드용)
-    const headerScrollRef = useRef<HTMLDivElement>(null);
-    const bodyScrollRef = useRef<HTMLDivElement>(null);
-
     // 무한 스크롤: Intersection Observer 설정 (50% 스크롤 시점에서 재조회)
     const { ref: loadMoreRef, inView } = useInView({
         threshold: 0.5,
@@ -173,24 +169,40 @@ export function DataTable<T extends object>({
         );
     }
 
-    // stickyHeader 모드일 때의 렌더링 (헤더 고정, 바디만 세로 스크롤, 가로 스크롤은 외부에서 관리)
+    // stickyHeader 모드: 가로 스크롤 위치 상태
+    const [scrollX, setScrollX] = useState(0);
+    const fakeScrollbarRef = useRef<HTMLDivElement>(null);
+
+    // 가짜 스크롤바 스크롤 시 테이블 이동
+    const handleFakeScrollbarScroll = useCallback(() => {
+        if (fakeScrollbarRef.current) {
+            setScrollX(fakeScrollbarRef.current.scrollLeft);
+        }
+    }, []);
+
+    // stickyHeader 모드일 때의 렌더링 (가짜 스크롤바 + transform으로 가로 이동)
     if (stickyHeader && maxHeight) {
         return (
-            <div className={cn('space-y-0', className)}>
-                {/* 외부 컨테이너: 가로 스크롤 관리 (스크롤바가 화면 하단에 표시됨) */}
+            <div className={cn('relative', className)}>
+                {/* 메인 스크롤 컨테이너: 세로 스크롤만, 가로 스크롤은 숨김 */}
                 <div 
-                    ref={headerScrollRef}
-                    className="overflow-x-auto"
+                    className="overflow-y-auto overflow-x-hidden"
+                    style={{ maxHeight }}
                 >
-                    {/* 내부 컨테이너: 테이블 너비를 감싸는 wrapper */}
-                    <div style={{ minWidth }}>
-                        {/* 고정 헤더 영역 */}
-                        <Table className="table-fixed w-full">
-                            <TableHeader className={cn(styles.header, 'bg-gray-50')}>
+                    {/* 테이블 래퍼: transform으로 가로 이동 */}
+                    <div 
+                        style={{ 
+                            transform: `translateX(-${scrollX}px)`,
+                            minWidth,
+                        }}
+                    >
+                        <Table className="table-fixed" style={{ minWidth }}>
+                            {/* 고정 헤더 - sticky로 상단 고정 */}
+                            <TableHeader className={cn(styles.header, 'bg-gray-50 sticky top-0 z-10')}>
                                 <TableRow className="hover:bg-transparent">
                                     {/* 체크박스 헤더 */}
                                     {selectable && (
-                                        <TableHead className={cn('w-12 px-4', styles.headerCell)}>
+                                        <TableHead className={cn('w-12 px-4 bg-gray-50', styles.headerCell)}>
                                             <Checkbox
                                                 checked={allSelected}
                                                 onCheckedChange={(checked) => {
@@ -208,7 +220,7 @@ export function DataTable<T extends object>({
                                     {actions && actions.position === 'start' && (
                                         <TableHead
                                             className={cn(
-                                                'w-20 whitespace-nowrap px-4',
+                                                'w-20 whitespace-nowrap px-4 bg-gray-50',
                                                 styles.headerCell
                                             )}
                                         >
@@ -221,7 +233,7 @@ export function DataTable<T extends object>({
                                         <TableHead
                                             key={column.key}
                                             className={cn(
-                                                'whitespace-nowrap px-4 py-4',
+                                                'whitespace-nowrap px-4 py-4 bg-gray-50',
                                                 styles.headerCell,
                                                 getAlignClass(column.align),
                                                 column.headerClassName
@@ -239,7 +251,7 @@ export function DataTable<T extends object>({
                                     {actions && actions.position !== 'start' && (
                                         <TableHead
                                             className={cn(
-                                                'w-20 whitespace-nowrap px-4',
+                                                'w-20 whitespace-nowrap px-4 bg-gray-50',
                                                 styles.headerCell
                                             )}
                                         >
@@ -248,108 +260,100 @@ export function DataTable<T extends object>({
                                     )}
                                 </TableRow>
                             </TableHeader>
+
+                            {/* 테이블 바디 */}
+                            <TableBody>
+                                {data.map((row, rowIndex) => {
+                                    const key = keyExtractor(row);
+                                    const isSelected = selectable?.selectedKeys.includes(key);
+                                    const isRowSelectable = selectable?.isSelectable
+                                        ? selectable.isSelectable(row)
+                                        : true;
+                                    const customRowClassName = getRowClassName
+                                        ? getRowClassName(row)
+                                        : '';
+
+                                    return (
+                                        <TableRow
+                                            key={key}
+                                            className={cn(
+                                                styles.row,
+                                                styles.rowHover,
+                                                onRowClick && 'cursor-pointer',
+                                                isSelected && 'bg-blue-50/50',
+                                                customRowClassName
+                                            )}
+                                            onClick={() => onRowClick?.(row)}
+                                        >
+                                            {/* 체크박스 셀 */}
+                                            {selectable && (
+                                                <TableCell className="px-4 w-12">
+                                                    <Checkbox
+                                                        checked={isSelected}
+                                                        disabled={!isRowSelectable}
+                                                        onCheckedChange={(checked) => {
+                                                            selectable.onSelect(key, checked as boolean);
+                                                        }}
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        className="border-gray-300"
+                                                        aria-label={`행 ${rowIndex + 1} 선택`}
+                                                    />
+                                                </TableCell>
+                                            )}
+
+                                            {/* 액션 셀 (시작 위치) */}
+                                            {actions && actions.position === 'start' && (
+                                                <TableCell
+                                                    className="px-4 w-20"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                >
+                                                    {actions.render(row)}
+                                                </TableCell>
+                                            )}
+
+                                            {/* 데이터 셀 */}
+                                            {columns.map((column) => {
+                                                const value = getCellValue(row, column.key, column.accessor);
+
+                                                return (
+                                                    <TableCell
+                                                        key={column.key}
+                                                        className={cn(
+                                                            'px-4 py-4',
+                                                            styles.cell,
+                                                            !column.wrap && 'whitespace-nowrap',
+                                                            getAlignClass(column.align),
+                                                            column.className
+                                                        )}
+                                                        style={{
+                                                            minWidth: column.minWidth,
+                                                            width: column.width,
+                                                        }}
+                                                    >
+                                                        {column.render
+                                                            ? column.render(value, row, rowIndex)
+                                                            : (value as React.ReactNode) ?? '-'}
+                                                    </TableCell>
+                                                );
+                                            })}
+
+                                            {/* 액션 셀 (끝 위치) */}
+                                            {actions && actions.position !== 'start' && (
+                                                <TableCell
+                                                    className="px-4 w-20"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                >
+                                                    {actions.render(row)}
+                                                </TableCell>
+                                            )}
+                                        </TableRow>
+                                    );
+                                })}
+                            </TableBody>
                         </Table>
 
-                        {/* 스크롤 가능한 바디 영역 (세로 스크롤만) */}
-                        <div 
-                            ref={bodyScrollRef}
-                            className="overflow-y-auto"
-                            style={{ maxHeight }}
-                        >
-                            <Table className="table-fixed w-full">
-                                <TableBody>
-                                    {data.map((row, rowIndex) => {
-                                        const key = keyExtractor(row);
-                                        const isSelected = selectable?.selectedKeys.includes(key);
-                                        const isRowSelectable = selectable?.isSelectable
-                                            ? selectable.isSelectable(row)
-                                            : true;
-                                        const customRowClassName = getRowClassName
-                                            ? getRowClassName(row)
-                                            : '';
-
-                                        return (
-                                            <TableRow
-                                                key={key}
-                                                className={cn(
-                                                    styles.row,
-                                                    styles.rowHover,
-                                                    onRowClick && 'cursor-pointer',
-                                                    isSelected && 'bg-blue-50/50',
-                                                    customRowClassName
-                                                )}
-                                                onClick={() => onRowClick?.(row)}
-                                            >
-                                                {/* 체크박스 셀 */}
-                                                {selectable && (
-                                                    <TableCell className="px-4 w-12">
-                                                        <Checkbox
-                                                            checked={isSelected}
-                                                            disabled={!isRowSelectable}
-                                                            onCheckedChange={(checked) => {
-                                                                selectable.onSelect(key, checked as boolean);
-                                                            }}
-                                                            onClick={(e) => e.stopPropagation()}
-                                                            className="border-gray-300"
-                                                            aria-label={`행 ${rowIndex + 1} 선택`}
-                                                        />
-                                                    </TableCell>
-                                                )}
-
-                                                {/* 액션 셀 (시작 위치) */}
-                                                {actions && actions.position === 'start' && (
-                                                    <TableCell
-                                                        className="px-4 w-20"
-                                                        onClick={(e) => e.stopPropagation()}
-                                                    >
-                                                        {actions.render(row)}
-                                                    </TableCell>
-                                                )}
-
-                                                {/* 데이터 셀 */}
-                                                {columns.map((column) => {
-                                                    const value = getCellValue(row, column.key, column.accessor);
-
-                                                    return (
-                                                        <TableCell
-                                                            key={column.key}
-                                                            className={cn(
-                                                                'px-4 py-4',
-                                                                styles.cell,
-                                                                !column.wrap && 'whitespace-nowrap',
-                                                                getAlignClass(column.align),
-                                                                column.className
-                                                            )}
-                                                            style={{
-                                                                minWidth: column.minWidth,
-                                                                width: column.width,
-                                                            }}
-                                                        >
-                                                            {column.render
-                                                                ? column.render(value, row, rowIndex)
-                                                                : (value as React.ReactNode) ?? '-'}
-                                                        </TableCell>
-                                                    );
-                                                })}
-
-                                                {/* 액션 셀 (끝 위치) */}
-                                                {actions && actions.position !== 'start' && (
-                                                    <TableCell
-                                                        className="px-4 w-20"
-                                                        onClick={(e) => e.stopPropagation()}
-                                                    >
-                                                        {actions.render(row)}
-                                                    </TableCell>
-                                                )}
-                                            </TableRow>
-                                        );
-                                    })}
-                                </TableBody>
-                            </Table>
-                        </div>
-
                         {/* 무한 스크롤 로딩 영역 */}
-                        {infiniteScroll && (
+                        {infiniteScroll && (infiniteScroll.isFetchingNextPage || infiniteScroll.hasNextPage) && (
                             <div
                                 ref={loadMoreRef}
                                 className="flex items-center justify-center py-4 border-t border-gray-100"
@@ -363,16 +367,21 @@ export function DataTable<T extends object>({
                                     <div className="text-[14px] text-gray-400">
                                         스크롤하여 더 보기
                                     </div>
-                                ) : data.length > 0 ? (
-                                    <div className="text-[14px] text-gray-400">
-                                        {infiniteScroll.totalItems 
-                                            ? `총 ${infiniteScroll.totalItems}건 모두 로드됨`
-                                            : '모든 데이터를 불러왔습니다'}
-                                    </div>
                                 ) : null}
                             </div>
                         )}
                     </div>
+                </div>
+
+                {/* 하단 고정 가짜 가로 스크롤바 */}
+                <div 
+                    ref={fakeScrollbarRef}
+                    className="overflow-x-auto bg-gray-50 border-t border-gray-200"
+                    style={{ height: '17px' }}
+                    onScroll={handleFakeScrollbarScroll}
+                >
+                    {/* 스크롤 영역 확보를 위한 빈 div */}
+                    <div style={{ width: minWidth, height: '1px' }} />
                 </div>
             </div>
         );
@@ -543,8 +552,8 @@ export function DataTable<T extends object>({
                 </Table>
             </div>
 
-            {/* 무한 스크롤 로딩 영역 */}
-            {infiniteScroll && (
+            {/* 무한 스크롤 로딩 영역 - 로딩 중이거나 다음 페이지가 있을 때만 표시 */}
+            {infiniteScroll && (infiniteScroll.isFetchingNextPage || infiniteScroll.hasNextPage) && (
                 <div
                     ref={loadMoreRef}
                     className="flex items-center justify-center py-4 border-t border-gray-100"
@@ -557,12 +566,6 @@ export function DataTable<T extends object>({
                     ) : infiniteScroll.hasNextPage ? (
                         <div className="text-[14px] text-gray-400">
                             스크롤하여 더 보기
-                        </div>
-                    ) : data.length > 0 ? (
-                        <div className="text-[14px] text-gray-400">
-                            {infiniteScroll.totalItems 
-                                ? `총 ${infiniteScroll.totalItems}건 모두 로드됨`
-                                : '모든 데이터를 불러왔습니다'}
                         </div>
                     ) : null}
                 </div>

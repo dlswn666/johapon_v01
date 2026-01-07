@@ -76,46 +76,61 @@ const memberColumns: ColumnDef<PreRegisteredMember>[] = [
     {
         key: 'property_pnu',
         header: '매칭',
+        align: 'center',
+        width: '70px',
         render: (value) =>
             value ? (
-                <CheckCircle className="w-5 h-5 text-emerald-400" />
+                <CheckCircle className="w-5 h-5 text-emerald-400 mx-auto" />
             ) : (
-                <XCircle className="w-5 h-5 text-amber-400" />
+                <XCircle className="w-5 h-5 text-amber-400 mx-auto" />
             ),
     },
     {
         key: 'name',
         header: '소유주명',
         className: 'text-white font-medium',
+        align: 'center',
+        width: '120px',
     },
     {
         key: 'phone_number',
         header: '전화번호',
         className: 'text-slate-300',
+        align: 'center',
+        width: '140px',
         render: (value) => (value as string) || '-',
     },
     {
         key: 'property_address_jibun',
         header: '소유지 지번',
-        className: 'text-slate-300 max-w-xs truncate',
+        className: 'text-slate-300',
+        align: 'center',
+        wrap: true,
+        minWidth: '280px',
         render: (value) => (value as string) || '-',
     },
     {
         key: 'dong_ho',
         header: '동/호수',
         className: 'text-slate-300',
+        align: 'center',
+        width: '100px',
         accessor: (row) => (row.property_dong && row.property_ho ? `${row.property_dong}동 ${row.property_ho}호` : '-'),
     },
     {
         key: 'pnu_display',
         header: 'PNU',
         className: 'text-slate-400 font-mono text-xs',
+        align: 'center',
+        width: '170px',
         accessor: (row) => (row.property_pnu ? row.property_pnu.substring(0, 19) : '-'),
     },
     {
         key: 'created_at',
         header: '등록일',
         className: 'text-slate-400 text-sm',
+        align: 'center',
+        width: '100px',
         render: (value) => new Date(value as string).toLocaleDateString('ko-KR'),
     },
 ];
@@ -1366,7 +1381,7 @@ export default function MemberManagementPage() {
                                         ),
                                         headerText: '작업',
                                     }}
-                                    minWidth="900px"
+                                    minWidth="1100px"
                                 />
 
                                 {/* 무한 스크롤 로딩 표시기 및 감지 요소 */}
