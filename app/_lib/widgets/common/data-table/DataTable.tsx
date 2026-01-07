@@ -142,6 +142,17 @@ export function DataTable<T extends object>({
         }
     };
 
+    // stickyHeader 모드: 가로 스크롤 위치 상태 (훅은 조건부 리턴 이전에 호출해야 함)
+    const [scrollX, setScrollX] = useState(0);
+    const fakeScrollbarRef = useRef<HTMLDivElement>(null);
+
+    // 가짜 스크롤바 스크롤 시 테이블 이동
+    const handleFakeScrollbarScroll = useCallback(() => {
+        if (fakeScrollbarRef.current) {
+            setScrollX(fakeScrollbarRef.current.scrollLeft);
+        }
+    }, []);
+
     // 로딩 상태 렌더링
     if (isLoading) {
         if (renderLoading) {
@@ -168,17 +179,6 @@ export function DataTable<T extends object>({
             </div>
         );
     }
-
-    // stickyHeader 모드: 가로 스크롤 위치 상태
-    const [scrollX, setScrollX] = useState(0);
-    const fakeScrollbarRef = useRef<HTMLDivElement>(null);
-
-    // 가짜 스크롤바 스크롤 시 테이블 이동
-    const handleFakeScrollbarScroll = useCallback(() => {
-        if (fakeScrollbarRef.current) {
-            setScrollX(fakeScrollbarRef.current.scrollLeft);
-        }
-    }, []);
 
     // stickyHeader 모드일 때의 렌더링 (가짜 스크롤바 + transform으로 가로 이동)
     if (stickyHeader && maxHeight) {

@@ -161,6 +161,7 @@ export default function ConsentManagementTab() {
         setFocusedIndex(-1);
 
         try {
+            // 기본 쿼리 설정
             let query = supabase
                 .from('users')
                 .select('id, name, property_pnu, property_address, property_dong, property_ho, property_address_jibun')
@@ -168,17 +169,34 @@ export default function ConsentManagementTab() {
                 .eq('user_status', 'APPROVED')
                 .order('name', { ascending: true });
 
-            // 검색 조건 적용
-            if (searchAddress) {
-                query = query.or(
-                    `property_address.ilike.%${searchAddress}%,property_address_jibun.ilike.%${searchAddress}%,property_pnu.ilike.%${searchAddress}%`
-                );
-            }
+            // 검색 조건 적용 - 각 조건 그룹 간에는 AND 관계
+            // PostgREST 필터 구문: and(조건1, 조건2, ...) 또는 or(조건1, 조건2, ...)
+
+            // 이름 검색: 직접 ilike 적용 (항상 AND)
             if (searchName) {
                 query = query.ilike('name', `%${searchName}%`);
             }
-            if (searchBuilding) {
-                query = query.or(`property_dong.ilike.%${searchBuilding}%,property_ho.ilike.%${searchBuilding}%`);
+
+            // 주소 검색 조건 구성: (주소1 OR 주소2 OR 주소3)
+            const addressOrCondition = searchAddress
+                ? `property_address.ilike.%${searchAddress}%,property_address_jibun.ilike.%${searchAddress}%,property_pnu.ilike.%${searchAddress}%`
+                : '';
+
+            // 건물/동/호 검색 조건 구성: (동 OR 호)
+            const buildingOrCondition = searchBuilding
+                ? `property_dong.ilike.%${searchBuilding}%,property_ho.ilike.%${searchBuilding}%`
+                : '';
+
+            // 주소와 건물 조건을 AND로 결합
+            if (addressOrCondition && buildingOrCondition) {
+                // 둘 다 있는 경우: and(or(주소조건들), or(건물조건들))
+                query = query.or(`and(or(${addressOrCondition}),or(${buildingOrCondition}))`);
+            } else if (addressOrCondition) {
+                // 주소만 있는 경우
+                query = query.or(addressOrCondition);
+            } else if (buildingOrCondition) {
+                // 건물만 있는 경우
+                query = query.or(buildingOrCondition);
             }
 
             const { data: members, error } = await query.limit(50);
@@ -320,24 +338,23 @@ export default function ConsentManagementTab() {
             return;
         }
 
+        // 템플릿 데이터: 건물이름 제거, 동의 상태를 한글로 변경
         const templateData = [
             {
                 '동의 단계': currentStage.stage_name,
                 이름: '홍길동',
                 '소유지 지번': '서울시 강남구 역삼동 123-45',
-                건물이름: '역삼빌딩',
                 동: '101',
                 호수: '1001',
-                '동의 상태': 'AGREED',
+                '동의 상태': '동의',
             },
             {
                 '동의 단계': currentStage.stage_name,
                 이름: '김철수',
                 '소유지 지번': '서울시 강남구 역삼동 123-46',
-                건물이름: '역삼빌딩',
-                동: '102',
-                호수: '2001',
-                '동의 상태': 'DISAGREED',
+                동: 'B1',
+                호수: '101',
+                '동의 상태': '비동의',
             },
         ];
 
@@ -345,12 +362,11 @@ export default function ConsentManagementTab() {
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, '동의 현황');
 
-        // 컬럼 너비 설정
+        // 컬럼 너비 설정 (건물이름 제거)
         worksheet['!cols'] = [
             { wch: 20 }, // 동의 단계
             { wch: 15 }, // 이름
             { wch: 40 }, // 소유지 지번
-            { wch: 15 }, // 건물이름
             { wch: 10 }, // 동
             { wch: 10 }, // 호수
             { wch: 15 }, // 동의 상태
@@ -364,13 +380,35 @@ export default function ConsentManagementTab() {
             },
             { 항목: '이름', 설명: '조합원 이름을 입력합니다.' },
             { 항목: '소유지 지번', 설명: '물건지의 지번 주소를 입력합니다.' },
-            { 항목: '건물이름', 설명: '건물 이름을 입력합니다. (선택사항)' },
-            { 항목: '동', 설명: '동 번호를 입력합니다. (선택사항)' },
-            { 항목: '호수', 설명: '호수를 입력합니다. (선택사항)' },
-            { 항목: '동의 상태', 설명: 'AGREED(동의) 또는 DISAGREED(비동의)를 입력합니다.' },
+            {
+                항목: '동',
+                설명: '동 번호를 입력합니다. (선택사항)\n' +
+                    '【입력 예시】\n' +
+                    '• 일반층: 101, 102, 103동 등\n' +
+                    '• 지하층: B1, B2 또는 -1, -2 등\n' +
+                    '• 복합형: 101-1, 102-A 등\n' +
+                    '• 단일 건물: 비워두거나 본관, A동 등',
+            },
+            {
+                항목: '호수',
+                설명: '호수를 입력합니다. (선택사항)\n' +
+                    '【입력 예시】\n' +
+                    '• 일반호수: 101, 201, 1001 등\n' +
+                    '• 지하층: B1-101, B101 등\n' +
+                    '• 복합형: 101-1, 101A 등\n' +
+                    '• 옥탑: R1, 옥탑 등',
+            },
+            {
+                항목: '동의 상태',
+                설명: '동의 또는 비동의를 입력합니다.\n' +
+                    '【허용 값】\n' +
+                    '• 동의: "동의" 또는 "AGREED"\n' +
+                    '• 비동의: "비동의" 또는 "DISAGREED"',
+            },
         ];
         const guideSheet = XLSX.utils.json_to_sheet(guideData);
-        guideSheet['!cols'] = [{ wch: 15 }, { wch: 60 }];
+        // 상세 안내를 위해 설명 컬럼 너비 확대
+        guideSheet['!cols'] = [{ wch: 15 }, { wch: 80 }];
         XLSX.utils.book_append_sheet(workbook, guideSheet, '입력 안내');
 
         XLSX.writeFile(workbook, `동의현황_템플릿_${currentStage.stage_name}.xlsx`);
@@ -401,21 +439,37 @@ export default function ConsentManagementTab() {
                     return;
                 }
 
-                // 데이터 파싱 및 검증
+                // 동의 상태 파싱 헬퍼 함수: 한글/영문 모두 지원
+                const parseConsentStatus = (statusStr: string): 'AGREED' | 'DISAGREED' | null => {
+                    const normalizedStatus = statusStr?.toString().trim().toUpperCase();
+                    // 동의: "동의", "AGREED" 허용
+                    if (normalizedStatus === 'AGREED' || normalizedStatus === '동의') {
+                        return 'AGREED';
+                    }
+                    // 비동의: "비동의", "DISAGREED" 허용
+                    if (normalizedStatus === 'DISAGREED' || normalizedStatus === '비동의') {
+                        return 'DISAGREED';
+                    }
+                    return null;
+                };
+
+                // 데이터 파싱 및 검증 (건물이름 컬럼 제거됨)
                 const consentData = jsonData
-                    .map((row, index) => ({
-                        rowNumber: index + 2,
-                        name: row['이름']?.toString().trim() || '',
-                        address: row['소유지 지번']?.toString().trim() || '',
-                        buildingName: row['건물이름']?.toString().trim() || '',
-                        dong: row['동']?.toString().trim() || '',
-                        ho: row['호수']?.toString().trim() || '',
-                        status: row['동의 상태']?.toString().trim().toUpperCase() || '',
-                    }))
+                    .map((row, index) => {
+                        const parsedStatus = parseConsentStatus(row['동의 상태'] || '');
+                        return {
+                            rowNumber: index + 2,
+                            name: row['이름']?.toString().trim() || '',
+                            address: row['소유지 지번']?.toString().trim() || '',
+                            dong: row['동']?.toString().trim() || '',
+                            ho: row['호수']?.toString().trim() || '',
+                            status: parsedStatus || '',
+                        };
+                    })
                     .filter((row) => row.name && (row.status === 'AGREED' || row.status === 'DISAGREED'));
 
                 if (consentData.length === 0) {
-                    toast.error('유효한 데이터가 없습니다. 이름과 동의 상태(AGREED/DISAGREED)를 확인해주세요.');
+                    toast.error('유효한 데이터가 없습니다. 이름과 동의 상태(동의/비동의)를 확인해주세요.');
                     return;
                 }
 

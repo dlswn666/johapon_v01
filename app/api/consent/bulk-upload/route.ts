@@ -16,10 +16,20 @@ interface ConsentUploadRow {
     rowNumber: number;
     name: string;
     address: string;
-    buildingName: string;
-    dong: string;
-    ho: string;
+    dong?: string;
+    ho?: string;
     status: string;
+}
+
+// 동의 상태 파싱 헬퍼 함수: 한글/영문 모두 지원
+function parseConsentStatus(statusStr: string): 'AGREED' | 'DISAGREED' {
+    const normalizedStatus = statusStr?.toString().trim().toUpperCase();
+    // 동의: "동의", "AGREED" 허용
+    if (normalizedStatus === 'AGREED' || normalizedStatus === '동의') {
+        return 'AGREED';
+    }
+    // 비동의: "비동의", "DISAGREED" 허용 (기본값)
+    return 'DISAGREED';
 }
 
 export async function POST(request: NextRequest) {
@@ -153,7 +163,8 @@ async function processConsentUploadSync(
             }
 
             const memberId = members[0].id;
-            const status = row.status.toUpperCase() === 'AGREED' ? 'AGREED' : 'DISAGREED';
+            // 한글/영문 동의 상태 파싱
+            const status = parseConsentStatus(row.status);
 
             // 동의 상태 upsert
             const { error: upsertError } = await supabase
@@ -223,7 +234,8 @@ async function processConsentUpload(
             }
 
             const memberId = members[0].id;
-            const status = row.status.toUpperCase() === 'AGREED' ? 'AGREED' : 'DISAGREED';
+            // 한글/영문 동의 상태 파싱
+            const status = parseConsentStatus(row.status);
 
             const { error: upsertError } = await supabase
                 .from('user_consents')
