@@ -128,14 +128,15 @@ export function DataTable<T extends object>({
         }
     };
 
-    // stickyHeader 모드: 가로 스크롤 위치 상태 (훅은 조건부 리턴 이전에 호출해야 함)
-    const [scrollX, setScrollX] = useState(0);
+    // stickyHeader 모드: 가로 스크롤 동기화 (Ref 사용으로 리렌더링 방지)
     const fakeScrollbarRef = useRef<HTMLDivElement>(null);
+    const tableWrapperRef = useRef<HTMLDivElement>(null);
 
-    // 가짜 스크롤바 스크롤 시 테이블 이동
+    // 가짜 스크롤바 스크롤 시 테이블 이동 (Direct DOM Manipulation)
     const handleFakeScrollbarScroll = useCallback(() => {
-        if (fakeScrollbarRef.current) {
-            setScrollX(fakeScrollbarRef.current.scrollLeft);
+        if (fakeScrollbarRef.current && tableWrapperRef.current) {
+            const scrollLeft = fakeScrollbarRef.current.scrollLeft;
+            tableWrapperRef.current.style.left = `-${scrollLeft}px`;
         }
     }, []);
 
@@ -166,17 +167,19 @@ export function DataTable<T extends object>({
         );
     }
 
-    // stickyHeader 모드일 때의 렌더링 (가짜 스크롤바 + transform으로 가로 이동)
+    // stickyHeader 모드일 때의 렌더링 (가짜 스크롤바 + relative positioning으로 가로 이동)
     if (stickyHeader && maxHeight) {
         return (
             <div className={cn('relative', className)}>
                 {/* 메인 스크롤 컨테이너: 세로 스크롤만, 가로 스크롤은 숨김 */}
                 <div className="overflow-y-auto overflow-x-hidden" style={{ maxHeight }}>
-                    {/* 테이블 래퍼: transform으로 가로 이동 */}
+                    {/* 테이블 래퍼: relative positioning으로 가로 이동 */}
                     <div
+                        ref={tableWrapperRef}
+                        className="relative [&_[data-slot=table-container]]:!overflow-visible"
                         style={{
-                            transform: `translateX(-${scrollX}px)`,
                             minWidth,
+                            // left는 스크롤 이벤트에서 제어됨
                         }}
                     >
                         <Table className="table-fixed" style={{ minWidth }}>
@@ -185,7 +188,7 @@ export function DataTable<T extends object>({
                                 <TableRow className="hover:bg-transparent">
                                     {/* 체크박스 헤더 */}
                                     {selectable && (
-                                        <TableHead className={cn('w-12 px-4 bg-gray-50', styles.headerCell)}>
+                                        <TableHead className={cn('w-12 px-4 bg-gray-50 sticky top-0 z-10', styles.headerCell)}>
                                             <Checkbox
                                                 checked={allSelected}
                                                 onCheckedChange={(checked) => {
@@ -202,7 +205,7 @@ export function DataTable<T extends object>({
                                     {/* 액션 헤더 (시작 위치) */}
                                     {actions && actions.position === 'start' && (
                                         <TableHead
-                                            className={cn('w-20 whitespace-nowrap px-4 bg-gray-50', styles.headerCell)}
+                                            className={cn('w-20 whitespace-nowrap px-4 bg-gray-50 sticky top-0 z-10', styles.headerCell)}
                                         >
                                             {actions.headerText || '관리'}
                                         </TableHead>
@@ -213,7 +216,7 @@ export function DataTable<T extends object>({
                                         <TableHead
                                             key={column.key}
                                             className={cn(
-                                                'whitespace-nowrap px-4 py-4 bg-gray-50',
+                                                'whitespace-nowrap px-4 py-4 bg-gray-50 sticky top-0 z-10',
                                                 styles.headerCell,
                                                 getAlignClass(column.align),
                                                 column.headerClassName
@@ -230,7 +233,7 @@ export function DataTable<T extends object>({
                                     {/* 액션 헤더 (끝 위치) */}
                                     {actions && actions.position !== 'start' && (
                                         <TableHead
-                                            className={cn('w-20 whitespace-nowrap px-4 bg-gray-50', styles.headerCell)}
+                                            className={cn('w-20 whitespace-nowrap px-4 bg-gray-50 sticky top-0 z-10', styles.headerCell)}
                                         >
                                             {actions.headerText || '관리'}
                                         </TableHead>
