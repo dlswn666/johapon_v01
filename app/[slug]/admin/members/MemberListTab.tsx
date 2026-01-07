@@ -14,6 +14,13 @@ import MemberEditModal from './MemberEditModal';
 import BlockMemberModal from './BlockMemberModal';
 import { DataTable, ColumnDef } from '@/app/_lib/widgets/common/data-table';
 
+// 이름 말줄임 처리 함수 (8자 초과 시 ...)
+const truncateName = (name: string | null | undefined, maxLength: number = 8): string => {
+    if (!name) return '-';
+    if (name.length <= maxLength) return name;
+    return `${name.slice(0, maxLength)}...`;
+};
+
 // 면적 포맷 함수 (㎡)
 const formatArea = (area: number | null | undefined): string => {
     if (area === null || area === undefined) return '-';
@@ -61,7 +68,7 @@ export default function MemberListTab() {
 
     // Store 상태
     const { filter, setFilter } = useMemberStore();
-    const pageSize = 100; // 무한 스크롤 최적화: 100개씩 조회
+    const pageSize = 50; // 무한 스크롤: 50개씩 조회
 
     // 로컬 상태
     const [searchInput, setSearchInput] = useState(filter.searchQuery);
@@ -69,7 +76,7 @@ export default function MemberListTab() {
     const [showEditModal, setShowEditModal] = useState(false);
     const [showBlockModal, setShowBlockModal] = useState(false);
 
-    // API 호출 (무한 스크롤)
+    // API 호출 (무한 스크롤) - DB에서 그룹핑/정렬 완료된 데이터 반환
     const {
         data,
         isLoading,
@@ -84,87 +91,12 @@ export default function MemberListTab() {
         pageSize,
     });
 
-    // 페이지 데이터 평탄화
-    const rawMembers = useMemo(() => {
+    // 페이지 데이터 평탄화 (DB에서 이미 그룹핑/정렬 완료됨)
+    const members = useMemo(() => {
         return data?.pages.flatMap((page) => page.members) || [];
     }, [data?.pages]);
 
-    // 동일인 그룹핑 (이름 + 핸드폰번호 OR 이름 + 거주지가 동일한 경우) + 정렬
-    const members = useMemo(() => {
-        if (rawMembers.length === 0) return [];
-
-        // 그룹핑 키 생성 함수
-        const getGroupKey = (member: MemberWithLandInfo): string => {
-            const name = member.name?.trim() || '';
-            const phone = member.phone_number?.replace(/[^0-9]/g, '') || '';
-            const resident = member.resident_address?.trim() || '';
-
-            // 핸드폰번호가 있으면 이름+핸드폰으로 그룹핑
-            if (phone) {
-                return `name_phone:${name}:${phone}`;
-            } else {
-                // 핸드폰이 없으면 이름+거주지로 그룹핑 (거주지가 없어도 빈 문자열로 처리)
-                return `name_resident:${name}:${resident}`;
-            }
-        };
-
-        // 그룹별로 멤버 수집
-        const groupMap = new Map<string, MemberWithLandInfo[]>();
-        rawMembers.forEach((member) => {
-            const key = getGroupKey(member);
-            if (!groupMap.has(key)) {
-                groupMap.set(key, []);
-            }
-            groupMap.get(key)!.push(member);
-        });
-
-        // 그룹핑된 멤버 생성 (대표 멤버만 반환, 추가 물건지 개수 포함)
-        const groupedMembers: MemberWithLandInfo[] = [];
-        groupMap.forEach((groupMembers) => {
-            // 첫 번째 멤버를 대표로 선택
-            const representative = { ...groupMembers[0] };
-            
-            // 그룹 내 모든 사용자의 물건지를 합침
-            const allPropertyUnits = groupMembers.flatMap((m) => {
-                // 해당 사용자의 물건지 목록 + 해당 사용자의 property_address_jibun을 물건지로 추가
-                const units = m.property_units || [];
-                return units;
-            });
-
-            // 그룹 내 모든 사용자 ID 수집
-            const allUserIds = groupMembers.map((m) => m.id);
-            
-            // 총 물건지 개수 (각 사용자당 최소 1개로 계산)
-            const totalPropertyCount = groupMembers.length;
-
-            representative.grouped_user_ids = allUserIds;
-            representative.total_property_count = totalPropertyCount;
-            representative.property_units = allPropertyUnits;
-
-            groupedMembers.push(representative);
-        });
-
-        // 정렬: 1) 물건지 개수 오름차순 (단일 물건지 우선), 2) 이름순
-        groupedMembers.sort((a, b) => {
-            const aPropertyCount = a.total_property_count || 1;
-            const bPropertyCount = b.total_property_count || 1;
-            
-            // 1차 정렬: 물건지 개수 오름차순 (단일 물건지가 먼저)
-            if (aPropertyCount !== bPropertyCount) {
-                return aPropertyCount - bPropertyCount;
-            }
-            
-            // 2차 정렬: 이름순 (한글 정렬)
-            const aName = a.name?.trim() || '';
-            const bName = b.name?.trim() || '';
-            return aName.localeCompare(bName, 'ko');
-        });
-
-        return groupedMembers;
-    }, [rawMembers]);
-
     const totalCount = data?.pages[0]?.total || 0;
-    const groupedCount = members.length;
 
     // 접속 로그 기록
     const { mutate: logAccessEvent } = useLogAccessEvent();
@@ -194,10 +126,15 @@ export default function MemberListTab() {
             {
                 key: 'name',
                 header: '이름',
-                width: '100px',
+                width: '120px',
                 render: (_, row) => (
                     <div className="flex items-center gap-2">
-                        <span className="text-[14px] font-medium text-gray-900 whitespace-nowrap">{row.name}</span>
+                        <span 
+                            className="text-[14px] font-medium text-gray-900 whitespace-nowrap max-w-[80px] overflow-hidden text-ellipsis inline-block"
+                            title={row.name || ''}
+                        >
+                            {truncateName(row.name, 8)}
+                        </span>
                         {!row.isPnuMatched && row.property_pnu && (
                             <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 whitespace-nowrap">
                                 <AlertTriangle className="w-3 h-3 mr-1" />
@@ -437,14 +374,7 @@ export default function MemberListTab() {
                         </div>
                         <div>
                             <h2 className="text-lg font-semibold text-gray-900">조합원 목록</h2>
-                            <p className="text-sm text-gray-600">
-                                총 {totalCount}명 
-                                {groupedCount !== rawMembers.length && groupedCount > 0 && (
-                                    <span className="text-gray-400 ml-1">
-                                        (동일인 그룹핑: {groupedCount}명)
-                                    </span>
-                                )}
-                            </p>
+                            <p className="text-sm text-gray-600">총 {totalCount}명</p>
                         </div>
                     </div>
                 </div>

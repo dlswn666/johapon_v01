@@ -230,12 +230,61 @@ interface InfiniteMembersResponse {
     nextPage: number | undefined;
 }
 
-// 승인된 조합원 목록 조회 (무한 스크롤)
+// DB 함수 반환 타입 (get_grouped_members) - User 타입의 모든 필드 포함
+interface GroupedMemberRow {
+    id: string;
+    name: string;
+    email: string | null;
+    phone_number: string | null;
+    role: string;
+    created_at: string;
+    union_id: string;
+    user_status: string;
+    birth_date: string | null;
+    property_address: string | null;
+    property_address_detail: string | null;
+    property_address_road: string | null;
+    property_address_jibun: string | null;
+    property_zonecode: string | null;
+    property_pnu: string | null;
+    property_type: string | null;
+    property_dong: string | null;
+    property_ho: string | null;
+    resident_address: string | null;
+    resident_address_detail: string | null;
+    resident_address_road: string | null;
+    resident_address_jibun: string | null;
+    resident_zonecode: string | null;
+    notes: string | null;
+    is_blocked: boolean | null;
+    blocked_at: string | null;
+    blocked_reason: string | null;
+    land_area: number | null;
+    land_ownership_ratio: number | null;
+    building_area: number | null;
+    building_ownership_ratio: number | null;
+    updated_at: string | null;
+    // User 타입에 있지만 DB 함수에서 반환하지 않는 필드들 (null로 처리)
+    rejected_reason?: string | null;
+    approved_at?: string | null;
+    rejected_at?: string | null;
+    executive_title?: string | null;
+    is_executive?: boolean | null;
+    executive_sort_order?: number | null;
+    property_unit_id?: string | null;
+    // 그룹핑 관련 필드
+    group_key: string;
+    grouped_user_ids: string[];
+    total_property_count: number;
+    total_count: number;
+}
+
+// 승인된 조합원 목록 조회 (무한 스크롤) - DB 함수로 그룹핑/정렬 처리
 export function useApprovedMembersInfinite({
     unionId,
     searchQuery = '',
     blockedFilter = 'all',
-    pageSize = 20,
+    pageSize = 50, // 50개씩 조회로 변경
 }: UseApprovedMembersInfiniteParams) {
     const { setMembers, setTotalCount } = useMemberStore();
 
@@ -246,38 +295,21 @@ export function useApprovedMembersInfinite({
 
             const page = pageParam as number;
 
-            // 1. 먼저 사용자 목록 조회 (지번 오름차순 정렬)
-            let query = supabase
-                .from('users')
-                .select('*', { count: 'exact' })
-                .eq('union_id', unionId)
-                .in('user_status', ['PRE_REGISTERED', 'APPROVED'])
-                .order('property_address_jibun', { ascending: true, nullsFirst: false });
-
-            // 차단 필터 적용
-            if (blockedFilter === 'normal') {
-                query = query.eq('is_blocked', false);
-            } else if (blockedFilter === 'blocked') {
-                query = query.eq('is_blocked', true);
-            }
-
-            // 검색 필터 적용 (이름 또는 물건지 주소)
-            if (searchQuery) {
-                query = query.or(
-                    `name.ilike.%${searchQuery}%,property_address_road.ilike.%${searchQuery}%,property_address_jibun.ilike.%${searchQuery}%`
-                );
-            }
-
-            // 페이지네이션
-            const from = (page - 1) * pageSize;
-            const to = from + pageSize - 1;
-            query = query.range(from, to);
-
-            const { data: users, error, count } = await query;
+            // 1. DB 함수로 그룹핑된 조합원 목록 조회 (단일 RPC 호출)
+            const { data: groupedMembers, error } = await supabase.rpc('get_grouped_members', {
+                p_union_id: unionId,
+                p_search_query: searchQuery,
+                p_blocked_filter: blockedFilter,
+                p_page: page,
+                p_page_size: pageSize,
+            });
 
             if (error) throw error;
 
-            // 2. union_land_lots에서 해당 조합의 PNU 목록 조회
+            const members = (groupedMembers as GroupedMemberRow[]) || [];
+            const totalCount = members.length > 0 ? members[0].total_count : 0;
+
+            // 2. union_land_lots에서 PNU 목록 조회 (PNU 매칭 확인용)
             const { data: unionLandLots } = await supabase
                 .from('union_land_lots')
                 .select('pnu')
@@ -285,8 +317,8 @@ export function useApprovedMembersInfinite({
 
             const unionPnuSet = new Set(unionLandLots?.map((l) => l.pnu) || []);
 
-            // 3. 사용자 PNU로 land_lots 정보 조회 (기존 호환성)
-            const pnuList = users?.map((u) => u.property_pnu).filter(Boolean) as string[];
+            // 3. 대표 사용자들의 land_lots 정보 조회
+            const pnuList = members.map((u) => u.property_pnu).filter(Boolean) as string[];
             let landLotsMap: Record<string, { area: number | null; official_price: number | null }> = {};
 
             if (pnuList.length > 0) {
@@ -306,8 +338,8 @@ export function useApprovedMembersInfinite({
                 }
             }
 
-            // 4. user_property_units에서 사용자별 물건지 정보 조회
-            const userIds = users?.map((u) => u.id) || [];
+            // 4. 대표 사용자들의 property_units 정보 조회
+            const userIds = members.map((u) => u.id);
             const propertyUnitsMap: Record<string, MemberPropertyUnitInfo[]> = {};
 
             if (userIds.length > 0) {
@@ -349,7 +381,6 @@ export function useApprovedMembersInfinite({
                             propertyUnitsMap[userId] = [];
                         }
 
-                        // 타입 안전하게 처리
                         const buildingUnit = pu.building_units as unknown as {
                             dong: string | null;
                             ho: string | null;
@@ -358,7 +389,7 @@ export function useApprovedMembersInfinite({
                             buildings: {
                                 building_name: string | null;
                                 pnu: string;
-                                land_lots: { 
+                                land_lots: {
                                     address: string;
                                     area: number | null;
                                     official_price: number | null;
@@ -366,7 +397,6 @@ export function useApprovedMembersInfinite({
                             };
                         };
 
-                        // land_lots에서 면적/공시지가 우선 사용 (building_units에 데이터가 없음)
                         const landLotArea = buildingUnit?.buildings?.land_lots?.area;
                         const landLotPrice = buildingUnit?.buildings?.land_lots?.official_price;
 
@@ -389,21 +419,23 @@ export function useApprovedMembersInfinite({
                 }
             }
 
-            // 5. 조합원 정보와 필지/물건지 정보 결합
-            const membersWithLandInfo: MemberWithLandInfo[] = (users || []).map((user) => ({
-                ...user,
-                land_lot: user.property_pnu ? landLotsMap[user.property_pnu] || null : null,
-                isPnuMatched: user.property_pnu ? unionPnuSet.has(user.property_pnu) : false,
-                property_units: propertyUnitsMap[user.id] || [],
-            }));
+            // 5. MemberWithLandInfo 형태로 변환 (그룹핑 정보 포함)
+            const membersWithLandInfo = members.map((member) => ({
+                ...member,
+                land_lot: member.property_pnu ? landLotsMap[member.property_pnu] || null : null,
+                isPnuMatched: member.property_pnu ? unionPnuSet.has(member.property_pnu) : false,
+                property_units: propertyUnitsMap[member.id] || [],
+                // 그룹핑 정보는 DB에서 이미 처리됨
+                grouped_user_ids: member.grouped_user_ids,
+                total_property_count: member.total_property_count,
+            })) as unknown as MemberWithLandInfo[];
 
             // Store 업데이트는 첫 페이지에서만
             if (page === 1) {
-                setMembers(users || []);
-                setTotalCount(count || 0);
+                setMembers(members as unknown as User[]);
+                setTotalCount(totalCount);
             }
 
-            const totalCount = count || 0;
             const totalPages = Math.ceil(totalCount / pageSize);
             const hasNextPage = page < totalPages;
 
