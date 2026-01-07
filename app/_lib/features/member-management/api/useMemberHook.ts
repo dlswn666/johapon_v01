@@ -26,6 +26,9 @@ export interface MemberWithLandInfo extends User {
     building_area?: number | null;
     land_ownership_ratio?: number | null;
     building_ownership_ratio?: number | null;
+    // 공동소유자 합계 필드 (DB 함수에서 계산)
+    total_land_area?: number | null;
+    total_building_area?: number | null;
 }
 
 // 새로운 타입 재export
@@ -275,6 +278,9 @@ interface GroupedMemberRow {
     grouped_user_ids: string[];
     total_property_count: number;
     total_count: number;
+    // 공동소유자 합계 필드
+    total_land_area: number | null;
+    total_building_area: number | null;
 }
 
 // 승인된 조합원 목록 조회 (무한 스크롤) - DB 함수로 그룹핑/정렬 처리
@@ -424,6 +430,9 @@ export function useApprovedMembersInfinite({
                 // 그룹핑 정보는 DB에서 이미 처리됨
                 grouped_user_ids: member.grouped_user_ids,
                 total_property_count: member.total_property_count,
+                // 공동소유자 합계 필드 (DB에서 계산됨)
+                total_land_area: member.total_land_area,
+                total_building_area: member.total_building_area,
             })) as unknown as MemberWithLandInfo[];
 
             // Store 업데이트는 첫 페이지에서만

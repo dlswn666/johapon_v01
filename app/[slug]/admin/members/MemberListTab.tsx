@@ -114,15 +114,18 @@ export default function MemberListTab() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [unionId, user?.id, user?.name, filter.searchQuery, filter.blockedFilter]);
 
-    // 테이블 컬럼 정의
+    // 테이블 컬럼 정의 (순서: 번호, 이름, 소유유형, 물건지, 토지면적, 토지소유면적, 토지지분율, 건축면적, 건축소유면적, 건축지분율, 공시지가, 특이사항)
     const memberColumns: ColumnDef<MemberWithLandInfo>[] = useMemo(
         () => [
+            // 1. 번호
             {
                 key: 'rowNumber',
                 header: '번호',
                 width: '50px',
+                align: 'center',
                 render: (_, __, index) => index + 1,
             },
+            // 2. 이름
             {
                 key: 'name',
                 header: '이름',
@@ -150,78 +153,12 @@ export default function MemberListTab() {
                     </div>
                 ),
             },
-            {
-                key: 'property_address',
-                header: '물건지',
-                className: 'text-gray-600',
-                render: (_, row) => {
-                    const propertyAddress = row.property_address_jibun || row.property_address || '-';
-                    const totalCount = row.total_property_count || 1;
-                    const hasMultipleProperties = totalCount > 1;
-
-                    return (
-                        <div className="flex items-center gap-2">
-                            <span className="whitespace-nowrap">{propertyAddress}</span>
-                            {hasMultipleProperties && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700 whitespace-nowrap">
-                                    <Home className="w-3 h-3 mr-1" />
-                                    +{totalCount - 1}건
-                                </span>
-                            )}
-                        </div>
-                    );
-                },
-            },
-            {
-                key: 'land_area',
-                header: '토지소유면적',
-                align: 'right',
-                width: '110px',
-                render: (_, row) => {
-                    // users.land_area 우선, 없으면 land_lot.area 사용
-                    const area = row.land_area ?? row.land_lot?.area;
-                    return formatArea(area);
-                },
-            },
-            {
-                key: 'building_area',
-                header: '건물소유면적',
-                align: 'right',
-                width: '110px',
-                render: (_, row) => {
-                    return formatArea(row.building_area);
-                },
-            },
-            {
-                key: 'official_price',
-                header: '공시지가',
-                align: 'right',
-                width: '150px',
-                render: (_, row) => {
-                    // users.land_area 우선, 없으면 land_lot.area 사용
-                    const landArea = row.land_area ?? row.land_lot?.area;
-                    const unitPrice = row.land_lot?.official_price;
-                    
-                    const unitPriceStr = formatUnitPrice(unitPrice);
-                    const totalPriceStr = formatTotalPrice(landArea, unitPrice);
-                    
-                    if (unitPrice === null || unitPrice === undefined) {
-                        return <span className="text-gray-400">-</span>;
-                    }
-                    
-                    return (
-                        <div className="flex flex-col items-end">
-                            <span className="text-[13px] text-gray-900">{unitPriceStr}</span>
-                            <span className="text-[12px] text-gray-500">(총 {totalPriceStr})</span>
-                        </div>
-                    );
-                },
-            },
+            // 3. 소유유형
             {
                 key: 'ownership_type',
                 header: '소유유형',
                 align: 'center',
-                width: '90px',
+                width: '80px',
                 render: (_, row) => {
                     // 대표 물건지의 소유유형 표시
                     const primaryUnit = row.property_units?.find((pu) => pu.is_primary);
@@ -241,29 +178,129 @@ export default function MemberListTab() {
                     );
                 },
             },
+            // 4. 물건지
+            {
+                key: 'property_address',
+                header: '물건지',
+                width: '220px',
+                className: 'text-gray-600',
+                render: (_, row) => {
+                    const propertyAddress = row.property_address_jibun || row.property_address || '-';
+                    const totalCount = row.total_property_count || 1;
+                    const hasMultipleProperties = totalCount > 1;
+
+                    return (
+                        <div className="flex items-center gap-2">
+                            <span className="whitespace-nowrap overflow-hidden text-ellipsis max-w-[180px]" title={propertyAddress}>
+                                {propertyAddress}
+                            </span>
+                            {hasMultipleProperties && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700 whitespace-nowrap">
+                                    <Home className="w-3 h-3 mr-1" />
+                                    +{totalCount - 1}건
+                                </span>
+                            )}
+                        </div>
+                    );
+                },
+            },
+            // 5. 토지면적 (공동소유자 합계)
+            {
+                key: 'total_land_area',
+                header: '토지면적',
+                align: 'right',
+                width: '90px',
+                render: (_, row) => {
+                    return formatArea(row.total_land_area);
+                },
+            },
+            // 6. 토지소유면적
+            {
+                key: 'land_area',
+                header: '토지소유면적',
+                align: 'right',
+                width: '100px',
+                render: (_, row) => {
+                    return formatArea(row.land_area);
+                },
+            },
+            // 7. 토지지분율
             {
                 key: 'land_ownership_ratio',
                 header: '토지지분율',
                 align: 'right',
-                width: '90px',
+                width: '80px',
                 render: (_, row) => {
                     return formatRatio(row.land_ownership_ratio);
                 },
             },
+            // 8. 건축면적 (공동소유자 합계)
             {
-                key: 'building_ownership_ratio',
-                header: '건물지분율',
+                key: 'total_building_area',
+                header: '건축면적',
                 align: 'right',
                 width: '90px',
+                render: (_, row) => {
+                    return formatArea(row.total_building_area);
+                },
+            },
+            // 9. 건축소유면적
+            {
+                key: 'building_area',
+                header: '건축소유면적',
+                align: 'right',
+                width: '100px',
+                render: (_, row) => {
+                    return formatArea(row.building_area);
+                },
+            },
+            // 10. 건축지분율
+            {
+                key: 'building_ownership_ratio',
+                header: '건축지분율',
+                align: 'right',
+                width: '80px',
                 render: (_, row) => {
                     return formatRatio(row.building_ownership_ratio);
                 },
             },
+            // 11. 공시지가 (전체 토지면적 기준으로 계산)
+            {
+                key: 'official_price',
+                header: '공시지가',
+                align: 'right',
+                width: '140px',
+                render: (_, row) => {
+                    // 전체 토지면적 (land_lot.area) 기준으로 총액 계산
+                    const totalLandArea = row.land_lot?.area;
+                    const unitPrice = row.land_lot?.official_price;
+                    
+                    const unitPriceStr = formatUnitPrice(unitPrice);
+                    const totalPriceStr = formatTotalPrice(totalLandArea, unitPrice);
+                    
+                    if (unitPrice === null || unitPrice === undefined) {
+                        return <span className="text-gray-400">-</span>;
+                    }
+                    
+                    return (
+                        <div className="flex flex-col items-end">
+                            <span className="text-[13px] text-gray-900">{unitPriceStr}</span>
+                            <span className="text-[12px] text-gray-500">(총 {totalPriceStr})</span>
+                        </div>
+                    );
+                },
+            },
+            // 12. 특이사항
             {
                 key: 'notes',
                 header: '특이사항',
+                width: '100px',
                 className: 'text-gray-600',
-                render: (value) => <span className="whitespace-nowrap">{(value as string) || '-'}</span>,
+                render: (value) => (
+                    <span className="whitespace-nowrap overflow-hidden text-ellipsis max-w-[100px] inline-block" title={(value as string) || ''}>
+                        {(value as string) || '-'}
+                    </span>
+                ),
             },
         ],
         []
@@ -395,7 +432,7 @@ export default function MemberListTab() {
                         fetchNextPage,
                         totalItems: totalCount,
                     }}
-                    minWidth="1200px"
+                    minWidth="1350px"
                     maxHeight="600px"
                     stickyHeader={true}
                 />
