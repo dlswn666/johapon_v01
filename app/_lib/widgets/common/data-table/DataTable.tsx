@@ -1,14 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useCallback, useState } from 'react';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Inbox, Loader2 } from 'lucide-react';
@@ -48,20 +41,20 @@ const variantStyles: Record<TableVariant, TableStyles> = {
 
 /**
  * 공통 DataTable 컴포넌트
- * 
+ *
  * @template T - 데이터 행의 타입
  * @example
  * ```tsx
  * const columns: ColumnDef<User>[] = [
  *   { key: 'name', header: '이름' },
  *   { key: 'email', header: '이메일', minWidth: '200px' },
- *   { 
- *     key: 'status', 
+ *   {
+ *     key: 'status',
  *     header: '상태',
  *     render: (value) => <Badge>{value}</Badge>
  *   },
  * ];
- * 
+ *
  * <DataTable
  *   data={users}
  *   columns={columns}
@@ -107,20 +100,13 @@ export function DataTable<T extends object>({
     }, [inView, infiniteScroll]);
 
     // 전체 선택 상태 계산
-    const selectableRows = selectable?.isSelectable
-        ? data.filter((row) => selectable.isSelectable!(row))
-        : data;
+    const selectableRows = selectable?.isSelectable ? data.filter((row) => selectable.isSelectable!(row)) : data;
     const allSelected =
         selectable &&
         selectableRows.length > 0 &&
-        selectableRows.every((row) =>
-            selectable.selectedKeys.includes(keyExtractor(row))
-        );
+        selectableRows.every((row) => selectable.selectedKeys.includes(keyExtractor(row)));
     const _someSelected =
-        selectable &&
-        selectableRows.some((row) =>
-            selectable.selectedKeys.includes(keyExtractor(row))
-        );
+        selectable && selectableRows.some((row) => selectable.selectedKeys.includes(keyExtractor(row)));
 
     // 셀 값 가져오기
     const getCellValue = (row: T, key: string, accessor?: (row: T) => unknown) => {
@@ -185,13 +171,10 @@ export function DataTable<T extends object>({
         return (
             <div className={cn('relative', className)}>
                 {/* 메인 스크롤 컨테이너: 세로 스크롤만, 가로 스크롤은 숨김 */}
-                <div 
-                    className="overflow-y-auto overflow-x-hidden"
-                    style={{ maxHeight }}
-                >
+                <div className="overflow-y-auto overflow-x-hidden" style={{ maxHeight }}>
                     {/* 테이블 래퍼: transform으로 가로 이동 */}
-                    <div 
-                        style={{ 
+                    <div
+                        style={{
                             transform: `translateX(-${scrollX}px)`,
                             minWidth,
                         }}
@@ -219,10 +202,7 @@ export function DataTable<T extends object>({
                                     {/* 액션 헤더 (시작 위치) */}
                                     {actions && actions.position === 'start' && (
                                         <TableHead
-                                            className={cn(
-                                                'w-20 whitespace-nowrap px-4 bg-gray-50',
-                                                styles.headerCell
-                                            )}
+                                            className={cn('w-20 whitespace-nowrap px-4 bg-gray-50', styles.headerCell)}
                                         >
                                             {actions.headerText || '관리'}
                                         </TableHead>
@@ -250,10 +230,7 @@ export function DataTable<T extends object>({
                                     {/* 액션 헤더 (끝 위치) */}
                                     {actions && actions.position !== 'start' && (
                                         <TableHead
-                                            className={cn(
-                                                'w-20 whitespace-nowrap px-4 bg-gray-50',
-                                                styles.headerCell
-                                            )}
+                                            className={cn('w-20 whitespace-nowrap px-4 bg-gray-50', styles.headerCell)}
                                         >
                                             {actions.headerText || '관리'}
                                         </TableHead>
@@ -269,9 +246,7 @@ export function DataTable<T extends object>({
                                     const isRowSelectable = selectable?.isSelectable
                                         ? selectable.isSelectable(row)
                                         : true;
-                                    const customRowClassName = getRowClassName
-                                        ? getRowClassName(row)
-                                        : '';
+                                    const customRowClassName = getRowClassName ? getRowClassName(row) : '';
 
                                     return (
                                         <TableRow
@@ -303,10 +278,7 @@ export function DataTable<T extends object>({
 
                                             {/* 액션 셀 (시작 위치) */}
                                             {actions && actions.position === 'start' && (
-                                                <TableCell
-                                                    className="px-4 w-20"
-                                                    onClick={(e) => e.stopPropagation()}
-                                                >
+                                                <TableCell className="px-4 w-20" onClick={(e) => e.stopPropagation()}>
                                                     {actions.render(row)}
                                                 </TableCell>
                                             )}
@@ -339,10 +311,7 @@ export function DataTable<T extends object>({
 
                                             {/* 액션 셀 (끝 위치) */}
                                             {actions && actions.position !== 'start' && (
-                                                <TableCell
-                                                    className="px-4 w-20"
-                                                    onClick={(e) => e.stopPropagation()}
-                                                >
+                                                <TableCell className="px-4 w-20" onClick={(e) => e.stopPropagation()}>
                                                     {actions.render(row)}
                                                 </TableCell>
                                             )}
@@ -364,9 +333,7 @@ export function DataTable<T extends object>({
                                         <span className="text-[14px]">데이터를 불러오는 중...</span>
                                     </div>
                                 ) : infiniteScroll.hasNextPage ? (
-                                    <div className="text-[14px] text-gray-400">
-                                        스크롤하여 더 보기
-                                    </div>
+                                    <div className="text-[14px] text-gray-400">스크롤하여 더 보기</div>
                                 ) : null}
                             </div>
                         )}
@@ -374,7 +341,7 @@ export function DataTable<T extends object>({
                 </div>
 
                 {/* 하단 고정 가짜 가로 스크롤바 */}
-                <div 
+                <div
                     ref={fakeScrollbarRef}
                     className="overflow-x-auto bg-gray-50 border-t border-gray-200"
                     style={{ height: '17px' }}
@@ -391,10 +358,7 @@ export function DataTable<T extends object>({
     return (
         <div className={cn('space-y-0', className)}>
             {/* 테이블 컨테이너 - 가로/세로 스크롤 */}
-            <div 
-                className="overflow-x-auto overflow-y-auto"
-                style={{ maxHeight: maxHeight || undefined }}
-            >
+            <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: maxHeight || undefined }}>
                 <Table style={{ minWidth }}>
                     <TableHeader className={styles.header}>
                         <TableRow className="hover:bg-transparent">
@@ -416,12 +380,7 @@ export function DataTable<T extends object>({
 
                             {/* 액션 헤더 (시작 위치) */}
                             {actions && actions.position === 'start' && (
-                                <TableHead
-                                    className={cn(
-                                        'w-20 whitespace-nowrap px-4',
-                                        styles.headerCell
-                                    )}
-                                >
+                                <TableHead className={cn('w-20 whitespace-nowrap px-4', styles.headerCell)}>
                                     {actions.headerText || '관리'}
                                 </TableHead>
                             )}
@@ -449,12 +408,7 @@ export function DataTable<T extends object>({
 
                             {/* 액션 헤더 (끝 위치) */}
                             {actions && actions.position !== 'start' && (
-                                <TableHead
-                                    className={cn(
-                                        'w-20 whitespace-nowrap px-4',
-                                        styles.headerCell
-                                    )}
-                                >
+                                <TableHead className={cn('w-20 whitespace-nowrap px-4', styles.headerCell)}>
                                     {actions.headerText || '관리'}
                                 </TableHead>
                             )}
@@ -465,12 +419,8 @@ export function DataTable<T extends object>({
                         {data.map((row, rowIndex) => {
                             const key = keyExtractor(row);
                             const isSelected = selectable?.selectedKeys.includes(key);
-                            const isRowSelectable = selectable?.isSelectable
-                                ? selectable.isSelectable(row)
-                                : true;
-                            const customRowClassName = getRowClassName
-                                ? getRowClassName(row)
-                                : '';
+                            const isRowSelectable = selectable?.isSelectable ? selectable.isSelectable(row) : true;
+                            const customRowClassName = getRowClassName ? getRowClassName(row) : '';
 
                             return (
                                 <TableRow
@@ -502,10 +452,7 @@ export function DataTable<T extends object>({
 
                                     {/* 액션 셀 (시작 위치) */}
                                     {actions && actions.position === 'start' && (
-                                        <TableCell
-                                            className="px-4"
-                                            onClick={(e) => e.stopPropagation()}
-                                        >
+                                        <TableCell className="px-4" onClick={(e) => e.stopPropagation()}>
                                             {actions.render(row)}
                                         </TableCell>
                                     )}
@@ -538,10 +485,7 @@ export function DataTable<T extends object>({
 
                                     {/* 액션 셀 (끝 위치) */}
                                     {actions && actions.position !== 'start' && (
-                                        <TableCell
-                                            className="px-4"
-                                            onClick={(e) => e.stopPropagation()}
-                                        >
+                                        <TableCell className="px-4" onClick={(e) => e.stopPropagation()}>
                                             {actions.render(row)}
                                         </TableCell>
                                     )}
@@ -554,19 +498,14 @@ export function DataTable<T extends object>({
 
             {/* 무한 스크롤 로딩 영역 - 로딩 중이거나 다음 페이지가 있을 때만 표시 */}
             {infiniteScroll && (infiniteScroll.isFetchingNextPage || infiniteScroll.hasNextPage) && (
-                <div
-                    ref={loadMoreRef}
-                    className="flex items-center justify-center py-4 border-t border-gray-100"
-                >
+                <div ref={loadMoreRef} className="flex items-center justify-center py-4 border-t border-gray-100">
                     {infiniteScroll.isFetchingNextPage ? (
                         <div className="flex items-center gap-2 text-gray-500">
                             <Loader2 className="w-5 h-5 animate-spin" />
                             <span className="text-[14px]">데이터를 불러오는 중...</span>
                         </div>
                     ) : infiniteScroll.hasNextPage ? (
-                        <div className="text-[14px] text-gray-400">
-                            스크롤하여 더 보기
-                        </div>
+                        <div className="text-[14px] text-gray-400">스크롤하여 더 보기</div>
                     ) : null}
                 </div>
             )}

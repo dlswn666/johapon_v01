@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 
 // 대량 처리 기준 (이 이상이면 비동기 처리)
 const ASYNC_THRESHOLD = 50;
@@ -39,17 +36,11 @@ export async function POST(request: NextRequest) {
 
         // 유효성 검사
         if (!unionId || !stageId || !data) {
-            return NextResponse.json(
-                { error: '필수 파라미터가 누락되었습니다.' },
-                { status: 400 }
-            );
+            return NextResponse.json({ error: '필수 파라미터가 누락되었습니다.' }, { status: 400 });
         }
 
         if (!Array.isArray(data) || data.length === 0) {
-            return NextResponse.json(
-                { error: '처리할 데이터가 없습니다.' },
-                { status: 400 }
-            );
+            return NextResponse.json({ error: '처리할 데이터가 없습니다.' }, { status: 400 });
         }
 
         // 대량 데이터는 비동기 처리
@@ -72,10 +63,7 @@ export async function POST(request: NextRequest) {
 
             if (jobError) {
                 console.error('작업 생성 오류:', jobError);
-                return NextResponse.json(
-                    { error: '작업 생성 실패' },
-                    { status: 500 }
-                );
+                return NextResponse.json({ error: '작업 생성 실패' }, { status: 500 });
             }
 
             // 프록시 서버에 비동기 처리 요청
@@ -112,31 +100,24 @@ export async function POST(request: NextRequest) {
         });
     } catch (error) {
         console.error('동의 업로드 오류:', error);
-        return NextResponse.json(
-            { error: '동의 업로드 중 오류가 발생했습니다.' },
-            { status: 500 }
-        );
+        return NextResponse.json({ error: '동의 업로드 중 오류가 발생했습니다.' }, { status: 500 });
     }
 }
 
 // 동기 처리 함수
-async function processConsentUploadSync(
-    unionId: string,
-    stageId: string,
-    data: ConsentUploadRow[]
-) {
+async function processConsentUploadSync(unionId: string, stageId: string, data: ConsentUploadRow[]) {
     let successCount = 0;
     let failCount = 0;
     const errors: { row: number; message: string }[] = [];
 
     for (const row of data) {
         try {
-            // 조합원 찾기 (이름 + 주소로 매칭)
+            // 조합원 찾기 (이름 + 주소로 매칭) - 승인 + 사전등록 조합원 모두 포함
             let query = supabase
                 .from('users')
                 .select('id')
                 .eq('union_id', unionId)
-                .eq('user_status', 'APPROVED')
+                .in('user_status', ['APPROVED', 'PRE_REGISTERED'])
                 .ilike('name', row.name.trim());
 
             // 주소로 필터
@@ -167,20 +148,18 @@ async function processConsentUploadSync(
             const status = parseConsentStatus(row.status);
 
             // 동의 상태 upsert
-            const { error: upsertError } = await supabase
-                .from('user_consents')
-                .upsert(
-                    {
-                        user_id: memberId,
-                        stage_id: stageId,
-                        status,
-                        consent_date: new Date().toISOString().split('T')[0],
-                        updated_at: new Date().toISOString(),
-                    },
-                    {
-                        onConflict: 'user_id,stage_id',
-                    }
-                );
+            const { error: upsertError } = await supabase.from('user_consents').upsert(
+                {
+                    user_id: memberId,
+                    stage_id: stageId,
+                    status,
+                    consent_date: new Date().toISOString().split('T')[0],
+                    updated_at: new Date().toISOString(),
+                },
+                {
+                    onConflict: 'user_id,stage_id',
+                }
+            );
 
             if (upsertError) {
                 errors.push({ row: row.rowNumber, message: `동의 처리 실패: ${upsertError.message}` });
@@ -189,7 +168,10 @@ async function processConsentUploadSync(
                 successCount++;
             }
         } catch (error) {
-            errors.push({ row: row.rowNumber, message: `처리 오류: ${error instanceof Error ? error.message : '알 수 없는 오류'}` });
+            errors.push({
+                row: row.rowNumber,
+                message: `처리 오류: ${error instanceof Error ? error.message : '알 수 없는 오류'}`,
+            });
             failCount++;
         }
     }
@@ -198,26 +180,21 @@ async function processConsentUploadSync(
 }
 
 // 비동기 처리 함수 (폴백용)
-async function processConsentUpload(
-    jobId: string,
-    unionId: string,
-    stageId: string,
-    data: ConsentUploadRow[]
-) {
+async function processConsentUpload(jobId: string, unionId: string, stageId: string, data: ConsentUploadRow[]) {
     let successCount = 0;
     let failCount = 0;
     const total = data.length;
 
     for (let i = 0; i < data.length; i++) {
         const row = data[i];
-        
+
         try {
-            // 조합원 찾기
+            // 조합원 찾기 - 승인 + 사전등록 조합원 모두 포함
             let query = supabase
                 .from('users')
                 .select('id')
                 .eq('union_id', unionId)
-                .eq('user_status', 'APPROVED')
+                .in('user_status', ['APPROVED', 'PRE_REGISTERED'])
                 .ilike('name', row.name.trim());
 
             if (row.address) {
@@ -237,20 +214,18 @@ async function processConsentUpload(
             // 한글/영문 동의 상태 파싱
             const status = parseConsentStatus(row.status);
 
-            const { error: upsertError } = await supabase
-                .from('user_consents')
-                .upsert(
-                    {
-                        user_id: memberId,
-                        stage_id: stageId,
-                        status,
-                        consent_date: new Date().toISOString().split('T')[0],
-                        updated_at: new Date().toISOString(),
-                    },
-                    {
-                        onConflict: 'user_id,stage_id',
-                    }
-                );
+            const { error: upsertError } = await supabase.from('user_consents').upsert(
+                {
+                    user_id: memberId,
+                    stage_id: stageId,
+                    status,
+                    consent_date: new Date().toISOString().split('T')[0],
+                    updated_at: new Date().toISOString(),
+                },
+                {
+                    onConflict: 'user_id,stage_id',
+                }
+            );
 
             if (upsertError) {
                 failCount++;
@@ -264,10 +239,7 @@ async function processConsentUpload(
         // 진행률 업데이트 (10% 단위)
         if ((i + 1) % Math.max(1, Math.floor(total / 10)) === 0 || i === total - 1) {
             const progress = Math.round(((i + 1) / total) * 100);
-            await supabase
-                .from('sync_jobs')
-                .update({ progress })
-                .eq('id', jobId);
+            await supabase.from('sync_jobs').update({ progress }).eq('id', jobId);
         }
     }
 

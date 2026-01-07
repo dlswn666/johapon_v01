@@ -161,12 +161,12 @@ export default function ConsentManagementTab() {
         setFocusedIndex(-1);
 
         try {
-            // 기본 쿼리 설정
+            // 기본 쿼리 설정 - 승인 조합원 + 사전 등록 조합원 모두 조회
             let query = supabase
                 .from('users')
                 .select('id, name, property_pnu, property_address, property_dong, property_ho, property_address_jibun')
                 .eq('union_id', unionId)
-                .eq('user_status', 'APPROVED')
+                .in('user_status', ['APPROVED', 'PRE_REGISTERED'])
                 .order('name', { ascending: true });
 
             // 검색 조건 적용 - 각 조건 그룹 간에는 AND 관계
