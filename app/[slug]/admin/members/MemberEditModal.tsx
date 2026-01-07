@@ -88,7 +88,6 @@ export default function MemberEditModal({ member, onClose, onBlock }: MemberEdit
     // 소유유형 수정 상태
     const [editingPropertyUnit, setEditingPropertyUnit] = useState<string | null>(null);
     const [editOwnershipType, setEditOwnershipType] = useState<OwnershipType>('OWNER');
-    const [editOwnershipRatio, setEditOwnershipRatio] = useState<string>('');
 
     const [isSaving, setIsSaving] = useState(false);
     const [isPnuSaving, setIsPnuSaving] = useState(false);
@@ -242,14 +241,12 @@ export default function MemberEditModal({ member, onClose, onBlock }: MemberEdit
     const handleStartEditOwnership = (propertyUnit: MemberPropertyUnitInfo) => {
         setEditingPropertyUnit(propertyUnit.id);
         setEditOwnershipType(propertyUnit.ownership_type);
-        setEditOwnershipRatio(propertyUnit.ownership_ratio?.toString() || '');
     };
 
     // 소유유형 수정 취소
     const handleCancelEditOwnership = () => {
         setEditingPropertyUnit(null);
         setEditOwnershipType('OWNER');
-        setEditOwnershipRatio('');
     };
 
     // 소유유형 저장
@@ -261,9 +258,6 @@ export default function MemberEditModal({ member, onClose, onBlock }: MemberEdit
             await updateOwnershipType({
                 propertyUnitId: editingPropertyUnit,
                 ownershipType: editOwnershipType,
-                ownershipRatio: editOwnershipType === 'CO_OWNER' && editOwnershipRatio 
-                    ? parseFloat(editOwnershipRatio) 
-                    : null,
             });
 
             // 수정 로그 기록
@@ -415,8 +409,8 @@ export default function MemberEditModal({ member, onClose, onBlock }: MemberEdit
                                 <div>
                                     <p className="text-[11px] text-gray-400">소유지분</p>
                                     <p className="text-[14px] font-bold text-gray-900">
-                                        {propertyUnits.length > 0 && propertyUnits[0].ownership_ratio
-                                            ? `${propertyUnits[0].ownership_ratio}%`
+                                        {member.land_ownership_ratio
+                                            ? `${member.land_ownership_ratio}%`
                                             : '100%'}
                                     </p>
                                 </div>
@@ -444,8 +438,8 @@ export default function MemberEditModal({ member, onClose, onBlock }: MemberEdit
                                 <div>
                                     <p className="text-[11px] text-gray-400">소유지분</p>
                                     <p className="text-[14px] font-bold text-gray-900">
-                                        {propertyUnits.length > 0 && propertyUnits[0].ownership_ratio
-                                            ? `${propertyUnits[0].ownership_ratio}%`
+                                        {member.building_ownership_ratio
+                                            ? `${member.building_ownership_ratio}%`
                                             : '100%'}
                                     </p>
                                 </div>
@@ -677,12 +671,6 @@ export default function MemberEditModal({ member, onClose, onBlock }: MemberEdit
                                                             )}
                                                         >
                                                             {OWNERSHIP_TYPE_LABELS[pu.ownership_type]}
-                                                            {pu.ownership_type === 'CO_OWNER' &&
-                                                                pu.ownership_ratio && (
-                                                                    <span className="ml-1">
-                                                                        ({pu.ownership_ratio}%)
-                                                                    </span>
-                                                                )}
                                                         </span>
                                                     </div>
                                                     <p className="text-[14px] font-medium text-gray-900">
@@ -722,25 +710,6 @@ export default function MemberEditModal({ member, onClose, onBlock }: MemberEdit
                                                             className="w-full"
                                                         />
                                                     </div>
-                                                    {editOwnershipType === 'CO_OWNER' && (
-                                                        <div>
-                                                            <label className="block text-[13px] font-medium text-gray-700 mb-1">
-                                                                지분율 (%)
-                                                            </label>
-                                                            <Input
-                                                                type="number"
-                                                                value={editOwnershipRatio}
-                                                                onChange={(e) =>
-                                                                    setEditOwnershipRatio(e.target.value)
-                                                                }
-                                                                placeholder="예: 50"
-                                                                min={0}
-                                                                max={100}
-                                                                step={0.01}
-                                                                className="h-10"
-                                                            />
-                                                        </div>
-                                                    )}
                                                     <div className="flex gap-2">
                                                         <Button
                                                             variant="outline"

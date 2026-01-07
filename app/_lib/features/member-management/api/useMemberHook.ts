@@ -128,7 +128,6 @@ export function useApprovedMembers({
                         user_id,
                         building_unit_id,
                         ownership_type,
-                        ownership_ratio,
                         is_primary,
                         notes,
                         building_units!inner (
@@ -183,7 +182,6 @@ export function useApprovedMembers({
                             id: pu.id,
                             building_unit_id: pu.building_unit_id,
                             ownership_type: pu.ownership_type as OwnershipType,
-                            ownership_ratio: pu.ownership_ratio,
                             is_primary: pu.is_primary,
                             notes: pu.notes,
                             dong: buildingUnit?.dong || null,
@@ -351,7 +349,6 @@ export function useApprovedMembersInfinite({
                         user_id,
                         building_unit_id,
                         ownership_type,
-                        ownership_ratio,
                         is_primary,
                         notes,
                         building_units!inner (
@@ -404,7 +401,6 @@ export function useApprovedMembersInfinite({
                             id: pu.id,
                             building_unit_id: pu.building_unit_id,
                             ownership_type: pu.ownership_type as OwnershipType,
-                            ownership_ratio: pu.ownership_ratio,
                             is_primary: pu.is_primary,
                             notes: pu.notes,
                             dong: buildingUnit?.dong || null,
@@ -619,7 +615,6 @@ export function useMemberPropertyUnits(memberId: string | undefined) {
                     user_id,
                     building_unit_id,
                     ownership_type,
-                    ownership_ratio,
                     is_primary,
                     notes,
                     building_units!inner (
@@ -660,7 +655,6 @@ export function useMemberPropertyUnits(memberId: string | undefined) {
                     id: pu.id,
                     building_unit_id: pu.building_unit_id,
                     ownership_type: pu.ownership_type as OwnershipType,
-                    ownership_ratio: pu.ownership_ratio,
                     is_primary: pu.is_primary,
                     notes: pu.notes,
                     dong: buildingUnit?.dong || null,
@@ -685,17 +679,14 @@ export function useUpdateOwnershipType() {
         mutationFn: async ({
             propertyUnitId,
             ownershipType,
-            ownershipRatio,
         }: {
             propertyUnitId: string;
             ownershipType: OwnershipType;
-            ownershipRatio?: number | null;
         }) => {
             const { error } = await supabase
                 .from('user_property_units')
                 .update({
                     ownership_type: ownershipType,
-                    ownership_ratio: ownershipRatio ?? null,
                     updated_at: new Date().toISOString(),
                 })
                 .eq('id', propertyUnitId);

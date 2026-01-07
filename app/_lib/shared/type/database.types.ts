@@ -274,33 +274,45 @@ export type Database = {
                     user_id: string;
                     building_unit_id: string;
                     ownership_type: 'OWNER' | 'CO_OWNER' | 'FAMILY';
-                    ownership_ratio: number | null;
                     is_primary: boolean;
                     notes: string | null;
                     created_at: string;
                     updated_at: string;
+                    // 토지/건물 면적 및 지분율 개별 저장
+                    land_area: number | null;
+                    land_ownership_ratio: number | null;
+                    building_area: number | null;
+                    building_ownership_ratio: number | null;
                 };
                 Insert: {
                     id?: string;
                     user_id: string;
                     building_unit_id: string;
                     ownership_type?: 'OWNER' | 'CO_OWNER' | 'FAMILY';
-                    ownership_ratio?: number | null;
                     is_primary?: boolean;
                     notes?: string | null;
                     created_at?: string;
                     updated_at?: string;
+                    // 토지/건물 면적 및 지분율 개별 저장
+                    land_area?: number | null;
+                    land_ownership_ratio?: number | null;
+                    building_area?: number | null;
+                    building_ownership_ratio?: number | null;
                 };
                 Update: {
                     id?: string;
                     user_id?: string;
                     building_unit_id?: string;
                     ownership_type?: 'OWNER' | 'CO_OWNER' | 'FAMILY';
-                    ownership_ratio?: number | null;
                     is_primary?: boolean;
                     notes?: string | null;
                     created_at?: string;
                     updated_at?: string;
+                    // 토지/건물 면적 및 지분율 개별 저장
+                    land_area?: number | null;
+                    land_ownership_ratio?: number | null;
+                    building_area?: number | null;
+                    building_ownership_ratio?: number | null;
                 };
                 Relationships: [
                     {
@@ -1763,8 +1775,8 @@ export type NewMemberAccessLog = Database['public']['Tables']['member_access_log
 export type UpdateMemberAccessLog = Database['public']['Tables']['member_access_logs']['Update'];
 
 // 조합원 접속 로그 + 조합 정보 타입
-export type MemberAccessLogWithUnion = MemberAccessLog & { 
-    union: { id: string; name: string; slug: string } | null 
+export type MemberAccessLogWithUnion = MemberAccessLog & {
+    union: { id: string; name: string; slug: string } | null;
 };
 
 // 사용자-호실 소유 관계 타입
@@ -1777,7 +1789,6 @@ export interface MemberPropertyUnitInfo {
     id: string;
     building_unit_id: string;
     ownership_type: OwnershipType;
-    ownership_ratio: number | null;
     is_primary: boolean;
     notes: string | null;
     // building_units 조인 정보
