@@ -69,6 +69,7 @@ export default function ConsentManagementTab() {
     const [isSearching, setIsSearching] = useState(false);
     const [searchResults, setSearchResults] = useState<MemberSearchResult[]>([]);
     const [focusedIndex, setFocusedIndex] = useState(-1);
+    const [isResultFocused, setIsResultFocused] = useState(false);
 
     // 선택된 조합원 리스트 상태
     const [selectedMembers, setSelectedMembers] = useState<MemberSearchResult[]>([]);
@@ -81,6 +82,7 @@ export default function ConsentManagementTab() {
     // 검색 결과 리스트 ref
     const searchResultsRef = useRef<HTMLDivElement>(null);
     const searchInputRef = useRef<HTMLInputElement>(null);
+    const searchResultsTableRef = useRef<HTMLTableElement>(null);
 
     // 파일 input ref
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -227,33 +229,75 @@ export default function ConsentManagementTab() {
             });
 
             setSearchResults(results);
+
+            // 조회 완료 후 첫 번째 미선택 항목으로 포커스 이동
+            const firstUnselectedIndex = results.findIndex(
+                (member) => !selectedMembers.find((m) => m.id === member.id)
+            );
+            if (firstUnselectedIndex >= 0) {
+                setFocusedIndex(firstUnselectedIndex);
+                setIsResultFocused(true);
+                // 조회 결과 테이블에 포커스 이동
+                setTimeout(() => {
+                    searchResultsTableRef.current?.focus();
+                }, 0);
+            } else {
+                // 모든 항목이 이미 선택된 경우
+                setFocusedIndex(-1);
+                setIsResultFocused(false);
+            }
         } catch (error) {
             console.error('검색 오류:', error);
             toast.error('검색 중 오류가 발생했습니다.');
         } finally {
             setIsSearching(false);
         }
-    }, [unionId, selectedStageId, searchAddress, searchName, searchBuilding]);
+    }, [unionId, selectedStageId, searchAddress, searchName, searchBuilding, selectedMembers]);
 
-    // 키보드 이벤트 처리
-    const handleKeyDown = useCallback(
+    // 첫 번째 미선택 항목 인덱스 찾기
+    const findFirstUnselectedIndex = useCallback(
+        (results: MemberSearchResult[], startIndex: number = 0): number => {
+            for (let i = startIndex; i < results.length; i++) {
+                if (!selectedMembers.find((m) => m.id === results[i].id)) {
+                    return i;
+                }
+            }
+            return -1;
+        },
+        [selectedMembers]
+    );
+
+    // Input 필드 키보드 이벤트 처리 (검색 전용)
+    const handleInputKeyDown = useCallback(
         (e: React.KeyboardEvent<HTMLInputElement>) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
-                if (searchResults.length === 1) {
-                    // 조회 값이 1명이면 엔터 시 선택
-                    const member = searchResults[0];
-                    if (!selectedMembers.find((m) => m.id === member.id)) {
-                        setSelectedMembers((prev) => [member, ...prev]);
-                    }
-                } else if (focusedIndex >= 0 && focusedIndex < searchResults.length) {
-                    // 포커스된 항목 선택
+                handleSearch();
+            }
+        },
+        [handleSearch]
+    );
+
+    // 조회 결과 영역 키보드 이벤트 처리 (선택 전용)
+    const handleResultKeyDown = useCallback(
+        (e: React.KeyboardEvent<HTMLTableElement>) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                if (focusedIndex >= 0 && focusedIndex < searchResults.length) {
                     const member = searchResults[focusedIndex];
+                    // 이미 선택된 항목이 아닌 경우에만 선택
                     if (!selectedMembers.find((m) => m.id === member.id)) {
                         setSelectedMembers((prev) => [member, ...prev]);
+                        // 선택 후 다음 미선택 항목으로 포커스 이동
+                        const nextIndex = findFirstUnselectedIndex(searchResults, focusedIndex + 1);
+                        if (nextIndex >= 0) {
+                            setFocusedIndex(nextIndex);
+                        } else {
+                            // 다음 미선택 항목이 없으면 포커스 제거
+                            setFocusedIndex(-1);
+                            setIsResultFocused(false);
+                        }
                     }
-                } else {
-                    handleSearch();
                 }
             } else if (e.key === 'ArrowDown') {
                 e.preventDefault();
@@ -261,9 +305,14 @@ export default function ConsentManagementTab() {
             } else if (e.key === 'ArrowUp') {
                 e.preventDefault();
                 setFocusedIndex((prev) => Math.max(prev - 1, 0));
+            } else if (e.key === 'Escape') {
+                // Escape 키로 포커스 해제
+                setFocusedIndex(-1);
+                setIsResultFocused(false);
+                searchInputRef.current?.focus();
             }
         },
-        [searchResults, selectedMembers, focusedIndex, handleSearch]
+        [searchResults, selectedMembers, focusedIndex, findFirstUnselectedIndex]
     );
 
     // 조합원 선택
@@ -382,7 +431,8 @@ export default function ConsentManagementTab() {
             { 항목: '소유지 지번', 설명: '물건지의 지번 주소를 입력합니다.' },
             {
                 항목: '동',
-                설명: '동 번호를 입력합니다. (선택사항)\n' +
+                설명:
+                    '동 번호를 입력합니다. (선택사항)\n' +
                     '【입력 예시】\n' +
                     '• 일반층: 101, 102, 103동 등\n' +
                     '• 지하층: B1, B2 또는 -1, -2 등\n' +
@@ -391,7 +441,8 @@ export default function ConsentManagementTab() {
             },
             {
                 항목: '호수',
-                설명: '호수를 입력합니다. (선택사항)\n' +
+                설명:
+                    '호수를 입력합니다. (선택사항)\n' +
                     '【입력 예시】\n' +
                     '• 일반호수: 101, 201, 1001 등\n' +
                     '• 지하층: B1-101, B101 등\n' +
@@ -400,7 +451,8 @@ export default function ConsentManagementTab() {
             },
             {
                 항목: '동의 상태',
-                설명: '동의 또는 비동의를 입력합니다.\n' +
+                설명:
+                    '동의 또는 비동의를 입력합니다.\n' +
                     '【허용 값】\n' +
                     '• 동의: "동의" 또는 "AGREED"\n' +
                     '• 비동의: "비동의" 또는 "DISAGREED"',
@@ -632,13 +684,13 @@ export default function ConsentManagementTab() {
                                     placeholder="지번 주소"
                                     value={searchAddress}
                                     onChange={(e) => setSearchAddress(e.target.value)}
-                                    onKeyDown={handleKeyDown}
+                                    onKeyDown={handleInputKeyDown}
                                 />
                                 <Input
                                     placeholder="소유주 이름"
                                     value={searchName}
                                     onChange={(e) => setSearchName(e.target.value)}
-                                    onKeyDown={handleKeyDown}
+                                    onKeyDown={handleInputKeyDown}
                                 />
                             </div>
                             <div className="flex gap-3">
@@ -646,7 +698,7 @@ export default function ConsentManagementTab() {
                                     placeholder="건물이름/동/호"
                                     value={searchBuilding}
                                     onChange={(e) => setSearchBuilding(e.target.value)}
-                                    onKeyDown={handleKeyDown}
+                                    onKeyDown={handleInputKeyDown}
                                     className="flex-1"
                                 />
                                 <Button
@@ -674,7 +726,14 @@ export default function ConsentManagementTab() {
                                     <p className="text-sm">검색 결과가 없습니다</p>
                                 </div>
                             ) : (
-                                <table className="w-full text-sm">
+                                <table
+                                    ref={searchResultsTableRef}
+                                    className="w-full text-sm outline-none"
+                                    tabIndex={0}
+                                    onKeyDown={handleResultKeyDown}
+                                    onFocus={() => setIsResultFocused(true)}
+                                    onBlur={() => setIsResultFocused(false)}
+                                >
                                     <thead className="bg-gray-50 sticky top-0">
                                         <tr>
                                             <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">
@@ -695,31 +754,50 @@ export default function ConsentManagementTab() {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-100">
-                                        {searchResults.map((member, index) => (
-                                            <tr
-                                                key={member.id}
-                                                className={cn(
-                                                    'hover:bg-primary/5 cursor-pointer transition-colors',
-                                                    focusedIndex === index && 'bg-primary/10',
-                                                    selectedMembers.find((m) => m.id === member.id) && 'bg-green-50'
-                                                )}
-                                                onClick={() => handleSelectMember(member)}
-                                            >
-                                                <td className="px-3 py-2 text-gray-500">{index + 1}</td>
-                                                <td className="px-3 py-2 font-medium text-gray-900">{member.name}</td>
-                                                <td className="px-3 py-2 text-gray-600 truncate max-w-[150px]">
-                                                    {member.property_address_jibun || member.property_address || '-'}
-                                                </td>
-                                                <td className="px-3 py-2 text-gray-600">
-                                                    {member.property_dong && member.property_ho
-                                                        ? `${member.property_dong}동 ${member.property_ho}호`
-                                                        : member.property_dong || member.property_ho || '-'}
-                                                </td>
-                                                <td className="px-3 py-2 text-center">
-                                                    {getConsentStatusBadge(member.current_consent_status)}
-                                                </td>
-                                            </tr>
-                                        ))}
+                                        {searchResults.map((member, index) => {
+                                            const isSelected = !!selectedMembers.find((m) => m.id === member.id);
+                                            const isFocused = focusedIndex === index && isResultFocused;
+                                            return (
+                                                <tr
+                                                    key={member.id}
+                                                    className={cn(
+                                                        'cursor-pointer transition-all',
+                                                        // 기본 hover 스타일
+                                                        !isSelected && !isFocused && 'hover:bg-primary/5',
+                                                        // 선택된 항목 스타일 (포커스 불가)
+                                                        isSelected && 'bg-green-50 opacity-60 cursor-not-allowed',
+                                                        // 포커스된 항목 스타일 (프라이머리 컬러 border)
+                                                        isFocused &&
+                                                            !isSelected &&
+                                                            'bg-primary/10 ring-2 ring-[#4E8C6D] ring-inset'
+                                                    )}
+                                                    onClick={() => !isSelected && handleSelectMember(member)}
+                                                    onMouseEnter={() => {
+                                                        if (!isSelected) {
+                                                            setFocusedIndex(index);
+                                                        }
+                                                    }}
+                                                >
+                                                    <td className="px-3 py-2 text-gray-500">{index + 1}</td>
+                                                    <td className="px-3 py-2 font-medium text-gray-900">
+                                                        {member.name}
+                                                    </td>
+                                                    <td className="px-3 py-2 text-gray-600 truncate max-w-[150px]">
+                                                        {member.property_address_jibun ||
+                                                            member.property_address ||
+                                                            '-'}
+                                                    </td>
+                                                    <td className="px-3 py-2 text-gray-600">
+                                                        {member.property_dong && member.property_ho
+                                                            ? `${member.property_dong}동 ${member.property_ho}호`
+                                                            : member.property_dong || member.property_ho || '-'}
+                                                    </td>
+                                                    <td className="px-3 py-2 text-center">
+                                                        {getConsentStatusBadge(member.current_consent_status)}
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
                                     </tbody>
                                 </table>
                             )}
