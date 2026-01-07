@@ -744,3 +744,131 @@ export function useSetPrimaryPropertyUnit() {
         },
     });
 }
+
+// 공동 소유자 정보 타입
+export interface CoOwnerInfo {
+    id: string;
+    name: string;
+    phone_number: string | null;
+    birth_date: string | null;
+    land_area: number | null;
+    land_ownership_ratio: number | null;
+    building_area: number | null;
+    building_ownership_ratio: number | null;
+    resident_address: string | null;
+    resident_address_detail: string | null;
+    resident_address_road: string | null;
+    resident_address_jibun: string | null;
+    resident_zonecode: string | null;
+    notes: string | null;
+    is_blocked: boolean | null;
+    blocked_at: string | null;
+    blocked_reason: string | null;
+    property_pnu: string | null;
+    property_address: string | null;
+    property_address_jibun: string | null;
+    building_unit_id: string;
+    ownership_type: OwnershipType;
+}
+
+// 공동 소유자 조회 (동일한 building_unit_id를 가진 모든 사용자)
+export function useCoOwners(memberId: string | undefined) {
+    return useQuery({
+        queryKey: ['co-owners', memberId],
+        queryFn: async (): Promise<CoOwnerInfo[]> => {
+            if (!memberId) return [];
+
+            // 1. 해당 사용자의 building_unit_id 목록 조회
+            const { data: memberUnits, error: memberUnitsError } = await supabase
+                .from('user_property_units')
+                .select('building_unit_id')
+                .eq('user_id', memberId);
+
+            if (memberUnitsError) throw memberUnitsError;
+            if (!memberUnits || memberUnits.length === 0) return [];
+
+            const buildingUnitIds = memberUnits.map((u) => u.building_unit_id);
+
+            // 2. 동일한 building_unit_id를 가진 모든 사용자의 property_units 조회 (현재 사용자 포함)
+            const { data: coOwnerUnits, error: coOwnerUnitsError } = await supabase
+                .from('user_property_units')
+                .select(
+                    `
+                    user_id,
+                    building_unit_id,
+                    ownership_type,
+                    land_area,
+                    land_ownership_ratio,
+                    building_area,
+                    building_ownership_ratio
+                `
+                )
+                .in('building_unit_id', buildingUnitIds);
+
+            if (coOwnerUnitsError) throw coOwnerUnitsError;
+            if (!coOwnerUnits || coOwnerUnits.length === 0) return [];
+
+            // 3. 공동 소유자들의 상세 정보 조회
+            const coOwnerUserIds = [...new Set(coOwnerUnits.map((u) => u.user_id))];
+            const { data: coOwnerUsers, error: coOwnerUsersError } = await supabase
+                .from('users')
+                .select(
+                    `
+                    id,
+                    name,
+                    phone_number,
+                    birth_date,
+                    resident_address,
+                    resident_address_detail,
+                    resident_address_road,
+                    resident_address_jibun,
+                    resident_zonecode,
+                    notes,
+                    is_blocked,
+                    blocked_at,
+                    blocked_reason,
+                    property_pnu,
+                    property_address,
+                    property_address_jibun
+                `
+                )
+                .in('id', coOwnerUserIds);
+
+            if (coOwnerUsersError) throw coOwnerUsersError;
+            if (!coOwnerUsers) return [];
+
+            // 4. 사용자 정보와 물건지 정보 결합
+            const userMap = new Map(coOwnerUsers.map((u) => [u.id, u]));
+            const result: CoOwnerInfo[] = coOwnerUnits.map((unit) => {
+                const user = userMap.get(unit.user_id);
+                return {
+                    id: unit.user_id,
+                    name: user?.name || '',
+                    phone_number: user?.phone_number || null,
+                    birth_date: user?.birth_date || null,
+                    land_area: unit.land_area,
+                    land_ownership_ratio: unit.land_ownership_ratio,
+                    building_area: unit.building_area,
+                    building_ownership_ratio: unit.building_ownership_ratio,
+                    resident_address: user?.resident_address || null,
+                    resident_address_detail: user?.resident_address_detail || null,
+                    resident_address_road: user?.resident_address_road || null,
+                    resident_address_jibun: user?.resident_address_jibun || null,
+                    resident_zonecode: user?.resident_zonecode || null,
+                    notes: user?.notes || null,
+                    is_blocked: user?.is_blocked || null,
+                    blocked_at: user?.blocked_at || null,
+                    blocked_reason: user?.blocked_reason || null,
+                    property_pnu: user?.property_pnu || null,
+                    property_address: user?.property_address || null,
+                    property_address_jibun: user?.property_address_jibun || null,
+                    building_unit_id: unit.building_unit_id,
+                    ownership_type: unit.ownership_type as OwnershipType,
+                };
+            });
+
+            return result;
+        },
+        enabled: !!memberId,
+    });
+}
