@@ -4,7 +4,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
-import { Home, User, ChevronDown, LogOut, UserCircle, PanelLeft } from 'lucide-react';
+import { Home, User, ChevronDown, LogOut, UserCircle, PanelLeft, MapPin } from 'lucide-react';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import {
@@ -249,45 +249,61 @@ export default function UnionHomeHeader() {
                             </NavigationMenuList>
                         </NavigationMenu>
 
-                        {/* 오른쪽: 사용자 아이콘 영역 */}
-                        <div className="relative" ref={userMenuRef} onMouseLeave={() => setIsUserMenuOpen(false)}>
-                            <button
-                                onClick={toggleUserMenu}
-                                className="h-[45px] px-[18px] py-0 rounded-[13.5px] flex items-center gap-[9px] hover:bg-gray-50 transition-colors cursor-pointer"
-                            >
-                                <div className="size-[27px] flex items-center justify-center">
-                                    {user ? (
-                                        <UserCircle className="size-[27px] text-[#4e8c6d]" />
-                                    ) : (
-                                        <User className="size-[27px] text-[#4e8c6d]" />
-                                    )}
-                                </div>
-                                <ChevronDown className="size-[18px] text-[#4e8c6d]" />
-                            </button>
-
-                            {/* 사용자 메뉴 드롭다운 */}
-                            {isUserMenuOpen && (
-                                <div
-                                    className="absolute top-full right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-[160px]"
-                                    onMouseEnter={() => setIsUserMenuOpen(true)}
-                                    onMouseLeave={() => setIsUserMenuOpen(false)}
-                                >
-                                    <Link
-                                        href="/profile"
-                                        className="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors rounded-t-lg cursor-pointer"
-                                        onClick={() => setIsUserMenuOpen(false)}
-                                    >
-                                        내정보
-                                    </Link>
-                                    <button
-                                        onClick={handleLogout}
-                                        className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors rounded-b-lg flex items-center gap-2 cursor-pointer"
-                                    >
-                                        <LogOut className="size-4" />
-                                        로그아웃
-                                    </button>
+                        {/* 오른쪽: 사용자 인사 문구 + 아이콘 영역 */}
+                        <div className="flex items-center gap-3">
+                            {/* 인사 문구 */}
+                            {user && (
+                                <div className="flex flex-col items-end">
+                                    <span className="text-[14px] font-medium text-gray-800">
+                                        {user.name}님
+                                    </span>
+                                    <span className="text-[12px] text-gray-500">
+                                        안녕하세요
+                                    </span>
                                 </div>
                             )}
+
+                            {/* 사용자 메뉴 드롭다운 */}
+                            <div className="relative" ref={userMenuRef} onMouseLeave={() => setIsUserMenuOpen(false)}>
+                                <button
+                                    onClick={toggleUserMenu}
+                                    className="h-[45px] px-[18px] py-0 rounded-[13.5px] flex items-center gap-[9px] hover:bg-gray-50 transition-colors cursor-pointer"
+                                >
+                                    <div className="size-[27px] flex items-center justify-center">
+                                        {user ? (
+                                            <UserCircle className="size-[27px] text-[#4e8c6d]" />
+                                        ) : (
+                                            <User className="size-[27px] text-[#4e8c6d]" />
+                                        )}
+                                    </div>
+                                    <ChevronDown className="size-[18px] text-[#4e8c6d]" />
+                                </button>
+
+                                {/* 사용자 메뉴 드롭다운 */}
+                                {isUserMenuOpen && (
+                                    <div
+                                        className="absolute top-full right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-[180px]"
+                                        onMouseEnter={() => setIsUserMenuOpen(true)}
+                                        onMouseLeave={() => setIsUserMenuOpen(false)}
+                                    >
+                                        <Link
+                                            href={`/${union.slug}/my-property`}
+                                            className="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors rounded-t-lg cursor-pointer flex items-center gap-2"
+                                            onClick={() => setIsUserMenuOpen(false)}
+                                        >
+                                            <MapPin className="size-4" />
+                                            내 공시지가 보기
+                                        </Link>
+                                        <button
+                                            onClick={handleLogout}
+                                            className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors rounded-b-lg flex items-center gap-2 cursor-pointer"
+                                        >
+                                            <LogOut className="size-4" />
+                                            로그아웃
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>

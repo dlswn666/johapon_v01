@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
-import { ChevronDown, ChevronRight, LogOut, UserCircle, Home } from 'lucide-react';
+import { ChevronDown, ChevronRight, LogOut, UserCircle, Home, MapPin } from 'lucide-react';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import {
@@ -223,6 +223,25 @@ export default function UnionMobileSidebar({ isOpen, onClose }: UnionMobileSideb
 
                 {/* 하단 사용자 메뉴 영역 */}
                 <div className="border-t border-gray-200 p-2">
+                    {/* 사용자 인사 문구 */}
+                    {user && (
+                        <div className="px-3 py-2 mb-1">
+                            <div className="flex items-center gap-3">
+                                <div className="size-[36px] flex items-center justify-center bg-[#4e8c6d]/10 rounded-full">
+                                    <UserCircle className="size-[24px] text-[#4e8c6d]" />
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-[14px] font-medium text-gray-800">
+                                        {user.name}님
+                                    </span>
+                                    <span className="text-[12px] text-gray-500">
+                                        안녕하세요
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     <div className="relative">
                         <button
                             onClick={() => setIsUserMenuExpanded(!isUserMenuExpanded)}
@@ -251,13 +270,14 @@ export default function UnionMobileSidebar({ isOpen, onClose }: UnionMobileSideb
 
                         {/* 사용자 서브메뉴 - 오른쪽으로 확장 */}
                         {isUserMenuExpanded && (
-                            <div className="absolute left-full top-0 ml-2 w-[160px] bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                            <div className="absolute left-full top-0 ml-2 w-[180px] bg-white border border-gray-200 rounded-lg shadow-lg z-50">
                                 <Link
-                                    href="/profile"
+                                    href={`/${union.slug}/my-property`}
                                     onClick={handleLinkClick}
-                                    className="block px-4 py-3 text-[14px] text-gray-700 hover:bg-gray-50 transition-colors rounded-t-lg cursor-pointer"
+                                    className="px-4 py-3 text-[14px] text-gray-700 hover:bg-gray-50 transition-colors rounded-t-lg cursor-pointer flex items-center gap-2"
                                 >
-                                    내정보
+                                    <MapPin className="size-4" />
+                                    내 공시지가 보기
                                 </Link>
                                 <button
                                     onClick={handleLogout}
