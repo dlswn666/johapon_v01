@@ -58,10 +58,10 @@ export function HomeInfoSection() {
                     <div
                         key={link.id}
                         onClick={() => handleLinkClick(link.url)}
-                        className="h-[119px] w-[203px] rounded-[8px] border border-[#cdd1d5] overflow-hidden flex items-center justify-center hover:opacity-80 transition-opacity cursor-pointer shrink-0"
+                        className="h-[81px] w-[140px] rounded-[8px] border border-[#cdd1d5] overflow-hidden flex items-center justify-center hover:opacity-80 transition-opacity cursor-pointer shrink-0"
                         style={{ backgroundColor: link.bgColor }}
                     >
-                        <Image src={link.icon} alt={link.label} width={140} height={47} className="object-contain" />
+                        <Image src={link.icon} alt={link.label} width={100} height={34} className="object-contain" />
                     </div>
                 ))}
             </div>

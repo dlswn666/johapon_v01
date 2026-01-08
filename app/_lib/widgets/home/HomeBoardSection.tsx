@@ -175,7 +175,7 @@ export function HomeBoardSection() {
     return (
         <div className="flex gap-[20px] items-start">
             {/* 좌측: 세로 탭 버튼 */}
-            <div className="flex flex-col gap-[20px] shrink-0">
+            <div className="flex flex-col justify-between w-[184px] h-[336px] shrink-0">
                 {TABS.map((tab) => (
                     <button
                         key={tab.id}
@@ -194,7 +194,7 @@ export function HomeBoardSection() {
             </div>
 
             {/* 우측: 게시글 목록 */}
-            <div className="flex-1 bg-[#f4f5f6] border border-[#bcbcbc] rounded-[12px] p-[20px]">
+            <div className="flex-1 h-[336px] bg-[#f4f5f6] border border-[#bcbcbc] rounded-[12px] p-[20px]">
                 {/* 전체보기 헤더 */}
                 <div className="flex items-center justify-end gap-[13px] py-[5px] mb-[10px]">
                     <button
