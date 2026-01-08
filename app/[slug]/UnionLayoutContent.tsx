@@ -99,7 +99,27 @@ export default function UnionLayoutContent({ children }: UnionLayoutContentProps
         );
     }
 
-    // 일반 레이아웃 (로그인 상태 또는 다른 페이지)
+    // 홈 페이지 레이아웃 (로그인 상태): 광고 없이 전체 너비, 홈 페이지 내부에서 광고 배치
+    if (isHomePage) {
+        return (
+            <div className="min-h-[1080px] bg-white flex flex-col">
+                <MainBannerWidget />
+                {/* Header */}
+                <UnionHomeHeader />
+
+                {/* 홈 페이지 메인 콘텐츠 (전체 너비) */}
+                <main className="flex-1">{children}</main>
+
+                {/* Footer 표시 */}
+                {union && <UnionInfoFooter union={union} />}
+
+                {/* 사용자 상태 모달 (승인대기/반려) */}
+                <UserStatusModal />
+            </div>
+        );
+    }
+
+    // 일반 레이아웃 (로그인 상태, 홈이 아닌 다른 페이지)
     return (
         <div className="min-h-[1080px] bg-gray-50 flex flex-col">
             <MainBannerWidget />
@@ -107,7 +127,7 @@ export default function UnionLayoutContent({ children }: UnionLayoutContentProps
             <UnionHomeHeader />
 
             {/* Breadcrumb - 홈 페이지가 아닐 때만 렌더링 */}
-            {!isHomePage && <UnionBreadcrumb />}
+            <UnionBreadcrumb />
 
             {/* ABC 3분할 레이아웃 */}
             {/* Desktop: 가로 배치 (20% / 60% / 20%), Mobile: 세로 쌓기 (A → B → C) */}

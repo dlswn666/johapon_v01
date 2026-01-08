@@ -7,11 +7,11 @@ import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import { useHeroSlides } from '@/app/_lib/features/hero-slides/api/useHeroSlidesHook';
 import { usePopupNotices } from '@/app/_lib/features/notice/api/useNoticeHook';
 import { HeroSlider } from '@/app/_lib/widgets/hero-slider';
-import { UnionNewsSection } from '@/app/_lib/widgets/union-news-section';
 import { NoticePopup } from '@/app/_lib/widgets/notice-popup';
 import { LandingPage } from '@/app/_lib/widgets/landing';
 import { UserStatusModal } from '@/app/_lib/widgets/modal';
-import { SubSliderWidget } from '@/app/_lib/features/advertisement/ui/SubSliderWidget';
+import { SideAdWidget } from '@/app/_lib/features/advertisement/ui/SideAdWidget';
+import { HomeBoardSection, HomeCommunitySection, HomeInfoSection, HomeUnionCard } from '@/app/_lib/widgets/home';
 
 export default function UnionHomePage() {
     const { union, isLoading: isUnionLoading } = useSlug();
@@ -77,10 +77,10 @@ export default function UnionHomePage() {
 
     console.log('[DEBUG] 👉 홈페이지 렌더링 (로그인 완료)');
 
-    // 로그인 상태 또는 테스트 로그인 후: 기존 홈페이지 표시
+    // 로그인 상태: 새로운 홈페이지 레이아웃
     return (
         <>
-            {/* Hero Section - 슬라이드 */}
+            {/* Hero Section - 슬라이드 (전체 너비) */}
             <section className="relative">
                 {isSlidesLoading ? (
                     <Skeleton className="w-full h-[400px] md:h-[500px] lg:h-[600px] rounded-none" />
@@ -89,11 +89,43 @@ export default function UnionHomePage() {
                 )}
             </section>
 
-            {/* 조합 소식 섹션 */}
-            {union.id && <UnionNewsSection unionId={union.id} />}
+            {/* 메인 컨텐츠 섹션: 광고 | 컨텐츠 | 광고 3열 구조 */}
+            <section className="py-[79px]">
+                <div className="flex gap-[42px] justify-center px-4">
+                    {/* 좌측 광고 - 1820px 이상에서만 표시 */}
+                    <aside className="hidden min-[1820px]:block w-[265px] shrink-0">
+                        <div className="sticky top-[100px] h-[404px] rounded-[16px] overflow-hidden">
+                            <SideAdWidget />
+                        </div>
+                    </aside>
 
-            {/* 서브 슬라이드 광고 */}
-            <SubSliderWidget />
+                    {/* 중앙 메인 컨텐츠 */}
+                    <div className="w-full max-w-[1200px] flex flex-col gap-[47px]">
+                        {/* 게시판 섹션 */}
+                        <HomeBoardSection />
+
+                        {/* 재개발 커뮤니티 + 재개발 정보 (같은 행) */}
+                        <div className="flex gap-[22px]">
+                            <div className="w-[282px] shrink-0">
+                                <HomeCommunitySection />
+                            </div>
+                            <div className="w-[892px] shrink-0">
+                                <HomeInfoSection />
+                            </div>
+                        </div>
+
+                        {/* 조합 정보 카드 */}
+                        <HomeUnionCard />
+                    </div>
+
+                    {/* 우측 광고 - 1820px 이상에서만 표시 */}
+                    <aside className="hidden min-[1820px]:block w-[265px] shrink-0">
+                        <div className="sticky top-[100px] h-[404px] rounded-[16px] overflow-hidden">
+                            <SideAdWidget />
+                        </div>
+                    </aside>
+                </div>
+            </section>
 
             {/* 팝업 공지사항 */}
             {popupNotices?.map((notice, index) => (
