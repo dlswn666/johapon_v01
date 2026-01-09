@@ -31,6 +31,7 @@ const NewUnionInfoPage = () => {
     
     // Store cleanup actions
     const clearEditorImages = useUnionInfoStore((state) => state.clearEditorImages);
+    const addEditorImage = useUnionInfoStore((state) => state.addEditorImage);
     const { clearTempFiles } = useFileStore();
 
     // Mount/Unmount cleanup
@@ -95,11 +96,6 @@ const NewUnionInfoPage = () => {
                                     targetType="UNION_INFO"
                                     readOnly={false}
                                 />
-                                <div className="mt-2 bg-[#FFF9E6] border border-[#F0AD4E] rounded-[12px] p-4">
-                                    <p className="text-[14px] text-[#8B6914]">
-                                        💡 이미지는 본문 에디터에 직접 첨부할 수 있으며, 별도 파일은 위 파일 첨부 영역을 이용해주세요.
-                                    </p>
-                                </div>
                             </div>
 
                             <FormField
@@ -113,6 +109,7 @@ const NewUnionInfoPage = () => {
                                                 content={field.value}
                                                 onChange={field.onChange}
                                                 placeholder="내용을 입력해주세요. 이미지를 첨부할 수 있습니다."
+                                                onAddImage={addEditorImage}
                                             />
                                         </FormControl>
                                         <FormMessage />

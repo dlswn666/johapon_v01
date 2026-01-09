@@ -4,8 +4,7 @@ import { create } from 'zustand';
 import { UnionInfo, UnionInfoWithFiles } from '@/app/_lib/shared/type/database.types';
 
 interface UnionInfoFilter {
-    keyword: string;
-    author: string;
+    search: string;
     page: number;
     pageSize: number;
 }
@@ -49,8 +48,7 @@ interface UnionInfoStore {
 }
 
 const initialFilters: UnionInfoFilter = {
-    keyword: '',
-    author: '',
+    search: '',
     page: 1,
     pageSize: 10,
 };

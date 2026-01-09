@@ -22,8 +22,7 @@ const UnionInfoListPage = () => {
     const { user } = useAuth();
     const { filters, setFilters, totalCount, resetFilters } = useUnionInfoStore();
     
-    const [keywordInput, setKeywordInput] = useState('');
-    const [authorInput, setAuthorInput] = useState('');
+    const [searchInput, setSearchInput] = useState('');
 
     // 페이지 진입 시 필터 초기화
     useEffect(() => {
@@ -36,7 +35,7 @@ const UnionInfoListPage = () => {
     const showSkeleton = isUnionLoading || isLoading || (isFetching && !data);
 
     const handleSearch = () => {
-        setFilters({ keyword: keywordInput, author: authorInput, page: 1 });
+        setFilters({ search: searchInput, page: 1 });
     };
 
     const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -101,27 +100,17 @@ const UnionInfoListPage = () => {
                 </div>
 
                 {/* 검색 영역 */}
-                <div className="flex flex-wrap gap-2 mb-6">
-                    <div className="relative flex-1 min-w-[200px] max-w-[300px]">
+                <div className="flex gap-2 mb-6">
+                    <div className="relative flex-1 max-w-[400px]">
                         <Input
                             type="text"
-                            placeholder="제목, 내용으로 검색"
-                            value={keywordInput}
-                            onChange={(e) => setKeywordInput(e.target.value)}
+                            placeholder="제목, 내용, 작성자로 검색"
+                            value={searchInput}
+                            onChange={(e) => setSearchInput(e.target.value)}
                             onKeyPress={handleKeyPress}
                             className="pl-10 h-[44px] text-[16px] border-[#CCCCCC] rounded-[8px]"
                         />
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                    </div>
-                    <div className="relative flex-1 min-w-[150px] max-w-[200px]">
-                        <Input
-                            type="text"
-                            placeholder="작성자 검색"
-                            value={authorInput}
-                            onChange={(e) => setAuthorInput(e.target.value)}
-                            onKeyPress={handleKeyPress}
-                            className="h-[44px] text-[16px] border-[#CCCCCC] rounded-[8px]"
-                        />
                     </div>
                     <Button
                         onClick={handleSearch}
@@ -134,7 +123,7 @@ const UnionInfoListPage = () => {
                 <BoardListCard
                     items={listItems}
                     onItemClick={(id) => router.push(`/${slug}/communication/union-info/${id}`)}
-                    emptyMessage={filters.keyword || filters.author ? '검색 결과가 없습니다.' : '등록된 게시글이 없습니다.'}
+                    emptyMessage={filters.search ? '검색 결과가 없습니다.' : '등록된 게시글이 없습니다.'}
                 />
 
                 {/* 페이지네이션 */}

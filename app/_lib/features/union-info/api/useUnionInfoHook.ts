@@ -24,14 +24,13 @@ import { fileApi } from '@/app/_lib/shared/hooks/file/fileApi';
 export const useUnionInfos = (enabled: boolean = true) => {
     const setPosts = useUnionInfoStore((state) => state.setPosts);
     const setTotalCount = useUnionInfoStore((state) => state.setTotalCount);
-    const keyword = useUnionInfoStore((state) => state.filters.keyword);
-    const author = useUnionInfoStore((state) => state.filters.author);
+    const search = useUnionInfoStore((state) => state.filters.search);
     const page = useUnionInfoStore((state) => state.filters.page);
     const pageSize = useUnionInfoStore((state) => state.filters.pageSize);
     const { union } = useSlug();
 
     const queryResult = useQuery({
-        queryKey: ['union-info', 'list', union?.id, keyword, author, page, pageSize],
+        queryKey: ['union-info', 'list', union?.id, search, page, pageSize],
         queryFn: async () => {
             if (!union?.id) return { data: [], count: 0 };
 
@@ -40,10 +39,10 @@ export const useUnionInfos = (enabled: boolean = true) => {
                 .select('*, author:users!union_info_author_id_fkey(id, name)', { count: 'exact' })
                 .eq('union_id', union.id);
 
-            // 키워드 검색 (제목/내용)
-            if (keyword && keyword.trim()) {
-                const search = `%${keyword.trim()}%`;
-                query = query.or(`title.ilike.${search},content.ilike.${search}`);
+            // 통합 검색 (제목/내용) - 작성자는 프론트에서 추가 필터링
+            if (search && search.trim()) {
+                const searchTerm = `%${search.trim()}%`;
+                query = query.or(`title.ilike.${searchTerm},content.ilike.${searchTerm}`);
             }
 
             // 정렬
@@ -112,12 +111,15 @@ export const useUnionInfos = (enabled: boolean = true) => {
                 comment_count: commentCountMap[post.id] || 0,
             }));
 
-            // 작성자 검색 (프론트에서 추가 필터링)
-            if (author && author.trim()) {
-                const authorSearch = author.trim().toLowerCase();
+            // 작성자 검색 (프론트에서 추가 필터링) - 제목/내용에서 검색되지 않은 경우 작성자 이름으로 추가 검색
+            if (search && search.trim()) {
+                const searchTerm = search.trim().toLowerCase();
                 filteredData = filteredData.filter((item) => {
                     const authorName = (item.author as { name: string } | null)?.name?.toLowerCase() || '';
-                    return authorName.includes(authorSearch);
+                    const title = item.title?.toLowerCase() || '';
+                    const content = item.content?.toLowerCase() || '';
+                    // 제목, 내용, 작성자 중 하나라도 포함되면 표시
+                    return title.includes(searchTerm) || content.includes(searchTerm) || authorName.includes(searchTerm);
                 });
             }
 
