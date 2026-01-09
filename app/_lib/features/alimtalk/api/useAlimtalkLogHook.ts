@@ -19,7 +19,8 @@ export const useAlimtalkLogsByUnion = (unionId: string | undefined, enabled: boo
                 .from('alimtalk_logs')
                 .select(`
                     *,
-                    union:unions(id, name, slug)
+                    union:unions(id, name, slug),
+                    sender:users(id, name, email)
                 `)
                 .eq('union_id', unionId)
                 .order('sent_at', { ascending: false });
@@ -69,7 +70,8 @@ export const useAllAlimtalkLogs = (enabled: boolean = true) => {
                 .from('alimtalk_logs')
                 .select(`
                     *,
-                    union:unions(id, name, slug)
+                    union:unions(id, name, slug),
+                    sender:users(id, name, email)
                 `)
                 .order('sent_at', { ascending: false });
 
@@ -132,7 +134,8 @@ export const useAlimtalkLogDetail = (logId: number | undefined, enabled: boolean
                 .from('alimtalk_logs')
                 .select(`
                     *,
-                    union:unions(id, name, slug)
+                    union:unions(id, name, slug),
+                    sender:users(id, name, email)
                 `)
                 .eq('id', logId)
                 .single();

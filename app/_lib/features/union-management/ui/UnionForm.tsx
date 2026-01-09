@@ -10,13 +10,14 @@ import { ArrowLeft, Upload, X, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { UnionWithActive } from '../model/useUnionManagementStore';
 import { supabase } from '@/app/_lib/shared/supabase/client';
 import { useDevelopmentStages } from '@/app/_lib/features/development-stages/api/useDevelopmentStages';
+import { DatePicker } from '@/app/_lib/widgets/common/date-picker/DatePicker';
+import { format } from 'date-fns';
 
 // 영문 ENUM → 한글 매핑 (development_stages 테이블과 동기화용)
 const BUSINESS_TYPE_TO_KOREAN: Record<string, string> = {
@@ -219,18 +220,9 @@ export default function UnionForm({ mode, initialData, onSubmit, isSubmitting = 
     };
 
     return (
-        <Card className="shadow-lg max-w-4xl mx-auto">
-            <CardHeader className="border-b bg-gray-50/50">
-                <div className="flex items-center gap-4">
-                    <Button variant="ghost" size="icon" onClick={() => router.back()} className="hover:bg-gray-200">
-                        <ArrowLeft className="w-5 h-5" />
-                    </Button>
-                    <CardTitle className="text-xl font-semibold">{getTitle()}</CardTitle>
-                </div>
-            </CardHeader>
-            <CardContent className="p-6">
-                <Form {...form}>
-                    <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-8">
+        <div className="max-w-4xl mx-auto">
+            <Form {...form}>
+                <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-8">
                         {/* ==================== 기본 정보 ==================== */}
                         
                         {/* 로고 업로드 */}
@@ -619,14 +611,13 @@ export default function UnionForm({ mode, initialData, onSubmit, isSubmitting = 
                                     <FormItem>
                                         <FormLabel className="text-[16px] font-bold text-[#5FA37C]">사업 시행 인가일</FormLabel>
                                         <FormControl>
-                                            <Input
-                                                {...field}
-                                                type="date"
+                                            <DatePicker
+                                                value={field.value ? new Date(field.value) : undefined}
+                                                onChange={(date) => {
+                                                    field.onChange(date ? format(date, 'yyyy-MM-dd') : '');
+                                                }}
                                                 disabled={isReadOnly}
-                                                className={cn(
-                                                    'h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]',
-                                                    'bg-white'
-                                                )}
+                                                placeholder="날짜 선택"
                                             />
                                         </FormControl>
                                         <FormMessage />
@@ -676,8 +667,7 @@ export default function UnionForm({ mode, initialData, onSubmit, isSubmitting = 
                             </div>
                         )}
                     </form>
-                </Form>
-            </CardContent>
-        </Card>
+            </Form>
+        </div>
     );
 }

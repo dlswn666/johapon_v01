@@ -1741,6 +1741,7 @@ export type UpdateAlimtalkPricing = Database['public']['Tables']['alimtalk_prici
 // 알림톡 로그 + 조합 정보 타입
 export type AlimtalkLogWithUnion = AlimtalkLog & {
     union: { id: string; name: string; slug: string } | null;
+    sender: { id: string; name: string; email: string } | null;
 };
 
 // 알림톡 메시지 타입
