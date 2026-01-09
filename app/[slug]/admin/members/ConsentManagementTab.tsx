@@ -7,7 +7,6 @@ import {
     Upload,
     FileSpreadsheet,
     Users,
-    ChevronRight,
     X,
     Loader2,
     CheckCircle2,
@@ -177,7 +176,7 @@ export default function ConsentManagementTab() {
 
                 if (buildingsData && buildingsData.length > 0) {
                     const buildingIds = buildingsData.map((b) => b.id);
-                    
+
                     // building_units에서 해당 건물의 unit ID 조회
                     const { data: buildingUnitsData } = await supabase
                         .from('building_units')
@@ -186,7 +185,7 @@ export default function ConsentManagementTab() {
 
                     if (buildingUnitsData && buildingUnitsData.length > 0) {
                         const unitIds = buildingUnitsData.map((u) => u.id);
-                        
+
                         // user_property_units에서 해당 unit을 소유한 사용자 ID 조회
                         const { data: userPropertyUnitsData } = await supabase
                             .from('user_property_units')
@@ -895,8 +894,7 @@ export default function ConsentManagementTab() {
                         <div className="border border-gray-200 rounded-lg max-h-[350px] min-h-[200px] overflow-y-auto flex-grow">
                             {selectedMembers.length === 0 ? (
                                 <div className="p-8 text-center text-gray-400">
-                                    <ChevronRight className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                                    <p className="text-sm">왼쪽에서 조합원을 선택하세요</p>
+                                    <p className="text-sm">조합원을 선택하세요</p>
                                 </div>
                             ) : (
                                 <div className="divide-y divide-gray-100">

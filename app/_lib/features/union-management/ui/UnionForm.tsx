@@ -69,10 +69,11 @@ interface UnionFormProps {
     mode: 'create' | 'edit' | 'view';
     initialData?: UnionWithActive | null;
     onSubmit?: (data: UnionFormData) => Promise<void>;
+    onCancel?: () => void;
     isSubmitting?: boolean;
 }
 
-export default function UnionForm({ mode, initialData, onSubmit, isSubmitting = false }: UnionFormProps) {
+export default function UnionForm({ mode, initialData, onSubmit, onCancel, isSubmitting = false }: UnionFormProps) {
     const router = useRouter();
     const [logoFile, setLogoFile] = useState<File | null>(null);
     const [logoPreview, setLogoPreview] = useState<string | null>(null);
@@ -103,6 +104,7 @@ export default function UnionForm({ mode, initialData, onSubmit, isSubmitting = 
     });
 
     const businessType = form.watch('business_type');
+    const currentStageId = form.watch('current_stage_id');
 
     // 영문 ENUM을 한글로 변환하여 development_stages 조회
     const koreanBusinessType = businessType ? BUSINESS_TYPE_TO_KOREAN[businessType] : undefined;
@@ -111,6 +113,9 @@ export default function UnionForm({ mode, initialData, onSubmit, isSubmitting = 
     // initialData가 변경되면 폼 값 업데이트
     useEffect(() => {
         if (initialData) {
+            // 사업 유형이 없으면 기본값(REDEVELOPMENT) 설정
+            const defaultBusinessType = initialData.business_type || BUSINESS_TYPE_OPTIONS[0].value;
+
             form.reset({
                 name: initialData.name || '',
                 slug: initialData.slug || '',
@@ -120,7 +125,7 @@ export default function UnionForm({ mode, initialData, onSubmit, isSubmitting = 
                 office_phone: initialData.office_phone || '',
                 registration_number: initialData.registration_number || '',
                 business_hours: initialData.business_hours || '',
-                business_type: initialData.business_type || '',
+                business_type: defaultBusinessType,
                 district_name: initialData.district_name || '',
                 current_stage_id: initialData.current_stage_id || null,
                 member_count: initialData.member_count || 0,
@@ -133,6 +138,13 @@ export default function UnionForm({ mode, initialData, onSubmit, isSubmitting = 
             }
         }
     }, [initialData, form]);
+
+    // stages가 로드되고 current_stage_id가 없으면 첫 번째 단계를 기본값으로 설정
+    useEffect(() => {
+        if (stages && stages.length > 0 && !currentStageId) {
+            form.setValue('current_stage_id', stages[0].id);
+        }
+    }, [stages, currentStageId, form]);
 
     const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -223,450 +235,478 @@ export default function UnionForm({ mode, initialData, onSubmit, isSubmitting = 
         <div className="max-w-4xl mx-auto">
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-8">
-                        {/* ==================== 기본 정보 ==================== */}
-                        
-                        {/* 로고 업로드 */}
-                        <div className="space-y-2">
-                            <FormLabel className="text-[16px] font-bold text-[#5FA37C]">로고</FormLabel>
-                            <div className="flex items-center gap-4">
-                                {logoPreview ? (
-                                    <div className="relative w-24 h-24">
-                                        <Image
-                                            src={logoPreview}
-                                            alt="로고 미리보기"
-                                            fill
-                                            className="rounded-lg object-cover border"
-                                        />
-                                        {!isReadOnly && (
-                                            <button
-                                                type="button"
-                                                onClick={handleRemoveLogo}
-                                                className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 z-10"
-                                            >
-                                                <X className="w-4 h-4" />
-                                            </button>
-                                        )}
-                                    </div>
-                                ) : (
-                                    <div className="w-24 h-24 border-2 border-dashed rounded-lg flex items-center justify-center bg-gray-50">
+                    {/* ==================== 기본 정보 ==================== */}
+
+                    {/* 로고 업로드 */}
+                    <div className="space-y-2">
+                        <FormLabel className="text-[16px] font-bold text-[#5FA37C]">로고</FormLabel>
+                        <div className="flex items-center gap-4">
+                            {logoPreview ? (
+                                <div className="relative w-24 h-24">
+                                    <Image
+                                        src={logoPreview}
+                                        alt="로고 미리보기"
+                                        fill
+                                        className="rounded-lg object-cover border"
+                                    />
+                                    {!isReadOnly && (
+                                        <button
+                                            type="button"
+                                            onClick={handleRemoveLogo}
+                                            className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 z-10"
+                                        >
+                                            <X className="w-4 h-4" />
+                                        </button>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="w-24 h-24 border-2 border-dashed rounded-lg flex flex-col items-center justify-center bg-gray-50 text-center p-2">
+                                    {isReadOnly ? (
+                                        <p className="text-xs text-gray-500">
+                                            조합 로고를
+                                            <br />
+                                            등록해주세요
+                                        </p>
+                                    ) : (
                                         <Upload className="w-8 h-8 text-gray-400" />
-                                    </div>
-                                )}
-                                {!isReadOnly && (
-                                    <div>
-                                        <Input
-                                            type="file"
-                                            accept="image/*"
-                                            onChange={handleLogoChange}
-                                            className="hidden"
-                                            id="logo-upload"
-                                        />
-                                        <FormLabel
-                                            htmlFor="logo-upload"
-                                            className="cursor-pointer inline-flex items-center px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium"
-                                        >
-                                            <Upload className="w-4 h-4 mr-2" />
-                                            이미지 선택
-                                        </FormLabel>
-                                        <p className="text-xs text-gray-500 mt-1">권장: 200x200px, PNG/JPG</p>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* 조합명 */}
-                        <FormField
-                            control={form.control}
-                            name="name"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel className="text-[16px] font-bold text-[#5FA37C]">
-                                        조합명 <span className="text-red-500">*</span>
+                                    )}
+                                </div>
+                            )}
+                            {!isReadOnly && (
+                                <div>
+                                    <Input
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={handleLogoChange}
+                                        className="hidden"
+                                        id="logo-upload"
+                                    />
+                                    <FormLabel
+                                        htmlFor="logo-upload"
+                                        className="cursor-pointer inline-flex items-center px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium"
+                                    >
+                                        <Upload className="w-4 h-4 mr-2" />
+                                        이미지 선택
                                     </FormLabel>
-                                    <FormControl>
-                                        <Input
-                                            {...field}
-                                            placeholder="조합명을 입력하세요"
-                                            disabled={isReadOnly}
-                                            onChange={(e) => {
-                                                field.onChange(e);
-                                                handleNameChange(e.target.value);
-                                            }}
-                                            className={cn(
-                                                'h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]',
-                                                'bg-white'
-                                            )}
-                                        />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
+                                    <p className="text-xs text-gray-500 mt-1">권장: 200x200px, PNG/JPG</p>
+                                </div>
                             )}
-                        />
-
-                        {/* Slug */}
-                        <FormField
-                            control={form.control}
-                            name="slug"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel className="text-[16px] font-bold text-[#5FA37C]">
-                                        Slug (URL 경로) <span className="text-red-500">*</span>
-                                    </FormLabel>
-                                    <FormControl>
-                                        <Input
-                                            {...field}
-                                            placeholder="예: my-union"
-                                            disabled={isReadOnly || mode === 'edit'}
-                                            className={cn(
-                                                'h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]',
-                                                'bg-white'
-                                            )}
-                                        />
-                                    </FormControl>
-                                    <p className="text-xs text-gray-500">URL에 사용됩니다: example.com/{field.value || 'slug'}</p>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-
-                        {/* 조합 소개 */}
-                        <FormField
-                            control={form.control}
-                            name="description"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel className="text-[16px] font-bold text-[#5FA37C]">조합 소개</FormLabel>
-                                    <FormControl>
-                                        <Textarea
-                                            {...field}
-                                            placeholder="조합 소개를 입력하세요"
-                                            rows={3}
-                                            disabled={isReadOnly}
-                                            className={cn(
-                                                'text-[16px] rounded-[12px] border-[#CCCCCC]',
-                                                'bg-white'
-                                            )}
-                                        />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-
-                        {/* ==================== 조합 정보 (기존 사업소 정보) ==================== */}
-                        <div className="pt-4 pb-2 border-t">
-                            <h3 className="text-lg font-semibold text-gray-900">조합 정보</h3>
                         </div>
+                    </div>
 
-                        {/* 사무실 주소 */}
-                        <FormField
-                            control={form.control}
-                            name="office_address"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel className="text-[16px] font-bold text-[#5FA37C]">사무실 주소</FormLabel>
-                                    <FormControl>
-                                        <Input
-                                            {...field}
-                                            placeholder="사무실 상세 주소를 입력하세요"
-                                            disabled={isReadOnly}
-                                            className={cn(
-                                                'h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]',
-                                                'bg-white'
-                                            )}
-                                        />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {/* 사무실 전화번호 */}
-                            <FormField
-                                control={form.control}
-                                name="office_phone"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel className="text-[16px] font-bold text-[#5FA37C]">사무실 전화번호</FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                {...field}
-                                                placeholder="02-123-4567"
-                                                disabled={isReadOnly}
-                                                className={cn(
-                                                    'h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]',
-                                                    'bg-white'
-                                                )}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-
-                            {/* 사업자 등록번호 */}
-                            <FormField
-                                control={form.control}
-                                name="registration_number"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel className="text-[16px] font-bold text-[#5FA37C]">사업자 등록번호</FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                {...field}
-                                                placeholder="000-00-00000"
-                                                disabled={isReadOnly}
-                                                className={cn(
-                                                    'h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]',
-                                                    'bg-white'
-                                                )}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        </div>
-
-                        {/* 운영시간 (기본 연락처 정보에서 이동) */}
-                        <FormField
-                            control={form.control}
-                            name="business_hours"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel className="text-[16px] font-bold text-[#5FA37C]">운영시간</FormLabel>
-                                    <FormControl>
-                                        <Input
-                                            {...field}
-                                            placeholder="평일 09:00~18:00, 주말 휴무"
-                                            disabled={isReadOnly}
-                                            className={cn(
-                                                'h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]',
-                                                'bg-white'
-                                            )}
-                                        />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-
-                        {/* ==================== 조합 상세 정보 (기존 사업 상세 정보) ==================== */}
-                        <div className="pt-4 pb-2 border-t">
-                            <h3 className="text-lg font-semibold text-gray-900">조합 상세 정보</h3>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {/* 사업 유형 */}
-                            <FormField
-                                control={form.control}
-                                name="business_type"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel className="text-[16px] font-bold text-[#5FA37C]">사업 유형</FormLabel>
-                                        <Select
-                                            onValueChange={field.onChange}
-                                            value={field.value || ''}
-                                            disabled={isReadOnly}
-                                        >
-                                            <FormControl>
-                                                <SelectTrigger
-                                                    className={cn(
-                                                        'h-[48px] w-full text-[16px] rounded-[12px] border-[#CCCCCC]',
-                                                        'bg-white'
-                                                    )}
-                                                >
-                                                    <SelectValue placeholder="선택하세요" />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                {BUSINESS_TYPE_OPTIONS.map((option) => (
-                                                    <SelectItem key={option.value} value={option.value}>
-                                                        {option.label}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-
-                            {/* 구역명 */}
-                            <FormField
-                                control={form.control}
-                                name="district_name"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel className="text-[16px] font-bold text-[#5FA37C]">구역명</FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                {...field}
-                                                placeholder="예: 미아 3구역"
-                                                disabled={isReadOnly}
-                                                className={cn(
-                                                    'h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]',
-                                                    'bg-white'
-                                                )}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {/* 현재 진행 단계 */}
-                            <FormField
-                                control={form.control}
-                                name="current_stage_id"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel className="text-[16px] font-bold text-[#5FA37C]">현재 진행 단계</FormLabel>
-                                        <Select
-                                            onValueChange={field.onChange}
-                                            value={field.value || ''}
-                                            disabled={isReadOnly || !businessType}
-                                        >
-                                            <FormControl>
-                                                <SelectTrigger
-                                                    className={cn(
-                                                        'h-[48px] w-full text-[16px] rounded-[12px] border-[#CCCCCC]',
-                                                        'bg-white'
-                                                    )}
-                                                >
-                                                    <SelectValue placeholder={businessType ? '선택하세요' : '사업 유형을 먼저 선택하세요'} />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                {stages?.map((stage) => (
-                                                    <SelectItem key={stage.id} value={stage.id}>
-                                                        {stage.stage_name}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-
-                            {/* 조합원 수 */}
-                            <FormField
-                                control={form.control}
-                                name="member_count"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel className="text-[16px] font-bold text-[#5FA37C]">조합원 수</FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                {...field}
-                                                type="number"
-                                                placeholder="0"
-                                                disabled={isReadOnly}
-                                                onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                                                className={cn(
-                                                    'h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]',
-                                                    'bg-white'
-                                                )}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {/* 조합 설립일 */}
-                            <FormField
-                                control={form.control}
-                                name="establishment_date"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel className="text-[16px] font-bold text-[#5FA37C]">조합 설립일</FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                {...field}
-                                                type="date"
-                                                disabled={isReadOnly}
-                                                className={cn(
-                                                    'h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]',
-                                                    'bg-white'
-                                                )}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-
-                            {/* 사업 시행 인가일 */}
-                            <FormField
-                                control={form.control}
-                                name="approval_date"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel className="text-[16px] font-bold text-[#5FA37C]">사업 시행 인가일</FormLabel>
-                                        <FormControl>
-                                            <DatePicker
-                                                value={field.value ? new Date(field.value) : undefined}
-                                                onChange={(date) => {
-                                                    field.onChange(date ? format(date, 'yyyy-MM-dd') : '');
-                                                }}
-                                                disabled={isReadOnly}
-                                                placeholder="날짜 선택"
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        </div>
-
-                        {/* 사업 면적 (추가) */}
-                        <FormField
-                            control={form.control}
-                            name="area_size"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel className="text-[16px] font-bold text-[#5FA37C]">사업 면적 (㎡)</FormLabel>
-                                    <FormControl>
-                                        <Input
-                                            {...field}
-                                            type="text"
-                                            placeholder="예: 12000"
-                                            disabled={isReadOnly}
-                                            className={cn(
-                                                'h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]',
-                                                'bg-white'
-                                            )}
-                                        />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-
-                        {/* 버튼 영역 */}
-                        {!isReadOnly && (
-                            <div className="flex justify-end gap-3 pt-6 border-t border-[#CCCCCC]">
-                                <Button type="button" variant="outline" onClick={() => router.back()}>
-                                    취소
-                                </Button>
-                                <Button
-                                    type="submit"
-                                    disabled={isSubmitting || isUploading}
-                                    className="bg-[#4E8C6D] hover:bg-[#3d7359]"
-                                >
-                                    {(isSubmitting || isUploading) && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                                    {mode === 'create' ? '등록' : '수정 완료'}
-                                </Button>
-                            </div>
+                    {/* 조합명 */}
+                    <FormField
+                        control={form.control}
+                        name="name"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel className="text-[16px] font-bold text-[#5FA37C]">
+                                    조합명 <span className="text-red-500">*</span>
+                                </FormLabel>
+                                <FormControl>
+                                    <Input
+                                        {...field}
+                                        placeholder="조합명을 입력하세요"
+                                        disabled={isReadOnly}
+                                        onChange={(e) => {
+                                            field.onChange(e);
+                                            handleNameChange(e.target.value);
+                                        }}
+                                        className={cn(
+                                            'h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]',
+                                            'bg-white'
+                                        )}
+                                    />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
                         )}
-                    </form>
+                    />
+
+                    {/* Slug */}
+                    <FormField
+                        control={form.control}
+                        name="slug"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel className="text-[16px] font-bold text-[#5FA37C]">
+                                    Slug (URL 경로) <span className="text-red-500">*</span>
+                                </FormLabel>
+                                <FormControl>
+                                    <Input
+                                        {...field}
+                                        placeholder="예: my-union"
+                                        disabled={isReadOnly || mode === 'edit'}
+                                        className={cn(
+                                            'h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]',
+                                            'bg-white'
+                                        )}
+                                    />
+                                </FormControl>
+                                <p className="text-xs text-gray-500">
+                                    URL에 사용됩니다: example.com/{field.value || 'slug'}
+                                </p>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+
+                    {/* 조합 소개 */}
+                    <FormField
+                        control={form.control}
+                        name="description"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel className="text-[16px] font-bold text-[#5FA37C]">조합 소개</FormLabel>
+                                <FormControl>
+                                    <Textarea
+                                        {...field}
+                                        placeholder="조합 소개를 입력하세요"
+                                        rows={3}
+                                        disabled={isReadOnly}
+                                        className={cn('text-[16px] rounded-[12px] border-[#CCCCCC]', 'bg-white')}
+                                    />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+
+                    {/* ==================== 조합 정보 (기존 사업소 정보) ==================== */}
+                    <div className="pt-4 pb-2 border-t">
+                        <h3 className="text-lg font-semibold text-gray-900">조합 정보</h3>
+                    </div>
+
+                    {/* 사무실 주소 */}
+                    <FormField
+                        control={form.control}
+                        name="office_address"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel className="text-[16px] font-bold text-[#5FA37C]">사무실 주소</FormLabel>
+                                <FormControl>
+                                    <Input
+                                        {...field}
+                                        placeholder="사무실 상세 주소를 입력하세요"
+                                        disabled={isReadOnly}
+                                        className={cn(
+                                            'h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]',
+                                            'bg-white'
+                                        )}
+                                    />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* 사무실 전화번호 */}
+                        <FormField
+                            control={form.control}
+                            name="office_phone"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel className="text-[16px] font-bold text-[#5FA37C]">
+                                        사무실 전화번호
+                                    </FormLabel>
+                                    <FormControl>
+                                        <Input
+                                            {...field}
+                                            placeholder="02-123-4567"
+                                            disabled={isReadOnly}
+                                            className={cn(
+                                                'h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]',
+                                                'bg-white'
+                                            )}
+                                        />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        {/* 사업자 등록번호 */}
+                        <FormField
+                            control={form.control}
+                            name="registration_number"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel className="text-[16px] font-bold text-[#5FA37C]">
+                                        사업자 등록번호
+                                    </FormLabel>
+                                    <FormControl>
+                                        <Input
+                                            {...field}
+                                            placeholder="000-00-00000"
+                                            disabled={isReadOnly}
+                                            className={cn(
+                                                'h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]',
+                                                'bg-white'
+                                            )}
+                                        />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    </div>
+
+                    {/* 운영시간 (기본 연락처 정보에서 이동) */}
+                    <FormField
+                        control={form.control}
+                        name="business_hours"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel className="text-[16px] font-bold text-[#5FA37C]">운영시간</FormLabel>
+                                <FormControl>
+                                    <Input
+                                        {...field}
+                                        placeholder="평일 09:00~18:00, 주말 휴무"
+                                        disabled={isReadOnly}
+                                        className={cn(
+                                            'h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]',
+                                            'bg-white'
+                                        )}
+                                    />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+
+                    {/* ==================== 조합 상세 정보 (기존 사업 상세 정보) ==================== */}
+                    <div className="pt-4 pb-2 border-t">
+                        <h3 className="text-lg font-semibold text-gray-900">조합 상세 정보</h3>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* 사업 유형 */}
+                        <FormField
+                            control={form.control}
+                            name="business_type"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel className="text-[16px] font-bold text-[#5FA37C]">사업 유형</FormLabel>
+                                    <Select
+                                        onValueChange={field.onChange}
+                                        value={field.value || ''}
+                                        disabled={isReadOnly}
+                                    >
+                                        <FormControl>
+                                            <SelectTrigger
+                                                className={cn(
+                                                    'h-[48px] w-full text-[16px] rounded-[12px] border-[#CCCCCC]',
+                                                    'bg-white'
+                                                )}
+                                            >
+                                                <SelectValue placeholder="선택하세요" />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            {BUSINESS_TYPE_OPTIONS.map((option) => (
+                                                <SelectItem key={option.value} value={option.value}>
+                                                    {option.label}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        {/* 구역명 */}
+                        <FormField
+                            control={form.control}
+                            name="district_name"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel className="text-[16px] font-bold text-[#5FA37C]">구역명</FormLabel>
+                                    <FormControl>
+                                        <Input
+                                            {...field}
+                                            placeholder="예: 미아 3구역"
+                                            disabled={isReadOnly}
+                                            className={cn(
+                                                'h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]',
+                                                'bg-white'
+                                            )}
+                                        />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* 현재 진행 단계 */}
+                        <FormField
+                            control={form.control}
+                            name="current_stage_id"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel className="text-[16px] font-bold text-[#5FA37C]">
+                                        현재 진행 단계
+                                    </FormLabel>
+                                    <Select
+                                        onValueChange={field.onChange}
+                                        value={field.value || ''}
+                                        disabled={isReadOnly || !businessType}
+                                    >
+                                        <FormControl>
+                                            <SelectTrigger
+                                                className={cn(
+                                                    'h-[48px] w-full text-[16px] rounded-[12px] border-[#CCCCCC]',
+                                                    'bg-white'
+                                                )}
+                                            >
+                                                <SelectValue
+                                                    placeholder={
+                                                        businessType ? '선택하세요' : '사업 유형을 먼저 선택하세요'
+                                                    }
+                                                />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            {stages?.map((stage) => (
+                                                <SelectItem key={stage.id} value={stage.id}>
+                                                    {stage.stage_name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        {/* 조합원 수 */}
+                        <FormField
+                            control={form.control}
+                            name="member_count"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel className="text-[16px] font-bold text-[#5FA37C]">조합원 수</FormLabel>
+                                    <FormControl>
+                                        <Input
+                                            {...field}
+                                            type="number"
+                                            placeholder="0"
+                                            disabled={isReadOnly}
+                                            onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                                            className={cn(
+                                                'h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]',
+                                                'bg-white'
+                                            )}
+                                        />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* 조합 설립일 */}
+                        <FormField
+                            control={form.control}
+                            name="establishment_date"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel className="text-[16px] font-bold text-[#5FA37C]">조합 설립일</FormLabel>
+                                    <FormControl>
+                                        <DatePicker
+                                            value={field.value ? new Date(field.value) : undefined}
+                                            onChange={(date) => {
+                                                field.onChange(date ? format(date, 'yyyy-MM-dd') : '');
+                                            }}
+                                            disabled={isReadOnly}
+                                            placeholder="날짜 선택"
+                                        />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        {/* 사업 시행 인가일 */}
+                        <FormField
+                            control={form.control}
+                            name="approval_date"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel className="text-[16px] font-bold text-[#5FA37C]">
+                                        사업 시행 인가일
+                                    </FormLabel>
+                                    <FormControl>
+                                        <DatePicker
+                                            value={field.value ? new Date(field.value) : undefined}
+                                            onChange={(date) => {
+                                                field.onChange(date ? format(date, 'yyyy-MM-dd') : '');
+                                            }}
+                                            disabled={isReadOnly}
+                                            placeholder="날짜 선택"
+                                        />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    </div>
+
+                    {/* 사업 면적 (추가) */}
+                    <FormField
+                        control={form.control}
+                        name="area_size"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel className="text-[16px] font-bold text-[#5FA37C]">사업 면적 (㎡)</FormLabel>
+                                <FormControl>
+                                    <Input
+                                        {...field}
+                                        type="text"
+                                        placeholder="예: 12000"
+                                        disabled={isReadOnly}
+                                        className={cn(
+                                            'h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]',
+                                            'bg-white'
+                                        )}
+                                    />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+
+                    {/* 버튼 영역 */}
+                    {!isReadOnly && (
+                        <div className="flex justify-end gap-3 pt-6 border-t border-[#CCCCCC]">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => {
+                                    if (onCancel) {
+                                        onCancel();
+                                    } else {
+                                        router.back();
+                                    }
+                                }}
+                            >
+                                취소
+                            </Button>
+                            <Button
+                                type="submit"
+                                disabled={isSubmitting || isUploading}
+                                className="bg-[#4E8C6D] hover:bg-[#3d7359]"
+                            >
+                                {(isSubmitting || isUploading) && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                                {mode === 'create' ? '등록' : '저장'}
+                            </Button>
+                        </div>
+                    )}
+                </form>
             </Form>
         </div>
     );
