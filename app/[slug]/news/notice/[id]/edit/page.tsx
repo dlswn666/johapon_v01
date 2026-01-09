@@ -53,6 +53,7 @@ const EditNoticePage = () => {
     const { mutate: updateNotice, isPending } = useUpdateNotice();
 
     // Store cleanup actions
+    const addEditorImage = useNoticeStore((state) => state.addEditorImage);
     const clearEditorImages = useNoticeStore((state) => state.clearEditorImages);
     const clearTempFiles = useFileStore((state) => state.clearTempFiles);
 
@@ -264,6 +265,7 @@ const EditNoticePage = () => {
                                                 content={field.value}
                                                 onChange={field.onChange}
                                                 placeholder="내용을 입력해주세요"
+                                                onAddImage={addEditorImage}
                                             />
                                         </FormControl>
                                         <FormMessage />

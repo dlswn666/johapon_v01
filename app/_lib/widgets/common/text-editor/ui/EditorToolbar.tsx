@@ -19,10 +19,11 @@ import { useEditorImage } from '../model/useEditorImage';
 
 interface EditorToolbarProps {
     editor: Editor | null;
+    onAddImage?: (blobUrl: string, file: File) => void;
 }
 
-export const EditorToolbar = ({ editor }: EditorToolbarProps) => {
-    const { addImage } = useEditorImage(editor);
+export const EditorToolbar = ({ editor, onAddImage }: EditorToolbarProps) => {
+    const { addImage } = useEditorImage(editor, onAddImage);
 
     if (!editor) {
         return null;

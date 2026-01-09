@@ -13,6 +13,7 @@ interface TextEditorProps {
     placeholder?: string;
     editable?: boolean;
     className?: string;
+    onAddImage?: (blobUrl: string, file: File) => void;
 }
 
 export const TextEditor = ({
@@ -21,6 +22,7 @@ export const TextEditor = ({
     placeholder = '내용을 입력하세요...',
     editable = true,
     className,
+    onAddImage,
 }: TextEditorProps) => {
     const editor = useEditor({
         immediatelyRender: false,
@@ -66,7 +68,7 @@ export const TextEditor = ({
 
     return (
         <div className={cn("border border-input rounded-md bg-white shadow-sm w-full overflow-hidden", className)}>
-            <EditorToolbar editor={editor} />
+            <EditorToolbar editor={editor} onAddImage={onAddImage} />
             <EditorContent editor={editor} className="bg-white" />
         </div>
     );

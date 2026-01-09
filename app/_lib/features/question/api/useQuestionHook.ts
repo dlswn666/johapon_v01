@@ -253,8 +253,8 @@ export const useAddQuestion = () => {
                                 phoneNumber: admin.phone_number,
                                 name: admin.name,
                                 variables: {
-                                    사이트명: union.name,
-                                    회원명: user?.name || '회원',
+                                    게시판명: '질문하기',
+                                    작성자명: user?.name || '회원',
                                     글제목: questionData.title,
                                     등록일시: createdDate.toLocaleString('ko-KR'),
                                     조합슬러그: slug,
@@ -452,16 +452,25 @@ export const useAnswerQuestion = () => {
 
             // 3. 질문자에게 알림톡 발송
             try {
+                console.log('[답변 알림톡] 질문 작성자 조회 시작:', data.author_id);
+                
                 // 질문 작성자 정보 조회
-                const { data: author } = await supabaseClient
+                const { data: author, error: authorError } = await supabaseClient
                     .from('users')
                     .select('phone_number, name')
                     .eq('id', data.author_id)
                     .single();
 
-                if (author && author.phone_number) {
+                if (authorError) {
+                    console.error('[답변 알림톡] 질문 작성자 조회 실패:', authorError);
+                } else if (!author) {
+                    console.warn('[답변 알림톡] 질문 작성자를 찾을 수 없음:', data.author_id);
+                } else if (!author.phone_number) {
+                    console.warn('[답변 알림톡] 질문 작성자 전화번호 없음:', author.name);
+                } else {
+                    console.log('[답변 알림톡] 알림톡 발송 시작:', author.name, author.phone_number);
                     const answeredDate = new Date(answeredAt);
-                    await sendAlimTalk({
+                    const alimTalkResult = await sendAlimTalk({
                         unionId: union.id,
                         templateCode: 'UE_3000', // 질문 답변 알림 템플릿
                         recipients: [{
@@ -477,9 +486,10 @@ export const useAnswerQuestion = () => {
                             },
                         }],
                     });
+                    console.log('[답변 알림톡] 발송 결과:', alimTalkResult);
                 }
             } catch (alimTalkError) {
-                console.error('알림톡 발송 실패 (답변 등록):', alimTalkError);
+                console.error('[답변 알림톡] 알림톡 발송 실패 (답변 등록):', alimTalkError);
                 // 알림톡 발송 실패해도 답변 등록은 성공으로 처리
             }
 

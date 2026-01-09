@@ -30,6 +30,7 @@ const NewQuestionPage = () => {
     const { mutate: addQuestion, isPending } = useAddQuestion();
     
     // Store cleanup actions
+    const addEditorImage = useQuestionStore((state) => state.addEditorImage);
     const clearEditorImages = useQuestionStore((state) => state.clearEditorImages);
 
     // Mount/Unmount cleanup
@@ -114,6 +115,7 @@ const NewQuestionPage = () => {
                                                 content={field.value}
                                                 onChange={field.onChange}
                                                 placeholder="질문 내용을 입력해주세요. 이미지를 첨부할 수 있습니다."
+                                                onAddImage={addEditorImage}
                                             />
                                         </FormControl>
                                         <FormMessage />

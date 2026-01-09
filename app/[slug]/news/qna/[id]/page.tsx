@@ -1,7 +1,7 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuestion, useIncrementQuestionViews, useDeleteQuestion, useAnswerQuestion, useDeleteAnswer } from '@/app/_lib/features/question/api/useQuestionHook';
@@ -10,6 +10,7 @@ import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import ConfirmModal from '@/app/_lib/widgets/modal/ConfirmModal';
 import AlertModal from '@/app/_lib/widgets/modal/AlertModal';
 import useModalStore from '@/app/_lib/shared/stores/modal/useModalStore';
+import useQuestionStore from '@/app/_lib/features/question/model/useQuestionStore';
 import { TextEditor } from '@/app/_lib/widgets/common/text-editor';
 import { Lock, CheckCircle, User } from 'lucide-react';
 import { ActionButton } from '@/app/_lib/widgets/common/button';
@@ -30,6 +31,18 @@ const QuestionDetailPage = () => {
     const { mutate: answerQuestion, isPending: isAnswering } = useAnswerQuestion();
     const { mutate: deleteAnswer } = useDeleteAnswer();
     const openConfirmModal = useModalStore((state) => state.openConfirmModal);
+
+    // 답변 에디터 이미지 관리
+    const addAnswerEditorImage = useQuestionStore((state) => state.addAnswerEditorImage);
+    const clearAnswerEditorImages = useQuestionStore((state) => state.clearAnswerEditorImages);
+
+    // 컴포넌트 마운트/언마운트 시 이미지 Store 정리
+    useEffect(() => {
+        clearAnswerEditorImages();
+        return () => {
+            clearAnswerEditorImages();
+        };
+    }, [clearAnswerEditorImages]);
 
     // 답변 작성 모드
     const [isAnswerMode, setIsAnswerMode] = useState(false);
@@ -184,6 +197,7 @@ const QuestionDetailPage = () => {
                                     content={answerContent}
                                     onChange={setAnswerContent}
                                     placeholder="답변 내용을 입력해주세요. 이미지를 첨부할 수 있습니다."
+                                    onAddImage={addAnswerEditorImage}
                                 />
                                 <div className="flex justify-end gap-3">
                                     <ActionButton
