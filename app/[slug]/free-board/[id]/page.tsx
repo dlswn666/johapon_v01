@@ -1,7 +1,6 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import React from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -16,8 +15,6 @@ import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import ConfirmModal from '@/app/_lib/widgets/modal/ConfirmModal';
 import AlertModal from '@/app/_lib/widgets/modal/AlertModal';
 import useModalStore from '@/app/_lib/shared/stores/modal/useModalStore';
-import UnionNavigation from '@/app/_lib/widgets/union/navigation/Navigation';
-import UnionHeader from '@/app/_lib/widgets/union/header/UnionHeader';
 import { FileUploader } from '@/app/_lib/widgets/common/file-uploader/FileUploader';
 import { BoardComment } from '@/app/_lib/widgets/common/comment';
 import { formatDate, formatAuthorName } from '@/app/_lib/shared/utils/commonUtil';
@@ -76,14 +73,6 @@ const FreeBoardDetailPage = () => {
     return (
         <>
             <div className={cn('container mx-auto max-w-[1280px] px-4 py-8')}>
-                <div className="flex flex-col gap-6 mb-[80px]">
-                    <div className="flex justify-between items-center">
-                        <UnionHeader />
-                        <UnionNavigation />
-                    </div>
-                    <Separator className="bg-[#CCCCCC]" />
-                </div>
-
                 <div className="space-y-8">
                     <div className="flex justify-between items-start border-b border-[#CCCCCC] pb-6">
                         <h2 className="text-[32px] font-bold text-[#5FA37C]">{freeBoard.title}</h2>
@@ -120,7 +109,7 @@ const FreeBoardDetailPage = () => {
                     </div>
 
                     <div
-                        className="min-h-[300px] whitespace-pre-wrap py-4 prose prose-lg max-w-none text-[18px] leading-relaxed text-gray-800"
+                        className="min-h-[300px] whitespace-pre-wrap py-4 prose prose-lg max-w-none text-[18px] leading-relaxed text-gray-800 prose-img:max-w-full prose-img:h-auto prose-img:rounded-lg prose-img:my-4"
                         dangerouslySetInnerHTML={{ __html: freeBoard.content }}
                     />
 

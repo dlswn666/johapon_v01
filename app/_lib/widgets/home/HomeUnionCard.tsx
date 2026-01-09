@@ -49,14 +49,14 @@ function InfoCard({ icon, label, value, unit }: InfoCardProps) {
     const displayValue = value !== null && value !== undefined && value !== '' ? `${value}${unit || ''}` : '-';
 
     return (
-        <div className="bg-[#f4f5f6] rounded-[12px] px-[28px] py-[15px] h-[63px] flex items-center justify-between min-w-[240px]">
-            <div className="flex items-center gap-[15px]">
+        <div className="bg-[#f4f5f6] rounded-[6px] md:rounded-[12px] px-[14px] md:px-[28px] py-[7px] md:py-[15px] h-[32px] md:h-[63px] flex items-center justify-between w-full md:min-w-[240px] md:w-auto">
+            <div className="flex items-center gap-[7px] md:gap-[15px]">
                 <div className="text-[#33363d]">{icon}</div>
-                <span className="font-semibold text-[20px] text-[#33363d] tracking-[1px] whitespace-nowrap">
+                <span className="font-semibold text-[15px] md:text-[20px] text-[#33363d] tracking-[0.5px] md:tracking-[1px] whitespace-nowrap">
                     {label}
                 </span>
             </div>
-            <span className="font-normal text-[18px] text-[#33363d] tracking-[1px] whitespace-nowrap">
+            <span className="font-medium md:font-normal text-[15px] md:text-[18px] text-[#33363d] tracking-[0.5px] md:tracking-[1px] whitespace-nowrap">
                 {displayValue}
             </span>
         </div>
@@ -92,32 +92,32 @@ export function HomeUnionCard() {
     if (!union) return null;
 
     return (
-        <div className="bg-white border border-[#cdd1d5] rounded-[12px] p-[30px] overflow-hidden relative">
+        <div className="bg-white border border-[#cdd1d5] rounded-[6px] md:rounded-[12px] p-[10px] md:p-[30px] overflow-hidden relative h-full">
             {/* 헤더 영역 */}
-            <div className="flex items-center gap-[20px] mb-[20px]">
-                <h3 className="font-bold text-[32px] text-black tracking-[1px]">{union.name}</h3>
+            <div className="flex items-center gap-[10px] md:gap-[20px] mb-[10px] md:mb-[20px]">
+                <h3 className="font-bold text-[16px] md:text-[32px] text-black tracking-[0.5px] md:tracking-[1px]">{union.name}</h3>
                 {visitorCount !== null && (
-                    <span className="font-semibold text-[14px] text-[#818181]">접속자 수 : {visitorCount}명</span>
+                    <span className="font-semibold text-[10px] md:text-[14px] text-[#818181]">접속자 수 : {visitorCount}명</span>
                 )}
             </div>
 
-            {/* 정보 카드들 */}
-            <div className="flex gap-[34px] flex-wrap">
+            {/* 정보 카드들: 모바일(세로), PC(가로) */}
+            <div className="flex flex-col md:flex-row gap-[2.5px] md:gap-[34px] md:flex-wrap">
                 <InfoCard
-                    icon={<GroupsIcon className="size-[24px]" />}
+                    icon={<GroupsIcon className="size-[20px] md:size-[24px]" />}
                     label="조합원 수"
                     value={union.member_count}
                     unit="명"
                 />
                 <InfoCard
-                    icon={<SquareFootIcon className="size-[24px]" />}
+                    icon={<SquareFootIcon className="size-[20px] md:size-[24px]" />}
                     label="면적"
                     value={union.area_size}
                     unit="평"
                 />
-                <InfoCard icon={<LayersIcon className="size-[24px]" />} label="단계" value={currentStage?.stage_name} />
+                <InfoCard icon={<LayersIcon className="size-[20px] md:size-[24px]" />} label="단계" value={currentStage?.stage_name} />
                 <InfoCard
-                    icon={<LeaderboardIcon className="size-[24px]" />}
+                    icon={<LeaderboardIcon className="size-[20px] md:size-[24px]" />}
                     label="동의율"
                     value={consentRate}
                     unit="%"

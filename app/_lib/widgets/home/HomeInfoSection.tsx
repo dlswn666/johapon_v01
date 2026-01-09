@@ -48,20 +48,20 @@ export function HomeInfoSection() {
     };
 
     return (
-        <div className="bg-white border border-[#cdd1d5] rounded-[12px] px-[24px] py-[28px] h-[235px] overflow-hidden">
+        <div className="bg-white border border-[#cdd1d5] rounded-[5px] md:rounded-[12px] px-[11px] md:px-[24px] py-[12px] md:py-[28px] h-auto md:h-[235px] overflow-hidden">
             {/* 섹션 제목 */}
-            <h3 className="font-bold text-[24px] text-black tracking-[1px] mb-[30px]">재개발 정보</h3>
+            <h3 className="font-bold text-[14px] md:text-[24px] text-black tracking-[0.45px] md:tracking-[1px] mb-[13px] md:mb-[30px]">재개발 정보</h3>
 
-            {/* 링크 그리드 */}
-            <div className="flex gap-[10px]">
+            {/* 링크 그리드: 모바일(가로 스크롤), PC(일반 flex) */}
+            <div className="flex gap-[4px] md:gap-[10px] overflow-x-auto md:overflow-visible scrollbar-hide pb-2 md:pb-0">
                 {INFO_LINKS.map((link) => (
                     <div
                         key={link.id}
                         onClick={() => handleLinkClick(link.url)}
-                        className="h-[81px] w-[140px] rounded-[8px] border border-[#cdd1d5] overflow-hidden flex items-center justify-center hover:opacity-80 transition-opacity cursor-pointer shrink-0"
+                        className="h-[53px] md:h-[81px] w-[91px] md:w-[140px] rounded-[4px] md:rounded-[8px] border border-[#cdd1d5] overflow-hidden flex items-center justify-center hover:opacity-80 transition-opacity cursor-pointer shrink-0"
                         style={{ backgroundColor: link.bgColor }}
                     >
-                        <Image src={link.icon} alt={link.label} width={100} height={34} className="object-contain" />
+                        <Image src={link.icon} alt={link.label} width={100} height={34} className="object-contain w-[62px] md:w-[100px] h-auto" />
                     </div>
                 ))}
             </div>

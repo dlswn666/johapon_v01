@@ -192,24 +192,24 @@ export function HeroSlider({ slides, autoPlayInterval = 4000, className }: HeroS
                 <>
                     <button
                         onClick={goToPrev}
-                        className="absolute left-[36px] top-1/2 -translate-y-1/2 bg-[rgba(255,255,255,0.3)] hover:bg-[rgba(255,255,255,0.4)] text-white rounded-full transition-colors z-20 w-[63px] h-[63px] flex items-center justify-center cursor-pointer"
+                        className="absolute left-[16px] md:left-[36px] top-1/2 -translate-y-1/2 bg-[rgba(255,255,255,0.3)] hover:bg-[rgba(255,255,255,0.4)] text-white rounded-full transition-colors z-20 w-[32px] h-[32px] md:w-[63px] md:h-[63px] flex items-center justify-center cursor-pointer"
                         aria-label="이전 슬라이드"
                     >
-                        <ChevronLeft className="w-6 h-6" />
+                        <ChevronLeft className="w-4 h-4 md:w-6 md:h-6" />
                     </button>
                     <button
                         onClick={goToNext}
-                        className="absolute right-[36px] top-1/2 -translate-y-1/2 bg-[rgba(255,255,255,0.3)] hover:bg-[rgba(255,255,255,0.4)] text-white rounded-full transition-colors z-20 w-[63px] h-[63px] flex items-center justify-center cursor-pointer"
+                        className="absolute right-[16px] md:right-[36px] top-1/2 -translate-y-1/2 bg-[rgba(255,255,255,0.3)] hover:bg-[rgba(255,255,255,0.4)] text-white rounded-full transition-colors z-20 w-[32px] h-[32px] md:w-[63px] md:h-[63px] flex items-center justify-center cursor-pointer"
                         aria-label="다음 슬라이드"
                     >
-                        <ChevronRight className="w-6 h-6" />
+                        <ChevronRight className="w-4 h-4 md:w-6 md:h-6" />
                     </button>
                 </>
             )}
 
             {/* 인디케이터 (슬라이드가 2개 이상일 때만) */}
             {hasMultipleSlides && (
-                <div className="absolute bottom-[50px] left-1/2 -translate-x-1/2 flex gap-[13.5px] z-20">
+                <div className="absolute bottom-[20px] md:bottom-[50px] left-1/2 -translate-x-1/2 flex gap-[8px] md:gap-[13.5px] z-20">
                     {activeSlides.map((_, index) => {
                         const isActive =
                             currentIndex === index ||
@@ -222,8 +222,8 @@ export function HeroSlider({ slides, autoPlayInterval = 4000, className }: HeroS
                                 className={cn(
                                     'rounded-full transition-all duration-300 cursor-pointer',
                                     isActive
-                                        ? 'bg-white w-[13.5px] h-[13.5px]'
-                                        : 'bg-[rgba(255,255,255,0.5)] w-[13.5px] h-[13.5px] hover:bg-[rgba(255,255,255,0.7)]'
+                                        ? 'bg-white w-[10px] h-[10px] md:w-[13.5px] md:h-[13.5px]'
+                                        : 'bg-[rgba(255,255,255,0.5)] w-[10px] h-[10px] md:w-[13.5px] md:h-[13.5px] hover:bg-[rgba(255,255,255,0.7)]'
                                 )}
                                 aria-label={`슬라이드 ${index + 1}로 이동`}
                             />

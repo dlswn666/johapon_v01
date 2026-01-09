@@ -45,9 +45,23 @@ export const useFreeBoards = (
                 .order('created_at', { ascending: false })
                 .range(offset, offset + limit - 1);
 
-            // 검색어가 있으면 필터 추가
+            // 검색어가 있으면 필터 추가 (제목, 내용, 작성자)
             if (searchQuery.trim()) {
-                query = query.or(`title.ilike.%${searchQuery}%,content.ilike.%${searchQuery}%`);
+                // 작성자 이름으로 검색하기 위해 먼저 users에서 일치하는 author_id 조회
+                const { data: matchingAuthors } = await supabase
+                    .from('users')
+                    .select('id')
+                    .ilike('name', `%${searchQuery}%`);
+
+                const authorIds = matchingAuthors?.map(a => a.id) || [];
+
+                if (authorIds.length > 0) {
+                    // 제목, 내용, 또는 작성자 ID로 검색
+                    query = query.or(`title.ilike.%${searchQuery}%,content.ilike.%${searchQuery}%,author_id.in.(${authorIds.join(',')})`);
+                } else {
+                    // 일치하는 작성자가 없으면 제목, 내용으로만 검색
+                    query = query.or(`title.ilike.%${searchQuery}%,content.ilike.%${searchQuery}%`);
+                }
             }
 
             const { data: freeBoardsData, error: freeBoardsError, count } = await query;

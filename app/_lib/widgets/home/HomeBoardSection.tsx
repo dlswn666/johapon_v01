@@ -140,6 +140,15 @@ export function HomeBoardSection() {
 
     const { data, isLoading, error, refetch } = getCurrentTabData();
 
+    // 모바일용 날짜 포맷팅 (MM/dd)
+    const formatDateMobile = (dateString: string) => {
+        try {
+            return format(new Date(dateString), 'MM/dd', { locale: ko });
+        } catch {
+            return dateString;
+        }
+    };
+
     // 게시글 아이템 렌더링
     const renderBoardItem = (
         item: Notice | FreeBoard | { id: number; title: string; created_at: string; views?: number },
@@ -156,36 +165,41 @@ export function HomeBoardSection() {
                 key={item.id}
                 onClick={handleClick}
                 className={cn(
-                    'flex items-center justify-between p-[10px] cursor-pointer hover:bg-gray-50 transition-colors',
+                    'flex items-center justify-between p-[5px] md:p-[10px] cursor-pointer hover:bg-gray-50 transition-colors',
                     index < (data?.length || 0) - 1 && 'border-b border-[#bcbcbc]'
                 )}
             >
-                <div className="flex items-center gap-[13px]">
-                    <span className="font-semibold text-[20px] text-black tracking-[1px] line-clamp-1">
+                <div className="flex items-center gap-[6px] md:gap-[13px] flex-1 min-w-0">
+                    <span className="font-medium md:font-semibold text-[14px] md:text-[20px] text-black tracking-[0.5px] md:tracking-[1px] truncate">
                         {item.title}
                     </span>
                 </div>
-                <span className="font-semibold text-[20px] text-[#777] tracking-[1px] whitespace-nowrap">
+                {/* PC에서는 yyyy-MM-dd, 모바일에서는 MM/dd */}
+                <span className="hidden md:block font-semibold text-[20px] text-[#777] tracking-[1px] whitespace-nowrap ml-2">
                     {formatDate(item.created_at)}
+                </span>
+                <span className="block md:hidden font-semibold text-[10px] text-[#777] tracking-[0.5px] whitespace-nowrap ml-2">
+                    {formatDateMobile(item.created_at)}
                 </span>
             </div>
         );
     };
 
     return (
-        <div className="flex gap-[20px] items-start">
-            {/* 좌측: 세로 탭 버튼 */}
-            <div className="flex flex-col gap-[20px] shrink-0">
+        <div className="flex flex-col md:flex-row gap-[16px] md:gap-[20px] items-stretch md:items-start">
+            {/* 탭 버튼: 모바일(가로 스크롤, 중앙 정렬) / PC(세로 배치) */}
+            <div className="flex md:flex-col gap-[10px] md:gap-[20px] shrink-0 overflow-x-auto md:overflow-visible pb-2 md:pb-0 scrollbar-hide justify-center md:justify-start">
                 {TABS.map((tab) => (
                     <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
                         className={cn(
-                            'h-[72px] px-[21px] rounded-[52px] flex items-center justify-center transition-colors cursor-pointer whitespace-nowrap',
-                            'font-bold text-[24px] tracking-[1px]',
+                            // 모바일: 작은 버튼, PC: 큰 버튼
+                            'h-[40px] md:h-[72px] px-[10px] md:px-[21px] rounded-[18px] md:rounded-[52px] flex items-center justify-center transition-colors cursor-pointer whitespace-nowrap shrink-0',
+                            'font-bold text-[16px] md:text-[24px] tracking-[1px]',
                             activeTab === tab.id
                                 ? 'bg-[#2f7f5f] text-white'
-                                : 'bg-white border-2 border-[#6fbf8f] text-[#2f7f5f] hover:bg-[#f0f9f4]'
+                                : 'bg-white border border-[#6fbf8f] md:border-2 text-[#2f7f5f] hover:bg-[#f0f9f4]'
                         )}
                     >
                         {tab.label}
@@ -193,44 +207,44 @@ export function HomeBoardSection() {
                 ))}
             </div>
 
-            {/* 우측: 게시글 목록 */}
-            <div className="flex-1 bg-[#f4f5f6] border border-[#bcbcbc] rounded-[12px] p-[20px]">
+            {/* 게시글 목록 - PC: 탭 버튼 영역과 동일한 고정 높이(348px), 모바일: 게시글 5개 + 헤더가 들어가는 높이(210px) */}
+            <div className="w-full md:flex-1 bg-[#f4f5f6] border border-[#bcbcbc] rounded-[6px] md:rounded-[12px] p-[10px] md:p-[20px] min-h-[210px] md:min-h-0 md:h-[348px] overflow-y-auto">
                 {/* 전체보기 헤더 */}
-                <div className="flex items-center justify-end gap-[13px] py-[5px] mb-[10px]">
+                <div className="flex items-center justify-end gap-[6px] md:gap-[13px] py-[2.5px] md:py-[5px] mb-[5px] md:mb-[10px]">
                     <button
                         onClick={handleViewAll}
-                        className="flex items-center gap-[8px] cursor-pointer hover:opacity-70 transition-opacity"
+                        className="flex items-center gap-[4px] md:gap-[8px] cursor-pointer hover:opacity-70 transition-opacity"
                     >
-                        <span className="font-semibold text-[20px] text-[#777] tracking-[1px]">전체보기</span>
-                        <ChevronRight className="size-[14px] text-[#777]" />
+                        <span className="font-semibold text-[10px] md:text-[20px] text-[#777] tracking-[0.5px] md:tracking-[1px]">전체보기</span>
+                        <ChevronRight className="size-[10px] md:size-[14px] text-[#777]" />
                     </button>
                 </div>
 
                 {/* 게시글 목록 */}
                 {isLoading ? (
-                    <div className="space-y-3">
+                    <div className="space-y-2 md:space-y-3">
                         {[...Array(5)].map((_, i) => (
-                            <Skeleton key={i} className="h-[44px] w-full" />
+                            <Skeleton key={i} className="h-[32px] md:h-[44px] w-full" />
                         ))}
                     </div>
                 ) : error ? (
-                    <div className="flex flex-col items-center justify-center py-10 space-y-3">
-                        <AlertCircle className="w-10 h-10 text-red-500" />
-                        <p className="text-gray-600">데이터를 불러오는 중 오류가 발생했습니다.</p>
+                    <div className="flex flex-col items-center justify-center py-6 md:py-10 space-y-2 md:space-y-3">
+                        <AlertCircle className="w-8 h-8 md:w-10 md:h-10 text-red-500" />
+                        <p className="text-gray-600 text-sm md:text-base">데이터를 불러오는 중 오류가 발생했습니다.</p>
                         <button
                             onClick={() => refetch()}
-                            className="flex items-center gap-2 px-4 py-2 bg-[#4e8c6d] text-white rounded-lg hover:bg-[#3d7a5c] transition-colors"
+                            className="flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 bg-[#4e8c6d] text-white rounded-lg hover:bg-[#3d7a5c] transition-colors text-sm md:text-base"
                         >
-                            <RefreshCw className="w-4 h-4" />
+                            <RefreshCw className="w-3 h-3 md:w-4 md:h-4" />
                             다시 시도
                         </button>
                     </div>
                 ) : activeTab === 'partner' ? (
-                    <div className="flex flex-col items-center justify-center py-10">
-                        <p className="text-gray-500 mb-4">제휴업체 목록을 확인하세요.</p>
+                    <div className="flex flex-col items-center justify-center py-6 md:py-10">
+                        <p className="text-gray-500 mb-3 md:mb-4 text-sm md:text-base">제휴업체 목록을 확인하세요.</p>
                         <button
                             onClick={handlePartnerClick}
-                            className="px-6 py-3 bg-[#4e8c6d] text-white rounded-lg hover:bg-[#3d7a5c] transition-colors font-semibold"
+                            className="px-4 py-2 md:px-6 md:py-3 bg-[#4e8c6d] text-white rounded-lg hover:bg-[#3d7a5c] transition-colors font-semibold text-sm md:text-base"
                         >
                             제휴업체 보기
                         </button>
@@ -238,8 +252,8 @@ export function HomeBoardSection() {
                 ) : data && data.length > 0 ? (
                     <div>{data.slice(0, 5).map((item, index) => renderBoardItem(item as Notice, index))}</div>
                 ) : (
-                    <div className="flex items-center justify-center py-10">
-                        <p className="text-gray-500">등록된 게시물이 없습니다.</p>
+                    <div className="flex items-center justify-center py-6 md:py-10">
+                        <p className="text-gray-500 text-sm md:text-base">등록된 게시물이 없습니다.</p>
                     </div>
                 )}
             </div>

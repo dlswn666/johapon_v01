@@ -2,7 +2,6 @@
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import React, { useState } from 'react';
@@ -14,8 +13,6 @@ import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import ConfirmModal from '@/app/_lib/widgets/modal/ConfirmModal';
 import AlertModal from '@/app/_lib/widgets/modal/AlertModal';
-import UnionNavigation from '@/app/_lib/widgets/union/navigation/Navigation';
-import UnionHeader from '@/app/_lib/widgets/union/header/UnionHeader';
 import { BoardListCard, ListCardItem } from '@/app/_lib/widgets/common/list-card';
 import { formatDate, formatAuthorName } from '@/app/_lib/shared/utils/commonUtil';
 
@@ -112,14 +109,6 @@ const FreeBoardPage = () => {
     return (
         <>
             <div className={cn('container mx-auto max-w-[1280px] px-4 py-8')}>
-                <div className="flex flex-col gap-6 mb-[80px]">
-                    <div className="flex justify-between items-center">
-                        <UnionHeader />
-                        <UnionNavigation />
-                    </div>
-                    <Separator className="bg-[#CCCCCC]" />
-                </div>
-
                 <div className={cn('flex justify-between items-center mb-6')}>
                     <h2 className={cn('text-[32px] font-bold text-[#5FA37C]')}>자유 게시판</h2>
                     <Button 
@@ -135,7 +124,7 @@ const FreeBoardPage = () => {
                     <div className="relative flex-1 max-w-[400px]">
                         <Input
                             type="text"
-                            placeholder="제목, 내용으로 검색"
+                            placeholder="제목, 내용, 작성자로 검색"
                             value={searchInput}
                             onChange={(e) => setSearchInput(e.target.value)}
                             onKeyPress={handleKeyPress}
@@ -199,12 +188,6 @@ const FreeBoardPage = () => {
                     </div>
                 )}
 
-                {/* 검색 결과 정보 */}
-                {totalCount > 0 && (
-                    <div className="text-center mt-4 text-[14px] text-gray-500">
-                        총 {totalCount}개의 게시글 중 {((currentPage - 1) * pageSize) + 1} - {Math.min(currentPage * pageSize, totalCount)}개 표시
-                    </div>
-                )}
             </div>
 
             <ConfirmModal />

@@ -3,24 +3,14 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
-import { UnionForm } from '@/app/_lib/features/union-management/ui';
+import { UnionForm, UnionFormData } from '@/app/_lib/features/union-management/ui';
 import { useCreateUnion } from '@/app/_lib/features/union-management/api/useUnionManagementHook';
 
 export default function NewUnionPage() {
     const router = useRouter();
     const createMutation = useCreateUnion();
 
-    const handleSubmit = async (data: {
-        name: string;
-        slug: string;
-        description: string;
-        address: string;
-        phone: string;
-        email: string;
-        business_hours: string;
-        logo_url: string;
-        is_active: boolean;
-    }) => {
+    const handleSubmit = async (data: UnionFormData) => {
         try {
             const result = await createMutation.mutateAsync({
                 name: data.name,

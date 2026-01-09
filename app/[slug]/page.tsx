@@ -11,6 +11,7 @@ import { NoticePopup } from '@/app/_lib/widgets/notice-popup';
 import { LandingPage } from '@/app/_lib/widgets/landing';
 import { UserStatusModal } from '@/app/_lib/widgets/modal';
 import { SideAdWidget } from '@/app/_lib/features/advertisement/ui/SideAdWidget';
+import { HomeBannerWidget } from '@/app/_lib/features/advertisement/ui/HomeBannerWidget';
 import { HomeBoardSection, HomeCommunitySection, HomeInfoSection, HomeUnionCard } from '@/app/_lib/widgets/home';
 
 export default function UnionHomePage() {
@@ -90,36 +91,54 @@ export default function UnionHomePage() {
             </section>
 
             {/* 메인 컨텐츠 섹션: 광고 | 컨텐츠 | 광고 3열 구조 */}
-            <section className="py-[79px]">
-                <div className="flex gap-[42px] justify-center px-4">
-                    {/* 좌측 광고 - 1820px 이상에서만 표시 */}
-                    <aside className="hidden min-[1820px]:block w-[265px] shrink-0">
+            <section className="py-[24px] md:py-[79px]">
+                <div className="flex gap-[42px] justify-center px-[16px] md:px-4">
+                    {/* 좌측 광고 - 1440px 이상에서만 표시 */}
+                    <aside className="hidden min-[1440px]:block w-[265px] shrink-0">
                         <div className="sticky top-[100px] h-[404px] rounded-[16px] overflow-hidden">
                             <SideAdWidget />
                         </div>
                     </aside>
 
                     {/* 중앙 메인 컨텐츠 */}
-                    <div className="w-full max-w-[1200px] flex flex-col gap-[47px]">
+                    <div className="w-full max-w-[1200px] flex flex-col gap-[20px] md:gap-[47px]">
                         {/* 게시판 섹션 */}
                         <HomeBoardSection />
 
-                        {/* 재개발 커뮤니티 + 재개발 정보 (같은 행) */}
-                        <div className="flex gap-[22px]">
+                        {/* 모바일: 배너 광고 2열 그리드 */}
+                        <div className="block md:hidden">
+                            <HomeBannerWidget />
+                        </div>
+
+                        {/* 모바일: 커뮤니티 + 조합정보 2열 그리드 */}
+                        <div className="grid grid-cols-2 md:hidden gap-[8px]">
+                            <HomeCommunitySection />
+                            <HomeUnionCard />
+                        </div>
+
+                        {/* PC: 재개발 커뮤니티 + 재개발 정보 (같은 행) */}
+                        <div className="hidden md:flex gap-[22px]">
                             <div className="w-[282px] shrink-0">
                                 <HomeCommunitySection />
                             </div>
-                            <div className="w-[892px] shrink-0">
+                            <div className="flex-1">
                                 <HomeInfoSection />
                             </div>
                         </div>
 
-                        {/* 조합 정보 카드 */}
-                        <HomeUnionCard />
+                        {/* 모바일: 재개발 정보 별도 행 */}
+                        <div className="block md:hidden">
+                            <HomeInfoSection />
+                        </div>
+
+                        {/* PC: 조합 정보 카드 */}
+                        <div className="hidden md:block">
+                            <HomeUnionCard />
+                        </div>
                     </div>
 
-                    {/* 우측 광고 - 1820px 이상에서만 표시 */}
-                    <aside className="hidden min-[1820px]:block w-[265px] shrink-0">
+                    {/* 우측 광고 - 1440px 이상에서만 표시 */}
+                    <aside className="hidden min-[1440px]:block w-[265px] shrink-0">
                         <div className="sticky top-[100px] h-[404px] rounded-[16px] overflow-hidden">
                             <SideAdWidget />
                         </div>

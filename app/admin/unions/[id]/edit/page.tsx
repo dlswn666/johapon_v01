@@ -8,28 +8,6 @@ import { Button } from '@/components/ui/button';
 import { UnionForm, UnionEditConfirmModal, UnionFormData } from '@/app/_lib/features/union-management/ui';
 import { useUnion, useUpdateUnion } from '@/app/_lib/features/union-management/api/useUnionManagementHook';
 
-interface FormData {
-    name: string;
-    slug: string;
-    description: string;
-    address: string;
-    phone: string;
-    email: string;
-    business_hours: string;
-    logo_url: string;
-    is_active: boolean;
-    member_count: number;
-    area_size: string | number;
-    district_name: string;
-    establishment_date: string;
-    approval_date: string;
-    office_address: string;
-    office_phone: string;
-    registration_number: string;
-    business_type: string;
-    current_stage_id: string | null;
-}
-
 export default function UnionEditPage() {
     const params = useParams();
     const id = params.id as string;
@@ -37,7 +15,7 @@ export default function UnionEditPage() {
     const { data: union, isLoading, error } = useUnion(id);
     const updateMutation = useUpdateUnion();
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
-    const [pendingData, setPendingData] = useState<FormData | null>(null);
+    const [pendingData, setPendingData] = useState<UnionFormData | null>(null);
 
     const handleSubmit = async (data: UnionFormData) => {
         setPendingData(data);
