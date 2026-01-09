@@ -1,13 +1,13 @@
 'use client';
 
 import * as React from 'react';
-import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { formatDateShort } from '@/app/_lib/shared/utils/commonUtil';
 
 interface StartEndPickerProps {
     startDate: Date | undefined;
@@ -52,11 +52,6 @@ export function StartEndPicker({
         setEndOpen(false);
     };
 
-    // 날짜 포맷 함수 - 모바일에서는 간결하게 표시
-    const formatDate = (date: Date) => {
-        // 화면 너비에 따라 포맷 변경 (SSR 호환을 위해 CSS로 처리)
-        return format(date, 'yy.MM.dd', { locale: ko });
-    };
 
     return (
         <div className={cn('flex flex-row items-end gap-2 sm:gap-4', className)}>
@@ -77,7 +72,7 @@ export function StartEndPicker({
                         >
                             <CalendarIcon className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4 text-[#5FA37C] shrink-0" />
                             <span className="text-[12px] sm:text-[14px] truncate">
-                                {startDate ? formatDate(startDate) : '시작일'}
+                                {startDate ? formatDateShort(startDate) : '시작일'}
                             </span>
                         </Button>
                     </PopoverTrigger>
@@ -120,7 +115,7 @@ export function StartEndPicker({
                         >
                             <CalendarIcon className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4 text-[#5FA37C] shrink-0" />
                             <span className="text-[12px] sm:text-[14px] truncate">
-                                {endDate ? formatDate(endDate) : '종료일'}
+                                {endDate ? formatDateShort(endDate) : '종료일'}
                             </span>
                         </Button>
                     </PopoverTrigger>

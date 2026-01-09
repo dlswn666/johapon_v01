@@ -36,6 +36,25 @@ export function formatDate(dateString: string | Date, includeTime: boolean = fal
 }
 
 /**
+ * 짧은 날짜 포맷 함수 (날짜 선택기 등 공간이 제한된 곳에서 사용)
+ * @param dateString - ISO 날짜 문자열 또는 Date
+ * @returns "26.01.09" 형식
+ */
+export function formatDateShort(dateString: string | Date): string {
+    const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
+
+    if (isNaN(date.getTime())) {
+        return '-';
+    }
+
+    const year = String(date.getFullYear()).slice(-2); // 마지막 2자리
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+
+    return `${year}.${month}.${day}`;
+}
+
+/**
  * 작성자명 포맷 함수
  * @param authorName - 작성자명 (null/undefined 가능)
  * @returns 작성자명 또는 "-"
@@ -58,4 +77,28 @@ export function formatFileSize(bytes: number): string {
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+/**
+ * 날짜 범위 포맷 함수 (팝업 표시 기간 등에 사용)
+ * @param startDate - 시작일 (ISO 날짜 문자열 또는 Date 또는 null)
+ * @param endDate - 종료일 (ISO 날짜 문자열 또는 Date 또는 null)
+ * @returns "2026년 01월 09일 ~ 2026년 01월 15일" 또는 "-"
+ */
+export function formatDateRange(
+    startDate: string | Date | null | undefined,
+    endDate: string | Date | null | undefined
+): string {
+    if (!startDate || !endDate) {
+        return '-';
+    }
+    
+    const formattedStart = formatDate(startDate);
+    const formattedEnd = formatDate(endDate);
+    
+    if (formattedStart === '-' || formattedEnd === '-') {
+        return '-';
+    }
+    
+    return `${formattedStart} ~ ${formattedEnd}`;
 }

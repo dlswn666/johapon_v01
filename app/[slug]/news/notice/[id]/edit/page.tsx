@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useForm, useWatch } from 'react-hook-form';
@@ -27,7 +27,19 @@ const formSchema = z.object({
     send_alimtalk: z.boolean().default(false),
     start_date: z.date().nullable().optional(),
     end_date: z.date().nullable().optional(),
-});
+}).refine(
+    (data) => {
+        // 팝업 설정 시 시작일과 종료일 모두 필수
+        if (data.is_popup) {
+            return data.start_date !== null && data.end_date !== null;
+        }
+        return true;
+    },
+    {
+        message: '팝업 표시를 위해 시작일과 종료일을 모두 입력해주세요.',
+        path: ['start_date'], // 에러를 start_date 필드에 표시
+    }
+);
 
 const EditNoticePage = () => {
     const router = useRouter();
@@ -73,6 +85,21 @@ const EditNoticePage = () => {
     const isPopup = useWatch({ control: form.control, name: 'is_popup' });
     const startDate = useWatch({ control: form.control, name: 'start_date' });
     const endDate = useWatch({ control: form.control, name: 'end_date' });
+
+    // 팝업 기간 선택 영역 ref (에러 시 스크롤용)
+    const popupDateRef = useRef<HTMLDivElement>(null);
+
+    // start_date 에러 발생 시 해당 영역으로 스크롤
+    useEffect(() => {
+        if (form.formState.errors.start_date && popupDateRef.current) {
+            popupDateRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // 첫 번째 버튼에 포커스
+            const firstButton = popupDateRef.current.querySelector('button');
+            if (firstButton) {
+                setTimeout(() => firstButton.focus(), 300);
+            }
+        }
+    }, [form.formState.errors.start_date]);
 
     useEffect(() => {
         if (notice) {
@@ -190,22 +217,33 @@ const EditNoticePage = () => {
                             </div>
 
                             {/* 팝업 기간 선택 - 애니메이션 적용 */}
-                            <div
-                                className={cn(
-                                    'overflow-hidden transition-all duration-300 ease-out',
-                                    isPopup ? 'max-h-[200px] opacity-100' : 'max-h-0 opacity-0'
+                            <FormField
+                                control={form.control}
+                                name="start_date"
+                                render={() => (
+                                    <div
+                                        ref={popupDateRef}
+                                        className={cn(
+                                            'overflow-hidden transition-all duration-300 ease-out',
+                                            isPopup ? 'max-h-[200px] opacity-100' : 'max-h-0 opacity-0'
+                                        )}
+                                    >
+                                        <div className={cn(
+                                            'rounded-[12px] border bg-white p-6',
+                                            form.formState.errors.start_date ? 'border-[#D9534F]' : 'border-[#CCCCCC]'
+                                        )}>
+                                            <h4 className="text-[14px] font-bold text-[#5FA37C] mb-4">팝업 표시 기간</h4>
+                                            <StartEndPicker
+                                                startDate={startDate ?? undefined}
+                                                endDate={endDate ?? undefined}
+                                                onStartDateChange={(date) => form.setValue('start_date', date ?? null)}
+                                                onEndDateChange={(date) => form.setValue('end_date', date ?? null)}
+                                            />
+                                            <FormMessage className="mt-2" />
+                                        </div>
+                                    </div>
                                 )}
-                            >
-                                <div className="rounded-[12px] border border-[#CCCCCC] bg-white p-6">
-                                    <h4 className="text-[14px] font-bold text-[#5FA37C] mb-4">팝업 표시 기간</h4>
-                                    <StartEndPicker
-                                        startDate={startDate ?? undefined}
-                                        endDate={endDate ?? undefined}
-                                        onStartDateChange={(date) => form.setValue('start_date', date ?? null)}
-                                        onEndDateChange={(date) => form.setValue('end_date', date ?? null)}
-                                    />
-                                </div>
-                            </div>
+                            />
 
                             {/* 파일 업로드 위젯 추가 */}
                             <FormItem>

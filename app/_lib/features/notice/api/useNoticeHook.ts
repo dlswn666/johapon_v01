@@ -19,23 +19,34 @@ import { sendAlimTalk } from '@/app/_lib/features/alimtalk/actions/sendAlimTalk'
 // ============================================
 
 /**
- * 전체 공지사항 목록 조회 (댓글 수 포함)
+ * 전체 공지사항 목록 조회 (댓글 수 포함, 검색 기능)
+ * @param enabled - 쿼리 활성화 여부
+ * @param searchQuery - 검색어 (제목, 내용, 작성자명으로 검색)
  */
-export const useNotices = (enabled: boolean = true) => {
+export const useNotices = (enabled: boolean = true, searchQuery?: string) => {
     const setNotices = useNoticeStore((state) => state.setNotices);
     const { union } = useSlug();
 
     const queryResult = useQuery({
-        queryKey: ['notices', union?.id],
+        queryKey: ['notices', union?.id, searchQuery],
         queryFn: async () => {
             if (!union?.id) return [];
 
             // 1. 공지사항 목록 조회 (다형성 패턴으로 인해 files 관계 쿼리 제거)
-            const { data: noticesData, error: noticesError } = await supabase
+            let query = supabase
                 .from('notices')
                 .select('*, author:users!notices_author_id_fkey(id, name), alimtalk_logs(count)')
-                .eq('union_id', union.id)
-                .order('created_at', { ascending: false });
+                .eq('union_id', union.id);
+
+            // 검색 조건 적용 (제목, 내용)
+            if (searchQuery && searchQuery.trim()) {
+                const search = `%${searchQuery.trim()}%`;
+                query = query.or(`title.ilike.${search},content.ilike.${search}`);
+            }
+
+            query = query.order('created_at', { ascending: false });
+
+            const { data: noticesData, error: noticesError } = await query;
 
             if (noticesError) {
                 throw noticesError;
@@ -45,7 +56,25 @@ export const useNotices = (enabled: boolean = true) => {
                 return [];
             }
 
-            const noticeIds = noticesData.map((n) => n.id);
+            // 검색어로 작성자명 검색 시 추가 필터링 (DB에서 join 후 필터링 불가능하므로 클라이언트에서 처리)
+            let filteredData = noticesData;
+            if (searchQuery && searchQuery.trim()) {
+                const search = searchQuery.trim().toLowerCase();
+                filteredData = noticesData.filter((n) => {
+                    const authorName = (n.author as { name: string } | null)?.name?.toLowerCase() || '';
+                    return (
+                        n.title.toLowerCase().includes(search) ||
+                        n.content.toLowerCase().includes(search) ||
+                        authorName.includes(search)
+                    );
+                });
+            }
+
+            if (filteredData.length === 0) {
+                return [];
+            }
+
+            const noticeIds = filteredData.map((n) => n.id);
 
             // 2. 파일 수 조회 (다형성 연관 관계)
             const { data: fileCounts, error: filesError } = await supabase
@@ -88,7 +117,7 @@ export const useNotices = (enabled: boolean = true) => {
             }
 
             // 4. 공지사항 데이터에 파일 수, 댓글 수 병합
-            const noticesWithCounts = noticesData.map((notice) => ({
+            const noticesWithCounts = filteredData.map((notice) => ({
                 ...notice,
                 file_count: fileCountMap[notice.id] || 0,
                 comment_count: commentCountMap[notice.id] || 0,

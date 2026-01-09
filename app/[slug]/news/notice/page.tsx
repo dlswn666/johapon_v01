@@ -1,9 +1,10 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { Layers, MessageCircle } from 'lucide-react';
-import React from 'react';
+import { Layers, MessageCircle, Search } from 'lucide-react';
+import React, { useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
 import { useNotices } from '@/app/_lib/features/notice/api/useNoticeHook';
@@ -19,7 +20,20 @@ const NoticePage = () => {
     const router = useRouter();
     const { slug, isLoading: isUnionLoading } = useSlug();
     const { user, isAdmin, isSystemAdmin } = useAuth();
-    const { data: notices, isLoading, isFetching, error } = useNotices(!isUnionLoading);
+    const [searchInput, setSearchInput] = useState('');
+    const [searchQuery, setSearchQuery] = useState('');
+
+    const { data: notices, isLoading, isFetching, error } = useNotices(!isUnionLoading, searchQuery);
+
+    const handleSearch = () => {
+        setSearchQuery(searchInput);
+    };
+
+    const handleKeyPress = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter') {
+            handleSearch();
+        }
+    };
 
     // isLoading: 첫 로딩, isFetching: 새로고침/재조회 시
     const showSkeleton = isUnionLoading || isLoading || (isFetching && !notices);
@@ -84,10 +98,31 @@ const NoticePage = () => {
                     )}
                 </div>
 
+                {/* 검색 영역 */}
+                <div className="flex gap-2 mb-6">
+                    <div className="relative flex-1 max-w-[400px]">
+                        <Input
+                            type="text"
+                            placeholder="제목, 내용, 작성자로 검색"
+                            value={searchInput}
+                            onChange={(e) => setSearchInput(e.target.value)}
+                            onKeyPress={handleKeyPress}
+                            className="pl-10 h-[44px] text-[16px] border-[#CCCCCC] rounded-[8px]"
+                        />
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                    </div>
+                    <Button
+                        onClick={handleSearch}
+                        className="bg-[#E6E6E6] text-[#4A4A4A] hover:bg-[#D9D9D9] px-6 h-[44px] rounded-[8px] cursor-pointer"
+                    >
+                        검색
+                    </Button>
+                </div>
+
                 <BoardListCard
                     items={listItems}
                     onItemClick={(id) => router.push(`/${slug}/news/notice/${id}`)}
-                    emptyMessage="등록된 공지사항이 없습니다."
+                    emptyMessage={searchQuery ? '검색 결과가 없습니다.' : '등록된 공지사항이 없습니다.'}
                     renderTitleSuffix={renderTitleSuffix}
                 />
             </div>
