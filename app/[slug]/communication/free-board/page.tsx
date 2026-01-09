@@ -105,7 +105,6 @@ const FreeBoardPage = () => {
         };
     });
 
-
     return (
         <>
             <div className={cn('container mx-auto max-w-[1280px] px-4 py-8')}>
@@ -185,14 +184,6 @@ const FreeBoardPage = () => {
                         >
                             <ChevronRight className="h-4 w-4" />
                         </Button>
-                    </div>
-                )}
-
-                {/* 검색 결과 정보 */}
-                {totalCount > 0 && (
-                    <div className="text-center mt-4 text-[14px] text-gray-500">
-                        총 {totalCount}개의 게시글 중 {(currentPage - 1) * pageSize + 1} -{' '}
-                        {Math.min(currentPage * pageSize, totalCount)}개 표시
                     </div>
                 )}
             </div>

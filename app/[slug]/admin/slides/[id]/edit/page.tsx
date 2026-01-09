@@ -107,13 +107,11 @@ export default function SlideEditPage() {
     }
 
     return (
-        <div className="container mx-auto px-4 py-8">
-            <HeroSlideForm
-                mode="edit"
-                initialData={slide}
-                onSubmit={handleSubmit}
-                isSubmitting={updateMutation.isPending}
-            />
-        </div>
+        <HeroSlideForm
+            mode="edit"
+            initialData={slide}
+            onSubmit={handleSubmit}
+            isSubmitting={updateMutation.isPending}
+        />
     );
 }

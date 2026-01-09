@@ -2,17 +2,16 @@
 
 import React, { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Loader2, Link as LinkIcon, Hash } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { HeroSlide } from '@/app/_lib/shared/type/database.types';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import useModalStore from '@/app/_lib/shared/stores/modal/useModalStore';
 import { ImageUploader } from '@/app/_lib/shared/ui/ImageUploader';
 import { useImageUpload } from '@/app/_lib/shared/hooks/image/useImageUpload';
+import { ActionButton } from '@/app/_lib/widgets/common/button';
 
 interface HeroSlideFormData {
     image_url: string;
@@ -135,18 +134,13 @@ export default function HeroSlideForm({ mode, initialData, onSubmit, isSubmittin
     };
 
     return (
-        <Card className="shadow-lg max-w-3xl mx-auto">
-            <CardHeader className="border-b bg-gray-50/50">
-                <div className="flex items-center gap-4">
-                    <Button variant="ghost" size="icon" onClick={() => router.back()} className="hover:bg-gray-200">
-                        <ArrowLeft className="w-5 h-5" />
-                    </Button>
-                    <CardTitle className="text-xl font-semibold">{getTitle()}</CardTitle>
-                </div>
-            </CardHeader>
-            <CardContent className="p-6">
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    {/* 슬라이드 이미지 업로드 - 새로운 ImageUploader 사용 */}
+        <div className={cn('container mx-auto max-w-[1280px] px-4 py-8')}>
+            <div className="max-w-4xl mx-auto">
+                {/* 페이지 제목 - 디자인 시스템 스타일 적용 */}
+                <h2 className="text-[32px] font-bold text-[#5FA37C] mb-8">{getTitle()}</h2>
+
+                <form onSubmit={handleSubmit} className="space-y-8">
+                    {/* 슬라이드 이미지 업로드 */}
                     <ImageUploader
                         imageType="hero_slide"
                         storagePath={`unions/${slug}/hero-slides`}
@@ -160,8 +154,7 @@ export default function HeroSlideForm({ mode, initialData, onSubmit, isSubmittin
 
                     {/* 링크 URL */}
                     <div className="space-y-2">
-                        <Label htmlFor="link_url" className="flex items-center gap-2">
-                            <LinkIcon className="w-4 h-4" />
+                        <Label htmlFor="link_url" className="text-[16px] font-bold text-[#5FA37C]">
                             링크 URL
                         </Label>
                         <Input
@@ -171,6 +164,10 @@ export default function HeroSlideForm({ mode, initialData, onSubmit, isSubmittin
                             onChange={handleChange}
                             placeholder="https://example.com (클릭 시 이동할 URL)"
                             disabled={isReadOnly}
+                            className={cn(
+                                'h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]',
+                                'bg-white'
+                            )}
                         />
                         <p className="text-xs text-gray-500">
                             슬라이드 클릭 시 이동할 URL을 입력하세요. 비워두면 클릭해도 이동하지 않습니다.
@@ -179,8 +176,7 @@ export default function HeroSlideForm({ mode, initialData, onSubmit, isSubmittin
 
                     {/* 표시 순서 */}
                     <div className="space-y-2">
-                        <Label htmlFor="display_order" className="flex items-center gap-2">
-                            <Hash className="w-4 h-4" />
+                        <Label htmlFor="display_order" className="text-[16px] font-bold text-[#5FA37C]">
                             표시 순서
                         </Label>
                         <Input
@@ -192,15 +188,20 @@ export default function HeroSlideForm({ mode, initialData, onSubmit, isSubmittin
                             onChange={handleChange}
                             placeholder="0"
                             disabled={isReadOnly}
-                            className="w-32"
+                            className={cn(
+                                'w-32 h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]',
+                                'bg-white',
+                                // 스피너 화살표 제거
+                                '[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none'
+                            )}
                         />
                         <p className="text-xs text-gray-500">숫자가 작을수록 먼저 표시됩니다. (0이 가장 먼저)</p>
                     </div>
 
                     {/* 활성화 상태 */}
-                    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div className="flex items-center justify-between p-4 bg-white rounded-[12px] border border-[#CCCCCC]">
                         <div>
-                            <Label htmlFor="is_active" className="text-base font-medium">
+                            <Label htmlFor="is_active" className="text-[16px] font-bold text-[#5FA37C]">
                                 슬라이드 활성화
                             </Label>
                             <p className="text-sm text-gray-500">비활성화하면 홈페이지에 표시되지 않습니다</p>
@@ -222,26 +223,23 @@ export default function HeroSlideForm({ mode, initialData, onSubmit, isSubmittin
                         )}
                     </div>
 
-                    {/* 버튼 영역 */}
+                    {/* 버튼 영역 - ActionButton 위젯 사용 */}
                     {!isReadOnly && (
-                        <div className="flex justify-end gap-3 pt-4 border-t">
-                            <Button type="button" variant="outline" onClick={() => router.back()}>
+                        <div className="flex justify-end gap-3 pt-6 border-t border-[#CCCCCC]">
+                            <ActionButton buttonType="cancel" onClick={() => router.back()}>
                                 취소
-                            </Button>
-                            <Button
+                            </ActionButton>
+                            <ActionButton
+                                buttonType="submit"
                                 type="submit"
-                                disabled={isSubmitting || isUploading || isImageLoading}
-                                className="bg-[#4E8C6D] hover:bg-[#3d7359]"
+                                isLoading={isSubmitting || isUploading || isImageLoading}
                             >
-                                {(isSubmitting || isUploading || isImageLoading) && (
-                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                )}
                                 {mode === 'create' ? '등록' : '수정 완료'}
-                            </Button>
+                            </ActionButton>
                         </div>
                     )}
                 </form>
-            </CardContent>
-        </Card>
+            </div>
+        </div>
     );
 }

@@ -123,13 +123,16 @@ export function ImageUploader({
             if (file) {
                 setLocalPreviewUrl(null); // 새 파일 선택 시 로컬 상태 초기화
                 await handleFileSelect(file);
+                // 파일 선택 완료 후 부모 컴포넌트에 이미지 선택 여부 알림
+                // 'pending' 마커를 전달하여 이미지가 선택되었음을 표시
+                onImageChange?.('pending');
             }
             // input 초기화 (같은 파일 다시 선택 가능하도록)
             if (inputRef.current) {
                 inputRef.current.value = '';
             }
         },
-        [handleFileSelect]
+        [handleFileSelect, onImageChange]
     );
 
     /**
@@ -161,9 +164,11 @@ export function ImageUploader({
             if (file && file.type.startsWith('image/')) {
                 setLocalPreviewUrl(null);
                 await handleFileSelect(file);
+                // 파일 선택 완료 후 부모 컴포넌트에 이미지 선택 여부 알림
+                onImageChange?.('pending');
             }
         },
-        [disabled, handleFileSelect]
+        [disabled, handleFileSelect, onImageChange]
     );
 
     /**

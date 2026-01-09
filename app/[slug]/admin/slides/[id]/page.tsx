@@ -4,7 +4,6 @@ import React, { useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Edit, Trash2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardHeader } from '@/components/ui/card';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import { useHeroSlide, useDeleteHeroSlide } from '@/app/_lib/features/hero-slides/api/useHeroSlidesHook';
@@ -100,13 +99,13 @@ export default function SlideDetailPage() {
     }
 
     return (
-        <div className="container mx-auto px-4 py-8 space-y-6">
+        <>
             {/* 액션 버튼 */}
-            <Card className="shadow-lg max-w-3xl mx-auto">
-                <CardHeader className="border-b bg-gray-50/50 py-4">
-                    <div className="flex items-center justify-between">
+            <div className="container mx-auto max-w-[1280px] px-4 pt-8">
+                <div className="max-w-4xl mx-auto">
+                    <div className="flex items-center justify-between p-4 bg-white rounded-[12px] border border-[#CCCCCC]">
                         <div>
-                            <h2 className="text-lg font-semibold">관리</h2>
+                            <h2 className="text-[16px] font-bold text-[#5FA37C]">관리</h2>
                             <p className="text-sm text-gray-500">
                                 슬라이드를 수정하거나 삭제할 수 있습니다
                             </p>
@@ -126,12 +125,12 @@ export default function SlideDetailPage() {
                             </Button>
                         </div>
                     </div>
-                </CardHeader>
-            </Card>
+                </div>
+            </div>
 
             {/* 슬라이드 정보 폼 (읽기 전용) */}
             <HeroSlideForm mode="view" initialData={slide} />
-        </div>
+        </>
     );
 }
 
