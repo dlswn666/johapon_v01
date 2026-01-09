@@ -13,6 +13,7 @@ import AlertModal from '@/app/_lib/widgets/modal/AlertModal';
 import useModalStore from '@/app/_lib/shared/stores/modal/useModalStore';
 import { FileUploader } from '@/app/_lib/widgets/common/file-uploader/FileUploader';
 import { BoardComment } from '@/app/_lib/widgets/common/comment';
+import { formatDate, formatAuthorName } from '@/app/_lib/shared/utils/commonUtil';
 
 const NoticeDetailPage = () => {
     const router = useRouter();
@@ -94,8 +95,8 @@ const NoticeDetailPage = () => {
                     </div>
 
                     <div className="flex gap-6 text-[14px] text-[#AFAFAF] pb-4">
-                        <span>작성자: {notice.author_id}</span>
-                        <span>작성일: {new Date(notice.created_at).toLocaleDateString('ko-KR')}</span>
+                        <span>작성자: {formatAuthorName(notice.author?.name)}</span>
+                        <span>작성일: {formatDate(notice.created_at, true)}</span>
                         <span>조회수: {notice.views}</span>
                     </div>
 

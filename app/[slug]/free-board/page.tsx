@@ -17,6 +17,7 @@ import AlertModal from '@/app/_lib/widgets/modal/AlertModal';
 import UnionNavigation from '@/app/_lib/widgets/union/navigation/Navigation';
 import UnionHeader from '@/app/_lib/widgets/union/header/UnionHeader';
 import { BoardListCard, ListCardItem } from '@/app/_lib/widgets/common/list-card';
+import { formatDate, formatAuthorName } from '@/app/_lib/shared/utils/commonUtil';
 
 const FreeBoardPage = () => {
     const router = useRouter();
@@ -26,10 +27,18 @@ const FreeBoardPage = () => {
     const [searchQuery, setSearchQuery] = useState('');
     
     const { currentPage, pageSize, totalCount, setCurrentPage } = useFreeBoardStore();
-    const { data, isLoading, error } = useFreeBoards(!isUnionLoading, searchQuery, currentPage, pageSize);
+
+    // 페이지 진입 시 초기화
+    React.useEffect(() => {
+        setCurrentPage(1);
+    }, [setCurrentPage]);
+    const { data, isLoading, isFetching, error } = useFreeBoards(!isUnionLoading, searchQuery, currentPage, pageSize);
 
     const freeBoards = data?.data || [];
     const totalPages = Math.ceil(totalCount / pageSize);
+
+    // isLoading: 첫 로딩, isFetching: 새로고침/재조회 시
+    const showSkeleton = isUnionLoading || isLoading || (isFetching && !data);
 
     const handleSearch = () => {
         setSearchQuery(searchInput);
@@ -65,7 +74,7 @@ const FreeBoardPage = () => {
         return pages;
     };
 
-    if (isUnionLoading || isLoading) {
+    if (showSkeleton) {
         return (
             <div className="container mx-auto max-w-[1280px] px-4 py-8">
                 <Skeleton className="w-full h-[600px] rounded-[24px]" />
@@ -86,13 +95,12 @@ const FreeBoardPage = () => {
     // 자유게시판 데이터를 ListCardItem 형태로 변환
     const listItems: ListCardItem[] = freeBoards.map((freeBoard) => {
         const isMine = freeBoard.author_id === user?.id;
-        const authorName = (freeBoard.author as { name: string } | null)?.name || freeBoard.author_id;
 
         return {
             id: freeBoard.id,
             title: freeBoard.title,
-            author: authorName,
-            date: new Date(freeBoard.created_at).toLocaleDateString('ko-KR'),
+            author: formatAuthorName((freeBoard.author as { name: string } | null)?.name),
+            date: formatDate(freeBoard.created_at),
             views: freeBoard.views,
             commentCount: freeBoard.comment_count,
             hasAttachment: freeBoard.file_count > 0,

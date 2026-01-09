@@ -102,15 +102,11 @@ export function ListItem({
                             <h2 className="text-lg font-medium text-gray-900 truncate">
                                 {item.title}
                             </h2>
-                            {renderTitleSuffix && renderTitleSuffix(item)}
-                            {/* {item.commentCount && item.commentCount > 0 && (
-                                <span className="text-xs text-[#4E8C6D] font-bold shrink-0">
-                                    [{item.commentCount}]
-                                </span>
-                            )} */}
+                            {/* 순서: 팝업(renderTitleSuffix 내부) → 첨부파일 → 내글(renderTitleSuffix 내부) */}
                             {item.hasAttachment && (
                                 <Paperclip className="h-4 w-4 text-gray-400 shrink-0" />
                             )}
+                            {renderTitleSuffix && renderTitleSuffix(item)}
                         </div>
                         {renderBadge && (
                             <div className="shrink-0 ml-2">{renderBadge(item)}</div>

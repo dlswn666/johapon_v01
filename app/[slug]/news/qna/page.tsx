@@ -13,6 +13,7 @@ import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import ConfirmModal from '@/app/_lib/widgets/modal/ConfirmModal';
 import AlertModal from '@/app/_lib/widgets/modal/AlertModal';
 import { ListCard, ListCardItem } from '@/app/_lib/widgets/common/list-card';
+import { formatDate, formatAuthorName } from '@/app/_lib/shared/utils/commonUtil';
 
 const QnAPage = () => {
     const router = useRouter();
@@ -21,7 +22,10 @@ const QnAPage = () => {
     const [searchInput, setSearchInput] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
 
-    const { data: questions, isLoading, error } = useQuestions(!isUnionLoading, searchQuery);
+    const { data: questions, isLoading, isFetching, error } = useQuestions(!isUnionLoading, searchQuery);
+
+    // isLoading: 첫 로딩, isFetching: 새로고침/재조회 시
+    const showSkeleton = isUnionLoading || isLoading || (isFetching && !questions);
 
     const handleSearch = () => {
         setSearchQuery(searchInput);
@@ -33,7 +37,7 @@ const QnAPage = () => {
         }
     };
 
-    if (isUnionLoading || isLoading) {
+    if (showSkeleton) {
         return (
             <div className="container mx-auto max-w-[1280px] px-4 py-8">
                 <Skeleton className="w-full h-[600px] rounded-[24px]" />
@@ -54,13 +58,12 @@ const QnAPage = () => {
     // QnA 데이터를 ListCardItem 형태로 변환
     const listItems: ListCardItem[] = (questions || []).map((question) => {
         const isMine = question.author_id === user?.id;
-        const authorName = (question.author as { name: string } | null)?.name || question.author_id;
 
         return {
             id: question.id,
             title: question.is_secret && !isMine ? '비밀글입니다.' : question.title,
-            author: authorName,
-            date: new Date(question.created_at).toLocaleDateString('ko-KR'),
+            author: formatAuthorName((question.author as { name: string } | null)?.name),
+            date: formatDate(question.created_at),
             views: question.views,
             isMine,
         };

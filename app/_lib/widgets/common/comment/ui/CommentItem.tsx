@@ -13,6 +13,7 @@ import useModalStore from '@/app/_lib/shared/stores/modal/useModalStore';
 import { CommentForm } from './CommentForm';
 import { MessageSquare, Pencil, Trash2, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { formatDate } from '@/app/_lib/shared/utils/commonUtil';
 
 interface CommentItemProps {
     comment: CommentWithAuthor;
@@ -46,17 +47,6 @@ export function CommentItem({
     const isOwner = currentUserId === comment.author_id;
     const authorName = comment.author?.name || '알 수 없음';
 
-    // 날짜 포맷
-    const formatDate = (dateString: string) => {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('ko-KR', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-        });
-    };
 
     // 수정 처리
     const handleUpdate = async () => {
@@ -121,7 +111,7 @@ export function CommentItem({
                 <div className="flex items-center gap-2">
                     <span className="font-medium text-sm">{isDeleted ? '(삭제됨)' : authorName}</span>
                     <span className="text-xs text-muted-foreground">
-                        {formatDate(comment.created_at)}
+                        {formatDate(comment.created_at, true)}
                     </span>
                     {comment.updated_at !== comment.created_at && !isDeleted && (
                         <span className="text-xs text-muted-foreground">(수정됨)</span>
@@ -202,8 +192,8 @@ export function CommentItem({
                 </p>
             )}
 
-            {/* 답글 달기 버튼 (원댓글만, 로그인 상태만) */}
-            {!isReply && currentUserId && !isEditing && (
+            {/* 답글 달기 버튼 (원댓글만, 로그인 상태만, 본인 댓글 제외) */}
+            {!isReply && currentUserId && !isEditing && !isOwner && (
                 <div className="mt-2">
                     <Button
                         variant="ghost"

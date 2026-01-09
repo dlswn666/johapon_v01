@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Upload, X, File as FileIcon, Download, Trash2, CheckCircle, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import useModalStore from '@/app/_lib/shared/stores/modal/useModalStore';
+import { formatDate, formatFileSize } from '@/app/_lib/shared/utils/commonUtil';
 
 interface FileUploaderProps {
     /**
@@ -51,6 +52,7 @@ export function FileUploader({
         removeTempFile,
         deleteFile,
         getDownloadUrl,
+        clearFiles,
         // clearTempFiles
     } = useFileStore();
     const { openAlertModal, openConfirmModal } = useModalStore();
@@ -61,19 +63,22 @@ export function FileUploader({
     const inputId = `file-upload-input-${uniqueId}`;
     // const [currentUser, setCurrentUser] = useState<string | null>(null);
 
-    // 초기 로드: targetId가 있으면 기존 파일 조회, 없으면(작성중) 임시 파일 초기화
+    // 초기 로드: targetId가 있으면 기존 파일 조회, 없으면(작성중) 파일 목록 초기화
     useEffect(() => {
         if (targetId) {
             // targetType을 attachableType으로 변환 (NOTICE -> notice, UNION_INFO -> union_info)
             const attachableType = targetType.toLowerCase();
             fetchFiles({ attachableType, attachableId: targetId });
+        } else {
+            // 새글 작성 시 이전에 조회한 파일 목록 초기화
+            clearFiles();
         }
 
         return () => {
             // 페이지를 벗어날 때 임시 파일 상태 초기화 여부는 기획에 따라 다름.
             // 보통 작성 취소 시 초기화.
         };
-    }, [targetId, targetType, fetchFiles]);
+    }, [targetId, targetType, fetchFiles, clearFiles]);
 
     // 임시 파일 상태 변경 알림
     useEffect(() => {
@@ -86,11 +91,11 @@ export function FileUploader({
         const file = e.target.files?.[0];
         if (!file) return;
 
-        // 10MB 제한
-        if (file.size > 10 * 1024 * 1024) {
+        // 30MB 제한
+        if (file.size > 30 * 1024 * 1024) {
             openAlertModal({
                 title: '파일 크기 초과',
-                message: '파일 크기는 10MB를 초과할 수 없습니다.',
+                message: '파일 크기는 30MB를 초과할 수 없습니다.',
                 type: 'error',
             });
             return;
@@ -176,13 +181,6 @@ export function FileUploader({
         removeTempFile(tempId);
     };
 
-    const formatFileSize = (bytes: number) => {
-        if (bytes === 0) return '0 Bytes';
-        const k = 1024;
-        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-    };
 
     // 드래그앤드랍 이벤트 핸들러
     const handleDragOver = (e: React.DragEvent<HTMLLabelElement>) => {
@@ -212,11 +210,11 @@ export function FileUploader({
         // 첫 번째 파일만 처리 (단일 파일 업로드)
         const file = droppedFiles[0];
 
-        // 10MB 제한
-        if (file.size > 10 * 1024 * 1024) {
+        // 30MB 제한
+        if (file.size > 30 * 1024 * 1024) {
             openAlertModal({
                 title: '파일 크기 초과',
-                message: '파일 크기는 10MB를 초과할 수 없습니다.',
+                message: '파일 크기는 30MB를 초과할 수 없습니다.',
                 type: 'error',
             });
             return;
@@ -273,8 +271,8 @@ export function FileUploader({
                 )}
             </CardHeader>
             <CardContent>
-                {/* 1. 영구 저장된 파일 목록 (조회/수정 시) */}
-                {files.length > 0 && (
+                {/* 1. 영구 저장된 파일 목록 (조회/수정 시) - targetId가 있을 때만 표시 */}
+                {targetId && files.length > 0 && (
                     <div className="space-y-2 mb-4">
                         <h4 className="text-xs font-semibold text-gray-500 mb-2">저장된 파일</h4>
                         {files.map((file) => (
@@ -290,7 +288,7 @@ export function FileUploader({
                                         <p className="font-medium truncate text-sm">{file.name}</p>
                                         <p className="text-xs text-gray-500">
                                             {formatFileSize(file.size)} •{' '}
-                                            {new Date(file.created_at).toLocaleDateString()}
+                                            {formatDate(file.created_at)}
                                         </p>
                                     </div>
                                 </div>

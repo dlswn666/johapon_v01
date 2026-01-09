@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
 import { useUnionInfos } from '@/app/_lib/features/union-info/api/useUnionInfoHook';
@@ -14,17 +14,26 @@ import ConfirmModal from '@/app/_lib/widgets/modal/ConfirmModal';
 import AlertModal from '@/app/_lib/widgets/modal/AlertModal';
 import { BoardListCard, ListCardItem } from '@/app/_lib/widgets/common/list-card';
 import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
+import { formatDate, formatAuthorName } from '@/app/_lib/shared/utils/commonUtil';
 
 const UnionInfoListPage = () => {
     const router = useRouter();
     const { slug, isLoading: isUnionLoading } = useSlug();
     const { user } = useAuth();
-    const { filters, setFilters, totalCount } = useUnionInfoStore();
+    const { filters, setFilters, totalCount, resetFilters } = useUnionInfoStore();
     
-    const [keywordInput, setKeywordInput] = useState(filters.keyword);
-    const [authorInput, setAuthorInput] = useState(filters.author);
+    const [keywordInput, setKeywordInput] = useState('');
+    const [authorInput, setAuthorInput] = useState('');
+
+    // 페이지 진입 시 필터 초기화
+    useEffect(() => {
+        resetFilters();
+    }, [resetFilters]);
     
-    const { data, isLoading, error } = useUnionInfos(!isUnionLoading);
+    const { data, isLoading, isFetching, error } = useUnionInfos(!isUnionLoading);
+
+    // isLoading: 첫 로딩, isFetching: 새로고침/재조회 시
+    const showSkeleton = isUnionLoading || isLoading || (isFetching && !data);
 
     const handleSearch = () => {
         setFilters({ keyword: keywordInput, author: authorInput, page: 1 });
@@ -42,7 +51,7 @@ const UnionInfoListPage = () => {
 
     const totalPages = Math.ceil(totalCount / filters.pageSize);
 
-    if (isUnionLoading || isLoading) {
+    if (showSkeleton) {
         return (
             <div className="container mx-auto max-w-[1280px] px-4 py-8">
                 <Skeleton className="w-full h-[600px] rounded-[24px]" />
@@ -65,13 +74,12 @@ const UnionInfoListPage = () => {
     // 조합 정보 데이터를 ListCardItem 형태로 변환
     const listItems: ListCardItem[] = posts.map((post) => {
         const isMine = post.author_id === user?.id;
-        const authorName = (post.author as { name: string } | null)?.name || post.author_id || '알 수 없음';
 
         return {
             id: post.id,
             title: post.title,
-            author: authorName,
-            date: new Date(post.created_at).toLocaleDateString('ko-KR'),
+            author: formatAuthorName((post.author as { name: string } | null)?.name),
+            date: formatDate(post.created_at),
             views: post.views,
             commentCount: post.comment_count,
             hasAttachment: post.file_count > 0 || post.has_attachments,

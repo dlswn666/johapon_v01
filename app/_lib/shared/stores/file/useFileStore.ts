@@ -45,6 +45,7 @@ interface FileState {
         unionId?: string;
     }) => Promise<void>;
     clearTempFiles: () => void;
+    clearFiles: () => void; // 영구 파일 목록 초기화
 }
 
 export const useFileStore = create<FileState>((set, get) => ({
@@ -150,6 +151,11 @@ export const useFileStore = create<FileState>((set, get) => ({
 
     clearTempFiles: () => {
         set({ tempFiles: [] });
+    },
+
+    // 영구 저장된 파일 목록 초기화 (새글 작성 시 사용)
+    clearFiles: () => {
+        set({ files: [] });
     },
 
     confirmFiles: async (params) => {

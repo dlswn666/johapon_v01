@@ -20,6 +20,7 @@ import UnionNavigation from '@/app/_lib/widgets/union/navigation/Navigation';
 import UnionHeader from '@/app/_lib/widgets/union/header/UnionHeader';
 import { FileUploader } from '@/app/_lib/widgets/common/file-uploader/FileUploader';
 import { BoardComment } from '@/app/_lib/widgets/common/comment';
+import { formatDate, formatAuthorName } from '@/app/_lib/shared/utils/commonUtil';
 
 const FreeBoardDetailPage = () => {
     const router = useRouter();
@@ -37,7 +38,7 @@ const FreeBoardDetailPage = () => {
 
     // 작성자 확인
     const isMine = freeBoard?.author_id === user?.id;
-    const authorName = (freeBoard?.author as { name: string } | null)?.name || freeBoard?.author_id;
+    const authorName = formatAuthorName((freeBoard?.author as { name: string } | null)?.name);
 
     // 조회수 증가 (컴포넌트 마운트 시 1회)
     React.useEffect(() => {
@@ -114,7 +115,7 @@ const FreeBoardDetailPage = () => {
 
                     <div className="flex gap-6 text-[14px] text-[#AFAFAF] pb-4">
                         <span>작성자: {authorName}</span>
-                        <span>작성일: {new Date(freeBoard.created_at).toLocaleDateString('ko-KR')}</span>
+                        <span>작성일: {formatDate(freeBoard.created_at, true)}</span>
                         <span>조회수: {freeBoard.views}</span>
                     </div>
 

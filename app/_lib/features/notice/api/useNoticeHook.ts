@@ -128,7 +128,7 @@ export const useNotice = (noticeId: number | undefined, enabled: boolean = true)
 
             const { data, error } = await supabase
                 .from('notices')
-                .select('*')
+                .select('*, author:users!notices_author_id_fkey(id, name)')
                 .eq('id', noticeId)
                 .eq('union_id', union.id) // 조합 ID로 필터링 (보안 강화)
                 .single();
@@ -137,7 +137,7 @@ export const useNotice = (noticeId: number | undefined, enabled: boolean = true)
                 throw error;
             }
 
-            return data as Notice;
+            return data as Notice & { author: { id: string; name: string } | null };
         },
         enabled: !!noticeId && !!union?.id && enabled,
         retry: false, // 상세 조회는 재시도하지 않음 (삭제된 데이터 조회 방지)

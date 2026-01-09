@@ -14,6 +14,7 @@ import useModalStore from '@/app/_lib/shared/stores/modal/useModalStore';
 import { User, Eye, Calendar } from 'lucide-react';
 import { FileUploader } from '@/app/_lib/widgets/common/file-uploader/FileUploader';
 import { BoardComment } from '@/app/_lib/widgets/common/comment';
+import { formatDate, formatAuthorName } from '@/app/_lib/shared/utils/commonUtil';
 
 const UnionInfoDetailPage = () => {
     const router = useRouter();
@@ -67,7 +68,7 @@ const UnionInfoDetailPage = () => {
         );
     }
 
-    const authorName = (post.author as { name: string } | null)?.name || '알 수 없음';
+    const authorName = formatAuthorName((post.author as { name: string } | null)?.name);
 
     return (
         <>
@@ -110,7 +111,7 @@ const UnionInfoDetailPage = () => {
                         </span>
                         <span className="flex items-center gap-1">
                             <Calendar className="h-4 w-4" />
-                            작성일: {new Date(post.created_at).toLocaleDateString('ko-KR')}
+                            작성일: {formatDate(post.created_at, true)}
                         </span>
                         <span className="flex items-center gap-1">
                             <Eye className="h-4 w-4" />

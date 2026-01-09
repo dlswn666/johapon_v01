@@ -13,6 +13,7 @@ import useModalStore from '@/app/_lib/shared/stores/modal/useModalStore';
 import { TextEditor } from '@/app/_lib/widgets/common/text-editor';
 import { Lock, CheckCircle, User } from 'lucide-react';
 import { ActionButton } from '@/app/_lib/widgets/common/button';
+import { formatDate, formatAuthorName } from '@/app/_lib/shared/utils/commonUtil';
 
 const QuestionDetailPage = () => {
     const router = useRouter();
@@ -103,8 +104,8 @@ const QuestionDetailPage = () => {
         );
     }
 
-    const authorName = (question.author as { name: string } | null)?.name || question.author_id;
-    const answerAuthorName = (question.answer_author as { name: string } | null)?.name || question.answer_author_id;
+    const authorName = formatAuthorName((question.author as { name: string } | null)?.name);
+    const answerAuthorName = formatAuthorName((question.answer_author as { name: string } | null)?.name);
 
     return (
         <>
@@ -159,7 +160,7 @@ const QuestionDetailPage = () => {
                             <User className="h-4 w-4" />
                             작성자: {authorName}
                         </span>
-                        <span>작성일: {new Date(question.created_at).toLocaleDateString('ko-KR')}</span>
+                        <span>작성일: {formatDate(question.created_at, true)}</span>
                         <span>조회수: {question.views}</span>
                         {question.is_secret && (
                             <span className="text-[#F0AD4E]">🔒 비밀글</span>
@@ -214,7 +215,7 @@ const QuestionDetailPage = () => {
                                 <div className="flex items-center justify-between mb-4">
                                     <div className="flex items-center gap-4 text-[14px] text-[#5FA37C]">
                                         <span className="font-medium">답변자: {answerAuthorName}</span>
-                                        <span>답변일: {new Date(question.answered_at).toLocaleDateString('ko-KR')}</span>
+                                        <span>답변일: {formatDate(question.answered_at, true)}</span>
                                     </div>
                                     {isAdmin && (
                                         <div className="flex gap-4">

@@ -13,14 +13,18 @@ import ConfirmModal from '@/app/_lib/widgets/modal/ConfirmModal';
 import AlertModal from '@/app/_lib/widgets/modal/AlertModal';
 import { ListCardItem } from '@/app/_lib/widgets/common/list-card';
 import { BoardListCard } from '@/app/_lib/widgets/common/list-card/BoardListCard';
+import { formatDate, formatAuthorName } from '@/app/_lib/shared/utils/commonUtil';
 
 const NoticePage = () => {
     const router = useRouter();
     const { slug, isLoading: isUnionLoading } = useSlug();
     const { user, isAdmin, isSystemAdmin } = useAuth();
-    const { data: notices, isLoading, error } = useNotices(!isUnionLoading);
+    const { data: notices, isLoading, isFetching, error } = useNotices(!isUnionLoading);
 
-    if (isUnionLoading || isLoading) {
+    // isLoading: 첫 로딩, isFetching: 새로고침/재조회 시
+    const showSkeleton = isUnionLoading || isLoading || (isFetching && !notices);
+
+    if (showSkeleton) {
         return (
             <div className="container mx-auto max-w-[1280px] px-4 py-8">
                 <Skeleton className="w-full h-[600px] rounded-[24px]" />
@@ -42,8 +46,8 @@ const NoticePage = () => {
     const listItems: ListCardItem[] = (notices || []).map((notice) => ({
         id: notice.id,
         title: notice.title,
-        author: notice.author?.name || notice.author_id,
-        date: new Date(notice.created_at).toLocaleDateString('ko-KR'),
+        author: formatAuthorName(notice.author?.name),
+        date: formatDate(notice.created_at),
         views: notice.views,
         commentCount: notice.comment_count,
         hasAttachment: notice.file_count > 0,
