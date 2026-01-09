@@ -70,6 +70,7 @@ export default function ConsentManagementTab() {
     const [searchResults, setSearchResults] = useState<MemberSearchResult[]>([]);
     const [focusedIndex, setFocusedIndex] = useState(-1);
     const [isResultFocused, setIsResultFocused] = useState(false);
+    const [lastFocusedInput, setLastFocusedInput] = useState<'address' | 'name' | 'building'>('name');
 
     // 선택된 조합원 리스트 상태
     const [selectedMembers, setSelectedMembers] = useState<MemberSearchResult[]>([]);
@@ -81,7 +82,9 @@ export default function ConsentManagementTab() {
 
     // 검색 결과 리스트 ref
     const searchResultsRef = useRef<HTMLDivElement>(null);
-    const searchInputRef = useRef<HTMLInputElement>(null);
+    const searchAddressInputRef = useRef<HTMLInputElement>(null);
+    const searchNameInputRef = useRef<HTMLInputElement>(null);
+    const searchBuildingInputRef = useRef<HTMLInputElement>(null);
     const searchResultsTableRef = useRef<HTMLTableElement>(null);
 
     // 파일 input ref
@@ -163,6 +166,40 @@ export default function ConsentManagementTab() {
         setFocusedIndex(-1);
 
         try {
+            // 건물이름 검색 시 해당 건물의 사용자 ID 목록을 먼저 조회
+            let buildingUserIds: string[] = [];
+            if (searchBuilding) {
+                // 건물이름으로 buildings 테이블 검색
+                const { data: buildingsData } = await supabase
+                    .from('buildings')
+                    .select('id')
+                    .ilike('building_name', `%${searchBuilding}%`);
+
+                if (buildingsData && buildingsData.length > 0) {
+                    const buildingIds = buildingsData.map((b) => b.id);
+                    
+                    // building_units에서 해당 건물의 unit ID 조회
+                    const { data: buildingUnitsData } = await supabase
+                        .from('building_units')
+                        .select('id')
+                        .in('building_id', buildingIds);
+
+                    if (buildingUnitsData && buildingUnitsData.length > 0) {
+                        const unitIds = buildingUnitsData.map((u) => u.id);
+                        
+                        // user_property_units에서 해당 unit을 소유한 사용자 ID 조회
+                        const { data: userPropertyUnitsData } = await supabase
+                            .from('user_property_units')
+                            .select('user_id')
+                            .in('building_unit_id', unitIds);
+
+                        if (userPropertyUnitsData) {
+                            buildingUserIds = [...new Set(userPropertyUnitsData.map((u) => u.user_id))];
+                        }
+                    }
+                }
+            }
+
             // 기본 쿼리 설정 - 승인 조합원 + 사전 등록 조합원 모두 조회
             let query = supabase
                 .from('users')
@@ -184,21 +221,20 @@ export default function ConsentManagementTab() {
                 ? `property_address.ilike.%${searchAddress}%,property_address_jibun.ilike.%${searchAddress}%,property_pnu.ilike.%${searchAddress}%`
                 : '';
 
-            // 건물/동/호 검색 조건 구성: (동 OR 호)
-            const buildingOrCondition = searchBuilding
-                ? `property_dong.ilike.%${searchBuilding}%,property_ho.ilike.%${searchBuilding}%`
-                : '';
-
-            // 주소와 건물 조건을 AND로 결합
-            if (addressOrCondition && buildingOrCondition) {
-                // 둘 다 있는 경우: and(or(주소조건들), or(건물조건들))
-                query = query.or(`and(or(${addressOrCondition}),or(${buildingOrCondition}))`);
-            } else if (addressOrCondition) {
-                // 주소만 있는 경우
+            // 주소 조건이 있는 경우 적용
+            if (addressOrCondition) {
                 query = query.or(addressOrCondition);
-            } else if (buildingOrCondition) {
-                // 건물만 있는 경우
-                query = query.or(buildingOrCondition);
+            }
+
+            // 건물이름 검색: 조회된 user_id 목록으로 필터링
+            if (searchBuilding && buildingUserIds.length > 0) {
+                query = query.in('id', buildingUserIds);
+            } else if (searchBuilding && buildingUserIds.length === 0) {
+                // 건물이름으로 검색했지만 결과가 없는 경우
+                setSearchResults([]);
+                toast.error('검색 결과가 없습니다.');
+                setIsSearching(false);
+                return;
             }
 
             const { data: members, error } = await query.limit(50);
@@ -278,6 +314,21 @@ export default function ConsentManagementTab() {
         [handleSearch]
     );
 
+    // 마지막 포커스된 input으로 돌아가기
+    const focusLastInput = useCallback(() => {
+        switch (lastFocusedInput) {
+            case 'address':
+                searchAddressInputRef.current?.focus();
+                break;
+            case 'name':
+                searchNameInputRef.current?.focus();
+                break;
+            case 'building':
+                searchBuildingInputRef.current?.focus();
+                break;
+        }
+    }, [lastFocusedInput]);
+
     // 조회 결과 영역 키보드 이벤트 처리 (선택 전용)
     const handleResultKeyDown = useCallback(
         (e: React.KeyboardEvent<HTMLTableElement>) => {
@@ -309,10 +360,16 @@ export default function ConsentManagementTab() {
                 // Escape 키로 포커스 해제
                 setFocusedIndex(-1);
                 setIsResultFocused(false);
-                searchInputRef.current?.focus();
+                focusLastInput();
+            } else if (e.key === 'Tab') {
+                // Tab 키로 마지막 검색 input으로 포커스 이동
+                e.preventDefault();
+                setFocusedIndex(-1);
+                setIsResultFocused(false);
+                focusLastInput();
             }
         },
-        [searchResults, selectedMembers, focusedIndex, findFirstUnselectedIndex]
+        [searchResults, selectedMembers, focusedIndex, findFirstUnselectedIndex, focusLastInput]
     );
 
     // 조합원 선택
@@ -673,32 +730,37 @@ export default function ConsentManagementTab() {
 
                 <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* 왼쪽: 검색 및 결과 */}
-                    <div className="space-y-4">
+                    <div className="flex flex-col space-y-4">
                         <h3 className="text-sm font-semibold text-gray-700">조회</h3>
 
                         {/* 검색 폼 */}
                         <div className="space-y-3">
                             <div className="grid grid-cols-2 gap-3">
                                 <Input
-                                    ref={searchInputRef}
+                                    ref={searchAddressInputRef}
                                     placeholder="지번 주소"
                                     value={searchAddress}
                                     onChange={(e) => setSearchAddress(e.target.value)}
                                     onKeyDown={handleInputKeyDown}
+                                    onFocus={() => setLastFocusedInput('address')}
                                 />
                                 <Input
+                                    ref={searchNameInputRef}
                                     placeholder="소유주 이름"
                                     value={searchName}
                                     onChange={(e) => setSearchName(e.target.value)}
                                     onKeyDown={handleInputKeyDown}
+                                    onFocus={() => setLastFocusedInput('name')}
                                 />
                             </div>
                             <div className="flex gap-3">
                                 <Input
-                                    placeholder="건물이름/동/호"
+                                    ref={searchBuildingInputRef}
+                                    placeholder="건물이름"
                                     value={searchBuilding}
                                     onChange={(e) => setSearchBuilding(e.target.value)}
                                     onKeyDown={handleInputKeyDown}
+                                    onFocus={() => setLastFocusedInput('building')}
                                     className="flex-1"
                                 />
                                 <Button
@@ -718,7 +780,7 @@ export default function ConsentManagementTab() {
                         {/* 검색 결과 */}
                         <div
                             ref={searchResultsRef}
-                            className="border border-gray-200 rounded-lg max-h-[400px] overflow-y-auto"
+                            className="border border-gray-200 rounded-lg max-h-[350px] min-h-[200px] overflow-y-auto flex-grow"
                         >
                             {searchResults.length === 0 ? (
                                 <div className="p-8 text-center text-gray-400">
@@ -811,7 +873,7 @@ export default function ConsentManagementTab() {
                     </div>
 
                     {/* 오른쪽: 선택된 조합원 */}
-                    <div className="space-y-4">
+                    <div className="flex flex-col space-y-4">
                         <div className="flex items-center justify-between">
                             <h3 className="text-sm font-semibold text-gray-700">
                                 선택된 조합원 ({selectedMembers.length}명)
@@ -829,22 +891,8 @@ export default function ConsentManagementTab() {
                             )}
                         </div>
 
-                        {/* 동의 상태 선택 */}
-                        <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
-                            <span className="text-sm font-medium text-gray-700">동의 상태:</span>
-                            <SelectBox
-                                value={consentStatus}
-                                onChange={(value) => setConsentStatus(value as 'AGREED' | 'DISAGREED')}
-                                options={[
-                                    { value: 'AGREED', label: '✓ 동의' },
-                                    { value: 'DISAGREED', label: '✗ 비동의' },
-                                ]}
-                                className="flex-1"
-                            />
-                        </div>
-
                         {/* 선택된 조합원 목록 */}
-                        <div className="border border-gray-200 rounded-lg max-h-[320px] overflow-y-auto">
+                        <div className="border border-gray-200 rounded-lg max-h-[350px] min-h-[200px] overflow-y-auto flex-grow">
                             {selectedMembers.length === 0 ? (
                                 <div className="p-8 text-center text-gray-400">
                                     <ChevronRight className="w-8 h-8 mx-auto mb-2 opacity-50" />
@@ -880,13 +928,27 @@ export default function ConsentManagementTab() {
                             )}
                         </div>
 
-                        {/* 확인 버튼 */}
+                        {/* 동의 상태 선택 */}
+                        <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                            <span className="text-sm font-medium text-gray-700">동의 상태:</span>
+                            <SelectBox
+                                value={consentStatus}
+                                onChange={(value) => setConsentStatus(value as 'AGREED' | 'DISAGREED')}
+                                options={[
+                                    { value: 'AGREED', label: '✓ 동의' },
+                                    { value: 'DISAGREED', label: '✗ 비동의' },
+                                ]}
+                                className="flex-1"
+                            />
+                        </div>
+
+                        {/* 확인 버튼 - 동의상태에 따라 텍스트 변경 */}
                         <Button
                             onClick={() => setShowConfirmModal(true)}
                             disabled={selectedMembers.length === 0 || !selectedStageId}
                             className="w-full h-12 bg-[#4E8C6D] hover:bg-[#3d7058] text-white text-base font-medium"
                         >
-                            {selectedMembers.length}명 동의 처리
+                            {selectedMembers.length}명 {consentStatus === 'AGREED' ? '동의' : '비동의'} 처리
                         </Button>
                     </div>
                 </div>
