@@ -509,7 +509,7 @@ export function UnionNewsSection({ unionId }: UnionNewsSectionProps) {
                                                         className="text-[#6a7282]"
                                                         style={{ fontSize: 'var(--text-body-md)', lineHeight: 'var(--leading-body-md)' }}
                                                     >
-                                                        {formatDate(questions[0].created_at)}
+                                                        {formatDate(questions[0].created_at || '')}
                                                     </span>
                                                 </div>
                                                 <p 
@@ -557,7 +557,7 @@ export function UnionNewsSection({ unionId }: UnionNewsSectionProps) {
                                                                 className="text-[#6a7282]"
                                                                 style={{ fontSize: 'var(--text-body-sm)', lineHeight: 'var(--leading-body-sm)' }}
                                                             >
-                                                                {formatDate(question.created_at)}
+                                                                {formatDate(question.created_at || '')}
                                                             </p>
                                                         </div>
                                                     </div>

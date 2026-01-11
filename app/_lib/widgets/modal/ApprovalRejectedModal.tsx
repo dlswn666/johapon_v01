@@ -66,8 +66,8 @@ export function ApprovalRejectedModal({
             phone_number: user.phone_number || '',
             birth_date: user.birth_date || '',
             property_zonecode: user.property_zonecode || '',
-            property_address_road: user.property_address_road || '',
-            property_address_jibun: user.property_address_jibun || '',
+            property_address_road: user.property_address || '',
+            property_address_jibun: '',
             property_address_detail: user.property_address_detail || '',
         });
         setMode('rejected');

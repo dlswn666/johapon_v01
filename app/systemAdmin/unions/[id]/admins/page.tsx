@@ -163,9 +163,9 @@ export default function UnionAdminsPage() {
         }
     };
 
-    const getStatusBadge = (status: string, expiresAt: string) => {
+    const getStatusBadge = (status: string | null, expiresAt: string | null) => {
         const now = new Date();
-        const expires = new Date(expiresAt);
+        const expires = expiresAt ? new Date(expiresAt) : new Date(0); // If null, treat as expired
 
         if (status === 'USED') {
             return (
@@ -184,7 +184,8 @@ export default function UnionAdminsPage() {
         );
     };
 
-    const formatDate = (dateString: string) => {
+    const formatDate = (dateString: string | null) => {
+        if (!dateString) return '-';
         return new Date(dateString).toLocaleString('ko-KR', {
             year: 'numeric',
             month: '2-digit',

@@ -35,7 +35,7 @@ import {
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
-// 조합원 조회 결과 타입
+// 조합원 조회 결과 타입 (물건지 정보는 user_property_units에서 가져옴)
 interface MemberSearchResult {
     id: string;
     name: string;
@@ -44,6 +44,7 @@ interface MemberSearchResult {
     property_dong: string | null;
     property_ho: string | null;
     property_address_jibun: string | null;
+    building_name: string | null;
     current_consent_status: 'AGREED' | 'DISAGREED' | 'PENDING';
 }
 
@@ -165,10 +166,10 @@ export default function ConsentManagementTab() {
         setFocusedIndex(-1);
 
         try {
-            // 건물이름 검색 시 해당 건물의 사용자 ID 목록을 먼저 조회
+            // 건물이름 검색 시 buildings 테이블에서 먼저 조회하여 user_id 목록 획득
             let buildingUserIds: string[] = [];
             if (searchBuilding) {
-                // 건물이름으로 buildings 테이블 검색
+                // 1. buildings 테이블에서 건물이름으로 검색
                 const { data: buildingsData } = await supabase
                     .from('buildings')
                     .select('id')
@@ -177,7 +178,7 @@ export default function ConsentManagementTab() {
                 if (buildingsData && buildingsData.length > 0) {
                     const buildingIds = buildingsData.map((b) => b.id);
 
-                    // building_units에서 해당 건물의 unit ID 조회
+                    // 2. building_units에서 해당 건물의 unit ID 조회
                     const { data: buildingUnitsData } = await supabase
                         .from('building_units')
                         .select('id')
@@ -186,7 +187,7 @@ export default function ConsentManagementTab() {
                     if (buildingUnitsData && buildingUnitsData.length > 0) {
                         const unitIds = buildingUnitsData.map((u) => u.id);
 
-                        // user_property_units에서 해당 unit을 소유한 사용자 ID 조회
+                        // 3. user_property_units에서 해당 unit을 소유한 사용자 ID 조회
                         const { data: userPropertyUnitsData } = await supabase
                             .from('user_property_units')
                             .select('user_id')
@@ -197,46 +198,46 @@ export default function ConsentManagementTab() {
                         }
                     }
                 }
+
+                // 건물이름으로 검색했지만 결과가 없는 경우
+                if (buildingUserIds.length === 0) {
+                    setSearchResults([]);
+                    toast.error('해당 건물이름으로 검색된 조합원이 없습니다.');
+                    setIsSearching(false);
+                    return;
+                }
             }
 
             // 기본 쿼리 설정 - 승인 조합원 + 사전 등록 조합원 모두 조회
+            // user_property_units 조인으로 물건지 정보 가져오기
             let query = supabase
                 .from('users')
-                .select('id, name, property_pnu, property_address, property_dong, property_ho, property_address_jibun')
+                .select(
+                    `
+                    id, name, property_address,
+                    user_property_units!left(pnu, property_address_jibun, property_address_road, dong, ho, building_name)
+                `
+                )
                 .eq('union_id', unionId)
                 .in('user_status', ['APPROVED', 'PRE_REGISTERED'])
                 .order('name', { ascending: true });
 
-            // 검색 조건 적용 - 각 조건 그룹 간에는 AND 관계
-            // PostgREST 필터 구문: and(조건1, 조건2, ...) 또는 or(조건1, 조건2, ...)
+            // 건물이름 검색: 조회된 user_id 목록으로 필터링
+            if (searchBuilding && buildingUserIds.length > 0) {
+                query = query.in('id', buildingUserIds);
+            }
 
             // 이름 검색: 직접 ilike 적용 (항상 AND)
             if (searchName) {
                 query = query.ilike('name', `%${searchName}%`);
             }
 
-            // 주소 검색 조건 구성: (주소1 OR 주소2 OR 주소3)
-            const addressOrCondition = searchAddress
-                ? `property_address.ilike.%${searchAddress}%,property_address_jibun.ilike.%${searchAddress}%,property_pnu.ilike.%${searchAddress}%`
-                : '';
-
-            // 주소 조건이 있는 경우 적용
-            if (addressOrCondition) {
-                query = query.or(addressOrCondition);
+            // 주소 검색 조건 구성: property_address로만 검색
+            if (searchAddress) {
+                query = query.ilike('property_address', `%${searchAddress}%`);
             }
 
-            // 건물이름 검색: 조회된 user_id 목록으로 필터링
-            if (searchBuilding && buildingUserIds.length > 0) {
-                query = query.in('id', buildingUserIds);
-            } else if (searchBuilding && buildingUserIds.length === 0) {
-                // 건물이름으로 검색했지만 결과가 없는 경우
-                setSearchResults([]);
-                toast.error('검색 결과가 없습니다.');
-                setIsSearching(false);
-                return;
-            }
-
-            const { data: members, error } = await query.limit(50);
+            const { data: members, error } = await query.limit(100);
 
             if (error) throw error;
 
@@ -254,11 +255,26 @@ export default function ConsentManagementTab() {
                 .in('user_id', memberIds)
                 .eq('stage_id', selectedStageId);
 
-            // 결과 매핑
+            // 결과 매핑 (user_property_units 배열에서 첫 번째 값 사용)
+            type PropertyUnit = {
+                pnu: string | null;
+                property_address_jibun: string | null;
+                dong: string | null;
+                ho: string | null;
+                building_name: string | null;
+            };
             const results: MemberSearchResult[] = members.map((member) => {
                 const consent = consents?.find((c) => c.user_id === member.id);
+                const propUnit = (member.user_property_units as PropertyUnit[] | null)?.[0] || null;
                 return {
-                    ...member,
+                    id: member.id,
+                    name: member.name,
+                    property_address: member.property_address,
+                    property_pnu: propUnit?.pnu || null,
+                    property_dong: propUnit?.dong || null,
+                    property_ho: propUnit?.ho || null,
+                    property_address_jibun: propUnit?.property_address_jibun || null,
+                    building_name: propUnit?.building_name || null,
                     current_consent_status: (consent?.status as 'AGREED' | 'DISAGREED' | 'PENDING') || 'PENDING',
                 };
             });

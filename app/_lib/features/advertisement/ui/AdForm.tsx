@@ -154,7 +154,7 @@ export function AdForm({ ad, onSuccess, onCancel }: AdFormProps) {
           <Label className="text-slate-300">입금 완료 여부</Label>
           <div className="flex items-center gap-2 pt-2">
             <Switch 
-              checked={watch('is_payment_completed')}
+              checked={watch('is_payment_completed') ?? false}
               onCheckedChange={(checked) => setValue('is_payment_completed', checked)}
             />
             <span className="text-sm text-slate-400">

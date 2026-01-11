@@ -364,7 +364,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     const isSystemAdmin = user?.role === 'SYSTEM_ADMIN';
     const isAdmin = isSystemAdmin || user?.role === 'ADMIN';
     const isAuthenticated = !!authUser;
-    const userStatus = user?.user_status ?? null;
+    const userStatus = (user?.user_status ?? null) as 'PRE_REGISTERED' | 'PENDING_PROFILE' | 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED' | null;
     const isBlocked = user?.is_blocked ?? false;
 
     // 조합 전화번호 상태 (차단 모달용)

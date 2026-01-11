@@ -50,7 +50,8 @@ export default function UnionSettingsPage() {
                     office_address: pendingData.office_address || undefined,
                     office_phone: pendingData.office_phone || undefined,
                     registration_number: pendingData.registration_number || undefined,
-                    business_type: pendingData.business_type || undefined,
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    business_type: (pendingData.business_type as any) || undefined,
                     current_stage_id: pendingData.current_stage_id || undefined,
                 },
             });

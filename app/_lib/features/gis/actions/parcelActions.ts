@@ -60,17 +60,38 @@ export async function deleteParcel(input: DeleteParcelInput) {
     const supabase = getSupabaseAdmin();
 
     // 1. 해당 PNU에 연결된 조합원들의 동의 정보 삭제
-    // property_pnu가 이 PNU인 사용자들의 user_consents 삭제
-    const { data: users, error: usersError } = await supabase
-        .from('users')
-        .select('id')
-        .eq('property_pnu', input.pnu)
-        .eq('union_id', input.unionId);
+    // user_property_units.pnu가 이 PNU인 사용자들의 user_consents 삭제
+    const { data: propertyUnits, error: usersError } = await supabase
+        .from('user_property_units')
+        .select(`
+            user_id,
+            users!inner (
+                id,
+                union_id
+            )
+        `)
+        .eq('pnu', input.pnu);
 
     if (usersError) {
         console.error('Find users error:', usersError);
         throw new Error(`필지 삭제 중 오류가 발생했습니다: ${usersError.message}`);
     }
+
+    // 해당 조합의 사용자만 필터링
+    interface UserData {
+        id: string;
+        union_id: string;
+    }
+
+    const users = (propertyUnits || [])
+        .filter((pu) => {
+            const user = pu.users as unknown as UserData | null;
+            return user && user.union_id === input.unionId;
+        })
+        .map((pu) => {
+            const user = pu.users as unknown as UserData;
+            return { id: user.id };
+        });
 
     if (users && users.length > 0) {
         const userIds = users.map((u) => u.id);
@@ -124,57 +145,116 @@ export async function deleteParcel(input: DeleteParcelInput) {
 }
 
 /**
- * 필지의 조합원 목록 조회 (users.property_pnu 기준)
+ * 필지의 조합원 목록 조회 (user_property_units.pnu 기준)
  */
 export async function getParcelMembers(pnu: string, unionId: string) {
     const supabase = getSupabaseAdmin();
 
-    const { data: users, error } = await supabase
-        .from('users')
+    // user_property_units 테이블에서 해당 PNU에 연결된 사용자 조회
+    const { data: propertyUnits, error } = await supabase
+        .from('user_property_units')
         .select(`
-            id,
-            name,
-            phone_number,
+            pnu,
             property_address_jibun,
-            property_pnu,
-            user_status
+            users!inner (
+                id,
+                name,
+                phone_number,
+                user_status,
+                union_id
+            )
         `)
-        .eq('property_pnu', pnu)
-        .eq('union_id', unionId)
-        .eq('user_status', 'APPROVED');
+        .eq('pnu', pnu);
 
     if (error) {
         console.error('Get parcel members error:', error);
         throw new Error(`조합원 정보 조회에 실패했습니다: ${error.message}`);
     }
 
-    return users || [];
+    // 사용자 타입 정의
+    interface UserData {
+        id: string;
+        name: string;
+        phone_number: string;
+        user_status: string;
+        union_id: string;
+    }
+
+    // 해당 조합의 승인된 조합원만 필터링하고 결과 형식 변환
+    const users = (propertyUnits || [])
+        .filter((pu) => {
+            const user = pu.users as unknown as UserData | null;
+            return user && user.union_id === unionId && user.user_status === 'APPROVED';
+        })
+        .map((pu) => {
+            const user = pu.users as unknown as UserData;
+            return {
+                id: user.id,
+                name: user.name,
+                phone_number: user.phone_number,
+                property_address_jibun: pu.property_address_jibun,
+                property_pnu: pu.pnu,
+                user_status: user.user_status,
+            };
+        });
+
+    return users;
 }
 
 /**
  * 조합의 모든 승인된 조합원 목록 조회 (초기 로딩용)
+ * user_property_units 테이블에서 PNU가 있는 조합원을 조회
  */
 export async function getAllUnionMembers(unionId: string) {
     const supabase = getSupabaseAdmin();
 
-    const { data: users, error } = await supabase
-        .from('users')
+    // 해당 조합의 승인된 사용자 중 user_property_units에 PNU가 있는 사용자 조회
+    const { data: propertyUnits, error } = await supabase
+        .from('user_property_units')
         .select(`
-            id,
-            name,
-            phone_number,
+            pnu,
             property_address_jibun,
-            property_pnu,
-            user_status
+            users!inner (
+                id,
+                name,
+                phone_number,
+                user_status,
+                union_id
+            )
         `)
-        .eq('union_id', unionId)
-        .eq('user_status', 'APPROVED')
-        .not('property_pnu', 'is', null);
+        .not('pnu', 'is', null);
 
     if (error) {
         console.error('Get all union members error:', error);
         throw new Error(`조합원 정보 조회에 실패했습니다: ${error.message}`);
     }
 
-    return users || [];
+    // 사용자 타입 정의
+    interface UserData {
+        id: string;
+        name: string;
+        phone_number: string;
+        user_status: string;
+        union_id: string;
+    }
+
+    // 해당 조합의 승인된 조합원만 필터링하고 결과 형식 변환
+    const users = (propertyUnits || [])
+        .filter((pu) => {
+            const user = pu.users as unknown as UserData | null;
+            return user && user.union_id === unionId && user.user_status === 'APPROVED';
+        })
+        .map((pu) => {
+            const user = pu.users as unknown as UserData;
+            return {
+                id: user.id,
+                name: user.name,
+                phone_number: user.phone_number,
+                property_address_jibun: pu.property_address_jibun,
+                property_pnu: pu.pnu,
+                user_status: user.user_status,
+            };
+        });
+
+    return users;
 }

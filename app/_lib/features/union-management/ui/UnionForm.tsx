@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { ArrowLeft, Upload, X, Loader2 } from 'lucide-react';
+import { Upload, X, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -205,17 +205,6 @@ export default function UnionForm({ mode, initialData, onSubmit, onCancel, isSub
             });
         } catch (error) {
             console.error('Submit error:', error);
-        }
-    };
-
-    const getTitle = () => {
-        switch (mode) {
-            case 'create':
-                return '조합 등록';
-            case 'edit':
-                return '조합 수정';
-            case 'view':
-                return '조합 상세';
         }
     };
 

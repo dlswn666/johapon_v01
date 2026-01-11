@@ -63,7 +63,7 @@ const EditQuestionPage = () => {
             form.reset({
                 title: question.title,
                 content: question.content,
-                is_secret: question.is_secret,
+                is_secret: question.is_secret ?? false,
             });
         }
     }, [question, form]);

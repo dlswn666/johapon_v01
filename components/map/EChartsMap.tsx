@@ -124,6 +124,8 @@ export default function EChartsMap({
     const chartRef = useRef<HTMLDivElement>(null);
     const chartInstance = useRef<echarts.ECharts | null>(null);
     const prevSelectedPnu = useRef<string | null>(null);
+    const isInitialRender = useRef<boolean>(true);
+    const prevGeoJsonRef = useRef<GeoJSON.FeatureCollection | null>(null);
 
     // 현재 모드에 따른 설정 선택
     const config = useMemo(() => {
@@ -314,7 +316,25 @@ export default function EChartsMap({
             ],
         };
 
-        chartInstance.current.setOption(option, true);
+        // GeoJSON이 변경되었거나 초기 렌더링인 경우에만 전체 옵션 적용
+        const isGeoJsonChanged = prevGeoJsonRef.current !== geoJson;
+        
+        if (isInitialRender.current || isGeoJsonChanged) {
+            // 초기 렌더링 또는 GeoJSON 변경 시: 전체 옵션 적용 (zoom 포함)
+            chartInstance.current.setOption(option, true);
+            isInitialRender.current = false;
+            prevGeoJsonRef.current = geoJson;
+        } else {
+            // 데이터만 변경된 경우: 시리즈 데이터만 업데이트 (zoom 유지)
+            chartInstance.current.setOption({
+                series: [{
+                    data: data.map((item) => ({
+                        name: item.pnu,
+                        value: item.status,
+                    })),
+                }],
+            }, { notMerge: false });
+        }
 
         const handleResize = () => chartInstance.current?.resize();
         window.addEventListener('resize', handleResize);

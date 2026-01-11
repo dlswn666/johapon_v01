@@ -4,7 +4,11 @@ import React, { useState } from 'react';
 import { Ban, AlertTriangle, Loader2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import toast from 'react-hot-toast';
-import { useBlockMember, useUnblockMember, MemberWithLandInfo } from '@/app/_lib/features/member-management/api/useMemberHook';
+import {
+    useBlockMember,
+    useUnblockMember,
+    MemberWithLandInfo,
+} from '@/app/_lib/features/member-management/api/useMemberHook';
 import { useLogAccessEvent } from '@/app/_lib/features/member-management/api/useAccessLogHook';
 import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
@@ -97,7 +101,9 @@ export default function BlockMemberModal({ member, onClose }: BlockMemberModalPr
                         <p className="text-[14px] text-gray-500 mb-1">대상 회원</p>
                         <p className="text-[16px] font-bold text-gray-900">{member.name}</p>
                         <p className="text-[14px] text-gray-600 mt-1">
-                            {member.property_address_road || member.property_address || '주소 없음'}
+                            {member.property_units?.[0]?.property_address_road ||
+                                member.property_units?.[0]?.property_address_jibun ||
+                                '주소 없음'}
                         </p>
                     </div>
 
@@ -108,9 +114,7 @@ export default function BlockMemberModal({ member, onClose }: BlockMemberModalPr
                                 <div className="flex items-start gap-3">
                                     <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5" />
                                     <div>
-                                        <p className="text-[14px] font-medium text-amber-800">
-                                            현재 차단된 회원입니다
-                                        </p>
+                                        <p className="text-[14px] font-medium text-amber-800">현재 차단된 회원입니다</p>
                                         <p className="text-[13px] text-amber-700 mt-1">
                                             차단 사유: {member.blocked_reason || '사유 없음'}
                                         </p>
@@ -150,9 +154,7 @@ export default function BlockMemberModal({ member, onClose }: BlockMemberModalPr
                                     className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none text-[14px]"
                                 />
                                 {reason.trim().length === 0 && (
-                                    <p className="text-[12px] text-red-500">
-                                        차단 사유를 입력해야 차단할 수 있습니다.
-                                    </p>
+                                    <p className="text-[12px] text-red-500">차단 사유를 입력해야 차단할 수 있습니다.</p>
                                 )}
                             </div>
                         </>

@@ -63,8 +63,8 @@ const QnAPage = () => {
             id: question.id,
             title: question.is_secret && !isMine ? '비밀글입니다.' : question.title,
             author: formatAuthorName((question.author as { name: string } | null)?.name),
-            date: formatDate(question.created_at),
-            views: question.views,
+            date: question.created_at ? formatDate(question.created_at) : '-',
+            views: question.views ?? 0,
             isMine,
         };
     });

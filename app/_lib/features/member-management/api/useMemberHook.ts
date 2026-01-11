@@ -58,13 +58,13 @@ export function useApprovedMembers({
         queryFn: async () => {
             if (!unionId) return { members: [], total: 0 };
 
-            // 1. 먼저 사용자 목록 조회 (지번 오름차순 정렬)
+            // 1. 먼저 사용자 목록 조회 (물건지 주소 오름차순 정렬)
             let query = supabase
                 .from('users')
                 .select('*', { count: 'exact' })
                 .eq('union_id', unionId)
                 .in('user_status', ['PRE_REGISTERED', 'APPROVED'])
-                .order('property_address_jibun', { ascending: true, nullsFirst: false });
+                .order('property_address', { ascending: true, nullsFirst: false });
 
             // 차단 필터 적용
             if (blockedFilter === 'normal') {
@@ -76,7 +76,7 @@ export function useApprovedMembers({
             // 검색 필터 적용 (이름 또는 물건지 주소)
             if (searchQuery) {
                 query = query.or(
-                    `name.ilike.%${searchQuery}%,property_address_road.ilike.%${searchQuery}%,property_address_jibun.ilike.%${searchQuery}%`
+                    `name.ilike.%${searchQuery}%,property_address.ilike.%${searchQuery}%`
                 );
             }
 
@@ -97,28 +97,7 @@ export function useApprovedMembers({
 
             const unionPnuSet = new Set(unionLandLots?.map((l) => l.pnu) || []);
 
-            // 3. 사용자 PNU로 land_lots 정보 조회 (기존 호환성)
-            const pnuList = users?.map((u) => u.property_pnu).filter(Boolean) as string[];
-            let landLotsMap: Record<string, { area: number | null; official_price: number | null }> = {};
-
-            if (pnuList.length > 0) {
-                const { data: landLots } = await supabase
-                    .from('land_lots')
-                    .select('pnu, area, official_price')
-                    .in('pnu', pnuList);
-
-                if (landLots) {
-                    landLotsMap = landLots.reduce(
-                        (acc, lot) => {
-                            acc[lot.pnu] = { area: lot.area, official_price: lot.official_price };
-                            return acc;
-                        },
-                        {} as Record<string, { area: number | null; official_price: number | null }>
-                    );
-                }
-            }
-
-            // 4. user_property_units에서 사용자별 물건지 정보 조회
+            // 3. user_property_units에서 사용자별 물건지 정보 조회
             const userIds = users?.map((u) => u.id) || [];
             const propertyUnitsMap: Record<string, MemberPropertyUnitInfo[]> = {};
 
@@ -200,12 +179,22 @@ export function useApprovedMembers({
             }
 
             // 5. 조합원 정보와 필지/물건지 정보 결합
-            const membersWithLandInfo: MemberWithLandInfo[] = (users || []).map((user) => ({
-                ...user,
-                land_lot: user.property_pnu ? landLotsMap[user.property_pnu] || null : null,
-                isPnuMatched: user.property_pnu ? unionPnuSet.has(user.property_pnu) : false,
-                property_units: propertyUnitsMap[user.id] || [],
-            }));
+            // property_pnu는 user_property_units에서 가져오므로 propertyUnitsMap 활용
+            const membersWithLandInfo: MemberWithLandInfo[] = (users || []).map((user) => {
+                const units = propertyUnitsMap[user.id] || [];
+                const primaryUnit = units.find((u) => u.is_primary) || units[0];
+                const primaryPnu = primaryUnit?.pnu || null;
+                
+                return {
+                    ...user,
+                    land_lot: primaryUnit ? {
+                        area: primaryUnit.land_area || null,
+                        official_price: primaryUnit.official_price || null,
+                    } : null,
+                    isPnuMatched: primaryPnu ? unionPnuSet.has(primaryPnu) : false,
+                    property_units: units,
+                };
+            });
 
             setMembers(users || []);
             setTotalCount(count || 0);

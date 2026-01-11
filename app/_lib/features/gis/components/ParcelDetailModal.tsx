@@ -34,7 +34,9 @@ import {
     Phone,
     Pencil,
     Trash2,
-    Loader2
+    Loader2,
+    Layers,
+    Home
 } from 'lucide-react';
 import { useParcelDetail, ParcelDetail, ConsentStageStatus, Owner, BUILDING_TYPE_LABELS } from '../api/useParcelDetail';
 import { cn } from '@/lib/utils';
@@ -100,12 +102,8 @@ export default function ParcelDetailModal({
                             <LoadingSkeleton />
                         ) : parcel ? (
                             <>
-                                {/* 필지 기본 정보 + 수정/삭제 버튼 */}
-                                <ParcelBasicInfo 
-                                    parcel={parcel} 
-                                    onEdit={() => setIsEditModalOpen(true)}
-                                    onDelete={() => setIsDeleteDialogOpen(true)}
-                                />
+                                {/* 필지 기본 정보 */}
+                                <ParcelBasicInfo parcel={parcel} />
 
                                 {/* 소유주 목록 (조합원 정보) */}
                                 <OwnersSection parcel={parcel} />
@@ -116,6 +114,31 @@ export default function ParcelDetailModal({
                             </div>
                         )}
                     </div>
+
+                    {/* 수정/삭제 버튼 - 모달 하단 */}
+                    {parcel && (
+                        <DialogFooter className="border-t pt-4">
+                            <div className="flex items-center gap-2 ml-auto">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setIsEditModalOpen(true)}
+                                >
+                                    <Pencil className="w-4 h-4 mr-1" />
+                                    수정
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setIsDeleteDialogOpen(true)}
+                                    className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                                >
+                                    <Trash2 className="w-4 h-4 mr-1" />
+                                    삭제
+                                </Button>
+                            </div>
+                        </DialogFooter>
+                    )}
                 </DialogContent>
             </Dialog>
 
@@ -183,47 +206,17 @@ function formatPrice(price: number | null | undefined): string {
 }
 
 // 필지 기본 정보
-function ParcelBasicInfo({ 
-    parcel, 
-    onEdit, 
-    onDelete 
-}: { 
-    parcel: ParcelDetail; 
-    onEdit: () => void;
-    onDelete: () => void;
-}) {
+function ParcelBasicInfo({ parcel }: { parcel: ParcelDetail }) {
     return (
         <div className="bg-gray-50 rounded-xl p-4 space-y-4">
             {/* 지번 주소 */}
-            <div className="flex items-start justify-between">
-                <div>
-                    <p className="text-sm text-gray-500 mb-1">지번 주소</p>
-                    <p className="font-semibold text-gray-900">{parcel.address}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={onEdit}
-                        className="h-8"
-                    >
-                        <Pencil className="w-3 h-3 mr-1" />
-                        수정
-                    </Button>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={onDelete}
-                        className="h-8 text-red-500 hover:text-red-600 hover:bg-red-50"
-                    >
-                        <Trash2 className="w-3 h-3 mr-1" />
-                        삭제
-                    </Button>
-                </div>
+            <div>
+                <p className="text-sm text-gray-500 mb-1">지번 주소</p>
+                <p className="font-semibold text-gray-900">{parcel.address}</p>
             </div>
 
-            {/* 건물 유형, 소유주 수, 면적, 공시지가 */}
-            <div className="grid grid-cols-4 gap-4 pt-3 border-t border-gray-200">
+            {/* 1행: 건물 유형, 건물 이름 */}
+            <div className="grid grid-cols-2 gap-4 pt-3 border-t border-gray-200">
                 <div className="text-center">
                     <div className="flex items-center justify-center gap-1 text-gray-500 mb-1">
                         <Building2 className="w-4 h-4" />
@@ -237,10 +230,56 @@ function ParcelBasicInfo({
                 </div>
                 <div className="text-center">
                     <div className="flex items-center justify-center gap-1 text-gray-500 mb-1">
+                        <Building2 className="w-4 h-4" />
+                        <span className="text-xs">건물 이름</span>
+                    </div>
+                    <p className="text-sm font-bold text-gray-900 truncate" title={parcel.building_name || '-'}>
+                        {parcel.building_name || '-'}
+                    </p>
+                </div>
+            </div>
+
+            {/* 2행: 주 용도, 층수, 총 세대수 */}
+            <div className="grid grid-cols-3 gap-4 pt-3 border-t border-gray-200">
+                <div className="text-center">
+                    <div className="flex items-center justify-center gap-1 text-gray-500 mb-1">
+                        <Home className="w-4 h-4" />
+                        <span className="text-xs">주 용도</span>
+                    </div>
+                    <p className="text-sm font-bold text-gray-900 truncate" title={parcel.main_purpose || '-'}>
+                        {parcel.main_purpose || '-'}
+                    </p>
+                </div>
+                <div className="text-center">
+                    <div className="flex items-center justify-center gap-1 text-gray-500 mb-1">
+                        <Layers className="w-4 h-4" />
+                        <span className="text-xs">층수</span>
+                    </div>
+                    <p className="text-sm font-bold text-gray-900">
+                        {parcel.floor_count ? `${parcel.floor_count}층` : '-'}
+                    </p>
+                </div>
+                <div className="text-center">
+                    <div className="flex items-center justify-center gap-1 text-gray-500 mb-1">
+                        <Building2 className="w-4 h-4" />
+                        <span className="text-xs">총 세대수</span>
+                    </div>
+                    <p className="text-sm font-bold text-gray-900">
+                        {parcel.total_unit_count ? `${parcel.total_unit_count}세대` : '-'}
+                    </p>
+                </div>
+            </div>
+
+            {/* 3행: 소유주 수, 면적, 공시지가 */}
+            <div className="grid grid-cols-3 gap-4 pt-3 border-t border-gray-200">
+                <div className="text-center">
+                    <div className="flex items-center justify-center gap-1 text-gray-500 mb-1">
                         <Users className="w-4 h-4" />
                         <span className="text-xs">소유주 수</span>
                     </div>
-                    <p className="text-lg font-bold text-gray-900">{parcel.summary.total_owners}</p>
+                    <p className="text-lg font-bold text-gray-900">
+                        {parcel.building_units_count > 0 ? parcel.building_units_count : '-'}
+                    </p>
                 </div>
                 <div className="text-center">
                     <div className="flex items-center justify-center gap-1 text-gray-500 mb-1">
@@ -276,7 +315,7 @@ interface EditParcelModalProps {
 
 function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: EditParcelModalProps) {
     const [formData, setFormData] = useState({
-        owner_count: parcel.summary.total_owners,
+        owner_count: parcel.building_units_count,
         land_area: parcel.land_area || 0,
     });
 
@@ -284,7 +323,7 @@ function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: Edi
     React.useEffect(() => {
         if (open) {
             setFormData({
-                owner_count: parcel.summary.total_owners,
+                owner_count: parcel.building_units_count,
                 land_area: parcel.land_area || 0,
             });
         }

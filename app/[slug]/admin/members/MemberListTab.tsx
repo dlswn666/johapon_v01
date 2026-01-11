@@ -135,13 +135,13 @@ export default function MemberListTab() {
                         >
                             {truncateName(row.name, 8)}
                         </span>
-                        {!row.isPnuMatched && row.property_pnu && (
+                        {!row.isPnuMatched && row.property_units?.[0]?.pnu && (
                             <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 whitespace-nowrap">
                                 <AlertTriangle className="w-3 h-3 mr-1" />
                                 PNU 미매칭
                             </span>
                         )}
-                        {!row.property_pnu && (
+                        {!row.property_units?.[0]?.pnu && (
                             <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600 whitespace-nowrap">
                                 <MapPin className="w-3 h-3 mr-1" />
                                 PNU 없음
@@ -183,8 +183,9 @@ export default function MemberListTab() {
                 className: 'text-gray-600',
                 wrap: true,
                 render: (_, row) => {
-                    const propertyAddress = row.property_address_jibun || row.property_address || '-';
-                    const totalCount = row.total_property_count || 1;
+                    const primaryProperty = row.property_units?.find(p => p.is_primary) || row.property_units?.[0];
+                    const propertyAddress = primaryProperty?.property_address_jibun || primaryProperty?.property_address_road || '-';
+                    const totalCount = row.property_units?.length || 1;
                     const hasMultipleProperties = totalCount > 1;
 
                     return (

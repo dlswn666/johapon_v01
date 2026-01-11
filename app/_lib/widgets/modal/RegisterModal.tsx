@@ -6,7 +6,8 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/app/_lib/shared/supabase/client';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
-import { User, NewUser, AuthProvider } from '@/app/_lib/shared/type/database.types';
+import { User, NewUser } from '@/app/_lib/shared/type/database.types';
+import { AuthProvider } from '@/app/_lib/shared/type/auth.types';
 import { sendAlimTalk } from '@/app/_lib/features/alimtalk/actions/sendAlimTalk';
 import {
     MapPin,
@@ -341,8 +342,16 @@ export function RegisterModal({
                 const { data: userData } = await supabase.from('users').select('*').eq('id', authLink.user_id).single();
 
                 if (userData) {
+                    // user_property_units에서 물건지 정보 조회
+                    const { data: propertyUnit } = await supabase
+                        .from('user_property_units')
+                        .select('*')
+                        .eq('user_id', authLink.user_id)
+                        .eq('is_primary', true)
+                        .single();
+
                     // 기존 호수에서 지하 여부 판단
-                    const existingHo = userData.property_ho || '';
+                    const existingHo = propertyUnit?.ho || '';
                     const isBasement = isBasementHo(existingHo);
                     const hoNumber = isBasement ? extractHoNumber(existingHo) || '' : existingHo;
 
@@ -350,14 +359,14 @@ export function RegisterModal({
                         name: userData.name || '',
                         phone_number: userData.phone_number || '',
                         birth_date: userData.birth_date || '',
-                        property_address: userData.property_address || '',
+                        property_address: userData.property_address || propertyUnit?.property_address_jibun || '',
                         property_address_detail: userData.property_address_detail || '',
-                        property_address_road: userData.property_address_road || '',
-                        property_address_jibun: userData.property_address_jibun || '',
+                        property_address_road: propertyUnit?.property_address_road || '',
+                        property_address_jibun: propertyUnit?.property_address_jibun || '',
                         property_zonecode: userData.property_zonecode || '',
-                        property_pnu: userData.property_pnu || '',
+                        property_pnu: propertyUnit?.pnu || '',
                         property_type: (userData.property_type as PropertyType) || '',
-                        property_dong: userData.property_dong || '',
+                        property_dong: propertyUnit?.dong || '',
                         property_is_basement: isBasement,
                         property_ho: hoNumber,
                         resident_address: userData.resident_address || '',
@@ -709,7 +718,7 @@ export function RegisterModal({
             const role = isInvite && inviteData?.invite_type === 'admin' ? 'ADMIN' : isInvite ? 'USER' : 'APPLICANT';
             const userStatus = isInvite ? 'APPROVED' : 'PENDING_APPROVAL';
 
-            // PRE_REGISTERED 사용자 매칭 시도 (이름 + property_pnu + 동 + 호수)
+            // PRE_REGISTERED 사용자 매칭 시도 (이름 + pnu + 동 + 호수 - user_property_units 조인)
             let finalUserId: string | null = null;
             let isExistingPreRegistered = false;
 
@@ -718,32 +727,35 @@ export function RegisterModal({
             const normalizedHo = createNormalizedHo(formData.property_is_basement, formData.property_ho);
 
             if (unionId && formData.property_pnu) {
-                // PRE_REGISTERED 사용자 검색 (정규화된 동호수로 비교)
+                // PRE_REGISTERED 사용자 검색 (user_property_units 조인으로 pnu, dong, ho 비교)
                 let preRegisteredQuery = supabase
-                    .from('users')
-                    .select('*')
-                    .eq('union_id', unionId)
-                    .eq('name', formData.name)
-                    .eq('property_pnu', formData.property_pnu)
-                    .eq('user_status', 'PRE_REGISTERED');
+                    .from('user_property_units')
+                    .select('*, users!inner(*)')
+                    .eq('users.union_id', unionId)
+                    .eq('users.name', formData.name)
+                    .eq('users.user_status', 'PRE_REGISTERED')
+                    .eq('pnu', formData.property_pnu);
 
                 // 동/호수 조건 추가 (정규화된 값 사용)
                 if (normalizedDong) {
-                    preRegisteredQuery = preRegisteredQuery.eq('property_dong', normalizedDong);
+                    preRegisteredQuery = preRegisteredQuery.eq('dong', normalizedDong);
                 } else {
-                    preRegisteredQuery = preRegisteredQuery.is('property_dong', null);
+                    preRegisteredQuery = preRegisteredQuery.is('dong', null);
                 }
 
                 if (normalizedHo) {
-                    preRegisteredQuery = preRegisteredQuery.eq('property_ho', normalizedHo);
+                    preRegisteredQuery = preRegisteredQuery.eq('ho', normalizedHo);
                 } else {
-                    preRegisteredQuery = preRegisteredQuery.is('property_ho', null);
+                    preRegisteredQuery = preRegisteredQuery.is('ho', null);
                 }
 
-                const { data: preRegistered } = await preRegisteredQuery.single();
+                const { data: preRegisteredData } = await preRegisteredQuery.single();
 
-                if (preRegistered) {
-                    // 기존 PRE_REGISTERED 레코드 업데이트 (정규화된 동호수 사용)
+                if (preRegisteredData) {
+                    const preRegistered = preRegisteredData.users as { id: string };
+                    const propertyUnitId = preRegisteredData.id;
+
+                    // 기존 PRE_REGISTERED 레코드 업데이트 (users - 기본 정보만)
                     const { error: updateError } = await supabase
                         .from('users')
                         .update({
@@ -754,12 +766,8 @@ export function RegisterModal({
                             birth_date: formData.birth_date || null,
                             property_address: formData.property_address,
                             property_address_detail: [normalizedDong, normalizedHo].filter(Boolean).join(' ') || null,
-                            property_address_road: formData.property_address_road || null,
-                            property_address_jibun: formData.property_address_jibun || null,
                             property_zonecode: formData.property_zonecode || null,
                             property_type: formData.property_type || null,
-                            property_dong: normalizedDong,
-                            property_ho: normalizedHo,
                             resident_address: formData.resident_address || null,
                             resident_address_detail: formData.resident_address_detail || null,
                             resident_address_road: formData.resident_address_road || null,
@@ -771,6 +779,18 @@ export function RegisterModal({
                         .eq('id', preRegistered.id);
 
                     if (updateError) throw updateError;
+
+                    // user_property_units 업데이트
+                    await supabase
+                        .from('user_property_units')
+                        .update({
+                            property_address_jibun: formData.property_address_jibun || null,
+                            property_address_road: formData.property_address_road || null,
+                            dong: normalizedDong,
+                            ho: normalizedHo,
+                            updated_at: new Date().toISOString(),
+                        })
+                        .eq('id', propertyUnitId);
 
                     finalUserId = preRegistered.id;
                     isExistingPreRegistered = true;
@@ -788,6 +808,7 @@ export function RegisterModal({
                     .filter(Boolean)
                     .join(' ') || null;
 
+                // users 테이블에 기본 정보만 저장 (물건지 정보는 user_property_units로 이동)
                 const newUser: NewUser = {
                     id: newUserId,
                     name: formData.name,
@@ -799,13 +820,8 @@ export function RegisterModal({
                     birth_date: formData.birth_date || null,
                     property_address: formData.property_address,
                     property_address_detail: propertyAddressDetail,
-                    property_address_road: formData.property_address_road || null,
-                    property_address_jibun: formData.property_address_jibun || null,
                     property_zonecode: formData.property_zonecode || null,
-                    property_pnu: formData.property_pnu || null,
                     property_type: formData.property_type || null,
-                    property_dong: normalizedDong,
-                    property_ho: normalizedHo,
                     resident_address: formData.resident_address || null,
                     resident_address_detail: formData.resident_address_detail || null,
                     resident_address_road: formData.resident_address_road || null,
@@ -816,6 +832,23 @@ export function RegisterModal({
 
                 const { error: userError } = await supabase.from('users').insert(newUser);
                 if (userError) throw userError;
+
+                // user_property_units에 물건지 정보 저장
+                const { error: propertyUnitError } = await supabase.from('user_property_units').insert({
+                    id: crypto.randomUUID(),
+                    user_id: newUserId,
+                    pnu: formData.property_pnu || null,
+                    property_address_jibun: formData.property_address_jibun || null,
+                    property_address_road: formData.property_address_road || null,
+                    dong: normalizedDong,
+                    ho: normalizedHo,
+                    is_primary: true,
+                });
+
+                if (propertyUnitError) {
+                    console.error('user_property_units insert error:', propertyUnitError);
+                    // 실패해도 계속 진행 (critical하지 않음)
+                }
 
                 finalUserId = newUserId;
             }

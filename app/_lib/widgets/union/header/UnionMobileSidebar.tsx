@@ -7,13 +7,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { ChevronDown, ChevronRight, LogOut, UserCircle, Home, MapPin } from 'lucide-react';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
-import {
-    Sheet,
-    SheetContent,
-    SheetHeader,
-    SheetTitle,
-    SheetDescription,
-} from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 
@@ -74,7 +68,7 @@ export default function UnionMobileSidebar({ isOpen, onClose }: UnionMobileSideb
                 { label: '슬라이드 관리', href: `/${union?.slug || ''}/admin/slides` },
                 { label: '알림톡 내역', href: `/${union?.slug || ''}/admin/alimtalk` },
                 { label: '조합원 관리', href: `/${union?.slug || ''}/admin/members` },
-                { label: '지번 및 GIS 관리', href: `/${union?.slug || ''}/admin/land-lots` },
+                { label: '동의율 관리', href: `/${union?.slug || ''}/admin/land-lots` },
             ],
         });
     }
@@ -99,9 +93,7 @@ export default function UnionMobileSidebar({ isOpen, onClose }: UnionMobileSideb
 
     // 메뉴 토글
     const toggleMenu = (menuId: string) => {
-        setOpenMenus((prev) =>
-            prev.includes(menuId) ? prev.filter((id) => id !== menuId) : [...prev, menuId]
-        );
+        setOpenMenus((prev) => (prev.includes(menuId) ? prev.filter((id) => id !== menuId) : [...prev, menuId]));
     };
 
     // 로그아웃 처리
@@ -120,10 +112,7 @@ export default function UnionMobileSidebar({ isOpen, onClose }: UnionMobileSideb
 
     return (
         <Sheet open={isOpen} onOpenChange={onClose}>
-            <SheetContent
-                side="left"
-                className="w-[280px] p-0 bg-white flex flex-col [&>button]:hidden"
-            >
+            <SheetContent side="left" className="w-[280px] p-0 bg-white flex flex-col [&>button]:hidden">
                 <SheetHeader className="sr-only">
                     <SheetTitle>네비게이션 메뉴</SheetTitle>
                     <SheetDescription>조합 네비게이션 메뉴입니다.</SheetDescription>
@@ -151,9 +140,7 @@ export default function UnionMobileSidebar({ isOpen, onClose }: UnionMobileSideb
                             )}
                         </div>
                         <div className="flex flex-col min-w-0">
-                            <p className="text-[15px] leading-[21px] font-bold text-[#4e8c6d] truncate">
-                                {union.name}
-                            </p>
+                            <p className="text-[15px] leading-[21px] font-bold text-[#4e8c6d] truncate">{union.name}</p>
                         </div>
                     </div>
                 </div>
@@ -231,12 +218,8 @@ export default function UnionMobileSidebar({ isOpen, onClose }: UnionMobileSideb
                                     <UserCircle className="size-[24px] text-[#4e8c6d]" />
                                 </div>
                                 <div className="flex flex-col">
-                                    <span className="text-[14px] font-medium text-gray-800">
-                                        {user.name}님
-                                    </span>
-                                    <span className="text-[12px] text-gray-500">
-                                        안녕하세요
-                                    </span>
+                                    <span className="text-[14px] font-medium text-gray-800">{user.name}님</span>
+                                    <span className="text-[12px] text-gray-500">안녕하세요</span>
                                 </div>
                             </div>
                         </div>
@@ -247,9 +230,7 @@ export default function UnionMobileSidebar({ isOpen, onClose }: UnionMobileSideb
                             onClick={() => setIsUserMenuExpanded(!isUserMenuExpanded)}
                             className={cn(
                                 'w-full flex items-center justify-between px-3 py-3 rounded-lg transition-colors cursor-pointer',
-                                isUserMenuExpanded
-                                    ? 'bg-[#4e8c6d]/10'
-                                    : 'hover:bg-gray-100'
+                                isUserMenuExpanded ? 'bg-[#4e8c6d]/10' : 'hover:bg-gray-100'
                             )}
                         >
                             <div className="flex items-center gap-3">
@@ -276,8 +257,7 @@ export default function UnionMobileSidebar({ isOpen, onClose }: UnionMobileSideb
                                     onClick={handleLinkClick}
                                     className="px-4 py-3 text-[14px] text-gray-700 hover:bg-gray-50 transition-colors rounded-t-lg cursor-pointer flex items-center gap-2"
                                 >
-                                    <MapPin className="size-4" />
-                                    내 공시지가 보기
+                                    <MapPin className="size-4" />내 공시지가 보기
                                 </Link>
                                 <button
                                     onClick={handleLogout}
@@ -294,4 +274,3 @@ export default function UnionMobileSidebar({ isOpen, onClose }: UnionMobileSideb
         </Sheet>
     );
 }
-

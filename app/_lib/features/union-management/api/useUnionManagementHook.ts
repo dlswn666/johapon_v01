@@ -110,7 +110,6 @@ interface CreateUnionInput extends NewUnion {
     office_address?: string;
     office_phone?: string;
     registration_number?: string;
-    business_type?: string;
     current_stage_id?: string | null;
 }
 
@@ -149,7 +148,6 @@ interface UpdateUnionInput extends UpdateUnion {
     office_address?: string;
     office_phone?: string;
     registration_number?: string;
-    business_type?: string;
     current_stage_id?: string | null;
 }
 

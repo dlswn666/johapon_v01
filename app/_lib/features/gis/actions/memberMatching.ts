@@ -126,6 +126,7 @@ export async function matchMembersWithGis(
 
 /**
  * 중복 PNU 체크 (동일 조합 내에서 같은 PNU+동+호수를 가진 다른 사용자가 있는지)
+ * user_property_units 테이블을 통해 조회
  */
 export async function checkDuplicatePnu(
     unionId: string,
@@ -135,39 +136,61 @@ export async function checkDuplicatePnu(
     excludeUserId?: string
 ): Promise<{ isDuplicate: boolean; existingUser?: { id: string; name: string } }> {
     try {
+        // user_property_units에서 PNU, 동, 호로 조회
         let query = supabase
-            .from('users')
-            .select('id, name')
-            .eq('union_id', unionId)
-            .eq('property_pnu', pnu);
+            .from('user_property_units')
+            .select(`
+                user_id,
+                dong,
+                ho,
+                users!inner (
+                    id,
+                    name,
+                    union_id
+                )
+            `)
+            .eq('pnu', pnu);
 
         // 동/호수 조건 추가
         if (dong) {
-            query = query.eq('property_dong', dong);
+            query = query.eq('dong', dong);
         } else {
-            query = query.is('property_dong', null);
+            query = query.is('dong', null);
         }
 
         if (ho) {
-            query = query.eq('property_ho', ho);
+            query = query.eq('ho', ho);
         } else {
-            query = query.is('property_ho', null);
+            query = query.is('ho', null);
         }
 
-        // 자기 자신 제외
-        if (excludeUserId) {
-            query = query.neq('id', excludeUserId);
-        }
-
-        const { data, error } = await query.limit(1);
+        const { data, error } = await query.limit(10);
 
         if (error) {
             console.error('Duplicate check error:', error);
             return { isDuplicate: false };
         }
 
-        if (data && data.length > 0) {
-            return { isDuplicate: true, existingUser: data[0] };
+        // 사용자 타입 정의
+        interface UserData {
+            id: string;
+            name: string;
+            union_id: string;
+        }
+
+        // 해당 조합의 사용자 중 excludeUserId가 아닌 사용자 필터링
+        const matchingUsers = (data || [])
+            .filter((pu) => {
+                const user = pu.users as unknown as UserData | null;
+                return user && user.union_id === unionId && (!excludeUserId || user.id !== excludeUserId);
+            })
+            .map((pu) => {
+                const user = pu.users as unknown as UserData;
+                return { id: user.id, name: user.name };
+            });
+
+        if (matchingUsers.length > 0) {
+            return { isDuplicate: true, existingUser: matchingUsers[0] };
         }
 
         return { isDuplicate: false };

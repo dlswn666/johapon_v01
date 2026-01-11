@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
         });
 
         // 테스트용: 생성된 초대 URL들을 콘솔에 출력
-        if (result.inserted > 0) {
+        if ((result.inserted || 0) > 0) {
             // 새로 추가된 초대들 조회
             const { data: newInvites, error: fetchError } = await supabaseAdmin
                 .from('member_invites')
@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
                 .eq('union_id', unionId)
                 .eq('status', 'PENDING')
                 .order('created_at', { ascending: false })
-                .limit(result.inserted);
+                .limit(result.inserted || 0);
 
             if (!fetchError && newInvites && newInvites.length > 0) {
                 const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';

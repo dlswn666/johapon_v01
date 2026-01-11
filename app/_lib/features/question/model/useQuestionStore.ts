@@ -62,8 +62,8 @@ const useQuestionStore = create<QuestionStore>((set) => ({
 
     incrementViews: (id) =>
         set((state) => ({
-            questions: state.questions.map((question) => (question.id === id ? { ...question, views: question.views + 1 } : question)),
-            selectedQuestion: state.selectedQuestion?.id === id ? { ...state.selectedQuestion, views: state.selectedQuestion.views + 1 } : state.selectedQuestion,
+            questions: state.questions.map((question) => (question.id === id ? { ...question, views: (question.views || 0) + 1 } : question)),
+            selectedQuestion: state.selectedQuestion?.id === id ? { ...state.selectedQuestion, views: (state.selectedQuestion.views || 0) + 1 } : state.selectedQuestion,
         })),
 
     addEditorImage: (blobUrl, file) =>

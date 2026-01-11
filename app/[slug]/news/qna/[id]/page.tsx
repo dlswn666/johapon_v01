@@ -173,7 +173,7 @@ const QuestionDetailPage = () => {
                             <User className="h-4 w-4" />
                             작성자: {authorName}
                         </span>
-                        <span>작성일: {formatDate(question.created_at, true)}</span>
+                        <span>작성일: {question.created_at ? formatDate(question.created_at, true) : '-'}</span>
                         <span>조회수: {question.views}</span>
                         {question.is_secret && (
                             <span className="text-[#F0AD4E]">🔒 비밀글</span>

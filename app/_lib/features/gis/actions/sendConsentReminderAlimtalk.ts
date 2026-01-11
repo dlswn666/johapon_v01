@@ -338,14 +338,34 @@ export async function getNonConsentOwners(params: {
                 return { success: false, owners: [], message: '데이터 조회 오류' };
             }
 
-            // 해당 조합의 가입된 사용자 PNU 목록 조회
-            const { data: users } = await supabase
-                .from('users')
-                .select('property_pnu')
-                .eq('union_id', unionId)
-                .eq('user_status', 'APPROVED');
+            // 해당 조합의 가입된 사용자 PNU 목록 조회 (user_property_units 통해)
+            const { data: propertyUnits } = await supabase
+                .from('user_property_units')
+                .select(`
+                    pnu,
+                    users!inner (
+                        id,
+                        union_id,
+                        user_status
+                    )
+                `);
 
-            const registeredPnus = new Set(users?.map((u) => u.property_pnu) || []);
+            // 해당 조합의 승인된 사용자의 PNU만 필터링
+            interface UserData {
+                id: string;
+                union_id: string;
+                user_status: string;
+            }
+
+            const registeredPnus = new Set(
+                (propertyUnits || [])
+                    .filter((pu) => {
+                        const user = pu.users as unknown as UserData | null;
+                        return user && user.union_id === unionId && user.user_status === 'APPROVED';
+                    })
+                    .map((pu) => pu.pnu)
+                    .filter(Boolean)
+            );
 
             // 미가입 소유주 필터링
             const nonRegisteredOwners: Array<{

@@ -159,7 +159,8 @@ export default function NewUnionPage() {
                 office_address: formData.office_address || undefined,
                 office_phone: formData.office_phone || undefined,
                 registration_number: formData.registration_number || undefined,
-                business_type: formData.business_type || undefined,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                business_type: (formData.business_type as any) || undefined,
                 current_stage_id: formData.current_stage_id || undefined,
             });
 

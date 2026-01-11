@@ -147,7 +147,7 @@ export function AdDashboard({ _unionId }: { _unionId: string }) {
                         {ad.contract_start_date} ~ {ad.contract_end_date}
                       </span>
                       <span className="flex items-center gap-1">
-                        ₩ {ad.price.toLocaleString()}
+                        ₩ {(ad.price ?? 0).toLocaleString()}
                       </span>
                       {ad.is_payment_completed ? (
                         <span className="text-emerald-400 flex items-center gap-1">

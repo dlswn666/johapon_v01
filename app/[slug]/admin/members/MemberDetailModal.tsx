@@ -45,7 +45,7 @@ export default function MemberDetailModal({ invite, onClose }: MemberDetailModal
         }
     };
 
-    const statusInfo = getStatusInfo(invite.status);
+    const statusInfo = getStatusInfo(invite.status || 'PENDING');
     const StatusIcon = statusInfo.icon;
 
     return (
@@ -85,7 +85,7 @@ export default function MemberDetailModal({ invite, onClose }: MemberDetailModal
 
                     {/* 등록일 */}
                     <div className="text-sm text-gray-500 text-center pt-2">
-                        등록일: {new Date(invite.created_at).toLocaleDateString('ko-KR')}
+                        등록일: {invite.created_at ? new Date(invite.created_at).toLocaleDateString('ko-KR') : '-'}
                         {invite.used_at && (
                             <span className="ml-4">
                                 수락일: {new Date(invite.used_at).toLocaleDateString('ko-KR')}

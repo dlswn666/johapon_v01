@@ -6,7 +6,7 @@ import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import { CrossfadeBackground } from './CrossfadeBackground';
 import { LoginForm } from './LoginForm';
 import { RegisterModal, InviteData } from '@/app/_lib/widgets/modal/RegisterModal';
-import { AuthProvider } from '@/app/_lib/shared/type/database.types';
+import { AuthProvider } from '@/app/_lib/shared/type/auth.types';
 
 interface LandingPageProps {
     unionName: string;

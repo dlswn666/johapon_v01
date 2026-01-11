@@ -76,6 +76,7 @@ const USER_STATUS_LABELS: Record<UserStatus, string> = {
     PENDING_APPROVAL: '승인 대기',
     APPROVED: '승인됨',
     REJECTED: '반려됨',
+    APPLICANT: '신청자',
 };
 
 const USER_STATUS_COLORS: Record<UserStatus, string> = {
@@ -84,6 +85,7 @@ const USER_STATUS_COLORS: Record<UserStatus, string> = {
     PENDING_APPROVAL: 'bg-yellow-100 text-yellow-700',
     APPROVED: 'bg-green-100 text-green-700',
     REJECTED: 'bg-red-100 text-red-700',
+    APPLICANT: 'bg-blue-100 text-blue-700',
 };
 
 const USER_ROLE_LABELS: Record<string, string> = {
@@ -227,22 +229,9 @@ export default function MemberManagementPage() {
         enabled: isAdmin && activeTab === 'approval',
     });
 
-    // 구역 내 지번 목록 조회 (PNU 매칭 확인용)
-    const { data: landLots } = useQuery({
-        queryKey: ['union-land-lots', unionId],
-        queryFn: async () => {
-            if (!unionId) return [];
-            const { data, error } = await supabase
-                .from('union_land_lots')
-                .select('pnu')
-                .eq('union_id', unionId);
-            if (error) throw error;
-            return data.map((l) => l.pnu);
-        },
-        enabled: !!unionId && activeTab === 'approval',
-    });
 
-    const landLotPnuSet = useMemo(() => new Set(landLots || []), [landLots]);
+
+
 
     // 사용자 승인 mutation
     const approveMutation = useMutation({
@@ -274,7 +263,7 @@ export default function MemberManagementPage() {
                     unionId: unionId!,
                     templateCode: 'UE_3602', // 승인 템플릿 코드
                     recipients: [{
-                        phoneNumber: selectedUser.phone_number,
+                        phoneNumber: selectedUser.phone_number || '',
                         name: selectedUser.name,
                         variables: {
                             조합명: union?.name || '',
@@ -318,7 +307,7 @@ export default function MemberManagementPage() {
                     unionId: unionId!,
                     templateCode: 'UE_3603', // 반려 템플릿 코드
                     recipients: [{
-                        phoneNumber: selectedUser.phone_number,
+                        phoneNumber: selectedUser.phone_number || '',
                         name: selectedUser.name,
                         variables: {
                             조합명: union?.name || '',
@@ -696,19 +685,6 @@ export default function MemberManagementPage() {
                 render: (_, row) => (
                     <div className="flex flex-col gap-1">
                         <span className="text-[14px] font-medium text-gray-900">{row.name}</span>
-                        {row.property_pnu && (
-                            <div className="flex items-center gap-1">
-                                {landLotPnuSet.has(row.property_pnu) ? (
-                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                                        매칭 완료
-                                    </span>
-                                ) : (
-                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">
-                                        PNU 확인 필요
-                                    </span>
-                                )}
-                            </div>
-                        )}
                     </div>
                 ),
             },
@@ -726,12 +702,10 @@ export default function MemberManagementPage() {
                 render: (_, row) => (
                     <div className="flex flex-col gap-2">
                         <div>
-                            <div className="font-medium text-gray-900">{row.property_address_road || '-'}</div>
-                            {row.property_address_jibun && (
-                                <div className="text-[12px] text-gray-400 mt-0.5">
-                                    (물건지 지번) {row.property_address_jibun}
-                                </div>
-                            )}
+                            <div className="font-medium text-gray-900">
+                                {/* 물건지 정보는 user_property_units에서 조회 필요 */}
+                                -
+                            </div>
                         </div>
                         {(row.resident_address_road || row.resident_address) && (
                             <div className="pt-1 border-t border-gray-100">
@@ -759,7 +733,7 @@ export default function MemberManagementPage() {
                 render: (value) => new Date(value as string).toLocaleDateString('ko-KR'),
             },
         ],
-        [landLotPnuSet]
+        []
     );
 
     if (!union && !unionLoading) {
@@ -1200,18 +1174,13 @@ export default function MemberManagementPage() {
                                 <div className="flex items-center justify-between">
                                     <span className="text-[14px] text-gray-500">가입 상태</span>
                                     <div className="flex gap-2">
-                                        {selectedUser.property_pnu && (
-                                            <span className="inline-flex items-center px-3 py-1.5 rounded-full text-[14px] font-medium bg-blue-100 text-blue-700">
-                                                PNU 매칭 확인 필요
-                                            </span>
-                                        )}
                                         <span
                                             className={cn(
                                                 'inline-flex items-center px-4 py-1.5 rounded-full text-[14px] font-medium',
-                                                USER_STATUS_COLORS[selectedUser.user_status]
+                                                selectedUser.user_status ? USER_STATUS_COLORS[selectedUser.user_status as UserStatus] : 'bg-gray-100 text-gray-700'
                                             )}
                                         >
-                                            {USER_STATUS_LABELS[selectedUser.user_status]}
+                                            {selectedUser.user_status ? USER_STATUS_LABELS[selectedUser.user_status as UserStatus] : '-'}
                                         </span>
                                     </div>
                                 </div>
@@ -1244,40 +1213,15 @@ export default function MemberManagementPage() {
                                             </div>
                                         </div>
                                     )}
-                                    <div className="p-3 bg-gray-50 rounded-lg border border-gray-100">
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-sm text-gray-600">PNU 매칭 상태</span>
-                                            {selectedUser.property_pnu ? (
-                                                landLotPnuSet.has(selectedUser.property_pnu) ? (
-                                                    <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-bold rounded">PNU 매칭 완료</span>
-                                                ) : (
-                                                    <span className="px-2 py-1 bg-red-100 text-red-700 text-xs font-bold rounded">PNU 확인 필요</span>
-                                                )
-                                            ) : (
-                                                <span className="text-xs text-gray-400">PNU 정보 없음</span>
-                                            )}
-                                        </div>
-                                        <div className="mt-1 text-xs text-center text-gray-400">
-                                            {selectedUser.property_pnu || '-'}
-                                        </div>
-                                    </div>
                                     <div className="flex items-start gap-4 p-4 bg-gray-50 rounded-xl">
                                         <MapPin className="w-6 h-6 text-gray-400 mt-1" />
                                         <div className="flex-1">
                                             <p className="text-[12px] text-gray-500">물건지</p>
                                             <div className="text-[16px] font-bold text-gray-900">
-                                                <div>{selectedUser.property_address_road || '-'}</div>
-                                                {selectedUser.property_address_jibun && (
-                                                    <div className="text-[14px] font-normal text-gray-500 mt-1">
-                                                        <span className="text-[12px] bg-gray-200 px-1 rounded mr-1">지번</span>
-                                                        {selectedUser.property_address_jibun}
-                                                    </div>
-                                                )}
-                                                {selectedUser.property_address_detail && (
-                                                    <div className="text-gray-600 font-normal mt-1 border-t border-gray-200 pt-1">
-                                                        {selectedUser.property_address_detail}
-                                                    </div>
-                                                )}
+                                                <div>-</div>
+                                                <div className="text-[12px] font-normal text-gray-400 mt-1">
+                                                    물건지 정보는 조합원 상세에서 확인
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -1327,7 +1271,7 @@ export default function MemberManagementPage() {
                                         <label className="block text-[14px] font-medium text-gray-700">임원 여부</label>
                                         <div className="flex items-center h-12">
                                             <Switch
-                                                checked={selectedUser.is_executive}
+                                                checked={selectedUser.is_executive ?? false}
                                                 onCheckedChange={async (checked: boolean) => {
                                                     await supabase.from('users').update({ is_executive: checked }).eq('id', selectedUser.id);
                                                     queryClient.invalidateQueries({ queryKey: ['admin-users'] });

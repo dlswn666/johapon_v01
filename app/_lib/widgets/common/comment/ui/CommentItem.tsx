@@ -111,7 +111,7 @@ export function CommentItem({
                 <div className="flex items-center gap-2">
                     <span className="font-medium text-sm">{isDeleted ? '(삭제됨)' : authorName}</span>
                     <span className="text-xs text-muted-foreground">
-                        {formatDate(comment.created_at, true)}
+                        {formatDate(comment.created_at || '', true)}
                     </span>
                     {comment.updated_at !== comment.created_at && !isDeleted && (
                         <span className="text-xs text-muted-foreground">(수정됨)</span>

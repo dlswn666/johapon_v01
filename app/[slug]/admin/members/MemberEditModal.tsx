@@ -333,7 +333,7 @@ export default function MemberEditModal({ member: initialMember, onClose, onBloc
     // 소유유형 수정 시작
     const handleStartEditOwnership = (propertyUnit: MemberPropertyUnitInfo) => {
         setEditingPropertyUnit(propertyUnit.id);
-        setEditOwnershipType(propertyUnit.ownership_type);
+        setEditOwnershipType(propertyUnit.ownership_type || 'OWNER');
     };
 
     // 소유유형 수정 취소
@@ -384,8 +384,12 @@ export default function MemberEditModal({ member: initialMember, onClose, onBloc
     const currentMemberIsBlocked = 'is_blocked' in currentMember ? currentMember.is_blocked : false;
     const currentMemberBlockedReason = 'blocked_reason' in currentMember ? currentMember.blocked_reason : null;
     const currentMemberBlockedAt = 'blocked_at' in currentMember ? currentMember.blocked_at : null;
-    const currentMemberPropertyPnu = currentMember.property_pnu;
-    const currentMemberPropertyAddress = 'property_address' in currentMember ? currentMember.property_address : null;
+    // 물건지 정보는 property_units에서 가져옴 (첫 번째 또는 기본 물건지)
+    const primaryPropertyUnit = 'property_units' in currentMember 
+        ? currentMember.property_units?.find(p => p.is_primary) || currentMember.property_units?.[0]
+        : null;
+    const currentMemberPropertyPnu = primaryPropertyUnit?.pnu || null;
+    const currentMemberPropertyAddress = primaryPropertyUnit?.property_address_jibun || primaryPropertyUnit?.property_address_road || null;
     const currentMemberIsPnuMatched = 'isPnuMatched' in currentMember ? currentMember.isPnuMatched : true;
 
     return (
@@ -627,7 +631,7 @@ export default function MemberEditModal({ member: initialMember, onClose, onBloc
                                 <div>
                                     <p className="text-[11px] text-gray-400">건축물면적</p>
                                     <p className="text-[14px] font-bold text-gray-900">
-                                        {formatArea(totalBuildingArea || propertyUnits.reduce((sum, pu) => sum + (pu.area || 0), 0))}
+                                        {formatArea(totalBuildingArea || propertyUnits.reduce((sum, pu) => sum + (pu.building_area || 0), 0))}
                                     </p>
                                 </div>
                                 <div>
@@ -647,15 +651,10 @@ export default function MemberEditModal({ member: initialMember, onClose, onBloc
                                 <div>
                                     <p className="text-[11px] text-gray-400">공시지가</p>
                                     {(() => {
-                                        const buildingTotalArea = totalBuildingArea || propertyUnits.reduce((sum, pu) => sum + (pu.area || 0), 0);
-                                        const buildingTotalPrice = propertyUnits.reduce((sum, pu) => sum + (pu.official_price || 0), 0);
-                                        const buildingUnitPrice = buildingTotalArea ? buildingTotalPrice / buildingTotalArea : 0;
+                                        // 건물 공시지가는 land_lots에서 별도 조회 필요 (현재는 표시하지 않음)
                                         return (
                                             <div className="text-[14px] font-bold text-gray-900">
-                                                <p>{formatUnitPrice(buildingUnitPrice || null)}</p>
-                                                <p className="text-[12px] font-normal text-gray-500">
-                                                    (총 {formatTotalPrice(buildingTotalArea, buildingUnitPrice || null)})
-                                                </p>
+                                                <p>-</p>
                                             </div>
                                         );
                                     })()}
@@ -861,7 +860,7 @@ export default function MemberEditModal({ member: initialMember, onClose, onBloc
                             </div>
                             <div className="space-y-3 max-h-[280px] overflow-y-auto">
                                 {[...propertyUnits]
-                                    .sort((a, b) => (a.address || '').localeCompare(b.address || '', 'ko'))
+                                    .sort((a, b) => (a.property_address_jibun || '').localeCompare(b.property_address_jibun || '', 'ko'))
                                     .map((pu) => (
                                         <div
                                             key={pu.id}
@@ -874,14 +873,14 @@ export default function MemberEditModal({ member: initialMember, onClose, onBloc
                                                         <span
                                                             className={cn(
                                                                 'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium',
-                                                                OWNERSHIP_TYPE_STYLES[pu.ownership_type]
+                                                                pu.ownership_type ? OWNERSHIP_TYPE_STYLES[pu.ownership_type] : 'bg-gray-100 text-gray-700'
                                                             )}
                                                         >
-                                                            {OWNERSHIP_TYPE_LABELS[pu.ownership_type]}
+                                                            {pu.ownership_type ? OWNERSHIP_TYPE_LABELS[pu.ownership_type] : '-'}
                                                         </span>
                                                     </div>
                                                     <p className="text-[14px] font-medium text-gray-900">
-                                                        {pu.address || '-'}
+                                                        {pu.property_address_jibun || pu.property_address_road || '-'}
                                                     </p>
                                                     {(pu.dong || pu.ho) && (
                                                         <p className="text-[13px] text-gray-600 mt-0.5">
@@ -891,8 +890,7 @@ export default function MemberEditModal({ member: initialMember, onClose, onBloc
                                                         </p>
                                                     )}
                                                     <div className="flex gap-4 mt-1 text-[12px] text-gray-500">
-                                                        <span>면적: {formatArea(pu.area)}</span>
-                                                        <span>공시지가: {formatUnitPrice(pu.official_price)}</span>
+                                                        <span>면적: {formatArea(pu.building_area || pu.land_area)}</span>
                                                     </div>
                                                 </div>
                                             </div>

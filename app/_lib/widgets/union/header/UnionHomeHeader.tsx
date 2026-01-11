@@ -83,7 +83,7 @@ export default function UnionHomeHeader() {
                 { label: '슬라이드 관리', href: `/${union?.slug || ''}/admin/slides` },
                 { label: '알림톡 내역', href: `/${union?.slug || ''}/admin/alimtalk` },
                 { label: '조합원 관리', href: `/${union?.slug || ''}/admin/members` },
-                { label: '지번 및 GIS 관리', href: `/${union?.slug || ''}/admin/land-lots` },
+                { label: '동의율 관리', href: `/${union?.slug || ''}/admin/land-lots` },
             ],
         });
     }
@@ -254,12 +254,8 @@ export default function UnionHomeHeader() {
                             {/* 인사 문구 */}
                             {user && (
                                 <div className="flex flex-col items-end">
-                                    <span className="text-[14px] font-medium text-gray-800">
-                                        {user.name}님
-                                    </span>
-                                    <span className="text-[12px] text-gray-500">
-                                        안녕하세요
-                                    </span>
+                                    <span className="text-[14px] font-medium text-gray-800">{user.name}님</span>
+                                    <span className="text-[12px] text-gray-500">안녕하세요</span>
                                 </div>
                             )}
 
@@ -291,8 +287,7 @@ export default function UnionHomeHeader() {
                                             className="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors rounded-t-lg cursor-pointer flex items-center gap-2"
                                             onClick={() => setIsUserMenuOpen(false)}
                                         >
-                                            <MapPin className="size-4" />
-                                            내 공시지가 보기
+                                            <MapPin className="size-4" />내 공시지가 보기
                                         </Link>
                                         <button
                                             onClick={handleLogout}
