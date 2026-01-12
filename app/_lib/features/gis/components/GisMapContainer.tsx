@@ -600,11 +600,13 @@ export default function GisMapContainer() {
                                             <h4 className="text-sm font-medium text-slate-900 truncate">
                                                 {parcelInfo.address || '주소 정보 없음'}
                                             </h4>
-                                            <span
-                                                className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusColor}`}
-                                            >
-                                                {statusLabel}
-                                            </span>
+                                            {viewMode !== 'address' && (
+                                                <span
+                                                    className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusColor}`}
+                                                >
+                                                    {statusLabel}
+                                                </span>
+                                            )}
                                         </div>
                                         <div className="flex items-center gap-3 text-xs text-slate-500">
                                             <span>면적: {parcelInfo.area?.toLocaleString() || '-'}㎡</span>
