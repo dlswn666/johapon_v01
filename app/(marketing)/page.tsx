@@ -1022,53 +1022,6 @@ export default function MarketingPage() {
                     </div>
                 </div>
             </section>
-
-            {/* 테스트용 조합 바로가기 (맨 아래 배치) */}
-            <section className="bg-gray-50 py-10 md:py-12 px-4 md:px-6">
-                <div className="max-w-md mx-auto p-5 md:p-8 border rounded-2xl bg-white shadow-sm">
-                    <h3 className="font-bold mb-4" style={{ fontSize: 'var(--text-marketing-card-title)' }}>
-                        테스트용 조합 바로가기
-                    </h3>
-                    <div className="space-y-4">
-                        {isLoading ? (
-                            <div
-                                className="text-center py-4 text-gray-500"
-                                style={{ fontSize: 'var(--text-marketing-card-body)' }}
-                            >
-                                목록을 불러오는 중...
-                            </div>
-                        ) : (
-                            <>
-                                <div className="relative">
-                                    <select
-                                        value={selectedSlug}
-                                        onChange={(e) => setSelectedSlug(e.target.value)}
-                                        className="block w-full pl-3 pr-10 py-3 border-gray-300 focus:outline-none focus:ring-[#4e8c6d] focus:border-[#4e8c6d] rounded-md border"
-                                        style={{ fontSize: 'var(--text-marketing-card-body)' }}
-                                    >
-                                        {unions.map((union) => (
-                                            <option key={union.id} value={union.slug}>
-                                                {union.name} (/{union.slug})
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <button
-                                    onClick={handleNavigate}
-                                    disabled={!selectedSlug}
-                                    className="w-full bg-[#2d2d2d] text-white px-4 py-3 rounded-md hover:bg-[#3d3d3d] transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium cursor-pointer"
-                                    style={{ fontSize: 'var(--text-marketing-button)' }}
-                                >
-                                    해당 조합 페이지로 이동
-                                </button>
-                            </>
-                        )}
-                    </div>
-                    <p className="mt-4 text-xs text-gray-500 text-center">
-                        * 개발 및 테스트 목적으로 제공되는 기능입니다.
-                    </p>
-                </div>
-            </section>
         </div>
     );
 }

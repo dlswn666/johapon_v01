@@ -1,0 +1,10 @@
+---
+name: common
+description: This is a new rule
+---
+
+# Overview
+
+1. database.type.ts
+   이 파일을 수정할때 전체 삭제 후 다시 작성하는 일 없이
+   필요 부분만 수정해야한다. database.type.ts를 수정할 계획이면 계획에 작성후 확인을 받고 수정해야함.

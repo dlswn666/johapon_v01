@@ -18,9 +18,11 @@ import {
     X,
     ChevronLeft,
     ChevronRight,
-    Pencil,
     Check,
     AlertTriangle,
+    Plus,
+    Trash2,
+    Info,
 } from 'lucide-react';
 import { TermsModal } from './TermsModal';
 import { BirthDatePicker } from '@/app/_lib/widgets/common/date-picker/BirthDatePicker';
@@ -29,16 +31,20 @@ import { generatePNU } from '@/app/_lib/shared/utils/pnu-utils';
 import { normalizeDong, createNormalizedHo, isBasementHo, extractHoNumber } from '@/app/_lib/shared/utils/dong-ho-utils';
 
 // 거주 유형 타입 정의
-type PropertyType = 'DETACHED_HOUSE' | 'VILLA' | 'APARTMENT' | 'COMMERCIAL' | 'MIXED';
+type PropertyType = 'DETACHED_HOUSE' | 'MULTI_FAMILY' | 'VILLA' | 'APARTMENT' | 'COMMERCIAL' | 'MIXED';
 
 // 거주 유형 옵션
 const PROPERTY_TYPE_OPTIONS: { value: PropertyType; label: string; icon: string; description: string }[] = [
     { value: 'DETACHED_HOUSE', label: '단독주택', icon: '🏠', description: '동/호수 입력 불필요' },
+    { value: 'MULTI_FAMILY', label: '다가구 주택', icon: '🏘️', description: '동/호수 입력 불필요' },
     { value: 'VILLA', label: '빌라/다세대', icon: '🏢', description: '호수 입력 필요' },
     { value: 'APARTMENT', label: '아파트', icon: '🏬', description: '동/호수 입력 필요' },
     { value: 'COMMERCIAL', label: '상업용', icon: '🏪', description: '동/호수 선택 입력' },
     { value: 'MIXED', label: '주상복합', icon: '🏙️', description: '동/호수 입력 필요' },
 ];
+
+// 최대 물건지 개수
+const MAX_PROPERTIES = 5;
 
 // Step 정의
 type StepKey = 
@@ -50,9 +56,24 @@ type StepKey =
     | 'property_dong'
     | 'property_floor_type'  // 지상/지하 선택
     | 'property_ho'
+    | 'add_property_confirm'  // 추가 물건지 확인
     | 'resident_address'
     | 'resident_address_detail'
     | 'confirm';
+
+// 물건지 데이터 타입
+interface PropertyData {
+    property_address: string;
+    property_address_detail: string;
+    property_address_road: string;
+    property_address_jibun: string;
+    property_zonecode: string;
+    property_pnu: string;
+    property_type: PropertyType | '';
+    property_dong: string;
+    property_is_basement: boolean;
+    property_ho: string;
+}
 
 interface StepConfig {
     key: StepKey;
@@ -147,11 +168,21 @@ const STEPS: StepConfig[] = [
         icon: <Building2 className="w-6 h-6 md:w-7 md:h-7" />,
     },
     {
+        key: 'add_property_confirm',
+        label: '추가 물건지',
+        placeholder: '',
+        description: '추가 물건지를 입력하시겠습니까?',
+        subDescription: '다물건자인 경우 추가 물건지를 등록할 수 있습니다.',
+        required: false,
+        type: 'text',
+        icon: <Plus className="w-6 h-6 md:w-7 md:h-7" />,
+    },
+    {
         key: 'resident_address',
         label: '실 거주지 주소',
         placeholder: '지번/도로명 주소를 입력해주세요',
         description: '현재 거주하고 계신 주소입니다.',
-        subDescription: '필수 입력 항목입니다.',
+        subDescription: '등기 및 주요 우편물을 보내드립니다.',
         required: true,
         type: 'text',
         icon: <MapPin className="w-6 h-6 md:w-7 md:h-7" />,
@@ -160,8 +191,8 @@ const STEPS: StepConfig[] = [
         key: 'resident_address_detail',
         label: '실 거주지 상세 주소',
         placeholder: '101동 1001호',
-        description: '동/호수 정보를 입력해주세요.',
-        subDescription: '상세 정보가 필요합니다.',
+        description: '추가 상세 주소를 입력해주세요.',
+        subDescription: '등기 및 주요 우편물을 보내드립니다.',
         required: true,
         type: 'text',
         icon: <Building2 className="w-6 h-6 md:w-7 md:h-7" />,
@@ -186,10 +217,27 @@ interface RegisterModalProps {
     inviteData?: InviteData | null;
 }
 
+// 빈 물건지 데이터 생성 함수
+const createEmptyProperty = (): PropertyData => ({
+    property_address: '',
+    property_address_detail: '',
+    property_address_road: '',
+    property_address_jibun: '',
+    property_zonecode: '',
+    property_pnu: '',
+    property_type: '',
+    property_dong: '',
+    property_is_basement: false,
+    property_ho: '',
+});
+
 interface FormData {
     name: string;
     phone_number: string;
     birth_date: string;
+    // 다물건자 지원: 물건지 배열
+    properties: PropertyData[];
+    // 하위 호환성을 위한 단일 물건지 필드 (첫 번째 물건지와 동기화)
     property_address: string;
     property_address_detail: string;
     property_address_road: string;
@@ -200,6 +248,7 @@ interface FormData {
     property_dong: string;
     property_is_basement: boolean;  // 지하층 여부
     property_ho: string;
+    // 실 거주지
     resident_address: string;
     resident_address_detail: string;
     resident_address_road: string;
@@ -227,13 +276,17 @@ export function RegisterModal({
 
     // 현재 스텝 (0-5, 5는 최종 확인)
     const [currentStep, setCurrentStep] = useState(0);
-    const totalSteps = STEPS.length + 1; // 입력 5단계 + 최종 확인 1단계
+    const totalSteps = STEPS.length + 1; // 입력 단계 + 최종 확인 1단계
+
+    // 현재 편집 중인 물건지 인덱스 (다물건자 지원)
+    const [currentPropertyIndex, setCurrentPropertyIndex] = useState(0);
 
     // 폼 상태
     const [formData, setFormData] = useState<FormData>({
         name: '',
         phone_number: '',
         birth_date: '',
+        properties: [createEmptyProperty()],
         property_address: '',
         property_address_detail: '',
         property_address_road: '',
@@ -251,8 +304,8 @@ export function RegisterModal({
         resident_zonecode: '',
     });
 
-    // 최종 확인 단계에서 수정 중인 필드
-    const [editingField, setEditingField] = useState<StepKey | null>(null);
+    // 최종 확인 단계에서 수정 중인 필드 (현재 사용하지 않음 - 향후 수정 기능 추가 시 사용)
+    const [_editingField, setEditingField] = useState<StepKey | null>(null);
 
     // 약관 동의
     const [agreedToTerms, setAgreedToTerms] = useState(false);
@@ -274,11 +327,25 @@ export function RegisterModal({
     useEffect(() => {
         if (isOpen) {
             // 초대 데이터가 있으면 우선 적용
+            const initialProperty: PropertyData = {
+                property_address: inviteData?.property_address || '',
+                property_address_detail: '',
+                property_address_road: '',
+                property_address_jibun: '',
+                property_zonecode: '',
+                property_pnu: '',
+                property_type: '',
+                property_dong: '',
+                property_is_basement: false,
+                property_ho: '',
+            };
+
             if (inviteData) {
                 setFormData({
                     name: inviteData.name || prefillName || '',
                     phone_number: inviteData.phone_number || prefillPhone || '',
                     birth_date: '',
+                    properties: [initialProperty],
                     property_address: inviteData.property_address || '',
                     property_address_detail: '',
                     property_address_road: '',
@@ -303,6 +370,7 @@ export function RegisterModal({
                     name: prefillName || '',
                     phone_number: prefillPhone || '',
                     birth_date: '',
+                    properties: [createEmptyProperty()],
                     property_address: '',
                     property_address_detail: '',
                     property_address_road: '',
@@ -321,6 +389,7 @@ export function RegisterModal({
                 });
                 setCurrentStep(0);
             }
+            setCurrentPropertyIndex(0);
             setAgreedToTerms(false);
             setError('');
             setEditingField(null);
@@ -342,31 +411,57 @@ export function RegisterModal({
                 const { data: userData } = await supabase.from('users').select('*').eq('id', authLink.user_id).single();
 
                 if (userData) {
-                    // user_property_units에서 물건지 정보 조회
-                    const { data: propertyUnit } = await supabase
+                    // user_property_units에서 모든 물건지 정보 조회
+                    const { data: propertyUnits } = await supabase
                         .from('user_property_units')
                         .select('*')
                         .eq('user_id', authLink.user_id)
-                        .eq('is_primary', true)
-                        .single();
+                        .order('is_primary', { ascending: false });
 
-                    // 기존 호수에서 지하 여부 판단
-                    const existingHo = propertyUnit?.ho || '';
+                    // 첫 번째 (primary) 물건지
+                    const primaryPropertyUnit = propertyUnits?.find(p => p.is_primary) || propertyUnits?.[0];
+                    
+                    // 기존 호수에서 지하 여부 판단 (첫 번째 물건지)
+                    const existingHo = primaryPropertyUnit?.ho || '';
                     const isBasement = isBasementHo(existingHo);
                     const hoNumber = isBasement ? extractHoNumber(existingHo) || '' : existingHo;
 
-                    const loadedFormData = {
+                    // 모든 물건지를 PropertyData 배열로 변환
+                    const loadedProperties: PropertyData[] = (propertyUnits || []).map(unit => {
+                        const unitIsBasement = isBasementHo(unit.ho || '');
+                        const unitHoNumber = unitIsBasement ? extractHoNumber(unit.ho || '') || '' : unit.ho || '';
+                        return {
+                            property_address: unit.property_address_jibun || unit.property_address_road || '',
+                            property_address_detail: '',
+                            property_address_road: unit.property_address_road || '',
+                            property_address_jibun: unit.property_address_jibun || '',
+                            property_zonecode: '',
+                            property_pnu: unit.pnu || '',
+                            property_type: (userData.property_type as PropertyType) || '',
+                            property_dong: unit.dong || '',
+                            property_is_basement: unitIsBasement,
+                            property_ho: unitHoNumber,
+                        };
+                    });
+
+                    // 물건지가 없으면 빈 물건지 하나 추가
+                    if (loadedProperties.length === 0) {
+                        loadedProperties.push(createEmptyProperty());
+                    }
+
+                    const loadedFormData: FormData = {
                         name: userData.name || '',
                         phone_number: userData.phone_number || '',
                         birth_date: userData.birth_date || '',
-                        property_address: userData.property_address || propertyUnit?.property_address_jibun || '',
+                        properties: loadedProperties,
+                        property_address: userData.property_address || primaryPropertyUnit?.property_address_jibun || '',
                         property_address_detail: userData.property_address_detail || '',
-                        property_address_road: propertyUnit?.property_address_road || '',
-                        property_address_jibun: propertyUnit?.property_address_jibun || '',
+                        property_address_road: primaryPropertyUnit?.property_address_road || '',
+                        property_address_jibun: primaryPropertyUnit?.property_address_jibun || '',
                         property_zonecode: userData.property_zonecode || '',
-                        property_pnu: propertyUnit?.pnu || '',
+                        property_pnu: primaryPropertyUnit?.pnu || '',
                         property_type: (userData.property_type as PropertyType) || '',
-                        property_dong: propertyUnit?.dong || '',
+                        property_dong: primaryPropertyUnit?.dong || '',
                         property_is_basement: isBasement,
                         property_ho: hoNumber,
                         resident_address: userData.resident_address || '',
@@ -377,14 +472,15 @@ export function RegisterModal({
                     };
 
                     setFormData(loadedFormData);
+                    setCurrentPropertyIndex(0);
 
                     // 수동 등록/일괄 초대/사전 등록 회원: 필수 정보가 모두 있으면 마지막 확인 단계로 바로 이동
                     // PRE_REGISTERED 상태이거나 초대 데이터가 있는 경우
                     const hasAllRequiredData = 
                         loadedFormData.name && 
                         loadedFormData.phone_number && 
-                        loadedFormData.property_address &&
-                        loadedFormData.property_type &&
+                        loadedFormData.properties[0]?.property_address &&
+                        loadedFormData.properties[0]?.property_type &&
                         loadedFormData.resident_address;
                     
                     if (hasAllRequiredData && (userData.user_status === 'PRE_REGISTERED' || inviteData)) {
@@ -398,6 +494,40 @@ export function RegisterModal({
         loadExistingUserData();
     }, [authUserId, isOpen, inviteData]);
 
+    // 현재 편집 중인 물건지 데이터 가져오기
+    const getCurrentProperty = useCallback((): PropertyData => {
+        return formData.properties[currentPropertyIndex] || createEmptyProperty();
+    }, [formData.properties, currentPropertyIndex]);
+
+    // 현재 물건지 데이터 업데이트
+    const updateCurrentProperty = useCallback((updates: Partial<PropertyData>) => {
+        setFormData((prev) => {
+            const newProperties = [...prev.properties];
+            newProperties[currentPropertyIndex] = {
+                ...newProperties[currentPropertyIndex],
+                ...updates,
+            };
+            // 첫 번째 물건지는 하위 호환성을 위해 단일 필드와도 동기화
+            const syncFields = currentPropertyIndex === 0 ? {
+                property_address: newProperties[0].property_address,
+                property_address_detail: newProperties[0].property_address_detail,
+                property_address_road: newProperties[0].property_address_road,
+                property_address_jibun: newProperties[0].property_address_jibun,
+                property_zonecode: newProperties[0].property_zonecode,
+                property_pnu: newProperties[0].property_pnu,
+                property_type: newProperties[0].property_type,
+                property_dong: newProperties[0].property_dong,
+                property_is_basement: newProperties[0].property_is_basement,
+                property_ho: newProperties[0].property_ho,
+            } : {};
+            return {
+                ...prev,
+                properties: newProperties,
+                ...syncFields,
+            };
+        });
+    }, [currentPropertyIndex]);
+
     // 카카오 주소 선택 핸들러
     const handleAddressSelect = useCallback((addressData: AddressData) => {
         const pnu = generatePNU({
@@ -407,15 +537,14 @@ export function RegisterModal({
             mountain_yn: addressData.mountain_yn,
         });
 
-        setFormData((prev) => ({
-            ...prev,
+        updateCurrentProperty({
             property_address: addressData.address,
             property_address_road: addressData.roadAddress,
             property_address_jibun: addressData.jibunAddress,
             property_zonecode: addressData.zonecode,
             property_pnu: pnu,
-        }));
-    }, []);
+        });
+    }, [updateCurrentProperty]);
 
     // 카카오 실 거주지 주소 선택 핸들러
     const handleResidentAddressSelect = useCallback((addressData: AddressData) => {
@@ -444,32 +573,34 @@ export function RegisterModal({
 
     // 거주 유형에 따라 스텝을 스킵할지 여부 결정
     const shouldSkipStep = useCallback((stepKey: StepKey): boolean => {
-        const propertyType = formData.property_type;
+        const currentProp = formData.properties[currentPropertyIndex];
+        const propertyType = currentProp?.property_type || '';
         
         if (stepKey === 'property_dong') {
-            // 단독주택은 동 스킵
-            if (propertyType === 'DETACHED_HOUSE') return true;
+            // 단독주택, 다가구 주택은 동 스킵
+            if (propertyType === 'DETACHED_HOUSE' || propertyType === 'MULTI_FAMILY') return true;
             return false;
         }
 
         if (stepKey === 'property_floor_type') {
-            // 단독주택은 지상/지하 선택 스킵
-            if (propertyType === 'DETACHED_HOUSE') return true;
+            // 단독주택, 다가구 주택은 지상/지하 선택 스킵
+            if (propertyType === 'DETACHED_HOUSE' || propertyType === 'MULTI_FAMILY') return true;
             return false;
         }
         
         if (stepKey === 'property_ho') {
-            // 단독주택은 호수 스킵
-            if (propertyType === 'DETACHED_HOUSE') return true;
+            // 단독주택, 다가구 주택은 호수 스킵
+            if (propertyType === 'DETACHED_HOUSE' || propertyType === 'MULTI_FAMILY') return true;
             return false;
         }
         
         return false;
-    }, [formData.property_type]);
+    }, [formData.properties, currentPropertyIndex]);
 
     // 거주 유형에 따라 필드가 필수인지 결정
     const isFieldRequired = useCallback((stepKey: StepKey): boolean => {
-        const propertyType = formData.property_type;
+        const currentProp = formData.properties[currentPropertyIndex];
+        const propertyType = currentProp?.property_type || '';
         
         if (stepKey === 'property_dong') {
             // 아파트, 주상복합: 동 필수
@@ -488,7 +619,7 @@ export function RegisterModal({
         // 기본 STEPS에 정의된 required 값 사용
         const step = STEPS.find(s => s.key === stepKey);
         return step?.required ?? false;
-    }, [formData.property_type]);
+    }, [formData.properties, currentPropertyIndex]);
 
     // 현재 스텝의 설정 가져오기
     const getCurrentStepConfig = useCallback((): StepConfig | null => {
@@ -496,43 +627,90 @@ export function RegisterModal({
         return STEPS[currentStep];
     }, [currentStep]);
 
+    // 물건지 관련 필드인지 확인
+    const isPropertyField = (key: string): boolean => {
+        return ['property_address', 'property_type', 'property_dong', 'property_floor_type', 'property_ho'].includes(key);
+    };
+
     // 현재 스텝의 값 가져오기
     const getCurrentValue = useCallback((): string => {
         const config = getCurrentStepConfig();
         if (!config) return '';
         // property_floor_type은 별도로 처리 (boolean 타입이므로)
         if (config.key === 'property_floor_type') return '';
+        // add_property_confirm은 별도 처리
+        if (config.key === 'add_property_confirm') return '';
+        
+        // 물건지 관련 필드는 현재 물건지에서 가져옴
+        if (isPropertyField(config.key)) {
+            const currentProp = formData.properties[currentPropertyIndex];
+            if (!currentProp) return '';
+            const propKey = config.key as keyof PropertyData;
+            const value = currentProp[propKey];
+            return typeof value === 'string' ? value : '';
+        }
+        
         const value = formData[config.key as keyof FormData];
         return typeof value === 'string' ? value : '';
-    }, [getCurrentStepConfig, formData]);
+    }, [getCurrentStepConfig, formData, currentPropertyIndex]);
 
     // 값 변경 핸들러
     const handleValueChange = useCallback(
         (value: string) => {
             const config = getCurrentStepConfig();
             if (!config) return;
-            setFormData((prev) => ({
-                ...prev,
-                [config.key]: value,
-            }));
+            
+            // 물건지 관련 필드는 현재 물건지를 업데이트
+            if (isPropertyField(config.key)) {
+                updateCurrentProperty({ [config.key]: value });
+            } else {
+                setFormData((prev) => ({
+                    ...prev,
+                    [config.key]: value,
+                }));
+            }
         },
-        [getCurrentStepConfig]
+        [getCurrentStepConfig, updateCurrentProperty]
     );
 
-    // 최종 확인에서 필드 값 변경
-    const handleConfirmFieldChange = useCallback((key: StepKey, value: string) => {
+    // 최종 확인에서 필드 값 변경 (현재 사용하지 않음 - 향후 수정 기능 추가 시 사용)
+    const _handleConfirmFieldChange = useCallback((key: StepKey, value: string) => {
         setFormData((prev) => ({
             ...prev,
             [key]: value,
         }));
     }, []);
+    void _handleConfirmFieldChange; // ESLint 경고 방지
+
+    // 추가 물건지 추가 핸들러
+    const handleAddProperty = useCallback(() => {
+        if (formData.properties.length >= MAX_PROPERTIES) {
+            setError(`물건지는 최대 ${MAX_PROPERTIES}개까지 입력 가능합니다. 추가 물건지가 있으시면 조합에 연락해주세요.`);
+            return;
+        }
+        
+        // 새 물건지 추가
+        const newIndex = formData.properties.length;
+        setFormData((prev) => ({
+            ...prev,
+            properties: [...prev.properties, createEmptyProperty()],
+        }));
+        setCurrentPropertyIndex(newIndex);
+        
+        // 물건지 주소 입력 스텝으로 이동
+        const propertyAddressStepIndex = STEPS.findIndex(s => s.key === 'property_address');
+        if (propertyAddressStepIndex >= 0) {
+            setCurrentStep(propertyAddressStepIndex);
+        }
+    }, [formData.properties.length]);
 
     // 다음 스텝으로
     const handleNext = useCallback(() => {
         const config = getCurrentStepConfig();
+        const stepKey = config?.key as StepKey;
+        const currentProp = formData.properties[currentPropertyIndex];
 
         // 필수 필드 검증 (동적 필수 여부 확인)
-        const stepKey = config?.key as StepKey;
         const dynamicRequired = stepKey ? isFieldRequired(stepKey) : config?.required;
         
         if (dynamicRequired && !getCurrentValue().trim()) {
@@ -541,7 +719,7 @@ export function RegisterModal({
         }
 
         // property_type 선택 시 추가 검증
-        if (stepKey === 'property_type' && !formData.property_type) {
+        if (stepKey === 'property_type' && !currentProp?.property_type) {
             setError('물건지 유형을 선택해주세요.');
             return;
         }
@@ -568,7 +746,17 @@ export function RegisterModal({
         if (nextStep <= totalSteps - 1) {
             setCurrentStep(nextStep);
         }
-    }, [currentStep, totalSteps, getCurrentStepConfig, getCurrentValue, shouldSkipStep, isFieldRequired, formData.property_type]);
+    }, [currentStep, totalSteps, getCurrentStepConfig, getCurrentValue, shouldSkipStep, isFieldRequired, formData.properties, currentPropertyIndex]);
+
+    // 추가 물건지 건너뛰기 (실 거주지로 이동)
+    const handleSkipAddProperty = useCallback(() => {
+        setError('');
+        // 실 거주지 주소 스텝으로 이동
+        const residentAddressStepIndex = STEPS.findIndex(s => s.key === 'resident_address');
+        if (residentAddressStepIndex >= 0) {
+            setCurrentStep(residentAddressStepIndex);
+        }
+    }, []);
 
     // 이전 스텝으로
     const handlePrev = useCallback(() => {
@@ -588,6 +776,43 @@ export function RegisterModal({
             setCurrentStep(prevStep);
         }
     }, [currentStep, shouldSkipStep]);
+
+    // 물건지 삭제 핸들러 (최종 확인 단계에서 사용)
+    const handleDeleteProperty = useCallback((indexToDelete: number) => {
+        // 최소 1개 물건지는 유지
+        if (formData.properties.length <= 1) {
+            setError('최소 1개의 물건지는 유지해야 합니다.');
+            return;
+        }
+        
+        setFormData((prev) => {
+            const newProperties = prev.properties.filter((_, idx) => idx !== indexToDelete);
+            // 첫 번째 물건지와 단일 필드 동기화
+            const firstProp = newProperties[0];
+            const syncFields: Partial<FormData> = {
+                property_address: firstProp?.property_address || '',
+                property_address_detail: firstProp?.property_address_detail || '',
+                property_address_road: firstProp?.property_address_road || '',
+                property_address_jibun: firstProp?.property_address_jibun || '',
+                property_zonecode: firstProp?.property_zonecode || '',
+                property_pnu: firstProp?.property_pnu || '',
+                property_type: firstProp?.property_type || '' as PropertyType | '',
+                property_dong: firstProp?.property_dong || '',
+                property_is_basement: firstProp?.property_is_basement || false,
+                property_ho: firstProp?.property_ho || '',
+            };
+            return {
+                ...prev,
+                properties: newProperties,
+                ...syncFields,
+            };
+        });
+        
+        // 인덱스 조정
+        if (currentPropertyIndex >= indexToDelete && currentPropertyIndex > 0) {
+            setCurrentPropertyIndex(currentPropertyIndex - 1);
+        }
+    }, [formData.properties.length, currentPropertyIndex]);
 
     // 중복 사용자 확인 (같은 조합 내에서만 체크)
     const checkDuplicateUser = async (unionId: string | null): Promise<User | null> => {
@@ -649,8 +874,14 @@ export function RegisterModal({
         setError('');
 
         // 필수 필드 검증
-        if (!formData.name || !formData.phone_number || !formData.property_address) {
-            setError('이름, 휴대폰 번호, 물건지 주소는 필수 입력 항목입니다.');
+        if (!formData.name || !formData.phone_number) {
+            setError('이름, 휴대폰 번호는 필수 입력 항목입니다.');
+            return;
+        }
+
+        // 물건지 검증 (최소 1개 필요)
+        if (formData.properties.length === 0 || !formData.properties[0].property_address) {
+            setError('최소 1개의 물건지 주소를 입력해주세요.');
             return;
         }
 
@@ -722,11 +953,14 @@ export function RegisterModal({
             let finalUserId: string | null = null;
             let isExistingPreRegistered = false;
 
-            // 동호수 정규화 적용
-            const normalizedDong = normalizeDong(formData.property_dong);
-            const normalizedHo = createNormalizedHo(formData.property_is_basement, formData.property_ho);
+            // 첫 번째 물건지 데이터 가져오기 (하위 호환성 및 PRE_REGISTERED 매칭용)
+            const primaryProperty = formData.properties[0];
+            
+            // 동호수 정규화 적용 (첫 번째 물건지 기준)
+            const normalizedDong = normalizeDong(primaryProperty.property_dong);
+            const normalizedHo = createNormalizedHo(primaryProperty.property_is_basement, primaryProperty.property_ho);
 
-            if (unionId && formData.property_pnu) {
+            if (unionId && primaryProperty.property_pnu) {
                 // PRE_REGISTERED 사용자 검색 (user_property_units 조인으로 pnu, dong, ho 비교)
                 let preRegisteredQuery = supabase
                     .from('user_property_units')
@@ -734,7 +968,7 @@ export function RegisterModal({
                     .eq('users.union_id', unionId)
                     .eq('users.name', formData.name)
                     .eq('users.user_status', 'PRE_REGISTERED')
-                    .eq('pnu', formData.property_pnu);
+                    .eq('pnu', primaryProperty.property_pnu);
 
                 // 동/호수 조건 추가 (정규화된 값 사용)
                 if (normalizedDong) {
@@ -764,10 +998,10 @@ export function RegisterModal({
                             role: role,
                             user_status: userStatus,
                             birth_date: formData.birth_date || null,
-                            property_address: formData.property_address,
+                            property_address: primaryProperty.property_address,
                             property_address_detail: [normalizedDong, normalizedHo].filter(Boolean).join(' ') || null,
-                            property_zonecode: formData.property_zonecode || null,
-                            property_type: formData.property_type || null,
+                            property_zonecode: primaryProperty.property_zonecode || null,
+                            property_type: primaryProperty.property_type || null,
                             resident_address: formData.resident_address || null,
                             resident_address_detail: formData.resident_address_detail || null,
                             resident_address_road: formData.resident_address_road || null,
@@ -780,21 +1014,47 @@ export function RegisterModal({
 
                     if (updateError) throw updateError;
 
-                    // user_property_units 업데이트
+                    // 첫 번째 user_property_units 업데이트
                     await supabase
                         .from('user_property_units')
                         .update({
-                            property_address_jibun: formData.property_address_jibun || null,
-                            property_address_road: formData.property_address_road || null,
+                            property_address_jibun: primaryProperty.property_address_jibun || null,
+                            property_address_road: primaryProperty.property_address_road || null,
                             dong: normalizedDong,
                             ho: normalizedHo,
                             updated_at: new Date().toISOString(),
                         })
                         .eq('id', propertyUnitId);
 
+                    // 추가 물건지가 있으면 user_property_units에 추가 저장
+                    if (formData.properties.length > 1) {
+                        const additionalProperties = formData.properties.slice(1).map((prop) => {
+                            const propNormalizedDong = normalizeDong(prop.property_dong);
+                            const propNormalizedHo = createNormalizedHo(prop.property_is_basement, prop.property_ho);
+                            return {
+                                id: crypto.randomUUID(),
+                                user_id: preRegistered.id,
+                                pnu: prop.property_pnu || null,
+                                property_address_jibun: prop.property_address_jibun || null,
+                                property_address_road: prop.property_address_road || null,
+                                dong: propNormalizedDong,
+                                ho: propNormalizedHo,
+                                is_primary: false,
+                            };
+                        });
+
+                        const { error: additionalError } = await supabase
+                            .from('user_property_units')
+                            .insert(additionalProperties);
+
+                        if (additionalError) {
+                            console.error('Additional property units insert error:', additionalError);
+                        }
+                    }
+
                     finalUserId = preRegistered.id;
                     isExistingPreRegistered = true;
-                    console.log(`[회원가입] PRE_REGISTERED 사용자 매칭 성공: ${preRegistered.id}`);
+                    console.log(`[회원가입] PRE_REGISTERED 사용자 매칭 성공: ${preRegistered.id}, 물건지 ${formData.properties.length}개`);
                 }
             }
 
@@ -818,10 +1078,10 @@ export function RegisterModal({
                     union_id: unionId,
                     user_status: userStatus,
                     birth_date: formData.birth_date || null,
-                    property_address: formData.property_address,
+                    property_address: primaryProperty.property_address,
                     property_address_detail: propertyAddressDetail,
-                    property_zonecode: formData.property_zonecode || null,
-                    property_type: formData.property_type || null,
+                    property_zonecode: primaryProperty.property_zonecode || null,
+                    property_type: primaryProperty.property_type || null,
                     resident_address: formData.resident_address || null,
                     resident_address_detail: formData.resident_address_detail || null,
                     resident_address_road: formData.resident_address_road || null,
@@ -833,21 +1093,31 @@ export function RegisterModal({
                 const { error: userError } = await supabase.from('users').insert(newUser);
                 if (userError) throw userError;
 
-                // user_property_units에 물건지 정보 저장
-                const { error: propertyUnitError } = await supabase.from('user_property_units').insert({
-                    id: crypto.randomUUID(),
-                    user_id: newUserId,
-                    pnu: formData.property_pnu || null,
-                    property_address_jibun: formData.property_address_jibun || null,
-                    property_address_road: formData.property_address_road || null,
-                    dong: normalizedDong,
-                    ho: normalizedHo,
-                    is_primary: true,
+                // 모든 물건지를 user_property_units에 저장
+                const propertyUnitsToInsert = formData.properties.map((prop, index) => {
+                    const propNormalizedDong = normalizeDong(prop.property_dong);
+                    const propNormalizedHo = createNormalizedHo(prop.property_is_basement, prop.property_ho);
+                    return {
+                        id: crypto.randomUUID(),
+                        user_id: newUserId,
+                        pnu: prop.property_pnu || null,
+                        property_address_jibun: prop.property_address_jibun || null,
+                        property_address_road: prop.property_address_road || null,
+                        dong: propNormalizedDong,
+                        ho: propNormalizedHo,
+                        is_primary: index === 0, // 첫 번째 물건지만 primary
+                    };
                 });
+
+                const { error: propertyUnitError } = await supabase
+                    .from('user_property_units')
+                    .insert(propertyUnitsToInsert);
 
                 if (propertyUnitError) {
                     console.error('user_property_units insert error:', propertyUnitError);
                     // 실패해도 계속 진행 (critical하지 않음)
+                } else {
+                    console.log(`[회원가입] 물건지 ${formData.properties.length}개 저장 완료`);
                 }
 
                 finalUserId = newUserId;
@@ -956,21 +1226,12 @@ export function RegisterModal({
                     {/* 헤더 */}
                     <div className="flex-shrink-0 border-b border-gray-200 px-4 md:px-6 py-4 flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                            {currentStep > 0 && (
-                                <button
-                                    onClick={handlePrev}
-                                    className="p-2 -ml-2 hover:bg-gray-100 rounded-full transition-colors"
-                                    aria-label="이전"
-                                >
-                                    <ChevronLeft className="w-5 h-5 text-gray-600" />
-                                </button>
-                            )}
                             <Building2 className="w-6 h-6 text-[#4E8C6D]" />
                             <h2 className="text-lg md:text-xl font-bold text-gray-900">조합원 등록</h2>
                         </div>
                         <button
                             onClick={onClose}
-                            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                            className="p-2 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
                             aria-label="닫기"
                         >
                             <X className="w-5 h-5 text-gray-500" />
@@ -1005,279 +1266,164 @@ export function RegisterModal({
                                     입력하신 정보를 확인해주세요
                                 </p>
 
-                                {/* 입력된 정보 요약 */}
+                                {/* 기본 정보 섹션 */}
                                 <div className="space-y-3">
-                                    {STEPS.map((step) => {
-                                        // 스킵된 스텝은 표시하지 않음
-                                        if (shouldSkipStep(step.key as StepKey)) return null;
+                                    {/* 이름 */}
+                                    <div className="bg-gray-50 rounded-xl p-4">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <span className="text-sm font-medium text-gray-600">
+                                                이름 (소유자명) <span className="text-red-500">*</span>
+                                            </span>
+                                        </div>
+                                        <p className="text-base md:text-lg text-gray-900">{formData.name}</p>
+                                    </div>
 
-                                        const value = formData[step.key as keyof FormData];
-                                        const isEditing = editingField === step.key;
+                                    {/* 생년월일 */}
+                                    <div className="bg-gray-50 rounded-xl p-4">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <span className="text-sm font-medium text-gray-600">생년월일</span>
+                                        </div>
+                                        <p className="text-base md:text-lg text-gray-900">
+                                            {formData.birth_date || <span className="text-gray-400">입력하지 않음</span>}
+                                        </p>
+                                    </div>
 
-                                        // 주소 표시 값 결정 (도로명 + 지번 둘 다 표시)
-                                        let displayValue: string = typeof value === 'string' ? value : '';
-                                        if (step.key === 'property_address' && formData.property_address_road) {
-                                            displayValue = `${formData.property_address_road}${formData.property_address_jibun ? ` (${formData.property_address_jibun})` : ''}`;
-                                        } else if (step.key === 'resident_address' && formData.resident_address_road) {
-                                            displayValue = `${formData.resident_address_road}${formData.resident_address_jibun ? ` (${formData.resident_address_jibun})` : ''}`;
-                                        } else if (step.key === 'property_type') {
-                                            // 물건지 유형은 라벨로 표시
-                                            const typeOption = PROPERTY_TYPE_OPTIONS.find(o => o.value === formData.property_type);
-                                            displayValue = typeOption ? `${typeOption.icon} ${typeOption.label}` : '';
-                                        } else if (step.key === 'property_floor_type') {
-                                            // 층 구분: property_is_basement 값으로 표시
-                                            displayValue = formData.property_is_basement ? '🅱️ 지하층' : '🏢 지상층';
-                                        }
+                                    {/* 휴대폰 번호 */}
+                                    <div className="bg-gray-50 rounded-xl p-4">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <span className="text-sm font-medium text-gray-600">
+                                                휴대폰 번호 <span className="text-red-500">*</span>
+                                            </span>
+                                        </div>
+                                        <p className="text-base md:text-lg text-gray-900">{formData.phone_number}</p>
+                                    </div>
+                                </div>
 
+                                {/* 물건지 정보 섹션들 */}
+                                <div className="space-y-4">
+                                    {formData.properties.map((property, propIndex) => {
+                                        const typeOption = PROPERTY_TYPE_OPTIONS.find(o => o.value === property.property_type);
+                                        const isSkipDongHo = property.property_type === 'DETACHED_HOUSE' || property.property_type === 'MULTI_FAMILY';
+                                        
                                         return (
                                             <div 
-                                                key={step.key} 
-                                                className={cn(
-                                                    "bg-gray-50 rounded-xl p-4",
-                                                    !isEditing && "cursor-pointer hover:bg-gray-100 transition-colors"
-                                                )}
-                                                onClick={() => {
-                                                    // 수정 모드가 아닐 때만 클릭으로 수정 모드 진입 (모바일 UX 개선)
-                                                    if (!isEditing) {
-                                                        setEditingField(step.key);
-                                                    }
-                                                }}
+                                                key={propIndex}
+                                                className="border-2 border-[#4E8C6D]/30 rounded-xl overflow-hidden"
                                             >
-                                                    <div className="flex items-center justify-between mb-2">
-                                                                    <span className="text-sm font-medium text-gray-600">
-                                                                        {step.label}
-                                                                        {isFieldRequired(step.key as StepKey) && <span className="text-red-500 ml-1">*</span>}
-                                                                    </span>
-                                                    {!isEditing && (
+                                                {/* 물건지 헤더 */}
+                                                <div className="bg-[#4E8C6D]/10 px-4 py-3 flex items-center justify-between">
+                                                    <div className="flex items-center gap-2">
+                                                        <MapPin className="w-5 h-5 text-[#4E8C6D]" />
+                                                        <span className="font-semibold text-[#4E8C6D]">
+                                                            물건지 {propIndex + 1}
+                                                        </span>
+                                                    </div>
+                                                    {formData.properties.length > 1 && (
                                                         <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                setEditingField(step.key);
-                                                            }}
-                                                            className="flex items-center gap-1 text-sm text-[#4E8C6D] hover:text-[#3d7058]"
+                                                            onClick={() => handleDeleteProperty(propIndex)}
+                                                            className="flex items-center gap-1 text-sm text-red-500 hover:text-red-600 cursor-pointer"
                                                         >
-                                                            <Pencil className="w-4 h-4" />
-                                                            수정
+                                                            <Trash2 className="w-4 h-4" />
+                                                            삭제
                                                         </button>
                                                     )}
                                                 </div>
-                                                {isEditing ? (
-                                                    <div className="flex flex-col gap-2">
-                                                        {step.key === 'birth_date' ? (
-                                                            // 생년월일: BirthDatePicker 사용
-                                                            <div className="flex gap-2 items-center" onClick={(e) => e.stopPropagation()}>
-                                                                <div className="flex-1">
-                                                                    <BirthDatePicker
-                                                                        value={typeof value === 'string' ? value : ''}
-                                                                        onChange={(date) =>
-                                                                            handleConfirmFieldChange(step.key, date)
-                                                                        }
-                                                                    />
-                                                                </div>
-                                                                <button
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        setEditingField(null);
-                                                                    }}
-                                                                    className="h-12 px-4 bg-[#4E8C6D] text-white rounded-lg hover:bg-[#3d7058] flex-shrink-0"
-                                                                >
-                                                                    <Check className="w-5 h-5" />
-                                                                </button>
-                                                            </div>
-                                                        ) : step.key === 'property_type' ? (
-                                                            // 물건지 유형: 카드형 선택 UI
-                                                            <div className="space-y-2">
-                                                                {PROPERTY_TYPE_OPTIONS.map((option) => (
-                                                                    <button
-                                                                        key={option.value}
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            setFormData(prev => ({ 
-                                                                                ...prev, 
-                                                                                property_type: option.value,
-                                                                                // 단독주택 선택 시 동/호 초기화
-                                                                                ...(option.value === 'DETACHED_HOUSE' ? { property_dong: '', property_ho: '' } : {})
-                                                                            }));
-                                                                        }}
-                                                                        className={cn(
-                                                                            'w-full p-3 rounded-lg border text-left transition-all flex items-center gap-3',
-                                                                            formData.property_type === option.value
-                                                                                ? 'border-[#4E8C6D] bg-[#4E8C6D]/5'
-                                                                                : 'border-gray-200 hover:border-gray-300'
-                                                                        )}
-                                                                    >
-                                                                        <span className="text-xl">{option.icon}</span>
-                                                                        <span className="font-medium text-gray-900">{option.label}</span>
-                                                                        {formData.property_type === option.value && (
-                                                                            <Check className="w-4 h-4 text-[#4E8C6D] ml-auto" />
-                                                                        )}
-                                                                    </button>
-                                                                ))}
-                                                                <button
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        setEditingField(null);
-                                                                    }}
-                                                                    className="h-10 px-4 bg-[#4E8C6D] text-white rounded-lg hover:bg-[#3d7058] w-full mt-2"
-                                                                >
-                                                                    완료
-                                                                </button>
-                                                            </div>
-                                                        ) : step.key === 'property_floor_type' ? (
-                                                            // 층 구분: 라디오 버튼 UI
-                                                            <div className="space-y-2">
-                                                                <button
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        setFormData(prev => ({ ...prev, property_is_basement: false }));
-                                                                    }}
-                                                                    className={cn(
-                                                                        'w-full p-3 rounded-lg border text-left transition-all flex items-center gap-3',
-                                                                        !formData.property_is_basement
-                                                                            ? 'border-[#4E8C6D] bg-[#4E8C6D]/5'
-                                                                            : 'border-gray-200 hover:border-gray-300'
-                                                                    )}
-                                                                >
-                                                                    <span className="text-xl">🏢</span>
-                                                                    <span className="font-medium text-gray-900">지상층</span>
-                                                                    {!formData.property_is_basement && (
-                                                                        <Check className="w-4 h-4 text-[#4E8C6D] ml-auto" />
-                                                                    )}
-                                                                </button>
-                                                                <button
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        setFormData(prev => ({ ...prev, property_is_basement: true }));
-                                                                    }}
-                                                                    className={cn(
-                                                                        'w-full p-3 rounded-lg border text-left transition-all flex items-center gap-3',
-                                                                        formData.property_is_basement
-                                                                            ? 'border-[#4E8C6D] bg-[#4E8C6D]/5'
-                                                                            : 'border-gray-200 hover:border-gray-300'
-                                                                    )}
-                                                                >
-                                                                    <span className="text-xl">🅱️</span>
-                                                                    <span className="font-medium text-gray-900">지하층</span>
-                                                                    {formData.property_is_basement && (
-                                                                        <Check className="w-4 h-4 text-[#4E8C6D] ml-auto" />
-                                                                    )}
-                                                                </button>
-                                                                <button
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        setEditingField(null);
-                                                                    }}
-                                                                    className="h-10 px-4 bg-[#4E8C6D] text-white rounded-lg hover:bg-[#3d7058] w-full mt-2"
-                                                                >
-                                                                    완료
-                                                                </button>
-                                                            </div>
-                                                        ) : step.key === 'property_address' ? (
-                                                            // 물건지 주소: KakaoAddressSearch 사용
-                                                            <div className="flex flex-col gap-2" onClick={(e) => e.stopPropagation()}>
-                                                                <KakaoAddressSearch
-                                                                    value={typeof value === 'string' ? value : ''}
-                                                                    onAddressSelect={(addressData) => {
-                                                                        setFormData((prev) => ({
-                                                                            ...prev,
-                                                                            property_address: addressData.address,
-                                                                            property_address_road:
-                                                                                addressData.roadAddress,
-                                                                            property_address_jibun:
-                                                                                addressData.jibunAddress,
-                                                                            property_zonecode: addressData.zonecode,
-                                                                            property_pnu: generatePNU({
-                                                                                b_code: addressData.bcode,
-                                                                                main_address_no: addressData.main_address_no,
-                                                                                sub_address_no: addressData.sub_address_no,
-                                                                                mountain_yn: addressData.mountain_yn,
-                                                                            }),
-                                                                        }));
-                                                                    }}
-                                                                    placeholder={step.placeholder}
-                                                                />
-                                                                <button
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        setEditingField(null);
-                                                                    }}
-                                                                    className="h-12 px-4 bg-[#4E8C6D] text-white rounded-lg hover:bg-[#3d7058] w-full"
-                                                                >
-                                                                    <span className="flex items-center justify-center gap-2">
-                                                                        <Check className="w-5 h-5" />
-                                                                        완료
-                                                                    </span>
-                                                                </button>
-                                                            </div>
-                                                        ) : step.key === 'resident_address' ? (
-                                                            // 실 거주지 주소: KakaoAddressSearch 사용
-                                                            <div className="flex flex-col gap-2" onClick={(e) => e.stopPropagation()}>
-                                                                <KakaoAddressSearch
-                                                                    value={typeof value === 'string' ? value : ''}
-                                                                    onAddressSelect={(addressData) => {
-                                                                        setFormData((prev) => ({
-                                                                            ...prev,
-                                                                            resident_address: addressData.address,
-                                                                            resident_address_road:
-                                                                                addressData.roadAddress,
-                                                                            resident_address_jibun:
-                                                                                addressData.jibunAddress,
-                                                                            resident_zonecode: addressData.zonecode,
-                                                                        }));
-                                                                    }}
-                                                                    placeholder={step.placeholder}
-                                                                />
-                                                                <button
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        setEditingField(null);
-                                                                    }}
-                                                                    className="h-12 px-4 bg-[#4E8C6D] text-white rounded-lg hover:bg-[#3d7058] w-full"
-                                                                >
-                                                                    <span className="flex items-center justify-center gap-2">
-                                                                        <Check className="w-5 h-5" />
-                                                                        완료
-                                                                    </span>
-                                                                </button>
-                                                            </div>
-                                                        ) : (
-                                                            // 기본 입력 필드
-                                                            <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
-                                                                <input
-                                                                    type={step.type}
-                                                                    value={typeof value === 'string' ? value : ''}
-                                                                    onChange={(e) =>
-                                                                        handleConfirmFieldChange(step.key, e.target.value)
-                                                                    }
-                                                                    placeholder={step.placeholder}
-                                                                    className={cn(
-                                                                        'flex-1 h-12 px-4 rounded-lg border border-gray-300',
-                                                                        'text-base md:text-lg',
-                                                                        'focus:outline-none focus:ring-2 focus:ring-[#4E8C6D] focus:border-transparent'
-                                                                    )}
-                                                                />
-                                                                <button
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        setEditingField(null);
-                                                                    }}
-                                                                    className="h-12 px-4 bg-[#4E8C6D] text-white rounded-lg hover:bg-[#3d7058]"
-                                                                >
-                                                                    <Check className="w-5 h-5" />
-                                                                </button>
-                                                            </div>
-                                                        )}
+                                                
+                                                {/* 물건지 내용 */}
+                                                <div className="p-4 space-y-3 bg-white">
+                                                    {/* 물건지 주소 */}
+                                                    <div className="bg-gray-50 rounded-lg p-3">
+                                                        <span className="text-sm font-medium text-gray-600">
+                                                            물건지 주소 <span className="text-red-500">*</span>
+                                                        </span>
+                                                        <p className="text-base text-gray-900 mt-1">
+                                                            {property.property_address_road 
+                                                                ? `${property.property_address_road}${property.property_address_jibun ? ` (${property.property_address_jibun})` : ''}`
+                                                                : property.property_address
+                                                            }
+                                                        </p>
                                                     </div>
-                                                ) : (
-                                                    <p className="text-base md:text-lg text-gray-900">
-                                                        {displayValue || (
-                                                            <span className="text-gray-400">입력하지 않음</span>
-                                                        )}
-                                                    </p>
-                                                )}
+
+                                                    {/* 물건지 유형 */}
+                                                    <div className="bg-gray-50 rounded-lg p-3">
+                                                        <span className="text-sm font-medium text-gray-600">
+                                                            물건지 유형 <span className="text-red-500">*</span>
+                                                        </span>
+                                                        <p className="text-base text-gray-900 mt-1">
+                                                            {typeOption ? `${typeOption.icon} ${typeOption.label}` : '미선택'}
+                                                        </p>
+                                                    </div>
+
+                                                    {/* 동 (스킵하지 않는 경우) */}
+                                                    {!isSkipDongHo && (
+                                                        <div className="bg-gray-50 rounded-lg p-3">
+                                                            <span className="text-sm font-medium text-gray-600">동</span>
+                                                            <p className="text-base text-gray-900 mt-1">
+                                                                {property.property_dong || <span className="text-gray-400">입력하지 않음</span>}
+                                                            </p>
+                                                        </div>
+                                                    )}
+
+                                                    {/* 층 구분 (스킵하지 않는 경우) */}
+                                                    {!isSkipDongHo && (
+                                                        <div className="bg-gray-50 rounded-lg p-3">
+                                                            <span className="text-sm font-medium text-gray-600">층 구분</span>
+                                                            <p className="text-base text-gray-900 mt-1">
+                                                                {property.property_is_basement ? '🅱️ 지하층' : '🏢 지상층'}
+                                                            </p>
+                                                        </div>
+                                                    )}
+
+                                                    {/* 호수 (스킵하지 않는 경우) */}
+                                                    {!isSkipDongHo && (
+                                                        <div className="bg-gray-50 rounded-lg p-3">
+                                                            <span className="text-sm font-medium text-gray-600">
+                                                                호수
+                                                                {(property.property_type === 'VILLA' || 
+                                                                  property.property_type === 'APARTMENT' || 
+                                                                  property.property_type === 'MIXED') && (
+                                                                    <span className="text-red-500 ml-1">*</span>
+                                                                )}
+                                                            </span>
+                                                            <p className="text-base text-gray-900 mt-1">
+                                                                {property.property_ho || <span className="text-gray-400">입력하지 않음</span>}
+                                                            </p>
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
                                         );
                                     })}
+                                </div>
+
+                                {/* 실 거주지 정보 섹션 */}
+                                <div className="space-y-3">
+                                    {/* 실 거주지 주소 */}
+                                    <div className="bg-gray-50 rounded-xl p-4">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <span className="text-sm font-medium text-gray-600">
+                                                실 거주지 주소 <span className="text-red-500">*</span>
+                                            </span>
+                                        </div>
+                                        <p className="text-base md:text-lg text-gray-900">
+                                            {formData.resident_address_road 
+                                                ? `${formData.resident_address_road}${formData.resident_address_jibun ? ` (${formData.resident_address_jibun})` : ''}`
+                                                : formData.resident_address
+                                            }
+                                        </p>
+                                    </div>
+
+                                    {/* 실 거주지 상세 주소 */}
+                                    <div className="bg-gray-50 rounded-xl p-4">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <span className="text-sm font-medium text-gray-600">
+                                                실 거주지 상세 주소 <span className="text-red-500">*</span>
+                                            </span>
+                                        </div>
+                                        <p className="text-base md:text-lg text-gray-900">
+                                            {formData.resident_address_detail || <span className="text-gray-400">입력하지 않음</span>}
+                                        </p>
+                                    </div>
                                 </div>
 
                                 {/* 약관 동의 */}
@@ -1372,10 +1518,17 @@ export function RegisterModal({
                                                 {PROPERTY_TYPE_OPTIONS.map((option) => (
                                                     <button
                                                         key={option.value}
-                                                        onClick={() => setFormData(prev => ({ ...prev, property_type: option.value }))}
+                                                        onClick={() => {
+                                                            // 단독주택/다가구 주택 선택 시 동/호 초기화
+                                                            const shouldClearDongHo = option.value === 'DETACHED_HOUSE' || option.value === 'MULTI_FAMILY';
+                                                            updateCurrentProperty({
+                                                                property_type: option.value,
+                                                                ...(shouldClearDongHo ? { property_dong: '', property_ho: '' } : {}),
+                                                            });
+                                                        }}
                                                         className={cn(
-                                                            'w-full p-4 rounded-xl border-2 text-left transition-all flex items-center gap-4',
-                                                            formData.property_type === option.value
+                                                            'w-full p-4 rounded-xl border-2 text-left transition-all flex items-center gap-4 cursor-pointer',
+                                                            getCurrentProperty().property_type === option.value
                                                                 ? 'border-[#4E8C6D] bg-[#4E8C6D]/5'
                                                                 : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                                                         )}
@@ -1385,7 +1538,7 @@ export function RegisterModal({
                                                             <p className="font-medium text-gray-900">{option.label}</p>
                                                             <p className="text-sm text-gray-500">{option.description}</p>
                                                         </div>
-                                                        {formData.property_type === option.value && (
+                                                        {getCurrentProperty().property_type === option.value && (
                                                             <Check className="w-5 h-5 text-[#4E8C6D]" />
                                                         )}
                                                     </button>
@@ -1395,10 +1548,10 @@ export function RegisterModal({
                                             // 지상/지하 선택: 라디오 버튼 UI
                                             <div className="space-y-3">
                                                 <button
-                                                    onClick={() => setFormData(prev => ({ ...prev, property_is_basement: false }))}
+                                                    onClick={() => updateCurrentProperty({ property_is_basement: false })}
                                                     className={cn(
-                                                        'w-full p-4 rounded-xl border-2 text-left transition-all flex items-center gap-4',
-                                                        !formData.property_is_basement
+                                                        'w-full p-4 rounded-xl border-2 text-left transition-all flex items-center gap-4 cursor-pointer',
+                                                        !getCurrentProperty().property_is_basement
                                                             ? 'border-[#4E8C6D] bg-[#4E8C6D]/5'
                                                             : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                                                     )}
@@ -1408,15 +1561,15 @@ export function RegisterModal({
                                                         <p className="font-medium text-gray-900">지상층</p>
                                                         <p className="text-sm text-gray-500">1층 이상 (예: 101호, 1001호)</p>
                                                     </div>
-                                                    {!formData.property_is_basement && (
+                                                    {!getCurrentProperty().property_is_basement && (
                                                         <Check className="w-5 h-5 text-[#4E8C6D]" />
                                                     )}
                                                 </button>
                                                 <button
-                                                    onClick={() => setFormData(prev => ({ ...prev, property_is_basement: true }))}
+                                                    onClick={() => updateCurrentProperty({ property_is_basement: true })}
                                                     className={cn(
-                                                        'w-full p-4 rounded-xl border-2 text-left transition-all flex items-center gap-4',
-                                                        formData.property_is_basement
+                                                        'w-full p-4 rounded-xl border-2 text-left transition-all flex items-center gap-4 cursor-pointer',
+                                                        getCurrentProperty().property_is_basement
                                                             ? 'border-[#4E8C6D] bg-[#4E8C6D]/5'
                                                             : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                                                     )}
@@ -1426,10 +1579,64 @@ export function RegisterModal({
                                                         <p className="font-medium text-gray-900">지하층</p>
                                                         <p className="text-sm text-gray-500">지하 1층 이하 (예: B101, 비01)</p>
                                                     </div>
-                                                    {formData.property_is_basement && (
+                                                    {getCurrentProperty().property_is_basement && (
                                                         <Check className="w-5 h-5 text-[#4E8C6D]" />
                                                     )}
                                                 </button>
+                                            </div>
+                                        ) : stepConfig.key === 'add_property_confirm' ? (
+                                            // 추가 물건지 확인: 예/아니오 선택 UI
+                                            <div className="space-y-4">
+                                                {/* 현재 등록된 물건지 개수 표시 */}
+                                                <div className="p-4 bg-[#4E8C6D]/10 rounded-xl">
+                                                    <div className="flex items-center gap-2 text-[#4E8C6D]">
+                                                        <Info className="w-5 h-5" />
+                                                        <span className="font-medium">
+                                                            현재 {formData.properties.length}개의 물건지가 등록되었습니다.
+                                                        </span>
+                                                    </div>
+                                                    {formData.properties.length >= MAX_PROPERTIES && (
+                                                        <p className="mt-2 text-sm text-amber-600">
+                                                            물건지는 최대 {MAX_PROPERTIES}개까지 입력 가능합니다.
+                                                            <br />
+                                                            추가 물건지가 있으시면 조합에 연락해주세요.
+                                                        </p>
+                                                    )}
+                                                </div>
+                                                
+                                                {/* 예/아니오 버튼 */}
+                                                <div className="space-y-3">
+                                                    {formData.properties.length < MAX_PROPERTIES && (
+                                                        <button
+                                                            onClick={handleAddProperty}
+                                                            className={cn(
+                                                                'w-full p-4 rounded-xl border-2 text-left transition-all flex items-center gap-4 cursor-pointer',
+                                                                'border-[#4E8C6D] hover:bg-[#4E8C6D]/5'
+                                                            )}
+                                                        >
+                                                            <span className="text-2xl">➕</span>
+                                                            <div className="flex-1">
+                                                                <p className="font-medium text-gray-900">예, 추가 물건지가 있습니다</p>
+                                                                <p className="text-sm text-gray-500">다른 물건지 정보를 입력합니다</p>
+                                                            </div>
+                                                            <ChevronRight className="w-5 h-5 text-[#4E8C6D]" />
+                                                        </button>
+                                                    )}
+                                                    <button
+                                                        onClick={handleSkipAddProperty}
+                                                        className={cn(
+                                                            'w-full p-4 rounded-xl border-2 text-left transition-all flex items-center gap-4 cursor-pointer',
+                                                            'border-gray-300 hover:bg-gray-50'
+                                                        )}
+                                                    >
+                                                        <span className="text-2xl">✅</span>
+                                                        <div className="flex-1">
+                                                            <p className="font-medium text-gray-900">아니오, 다음 단계로</p>
+                                                            <p className="text-sm text-gray-500">실 거주지 주소를 입력합니다</p>
+                                                        </div>
+                                                        <ChevronRight className="w-5 h-5 text-gray-400" />
+                                                    </button>
+                                                </div>
                                             </div>
                                         ) : stepConfig.key === 'resident_address' ? (
                                             // 실 거주지 주소: KakaoAddressSearch 사용 + 복사 버튼
@@ -1475,9 +1682,15 @@ export function RegisterModal({
                                             </p>
                                         )}
                                         {/* 빌라 선택 시 동 입력 안내 문구 */}
-                                        {stepConfig.key === 'property_dong' && formData.property_type === 'VILLA' && (
+                                        {stepConfig.key === 'property_dong' && getCurrentProperty().property_type === 'VILLA' && (
                                             <p className="text-sm text-[#4E8C6D] mt-3 bg-[#4E8C6D]/10 rounded-lg p-3">
                                                 💡 한 개동 빌라/다세대 주택은 동을 작성하지 않아도 됩니다.
+                                            </p>
+                                        )}
+                                        {/* 다물건자 안내 문구 */}
+                                        {stepConfig.key === 'property_address' && currentPropertyIndex > 0 && (
+                                            <p className="text-sm text-[#4E8C6D] mt-3 bg-[#4E8C6D]/10 rounded-lg p-3">
+                                                📍 {currentPropertyIndex + 1}번째 물건지를 입력하고 있습니다.
                                             </p>
                                         )}
                                     </div>
@@ -1502,7 +1715,7 @@ export function RegisterModal({
                                     className={cn(
                                         'flex-1 h-14 md:h-16 rounded-xl border-2 border-gray-300',
                                         'text-base md:text-lg font-medium text-gray-700',
-                                        'hover:bg-gray-50 transition-colors',
+                                        'hover:bg-gray-50 transition-colors cursor-pointer',
                                         'flex items-center justify-center gap-2'
                                     )}
                                 >
@@ -1518,7 +1731,7 @@ export function RegisterModal({
                                         'flex-1 h-14 md:h-16 rounded-xl',
                                         'text-base md:text-lg font-medium text-white',
                                         'bg-[#4E8C6D] hover:bg-[#3d7058]',
-                                        'transition-colors',
+                                        'transition-colors cursor-pointer',
                                         'disabled:opacity-50 disabled:cursor-not-allowed',
                                         'flex items-center justify-center gap-2'
                                     )}
@@ -1532,7 +1745,7 @@ export function RegisterModal({
                                         'flex-1 h-14 md:h-16 rounded-xl',
                                         'text-base md:text-lg font-medium text-white',
                                         'bg-[#4E8C6D] hover:bg-[#3d7058]',
-                                        'transition-colors',
+                                        'transition-colors cursor-pointer',
                                         'flex items-center justify-center gap-2'
                                     )}
                                 >

@@ -49,14 +49,14 @@ export interface ParcelDetail {
     official_price: number | null;
     building_type: string | null;
     building_name: string | null;
-    main_purpose: string | null;       // 주 용도
-    floor_count: number | null;        // 층수
-    total_unit_count: number | null;   // 총 세대수 (buildings 테이블)
-    building_units_count: number;      // building_units 테이블 COUNT (소유주 수)
+    main_purpose: string | null; // 주 용도
+    floor_count: number | null; // 층수
+    total_unit_count: number | null; // 총 세대수 (buildings 테이블)
+    building_units_count: number; // building_units 테이블 COUNT (소유주 수)
     building_units: BuildingUnit[];
     consent_stages: ConsentStageStatus[];
     summary: {
-        total_units: number;        // building_units 테이블의 실제 unit 개수
+        total_units: number; // building_units 테이블의 실제 unit 개수
         registered_members: number; // 실제 등록된 조합원 수
     };
 }
@@ -132,7 +132,8 @@ export const useParcelDetail = (pnu: string | null, stageId: string | null) => {
             if (unionId) {
                 const { data: propertyUnits, error: usersError } = await supabase
                     .from('user_property_units')
-                    .select(`
+                    .select(
+                        `
                         pnu,
                         users!inner (
                             id,
@@ -141,7 +142,8 @@ export const useParcelDetail = (pnu: string | null, stageId: string | null) => {
                             union_id,
                             user_status
                         )
-                    `)
+                    `
+                    )
                     .eq('pnu', pnu);
 
                 if (usersError) {
@@ -168,7 +170,11 @@ export const useParcelDetail = (pnu: string | null, stageId: string | null) => {
                 members = (propertyUnits || [])
                     .filter((pu) => {
                         const user = pu.users as unknown as UserData | null;
-                        return user && user.union_id === unionId && user.user_status === 'APPROVED';
+                        return (
+                            user &&
+                            user.union_id === unionId &&
+                            (user.user_status === 'APPROVED' || user.user_status === 'PRE_REGISTERED')
+                        );
                     })
                     .map((pu) => {
                         const user = pu.users as unknown as UserData;
@@ -297,12 +303,12 @@ export const useParcelDetail = (pnu: string | null, stageId: string | null) => {
                 main_purpose: buildingInfo?.main_purpose || null,
                 floor_count: buildingInfo?.floor_count || null,
                 total_unit_count: buildingInfo?.total_unit_count || null,
-                building_units_count: buildingUnitsCount,     // building_units 테이블 COUNT (소유주 수)
+                building_units_count: buildingUnitsCount, // building_units 테이블 COUNT (소유주 수)
                 building_units: buildingUnits,
                 consent_stages: consentStagesStatus,
                 summary: {
-                    total_units: buildingUnitsCount,          // building_units 테이블의 실제 개수
-                    registered_members: memberIds.length,     // 실제 등록된 조합원 수
+                    total_units: buildingUnitsCount, // building_units 테이블의 실제 개수
+                    registered_members: memberIds.length, // 실제 등록된 조합원 수
                 },
             };
         },
