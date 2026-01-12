@@ -4,7 +4,7 @@ import { useEffect, useRef, useMemo } from 'react';
 import * as echarts from 'echarts';
 
 // 조회 모드
-export type MapViewMode = 'consent' | 'registration' | 'preview';
+export type MapViewMode = 'consent' | 'registration' | 'preview' | 'address';
 
 // 동의 상태
 type ConsentStatus = 'FULL_AGREED' | 'PARTIAL_AGREED' | 'NONE_AGREED' | 'NO_OWNER';
@@ -36,10 +36,10 @@ interface EChartsMapProps {
 // 동의 현황 색상 및 라벨
 const CONSENT_CONFIG = {
     pieces: [
-        { value: 'FULL_AGREED', label: '동의 완료', color: '#22c55e' },
-        { value: 'PARTIAL_AGREED', label: '일부 동의', color: '#eab308' },
-        { value: 'NONE_AGREED', label: '비동의', color: '#ef4444' },
-        { value: 'NO_OWNER', label: '미제출', color: '#94a3b8' },
+        { value: 'FULL_AGREED', label: '동의 완료', color: '#22c55e66' }, // green-500 + 40% opacity
+        { value: 'PARTIAL_AGREED', label: '일부 동의', color: '#eab30866' }, // yellow-500 + 40% opacity
+        { value: 'NONE_AGREED', label: '비동의', color: '#ef444466' }, // red-500 + 40% opacity
+        { value: 'NO_OWNER', label: '미제출', color: '#f1f5f9' }, // 연한 회색
     ],
     labels: {
         FULL_AGREED: { label: '동의 완료', description: '모든 소유주가 동의함' },
@@ -48,10 +48,10 @@ const CONSENT_CONFIG = {
         NO_OWNER: { label: '미제출', description: '동의서 미제출' },
     },
     colors: {
-        FULL_AGREED: '#22c55e',
-        PARTIAL_AGREED: '#eab308',
-        NONE_AGREED: '#ef4444',
-        NO_OWNER: '#94a3b8',
+        FULL_AGREED: '#22c55e66',
+        PARTIAL_AGREED: '#eab30866',
+        NONE_AGREED: '#ef444466',
+        NO_OWNER: '#f1f5f9',
     },
     seriesName: '필지별 동의 현황',
 };
@@ -59,10 +59,10 @@ const CONSENT_CONFIG = {
 // 가입 현황 색상 및 라벨 (디자인 시스템에 맞게 조정)
 const REGISTRATION_CONFIG = {
     pieces: [
-        { value: 'ALL_REGISTERED', label: '전체 가입', color: '#22c55e' }, // green-500
-        { value: 'PARTIAL_REGISTERED', label: '일부 가입', color: '#ca8a04' }, // yellow-600
-        { value: 'NONE_REGISTERED', label: '미가입', color: '#dc2626' }, // red-600
-        { value: 'NO_OWNER', label: '미제출', color: '#94a3b8' },
+        { value: 'ALL_REGISTERED', label: '전체 가입', color: '#22c55e66' }, // green-500 + 40% opacity
+        { value: 'PARTIAL_REGISTERED', label: '일부 가입', color: '#ca8a0466' }, // yellow-600 + 40% opacity
+        { value: 'NONE_REGISTERED', label: '미가입', color: '#dc262666' }, // red-600 + 40% opacity
+        { value: 'NO_OWNER', label: '미제출', color: '#f1f5f9' }, // 연한 회색
     ],
     labels: {
         ALL_REGISTERED: { label: '전체 가입', description: '모든 소유주가 조합원 가입' },
@@ -71,10 +71,10 @@ const REGISTRATION_CONFIG = {
         NO_OWNER: { label: '미제출', description: '등록된 조합원 없음' },
     },
     colors: {
-        ALL_REGISTERED: '#22c55e', // green-500
-        PARTIAL_REGISTERED: '#ca8a04', // yellow-600
-        NONE_REGISTERED: '#dc2626', // red-600
-        NO_OWNER: '#94a3b8',
+        ALL_REGISTERED: '#22c55e66', // green-500 + 40% opacity
+        PARTIAL_REGISTERED: '#ca8a0466', // yellow-600 + 40% opacity
+        NONE_REGISTERED: '#dc262666', // red-600 + 40% opacity
+        NO_OWNER: '#f1f5f9', // 연한 회색
     },
     seriesName: '필지별 가입 현황',
 };
@@ -83,7 +83,7 @@ const REGISTRATION_CONFIG = {
 const PREVIEW_CONFIG = {
     pieces: [
         { value: 'NONE_AGREED', label: '필지', color: '#3b82f6' },
-        { value: 'NO_OWNER', label: '미제출', color: '#94a3b8' },
+        { value: 'NO_OWNER', label: '미제출', color: '#f1f5f9' }, // 연한 회색
     ],
     labels: {
         NONE_AGREED: { label: '필지', description: '' },
@@ -91,9 +91,26 @@ const PREVIEW_CONFIG = {
     },
     colors: {
         NONE_AGREED: '#3b82f6',
-        NO_OWNER: '#94a3b8',
+        NO_OWNER: '#f1f5f9', // 연한 회색
     },
     seriesName: '필지 미리보기',
+};
+
+// 주소 보기 모드 설정 (새로 추가)
+const ADDRESS_CONFIG = {
+    pieces: [{ value: 'ALL', label: '필지', color: '#ffffff' }],
+    labels: {},
+    colors: {
+        // 모든 상태를 동일한 색상(흰색)으로 처리
+        FULL_AGREED: '#ffffff',
+        PARTIAL_AGREED: '#ffffff',
+        NONE_AGREED: '#ffffff',
+        NO_OWNER: '#ffffff',
+        ALL_REGISTERED: '#ffffff',
+        PARTIAL_REGISTERED: '#ffffff',
+        NONE_REGISTERED: '#ffffff',
+    },
+    seriesName: '필지 주소',
 };
 
 // 금액 포맷팅 함수
@@ -116,7 +133,7 @@ function formatArea(area: number | undefined): string {
 export default function EChartsMap({
     geoJson,
     data,
-    mode = 'consent',
+    mode = 'address',
     onParcelClick,
     selectedPnu,
     onParcelHover,
@@ -131,6 +148,7 @@ export default function EChartsMap({
     const config = useMemo(() => {
         if (mode === 'registration') return REGISTRATION_CONFIG;
         if (mode === 'preview') return PREVIEW_CONFIG;
+        if (mode === 'address') return ADDRESS_CONFIG;
         return CONSENT_CONFIG;
     }, [mode]);
 
@@ -181,10 +199,20 @@ export default function EChartsMap({
                 formatter: (params: { name: string; value: string }) => {
                     const pnu = params.name;
                     const parcelData = dataMap.get(pnu);
+
+                    // 주소 보기 모드일 때는 툴팁 간소화
+                    if (mode === 'address') {
+                        return `
+                            <div style="font-weight: 600; font-size: 14px; color: #0f172a;">
+                                ${parcelData?.address || '주소 정보 없음'}
+                            </div>
+                        `;
+                    }
+
                     const statusInfo = (config.labels as Record<string, { label: string; description: string }>)[
                         params.value
                     ] || { label: '미제출', description: '' };
-                    const statusColor = (config.colors as Record<string, string>)[params.value] || '#94a3b8';
+                    const statusColor = (config.colors as Record<string, string>)[params.value] || '#f1f5f9';
 
                     // 주소 표시 (PNU 제거)
                     let html = `
@@ -273,29 +301,39 @@ export default function EChartsMap({
                     type: 'map',
                     map: 'GIS_MAP',
                     roam: true, // 드래그 이동 + 줌 활성화
-                    zoom: 1.2,
+                    zoom: 1.44, // 1.2 * 1.2 = 1.44 (기존보다 1.2배 확대)
                     label: {
-                        show: false,
+                        show: mode === 'address', // 주소 모드일 때만 라벨 표시
+                        color: '#000',
+                        fontSize: 10,
+                        overflow: 'break',
+                        formatter: (params: any) => {
+                            if (mode !== 'address') return '';
+                            const pnu = params.name;
+                            const parcelData = dataMap.get(pnu);
+                            // 주소에서 번지 부분만 추출하거나 전체 주소 표시
+                            return parcelData?.address || '';
+                        },
                     },
                     itemStyle: {
-                        borderColor: '#94a3b8',
-                        borderWidth: 0.5,
+                        borderColor: '#000000', // 검은색 경계선
+                        borderWidth: 1, // 경계선 두께 강화
                     },
                     emphasis: {
-                        label: { show: false },
+                        label: { show: mode === 'address' },
                         itemStyle: {
-                            areaColor: '#3b82f6',
-                            borderColor: '#1d4ed8',
+                            areaColor: mode === 'address' ? '#f8fafc' : '#3b82f6',
+                            borderColor: mode === 'address' ? '#000000' : '#1d4ed8',
                             borderWidth: 2,
-                            shadowColor: 'rgba(59, 130, 246, 0.5)',
+                            shadowColor: 'rgba(0, 0, 0, 0.3)',
                             shadowBlur: 10,
                         },
                     },
                     select: {
-                        label: { show: false },
+                        label: { show: mode === 'address' },
                         itemStyle: {
-                            areaColor: '#2563eb',
-                            borderColor: '#1e40af',
+                            areaColor: mode === 'address' ? '#eff6ff' : '#2563eb',
+                            borderColor: mode === 'address' ? '#000000' : '#1e40af',
                             borderWidth: 2,
                         },
                     },
@@ -304,7 +342,10 @@ export default function EChartsMap({
                         value: item.status,
                         itemStyle: {
                             // 상태별 채움색을 직접 지정 (가장 확실한 방식)
-                            areaColor: (config.colors as Record<string, string>)[item.status] || '#94a3b8',
+                            areaColor:
+                                mode === 'address'
+                                    ? '#ffffff'
+                                    : (config.colors as Record<string, string>)[item.status] || '#f1f5f9',
                         },
                     })),
                 },
@@ -325,11 +366,17 @@ export default function EChartsMap({
                 {
                     series: [
                         {
+                            label: {
+                                show: mode === 'address',
+                            },
                             data: data.map((item) => ({
                                 name: item.pnu,
                                 value: item.status,
                                 itemStyle: {
-                                    areaColor: (config.colors as Record<string, string>)[item.status] || '#94a3b8',
+                                    areaColor:
+                                        mode === 'address'
+                                            ? '#ffffff'
+                                            : (config.colors as Record<string, string>)[item.status] || '#f1f5f9',
                                 },
                             })),
                         },
@@ -386,15 +433,19 @@ interface MapLegendProps {
 }
 
 export function MapLegend({ mode }: MapLegendProps) {
-    const config = mode === 'registration' ? REGISTRATION_CONFIG : mode === 'preview' ? PREVIEW_CONFIG : CONSENT_CONFIG;
+    // 주소 모드나 미리보기 모드일 때는 범례 숨김
+    if (mode === 'preview' || mode === 'address') return null;
 
-    if (mode === 'preview') return null;
+    const config = mode === 'registration' ? REGISTRATION_CONFIG : CONSENT_CONFIG;
 
     return (
         <div className="bg-white rounded-lg border border-slate-200 p-3 flex flex-wrap items-center justify-center gap-4">
             {config.pieces.map((piece) => (
                 <div key={piece.value} className="flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-full" style={{ backgroundColor: piece.color }} />
+                    <span
+                        className="w-3 h-3 rounded-full border border-slate-200"
+                        style={{ backgroundColor: piece.color }}
+                    />
                     <span className="text-sm text-slate-600">{piece.label}</span>
                 </div>
             ))}
