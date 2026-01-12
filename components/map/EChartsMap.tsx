@@ -307,7 +307,7 @@ export default function EChartsMap({
                         color: '#000',
                         fontSize: 10,
                         overflow: 'break',
-                        formatter: (params: any) => {
+                        formatter: (params: { name: string }) => {
                             if (mode !== 'address') return '';
                             const pnu = params.name;
                             const parcelData = dataMap.get(pnu);
