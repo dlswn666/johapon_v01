@@ -458,7 +458,7 @@ function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: Edi
                 <div className="flex border-b border-gray-200">
                     <button
                         className={cn(
-                            "flex-1 py-2 text-sm font-medium border-b-2 transition-colors",
+                            "flex-1 py-2 text-sm font-medium border-b-2 transition-colors cursor-pointer",
                             activeTab === 'info'
                                 ? "border-primary text-primary"
                                 : "border-transparent text-gray-500 hover:text-gray-700"
@@ -469,7 +469,7 @@ function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: Edi
                     </button>
                     <button
                         className={cn(
-                            "flex-1 py-2 text-sm font-medium border-b-2 transition-colors",
+                            "flex-1 py-2 text-sm font-medium border-b-2 transition-colors cursor-pointer",
                             activeTab === 'member'
                                 ? "border-primary text-primary"
                                 : "border-transparent text-gray-500 hover:text-gray-700"
@@ -621,7 +621,7 @@ function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: Edi
                                             <button
                                                 key={user.id}
                                                 className={cn(
-                                                    "w-full p-3 text-left flex items-center justify-between hover:bg-gray-50 transition-colors",
+                                                    "w-full p-3 text-left flex items-center justify-between hover:bg-gray-100 transition-colors cursor-pointer",
                                                     selectedMember?.id === user.id && "bg-primary/10"
                                                 )}
                                                 onClick={() => setSelectedMember({ id: user.id, name: user.name })}
@@ -644,12 +644,19 @@ function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: Edi
 
                             {/* 선택된 조합원 */}
                             {selectedMember && (
-                                <div className="p-3 bg-primary/5 rounded-lg flex items-center justify-between">
+                                <div className="p-3 bg-primary/5 rounded-lg flex items-center justify-between group">
                                     <div className="flex items-center gap-2">
                                         <Plus className="w-4 h-4 text-primary" />
                                         <span className="text-sm font-medium">{selectedMember.name}</span>
                                         <span className="text-xs text-gray-500">을(를) 이 필지에 연결합니다.</span>
                                     </div>
+                                    <button
+                                        onClick={() => setSelectedMember(null)}
+                                        className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors cursor-pointer"
+                                        title="선택 취소"
+                                    >
+                                        <XCircle className="w-4 h-4" />
+                                    </button>
                                 </div>
                             )}
                         </div>
