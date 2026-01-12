@@ -436,27 +436,29 @@ export default function GisMapContainer() {
                 </Button>
             </div>
 
-            {/* 대시보드 영역 */}
-            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                {viewMode === 'consent' ? (
-                    <ConsentStatusBar
-                        mode="consent"
-                        currentValue={consentRate?.agreed_owner_count || 0}
-                        totalValue={consentRate?.total_owner_count || 0}
-                        requiredRate={requiredRate}
-                        currentRate={consentRate?.owner_rate || 0}
-                        areaRate={consentRate?.area_rate}
-                    />
-                ) : (
-                    <ConsentStatusBar
-                        mode="registration"
-                        currentValue={registrationRate?.registered_count || 0}
-                        totalValue={registrationRate?.total_owners || 0}
-                        requiredRate={100}
-                        currentRate={registrationRate?.registration_rate || 0}
-                    />
-                )}
-            </div>
+            {/* 대시보드 영역 - 지번 현황일 때는 숨김 */}
+            {viewMode !== 'address' && (
+                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                    {viewMode === 'consent' ? (
+                        <ConsentStatusBar
+                            mode="consent"
+                            currentValue={consentRate?.agreed_owner_count || 0}
+                            totalValue={consentRate?.total_owner_count || 0}
+                            requiredRate={requiredRate}
+                            currentRate={consentRate?.owner_rate || 0}
+                            areaRate={consentRate?.area_rate}
+                        />
+                    ) : (
+                        <ConsentStatusBar
+                            mode="registration"
+                            currentValue={registrationRate?.registered_count || 0}
+                            totalValue={registrationRate?.total_owners || 0}
+                            requiredRate={100}
+                            currentRate={registrationRate?.registration_rate || 0}
+                        />
+                    )}
+                </div>
+            )}
 
             {/* 지도 영역 */}
             <div className="flex-1 bg-slate-50 rounded-xl border border-slate-200 overflow-hidden relative min-h-[500px]">

@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { Search, Info, Building2, MapPin } from 'lucide-react';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import { cn } from '@/lib/utils';
 import GisMapContainer from '@/app/_lib/features/gis/components/GisMapContainer';
@@ -186,17 +187,23 @@ export default function LandLotManagementPage() {
                 </div>
             </div>
 
-            {/* 안내 사항 */}
-            <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl flex gap-3">
-                <Info className="w-5 h-5 text-blue-500 shrink-0" />
-                <div className="text-sm text-blue-700">
-                    <p className="font-semibold mb-1">안내 사항</p>
-                    <ul className="list-disc list-inside space-y-0.5 opacity-90">
-                        <li>지번 및 필지 데이터는 시스템 관리자에 의해 정기적으로 업데이트됩니다.</li>
-                        <li>데이터 수집 및 배포가 완료된 후에 지도가 활성화됩니다.</li>
-                        <li>수정이 필요한 경우 본사 시스템 운영부로 문의해 주세요.</li>
-                    </ul>
-                </div>
+            {/* 안내 사항 - 상세 내용은 tooltip으로 표시 */}
+            <div className="flex items-center gap-2 text-sm text-blue-700">
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <span className="inline-flex items-center gap-1.5 cursor-help">
+                            <Info className="w-4 h-4 text-blue-500" />
+                            <span className="font-medium">안내 사항</span>
+                        </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="max-w-xs text-left">
+                        <ul className="list-disc list-inside space-y-1 text-xs">
+                            <li>지번 및 필지 데이터는 시스템 관리자에 의해 정기적으로 업데이트됩니다.</li>
+                            <li>데이터 수집 및 배포가 완료된 후에 지도가 활성화됩니다.</li>
+                            <li>수정이 필요한 경우 본사 시스템 운영부로 문의해 주세요.</li>
+                        </ul>
+                    </TooltipContent>
+                </Tooltip>
             </div>
 
             {viewMode === 'map' ? (

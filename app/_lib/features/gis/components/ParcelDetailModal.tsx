@@ -220,10 +220,13 @@ function formatPrice(price: number | null | undefined): string {
 function ParcelBasicInfo({ parcel }: { parcel: ParcelDetail }) {
     return (
         <div className="bg-gray-50 rounded-xl p-4 space-y-4">
-            {/* 지번 주소 */}
+            {/* 지번 주소 + 도로명 주소 */}
             <div>
-                <p className="text-sm text-gray-500 mb-1">지번 주소</p>
+                <p className="text-sm text-gray-500 mb-1">주소</p>
                 <p className="font-semibold text-gray-900">{parcel.address}</p>
+                {parcel.road_address && (
+                    <p className="text-sm text-gray-600 mt-0.5">({parcel.road_address})</p>
+                )}
             </div>
 
             {/* 1행: 건물 유형, 건물 이름 */}
@@ -351,9 +354,9 @@ function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: Edi
         total_unit_count: parcel.total_unit_count || 0,
     });
 
-    // 조합원 연결 폼
+    // 소유주 연결 폼
     const [memberSearchQuery, setMemberSearchQuery] = useState('');
-    const [searchResults, setSearchResults] = useState<{ id: string; name: string; phone_number: string | null }[]>([]);
+    const [searchResults, setSearchResults] = useState<{ id: string; name: string; phone_number: string | null; resident_address: string | null }[]>([]);
     const [isSearching, setIsSearching] = useState(false);
     const [selectedMember, setSelectedMember] = useState<{ id: string; name: string } | null>(null);
 
@@ -404,17 +407,17 @@ function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: Edi
         },
     });
 
-    // 조합원 연결 mutation
+    // 소유주 연결 mutation
     const linkMemberMutation = useMutation({
         mutationFn: async () => {
-            if (!selectedMember) throw new Error('조합원을 선택해주세요.');
+            if (!selectedMember) throw new Error('소유주를 선택해주세요.');
             return linkMemberToParcel({
                 pnu: parcel.pnu,
                 userId: selectedMember.id,
             });
         },
         onSuccess: () => {
-            toast.success('조합원이 연결되었습니다.');
+            toast.success('소유주가 연결되었습니다.');
             queryClient.invalidateQueries({ queryKey: ['parcel-detail', parcel.pnu] });
             setSelectedMember(null);
             setMemberSearchQuery('');
@@ -422,14 +425,14 @@ function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: Edi
             onSuccess();
         },
         onError: (error: Error) => {
-            toast.error(error.message || '조합원 연결에 실패했습니다.');
+            toast.error(error.message || '소유주 연결에 실패했습니다.');
         },
     });
 
-    // 조합원 검색
+    // 소유주 검색 (이름으로 검색)
     const handleMemberSearch = async () => {
         if (!memberSearchQuery.trim() || memberSearchQuery.length < 2) {
-            toast.error('2글자 이상 입력해주세요.');
+            toast.error('이름을 2글자 이상 입력해주세요.');
             return;
         }
 
@@ -441,7 +444,7 @@ function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: Edi
                 toast.error('검색 결과가 없습니다.');
             }
         } catch {
-            toast.error('조합원 검색에 실패했습니다.');
+            toast.error('소유주 검색에 실패했습니다.');
         } finally {
             setIsSearching(false);
         }
@@ -476,7 +479,7 @@ function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: Edi
                         )}
                         onClick={() => setActiveTab('member')}
                     >
-                        조합원 추가
+                        소유주 추가
                     </button>
                 </div>
 
@@ -587,12 +590,12 @@ function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: Edi
                         </div>
                     ) : (
                         <div className="space-y-4">
-                            {/* 조합원 검색 */}
+                            {/* 소유주 검색 */}
                             <div className="space-y-2">
-                                <Label className="text-xs">조합원 검색 (이름 또는 전화번호)</Label>
+                                <Label className="text-xs">소유주 검색 (이름으로 검색)</Label>
                                 <div className="flex gap-2">
                                     <Input
-                                        placeholder="이름 또는 전화번호"
+                                        placeholder="이름 입력"
                                         value={memberSearchQuery}
                                         onChange={(e) => setMemberSearchQuery(e.target.value)}
                                         onKeyDown={(e) => e.key === 'Enter' && handleMemberSearch()}
@@ -626,11 +629,13 @@ function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: Edi
                                                 )}
                                                 onClick={() => setSelectedMember({ id: user.id, name: user.name })}
                                             >
-                                                <div className="flex items-center gap-2">
-                                                    <User className="w-4 h-4 text-gray-400" />
-                                                    <span className="font-medium text-sm">{user.name}</span>
-                                                    {user.phone_number && (
-                                                        <span className="text-xs text-gray-500">{user.phone_number}</span>
+                                                <div className="flex flex-col gap-0.5">
+                                                    <div className="flex items-center gap-2">
+                                                        <User className="w-4 h-4 text-gray-400" />
+                                                        <span className="font-medium text-sm">{user.name}</span>
+                                                    </div>
+                                                    {user.resident_address && (
+                                                        <span className="text-xs text-gray-500 ml-6">({user.resident_address})</span>
                                                     )}
                                                 </div>
                                                 {selectedMember?.id === user.id && (
@@ -642,7 +647,7 @@ function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: Edi
                                 </div>
                             )}
 
-                            {/* 선택된 조합원 */}
+                            {/* 선택된 소유주 */}
                             {selectedMember && (
                                 <div className="p-3 bg-primary/5 rounded-lg flex items-center justify-between group">
                                     <div className="flex items-center gap-2">
@@ -696,7 +701,7 @@ function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: Edi
                                     연결 중...
                                 </>
                             ) : (
-                                '조합원 연결'
+                                '소유주 연결'
                             )}
                         </Button>
                     )}
@@ -713,13 +718,13 @@ const OWNERSHIP_TYPE_LABELS: Record<string, string> = {
     FAMILY: '소유주 가족',
 };
 
-// 소유주 목록 (조합원 정보)
+// 소유주 목록 (소유주 정보)
 function OwnersSection({ parcel }: { parcel: ParcelDetail }) {
     return (
         <div>
             <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
                 <Users className="w-4 h-4" />
-                조합원 정보
+                소유주 정보
             </h3>
             <div className="space-y-3">
                 {parcel.building_units.map((unit) => (
@@ -756,7 +761,7 @@ function OwnersSection({ parcel }: { parcel: ParcelDetail }) {
     );
 }
 
-// 소유주 행 - 조합원 이름, 동/호수, 소유유형, 지분율 표시
+// 소유주 행 - 이름(거주지), 동/호수, 소유유형, 지분율 표시
 function OwnerRow({ owner, parcel }: { owner: Owner; parcel: ParcelDetail }) {
     const statusConfig = {
         AGREED: { icon: CheckCircle2, color: 'text-green-500', bg: 'bg-green-50', label: '동의' },
@@ -778,7 +783,12 @@ function OwnerRow({ owner, parcel }: { owner: Owner; parcel: ParcelDetail }) {
             <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                     <User className="w-3 h-3 text-gray-400" />
-                    <span className="font-medium text-sm">{owner.name}</span>
+                    <span className="font-medium text-sm">
+                        {owner.name}
+                        {owner.resident_address && (
+                            <span className="text-gray-500 font-normal"> ({owner.resident_address})</span>
+                        )}
+                    </span>
                     {/* 동 표기 (단독주택 아닐 경우) */}
                     {showDong && (
                         <Badge variant="outline" className="text-xs py-0">

@@ -3,11 +3,12 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/app/_lib/shared/supabase/client';
 
-// 조합원(소유주) 정보 타입 - users 테이블 기반
+// 소유주 정보 타입 - users 테이블 기반
 export interface Owner {
     id: string;
     name: string;
     phone: string | null;
+    resident_address: string | null; // 거주지 주소 (동명이인 구분용)
     share: string | null;
     is_representative: boolean;
     is_manual: boolean;
@@ -48,6 +49,7 @@ export const BUILDING_TYPE_LABELS: Record<string, string> = {
 export interface ParcelDetail {
     pnu: string;
     address: string;
+    road_address: string | null; // 도로명 주소
     land_area: number | null;
     land_category: string | null; // 지목(지번 타입)
     official_price: number | null;
@@ -82,10 +84,10 @@ export const useParcelDetail = (pnu: string | null, stageId: string | null) => {
         queryFn: async (): Promise<ParcelDetail | null> => {
             if (!pnu) return null;
 
-            // 1. 필지 기본 정보 조회 (land_category 포함)
+            // 1. 필지 기본 정보 조회 (land_category, road_address 포함)
             const { data: landLot, error: landError } = await supabase
                 .from('land_lots')
-                .select('pnu, address, area, official_price, owner_count, land_category')
+                .select('pnu, address, area, official_price, owner_count, land_category, road_address')
                 .eq('pnu', pnu)
                 .single();
 
@@ -153,7 +155,7 @@ export const useParcelDetail = (pnu: string | null, stageId: string | null) => {
 
             const unionId = unionLot?.union_id;
 
-            // 4. 해당 PNU와 연결된 조합원(users) 조회 - user_property_units + users + building_units 조인
+            // 4. 해당 PNU와 연결된 소유주(users) 조회 - user_property_units + users + building_units 조인
             interface PropertyUnitWithUser {
                 id: string;
                 pnu: string | null;
@@ -169,6 +171,7 @@ export const useParcelDetail = (pnu: string | null, stageId: string | null) => {
                     phone_number: string | null;
                     union_id: string | null;
                     user_status: string | null;
+                    resident_address: string | null;
                 };
             }
 
@@ -192,7 +195,8 @@ export const useParcelDetail = (pnu: string | null, stageId: string | null) => {
                             name,
                             phone_number,
                             union_id,
-                            user_status
+                            user_status,
+                            resident_address
                         )
                     `
                     )
@@ -283,6 +287,7 @@ export const useParcelDetail = (pnu: string | null, stageId: string | null) => {
                     id: user.id,
                     name: user.name,
                     phone: user.phone_number,
+                    resident_address: user.resident_address,
                     share: null,
                     is_representative: false,
                     is_manual: false,
@@ -361,6 +366,7 @@ export const useParcelDetail = (pnu: string | null, stageId: string | null) => {
             return {
                 pnu,
                 address: landLot?.address || pnu,
+                road_address: landLot?.road_address || null,
                 land_area: landLot?.area || null,
                 land_category: landLot?.land_category || null,
                 official_price: landLot?.official_price || null,
@@ -375,7 +381,7 @@ export const useParcelDetail = (pnu: string | null, stageId: string | null) => {
                 consent_stages: consentStagesStatus,
                 summary: {
                     total_units: buildingUnitsCount, // building_units 테이블의 실제 개수
-                    registered_members: memberIds.length, // 실제 등록된 조합원 수
+                    registered_members: memberIds.length, // 실제 등록된 소유주 수
                 },
             };
         },

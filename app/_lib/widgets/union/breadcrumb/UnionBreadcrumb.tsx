@@ -25,6 +25,7 @@ const menuStructure: Record<string, { parent?: { label: string; href?: string };
 
     // 관리자
     admin: { label: '관리자' },
+    'admin/land-lots': { parent: { label: '관리자' }, label: '동의율 관리' },
     'admin/slides': { parent: { label: '관리자' }, label: '슬라이드 관리' },
     'admin/alimtalk': { parent: { label: '관리자' }, label: '알림톡 관리' },
     'admin/members': { parent: { label: '관리자' }, label: '조합원 관리' },

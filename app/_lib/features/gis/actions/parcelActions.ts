@@ -364,22 +364,22 @@ export async function getAllUnionMembers(unionId: string) {
 }
 
 /**
- * 조합의 조합원 검색 (이름 또는 전화번호)
+ * 조합의 소유주 검색 (이름으로 검색, 동명이인 구분을 위해 거주지 표시)
  */
 export async function searchUnionMembers(unionId: string, query: string) {
     const supabase = getSupabaseAdmin();
 
     const { data: users, error } = await supabase
         .from('users')
-        .select('id, name, phone_number')
+        .select('id, name, phone_number, resident_address')
         .eq('union_id', unionId)
         .in('user_status', ['APPROVED', 'PRE_REGISTERED'])
-        .or(`name.ilike.%${query}%,phone_number.ilike.%${query}%`)
+        .ilike('name', `%${query}%`)
         .limit(20);
 
     if (error) {
         console.error('Search union members error:', error);
-        throw new Error(`조합원 검색에 실패했습니다: ${error.message}`);
+        throw new Error(`소유주 검색에 실패했습니다: ${error.message}`);
     }
 
     return users || [];

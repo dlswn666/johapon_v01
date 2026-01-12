@@ -100,6 +100,13 @@ export function useLandLotsInfinite({ unionId, searchQuery = '', pageSize = 50 }
                 };
             });
 
+            // 도로(지목='도로')를 가장 아래로 정렬
+            extendedLots.sort((a, b) => {
+                const aIsRoad = a.land_category === '도로' ? 1 : 0;
+                const bIsRoad = b.land_category === '도로' ? 1 : 0;
+                return aIsRoad - bIsRoad;
+            });
+
             const total = count || 0;
             const totalPages = Math.ceil(total / pageSize);
             const hasNextPage = page < totalPages;
