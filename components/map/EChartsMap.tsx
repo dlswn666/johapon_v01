@@ -303,7 +303,7 @@ export default function EChartsMap({
                     roam: true, // 드래그 이동 + 줌 활성화
                     zoom: 1.44, // 1.2 * 1.2 = 1.44 (기존보다 1.2배 확대)
                     label: {
-                        show: mode === 'address', // 주소 모드일 때만 라벨 표시
+                        show: false, // 모든 모드에서 라벨 숨김
                         color: '#000',
                         fontSize: 10,
                         overflow: 'break',
@@ -320,7 +320,7 @@ export default function EChartsMap({
                         borderWidth: 1, // 경계선 두께 강화
                     },
                     emphasis: {
-                        label: { show: mode === 'address' },
+                        label: { show: false },
                         itemStyle: {
                             areaColor: mode === 'address' ? '#f8fafc' : '#3b82f6',
                             borderColor: mode === 'address' ? '#000000' : '#1d4ed8',
@@ -330,7 +330,7 @@ export default function EChartsMap({
                         },
                     },
                     select: {
-                        label: { show: mode === 'address' },
+                        label: { show: false },
                         itemStyle: {
                             areaColor: mode === 'address' ? '#eff6ff' : '#2563eb',
                             borderColor: mode === 'address' ? '#000000' : '#1e40af',
@@ -367,7 +367,7 @@ export default function EChartsMap({
                     series: [
                         {
                             label: {
-                                show: mode === 'address',
+                                show: false,
                             },
                             data: data.map((item) => ({
                                 name: item.pnu,
