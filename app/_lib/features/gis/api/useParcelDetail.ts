@@ -166,7 +166,7 @@ export const useParcelDetail = (pnu: string | null, stageId: string | null) => {
                     user_status: string;
                 }
 
-                // 해당 조합의 승인된 조합원만 필터링
+                // 해당 조합의 승인된 조합원 및 사전 등록 조합원 필터링
                 members = (propertyUnits || [])
                     .filter((pu) => {
                         const user = pu.users as unknown as UserData | null;

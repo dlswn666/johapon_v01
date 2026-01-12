@@ -9,6 +9,7 @@ import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import { User, NewUser } from '@/app/_lib/shared/type/database.types';
 import { AuthProvider } from '@/app/_lib/shared/type/auth.types';
 import { sendAlimTalk } from '@/app/_lib/features/alimtalk/actions/sendAlimTalk';
+import { searchAddress } from '@/app/_lib/features/gis/actions/manualAddAddress';
 import {
     MapPin,
     Phone,
@@ -28,7 +29,12 @@ import { TermsModal } from './TermsModal';
 import { BirthDatePicker } from '@/app/_lib/widgets/common/date-picker/BirthDatePicker';
 import { KakaoAddressSearch, AddressData } from '@/app/_lib/widgets/common/address/KakaoAddressSearch';
 import { generatePNU } from '@/app/_lib/shared/utils/pnu-utils';
-import { normalizeDong, createNormalizedHo, isBasementHo, extractHoNumber } from '@/app/_lib/shared/utils/dong-ho-utils';
+import {
+    normalizeDong,
+    createNormalizedHo,
+    isBasementHo,
+    extractHoNumber,
+} from '@/app/_lib/shared/utils/dong-ho-utils';
 
 // 거주 유형 타입 정의
 type PropertyType = 'DETACHED_HOUSE' | 'MULTI_FAMILY' | 'VILLA' | 'APARTMENT' | 'COMMERCIAL' | 'MIXED';
@@ -47,16 +53,16 @@ const PROPERTY_TYPE_OPTIONS: { value: PropertyType; label: string; icon: string;
 const MAX_PROPERTIES = 5;
 
 // Step 정의
-type StepKey = 
-    | 'name' 
-    | 'birth_date' 
-    | 'phone_number' 
-    | 'property_address' 
+type StepKey =
+    | 'name'
+    | 'birth_date'
+    | 'phone_number'
+    | 'property_address'
     | 'property_type'
     | 'property_dong'
-    | 'property_floor_type'  // 지상/지하 선택
+    | 'property_floor_type' // 지상/지하 선택
     | 'property_ho'
-    | 'add_property_confirm'  // 추가 물건지 확인
+    | 'add_property_confirm' // 추가 물건지 확인
     | 'resident_address'
     | 'resident_address_detail'
     | 'confirm';
@@ -154,7 +160,7 @@ const STEPS: StepConfig[] = [
         description: '지상층 또는 지하층을 선택해주세요.',
         subDescription: '호수 입력 전 선택이 필요합니다.',
         required: false,
-        type: 'text',  // 실제로는 라디오 버튼으로 렌더링
+        type: 'text', // 실제로는 라디오 버튼으로 렌더링
         icon: <Building2 className="w-6 h-6 md:w-7 md:h-7" />,
     },
     {
@@ -246,7 +252,7 @@ interface FormData {
     property_pnu: string;
     property_type: PropertyType | '';
     property_dong: string;
-    property_is_basement: boolean;  // 지하층 여부
+    property_is_basement: boolean; // 지하층 여부
     property_ho: string;
     // 실 거주지
     resident_address: string;
@@ -419,15 +425,15 @@ export function RegisterModal({
                         .order('is_primary', { ascending: false });
 
                     // 첫 번째 (primary) 물건지
-                    const primaryPropertyUnit = propertyUnits?.find(p => p.is_primary) || propertyUnits?.[0];
-                    
+                    const primaryPropertyUnit = propertyUnits?.find((p) => p.is_primary) || propertyUnits?.[0];
+
                     // 기존 호수에서 지하 여부 판단 (첫 번째 물건지)
                     const existingHo = primaryPropertyUnit?.ho || '';
                     const isBasement = isBasementHo(existingHo);
                     const hoNumber = isBasement ? extractHoNumber(existingHo) || '' : existingHo;
 
                     // 모든 물건지를 PropertyData 배열로 변환
-                    const loadedProperties: PropertyData[] = (propertyUnits || []).map(unit => {
+                    const loadedProperties: PropertyData[] = (propertyUnits || []).map((unit) => {
                         const unitIsBasement = isBasementHo(unit.ho || '');
                         const unitHoNumber = unitIsBasement ? extractHoNumber(unit.ho || '') || '' : unit.ho || '';
                         return {
@@ -454,7 +460,8 @@ export function RegisterModal({
                         phone_number: userData.phone_number || '',
                         birth_date: userData.birth_date || '',
                         properties: loadedProperties,
-                        property_address: userData.property_address || primaryPropertyUnit?.property_address_jibun || '',
+                        property_address:
+                            userData.property_address || primaryPropertyUnit?.property_address_jibun || '',
                         property_address_detail: userData.property_address_detail || '',
                         property_address_road: primaryPropertyUnit?.property_address_road || '',
                         property_address_jibun: primaryPropertyUnit?.property_address_jibun || '',
@@ -476,13 +483,13 @@ export function RegisterModal({
 
                     // 수동 등록/일괄 초대/사전 등록 회원: 필수 정보가 모두 있으면 마지막 확인 단계로 바로 이동
                     // PRE_REGISTERED 상태이거나 초대 데이터가 있는 경우
-                    const hasAllRequiredData = 
-                        loadedFormData.name && 
-                        loadedFormData.phone_number && 
+                    const hasAllRequiredData =
+                        loadedFormData.name &&
+                        loadedFormData.phone_number &&
                         loadedFormData.properties[0]?.property_address &&
                         loadedFormData.properties[0]?.property_type &&
                         loadedFormData.resident_address;
-                    
+
                     if (hasAllRequiredData && (userData.user_status === 'PRE_REGISTERED' || inviteData)) {
                         // 마지막 확인 단계로 이동 (STEPS.length가 confirm step의 인덱스)
                         setCurrentStep(STEPS.length);
@@ -500,51 +507,87 @@ export function RegisterModal({
     }, [formData.properties, currentPropertyIndex]);
 
     // 현재 물건지 데이터 업데이트
-    const updateCurrentProperty = useCallback((updates: Partial<PropertyData>) => {
-        setFormData((prev) => {
-            const newProperties = [...prev.properties];
-            newProperties[currentPropertyIndex] = {
-                ...newProperties[currentPropertyIndex],
-                ...updates,
-            };
-            // 첫 번째 물건지는 하위 호환성을 위해 단일 필드와도 동기화
-            const syncFields = currentPropertyIndex === 0 ? {
-                property_address: newProperties[0].property_address,
-                property_address_detail: newProperties[0].property_address_detail,
-                property_address_road: newProperties[0].property_address_road,
-                property_address_jibun: newProperties[0].property_address_jibun,
-                property_zonecode: newProperties[0].property_zonecode,
-                property_pnu: newProperties[0].property_pnu,
-                property_type: newProperties[0].property_type,
-                property_dong: newProperties[0].property_dong,
-                property_is_basement: newProperties[0].property_is_basement,
-                property_ho: newProperties[0].property_ho,
-            } : {};
-            return {
-                ...prev,
-                properties: newProperties,
-                ...syncFields,
-            };
-        });
-    }, [currentPropertyIndex]);
+    const updateCurrentProperty = useCallback(
+        (updates: Partial<PropertyData>) => {
+            setFormData((prev) => {
+                const newProperties = [...prev.properties];
+                newProperties[currentPropertyIndex] = {
+                    ...newProperties[currentPropertyIndex],
+                    ...updates,
+                };
+                // 첫 번째 물건지는 하위 호환성을 위해 단일 필드와도 동기화
+                const syncFields =
+                    currentPropertyIndex === 0
+                        ? {
+                              property_address: newProperties[0].property_address,
+                              property_address_detail: newProperties[0].property_address_detail,
+                              property_address_road: newProperties[0].property_address_road,
+                              property_address_jibun: newProperties[0].property_address_jibun,
+                              property_zonecode: newProperties[0].property_zonecode,
+                              property_pnu: newProperties[0].property_pnu,
+                              property_type: newProperties[0].property_type,
+                              property_dong: newProperties[0].property_dong,
+                              property_is_basement: newProperties[0].property_is_basement,
+                              property_ho: newProperties[0].property_ho,
+                          }
+                        : {};
+                return {
+                    ...prev,
+                    properties: newProperties,
+                    ...syncFields,
+                };
+            });
+        },
+        [currentPropertyIndex]
+    );
 
     // 카카오 주소 선택 핸들러
-    const handleAddressSelect = useCallback((addressData: AddressData) => {
-        const pnu = generatePNU({
-            b_code: addressData.bcode,
-            main_address_no: addressData.main_address_no,
-            sub_address_no: addressData.sub_address_no,
-            mountain_yn: addressData.mountain_yn,
-        });
+    const handleAddressSelect = useCallback(
+        async (addressData: AddressData) => {
+            // 먼저 기본 주소 정보 업데이트 (PNU는 나중에 설정)
+            updateCurrentProperty({
+                property_address: addressData.address,
+                property_address_road: addressData.roadAddress,
+                property_address_jibun: addressData.jibunAddress,
+                property_zonecode: addressData.zonecode,
+                property_pnu: '', // 임시로 빈 값
+            });
 
-        updateCurrentProperty({
-            property_address: addressData.address,
-            property_address_road: addressData.roadAddress,
-            property_address_jibun: addressData.jibunAddress,
-            property_zonecode: addressData.zonecode,
-            property_pnu: pnu,
-        });
-    }, [updateCurrentProperty]);
+            let pnu = '';
+
+            // 1차: 지번 주소가 있으면 서버 API로 정확한 PNU 조회
+            if (addressData.jibunAddress) {
+                try {
+                    const result = await searchAddress(addressData.jibunAddress);
+                    if (result.success && result.data?.pnu) {
+                        pnu = result.data.pnu;
+                        console.log(`[RegisterModal] PNU from API: ${pnu}`);
+                    }
+                } catch (error) {
+                    console.warn('[RegisterModal] PNU API 호출 실패, 클라이언트 생성 시도', error);
+                }
+            }
+
+            // 2차: API 실패 시 클라이언트 측 fallback
+            if (!pnu && addressData.bcode && addressData.main_address_no) {
+                pnu = generatePNU({
+                    b_code: addressData.bcode,
+                    main_address_no: addressData.main_address_no,
+                    sub_address_no: addressData.sub_address_no,
+                    mountain_yn: addressData.mountain_yn,
+                });
+                console.log(`[RegisterModal] PNU from client fallback: ${pnu}`);
+            }
+
+            // PNU 업데이트
+            if (pnu) {
+                updateCurrentProperty({
+                    property_pnu: pnu,
+                });
+            }
+        },
+        [updateCurrentProperty]
+    );
 
     // 카카오 실 거주지 주소 선택 핸들러
     const handleResidentAddressSelect = useCallback((addressData: AddressData) => {
@@ -567,59 +610,65 @@ export function RegisterModal({
             resident_address_jibun: prev.property_address_jibun,
             resident_zonecode: prev.property_zonecode,
         }));
-        // 복사 후 상세 주소 입력 단계로 바로 이동하거나, 
+        // 복사 후 상세 주소 입력 단계로 바로 이동하거나,
         // 현 단계(주소)가 채워졌으므로 다음으로 넘길 수 있게 함
     }, []);
 
     // 거주 유형에 따라 스텝을 스킵할지 여부 결정
-    const shouldSkipStep = useCallback((stepKey: StepKey): boolean => {
-        const currentProp = formData.properties[currentPropertyIndex];
-        const propertyType = currentProp?.property_type || '';
-        
-        if (stepKey === 'property_dong') {
-            // 단독주택, 다가구 주택은 동 스킵
-            if (propertyType === 'DETACHED_HOUSE' || propertyType === 'MULTI_FAMILY') return true;
-            return false;
-        }
+    const shouldSkipStep = useCallback(
+        (stepKey: StepKey): boolean => {
+            const currentProp = formData.properties[currentPropertyIndex];
+            const propertyType = currentProp?.property_type || '';
 
-        if (stepKey === 'property_floor_type') {
-            // 단독주택, 다가구 주택은 지상/지하 선택 스킵
-            if (propertyType === 'DETACHED_HOUSE' || propertyType === 'MULTI_FAMILY') return true;
+            if (stepKey === 'property_dong') {
+                // 단독주택, 다가구 주택은 동 스킵
+                if (propertyType === 'DETACHED_HOUSE' || propertyType === 'MULTI_FAMILY') return true;
+                return false;
+            }
+
+            if (stepKey === 'property_floor_type') {
+                // 단독주택, 다가구 주택은 지상/지하 선택 스킵
+                if (propertyType === 'DETACHED_HOUSE' || propertyType === 'MULTI_FAMILY') return true;
+                return false;
+            }
+
+            if (stepKey === 'property_ho') {
+                // 단독주택, 다가구 주택은 호수 스킵
+                if (propertyType === 'DETACHED_HOUSE' || propertyType === 'MULTI_FAMILY') return true;
+                return false;
+            }
+
             return false;
-        }
-        
-        if (stepKey === 'property_ho') {
-            // 단독주택, 다가구 주택은 호수 스킵
-            if (propertyType === 'DETACHED_HOUSE' || propertyType === 'MULTI_FAMILY') return true;
-            return false;
-        }
-        
-        return false;
-    }, [formData.properties, currentPropertyIndex]);
+        },
+        [formData.properties, currentPropertyIndex]
+    );
 
     // 거주 유형에 따라 필드가 필수인지 결정
-    const isFieldRequired = useCallback((stepKey: StepKey): boolean => {
-        const currentProp = formData.properties[currentPropertyIndex];
-        const propertyType = currentProp?.property_type || '';
-        
-        if (stepKey === 'property_dong') {
-            // 아파트, 주상복합: 동 필수
-            if (propertyType === 'APARTMENT' || propertyType === 'MIXED') return true;
-            // 빌라, 상업용: 동 선택
-            return false;
-        }
-        
-        if (stepKey === 'property_ho') {
-            // 빌라, 아파트, 주상복합: 호수 필수
-            if (propertyType === 'VILLA' || propertyType === 'APARTMENT' || propertyType === 'MIXED') return true;
-            // 상업용: 호수 선택
-            return false;
-        }
-        
-        // 기본 STEPS에 정의된 required 값 사용
-        const step = STEPS.find(s => s.key === stepKey);
-        return step?.required ?? false;
-    }, [formData.properties, currentPropertyIndex]);
+    const isFieldRequired = useCallback(
+        (stepKey: StepKey): boolean => {
+            const currentProp = formData.properties[currentPropertyIndex];
+            const propertyType = currentProp?.property_type || '';
+
+            if (stepKey === 'property_dong') {
+                // 아파트, 주상복합: 동 필수
+                if (propertyType === 'APARTMENT' || propertyType === 'MIXED') return true;
+                // 빌라, 상업용: 동 선택
+                return false;
+            }
+
+            if (stepKey === 'property_ho') {
+                // 빌라, 아파트, 주상복합: 호수 필수
+                if (propertyType === 'VILLA' || propertyType === 'APARTMENT' || propertyType === 'MIXED') return true;
+                // 상업용: 호수 선택
+                return false;
+            }
+
+            // 기본 STEPS에 정의된 required 값 사용
+            const step = STEPS.find((s) => s.key === stepKey);
+            return step?.required ?? false;
+        },
+        [formData.properties, currentPropertyIndex]
+    );
 
     // 현재 스텝의 설정 가져오기
     const getCurrentStepConfig = useCallback((): StepConfig | null => {
@@ -629,7 +678,9 @@ export function RegisterModal({
 
     // 물건지 관련 필드인지 확인
     const isPropertyField = (key: string): boolean => {
-        return ['property_address', 'property_type', 'property_dong', 'property_floor_type', 'property_ho'].includes(key);
+        return ['property_address', 'property_type', 'property_dong', 'property_floor_type', 'property_ho'].includes(
+            key
+        );
     };
 
     // 현재 스텝의 값 가져오기
@@ -640,7 +691,7 @@ export function RegisterModal({
         if (config.key === 'property_floor_type') return '';
         // add_property_confirm은 별도 처리
         if (config.key === 'add_property_confirm') return '';
-        
+
         // 물건지 관련 필드는 현재 물건지에서 가져옴
         if (isPropertyField(config.key)) {
             const currentProp = formData.properties[currentPropertyIndex];
@@ -649,7 +700,7 @@ export function RegisterModal({
             const value = currentProp[propKey];
             return typeof value === 'string' ? value : '';
         }
-        
+
         const value = formData[config.key as keyof FormData];
         return typeof value === 'string' ? value : '';
     }, [getCurrentStepConfig, formData, currentPropertyIndex]);
@@ -659,7 +710,7 @@ export function RegisterModal({
         (value: string) => {
             const config = getCurrentStepConfig();
             if (!config) return;
-            
+
             // 물건지 관련 필드는 현재 물건지를 업데이트
             if (isPropertyField(config.key)) {
                 updateCurrentProperty({ [config.key]: value });
@@ -685,10 +736,12 @@ export function RegisterModal({
     // 추가 물건지 추가 핸들러
     const handleAddProperty = useCallback(() => {
         if (formData.properties.length >= MAX_PROPERTIES) {
-            setError(`물건지는 최대 ${MAX_PROPERTIES}개까지 입력 가능합니다. 추가 물건지가 있으시면 조합에 연락해주세요.`);
+            setError(
+                `물건지는 최대 ${MAX_PROPERTIES}개까지 입력 가능합니다. 추가 물건지가 있으시면 조합에 연락해주세요.`
+            );
             return;
         }
-        
+
         // 새 물건지 추가
         const newIndex = formData.properties.length;
         setFormData((prev) => ({
@@ -696,9 +749,9 @@ export function RegisterModal({
             properties: [...prev.properties, createEmptyProperty()],
         }));
         setCurrentPropertyIndex(newIndex);
-        
+
         // 물건지 주소 입력 스텝으로 이동
-        const propertyAddressStepIndex = STEPS.findIndex(s => s.key === 'property_address');
+        const propertyAddressStepIndex = STEPS.findIndex((s) => s.key === 'property_address');
         if (propertyAddressStepIndex >= 0) {
             setCurrentStep(propertyAddressStepIndex);
         }
@@ -712,7 +765,7 @@ export function RegisterModal({
 
         // 필수 필드 검증 (동적 필수 여부 확인)
         const dynamicRequired = stepKey ? isFieldRequired(stepKey) : config?.required;
-        
+
         if (dynamicRequired && !getCurrentValue().trim()) {
             setError(`${config?.label}은(는) 필수 입력 항목입니다.`);
             return;
@@ -732,7 +785,7 @@ export function RegisterModal({
         }
 
         setError('');
-        
+
         // 다음 스텝 찾기 (스킵해야 할 스텝은 건너뛰기)
         let nextStep = currentStep + 1;
         while (nextStep < STEPS.length) {
@@ -742,17 +795,26 @@ export function RegisterModal({
             }
             nextStep++;
         }
-        
+
         if (nextStep <= totalSteps - 1) {
             setCurrentStep(nextStep);
         }
-    }, [currentStep, totalSteps, getCurrentStepConfig, getCurrentValue, shouldSkipStep, isFieldRequired, formData.properties, currentPropertyIndex]);
+    }, [
+        currentStep,
+        totalSteps,
+        getCurrentStepConfig,
+        getCurrentValue,
+        shouldSkipStep,
+        isFieldRequired,
+        formData.properties,
+        currentPropertyIndex,
+    ]);
 
     // 추가 물건지 건너뛰기 (실 거주지로 이동)
     const handleSkipAddProperty = useCallback(() => {
         setError('');
         // 실 거주지 주소 스텝으로 이동
-        const residentAddressStepIndex = STEPS.findIndex(s => s.key === 'resident_address');
+        const residentAddressStepIndex = STEPS.findIndex((s) => s.key === 'resident_address');
         if (residentAddressStepIndex >= 0) {
             setCurrentStep(residentAddressStepIndex);
         }
@@ -761,7 +823,7 @@ export function RegisterModal({
     // 이전 스텝으로
     const handlePrev = useCallback(() => {
         setError('');
-        
+
         // 이전 스텝 찾기 (스킵해야 할 스텝은 건너뛰기)
         let prevStep = currentStep - 1;
         while (prevStep >= 0) {
@@ -771,48 +833,51 @@ export function RegisterModal({
             }
             prevStep--;
         }
-        
+
         if (prevStep >= 0) {
             setCurrentStep(prevStep);
         }
     }, [currentStep, shouldSkipStep]);
 
     // 물건지 삭제 핸들러 (최종 확인 단계에서 사용)
-    const handleDeleteProperty = useCallback((indexToDelete: number) => {
-        // 최소 1개 물건지는 유지
-        if (formData.properties.length <= 1) {
-            setError('최소 1개의 물건지는 유지해야 합니다.');
-            return;
-        }
-        
-        setFormData((prev) => {
-            const newProperties = prev.properties.filter((_, idx) => idx !== indexToDelete);
-            // 첫 번째 물건지와 단일 필드 동기화
-            const firstProp = newProperties[0];
-            const syncFields: Partial<FormData> = {
-                property_address: firstProp?.property_address || '',
-                property_address_detail: firstProp?.property_address_detail || '',
-                property_address_road: firstProp?.property_address_road || '',
-                property_address_jibun: firstProp?.property_address_jibun || '',
-                property_zonecode: firstProp?.property_zonecode || '',
-                property_pnu: firstProp?.property_pnu || '',
-                property_type: firstProp?.property_type || '' as PropertyType | '',
-                property_dong: firstProp?.property_dong || '',
-                property_is_basement: firstProp?.property_is_basement || false,
-                property_ho: firstProp?.property_ho || '',
-            };
-            return {
-                ...prev,
-                properties: newProperties,
-                ...syncFields,
-            };
-        });
-        
-        // 인덱스 조정
-        if (currentPropertyIndex >= indexToDelete && currentPropertyIndex > 0) {
-            setCurrentPropertyIndex(currentPropertyIndex - 1);
-        }
-    }, [formData.properties.length, currentPropertyIndex]);
+    const handleDeleteProperty = useCallback(
+        (indexToDelete: number) => {
+            // 최소 1개 물건지는 유지
+            if (formData.properties.length <= 1) {
+                setError('최소 1개의 물건지는 유지해야 합니다.');
+                return;
+            }
+
+            setFormData((prev) => {
+                const newProperties = prev.properties.filter((_, idx) => idx !== indexToDelete);
+                // 첫 번째 물건지와 단일 필드 동기화
+                const firstProp = newProperties[0];
+                const syncFields: Partial<FormData> = {
+                    property_address: firstProp?.property_address || '',
+                    property_address_detail: firstProp?.property_address_detail || '',
+                    property_address_road: firstProp?.property_address_road || '',
+                    property_address_jibun: firstProp?.property_address_jibun || '',
+                    property_zonecode: firstProp?.property_zonecode || '',
+                    property_pnu: firstProp?.property_pnu || '',
+                    property_type: firstProp?.property_type || ('' as PropertyType | ''),
+                    property_dong: firstProp?.property_dong || '',
+                    property_is_basement: firstProp?.property_is_basement || false,
+                    property_ho: firstProp?.property_ho || '',
+                };
+                return {
+                    ...prev,
+                    properties: newProperties,
+                    ...syncFields,
+                };
+            });
+
+            // 인덱스 조정
+            if (currentPropertyIndex >= indexToDelete && currentPropertyIndex > 0) {
+                setCurrentPropertyIndex(currentPropertyIndex - 1);
+            }
+        },
+        [formData.properties.length, currentPropertyIndex]
+    );
 
     // 중복 사용자 확인 (같은 조합 내에서만 체크)
     const checkDuplicateUser = async (unionId: string | null): Promise<User | null> => {
@@ -822,7 +887,7 @@ export function RegisterModal({
             .eq('phone_number', formData.phone_number)
             .eq('name', formData.name)
             .eq('property_address', formData.property_address);
-        
+
         // union_id가 있으면 같은 조합 내에서만 중복 체크
         if (unionId) {
             query = query.eq('union_id', unionId);
@@ -955,7 +1020,7 @@ export function RegisterModal({
 
             // 첫 번째 물건지 데이터 가져오기 (하위 호환성 및 PRE_REGISTERED 매칭용)
             const primaryProperty = formData.properties[0];
-            
+
             // 동호수 정규화 적용 (첫 번째 물건지 기준)
             const normalizedDong = normalizeDong(primaryProperty.property_dong);
             const normalizedHo = createNormalizedHo(primaryProperty.property_is_basement, primaryProperty.property_ho);
@@ -1054,7 +1119,9 @@ export function RegisterModal({
 
                     finalUserId = preRegistered.id;
                     isExistingPreRegistered = true;
-                    console.log(`[회원가입] PRE_REGISTERED 사용자 매칭 성공: ${preRegistered.id}, 물건지 ${formData.properties.length}개`);
+                    console.log(
+                        `[회원가입] PRE_REGISTERED 사용자 매칭 성공: ${preRegistered.id}, 물건지 ${formData.properties.length}개`
+                    );
                 }
             }
 
@@ -1064,9 +1131,7 @@ export function RegisterModal({
                 const newUserId = crypto.randomUUID();
 
                 // property_address_detail은 정규화된 동/호수를 합쳐서 저장 (하위 호환성)
-                const propertyAddressDetail = [normalizedDong, normalizedHo]
-                    .filter(Boolean)
-                    .join(' ') || null;
+                const propertyAddressDetail = [normalizedDong, normalizedHo].filter(Boolean).join(' ') || null;
 
                 // users 테이블에 기본 정보만 저장 (물건지 정보는 user_property_units로 이동)
                 const newUser: NewUser = {
@@ -1284,7 +1349,9 @@ export function RegisterModal({
                                             <span className="text-sm font-medium text-gray-600">생년월일</span>
                                         </div>
                                         <p className="text-base md:text-lg text-gray-900">
-                                            {formData.birth_date || <span className="text-gray-400">입력하지 않음</span>}
+                                            {formData.birth_date || (
+                                                <span className="text-gray-400">입력하지 않음</span>
+                                            )}
                                         </p>
                                     </div>
 
@@ -1302,11 +1369,15 @@ export function RegisterModal({
                                 {/* 물건지 정보 섹션들 */}
                                 <div className="space-y-4">
                                     {formData.properties.map((property, propIndex) => {
-                                        const typeOption = PROPERTY_TYPE_OPTIONS.find(o => o.value === property.property_type);
-                                        const isSkipDongHo = property.property_type === 'DETACHED_HOUSE' || property.property_type === 'MULTI_FAMILY';
-                                        
+                                        const typeOption = PROPERTY_TYPE_OPTIONS.find(
+                                            (o) => o.value === property.property_type
+                                        );
+                                        const isSkipDongHo =
+                                            property.property_type === 'DETACHED_HOUSE' ||
+                                            property.property_type === 'MULTI_FAMILY';
+
                                         return (
-                                            <div 
+                                            <div
                                                 key={propIndex}
                                                 className="border-2 border-[#4E8C6D]/30 rounded-xl overflow-hidden"
                                             >
@@ -1328,7 +1399,7 @@ export function RegisterModal({
                                                         </button>
                                                     )}
                                                 </div>
-                                                
+
                                                 {/* 물건지 내용 */}
                                                 <div className="p-4 space-y-3 bg-white">
                                                     {/* 물건지 주소 */}
@@ -1337,10 +1408,13 @@ export function RegisterModal({
                                                             물건지 주소 <span className="text-red-500">*</span>
                                                         </span>
                                                         <p className="text-base text-gray-900 mt-1">
-                                                            {property.property_address_road 
-                                                                ? `${property.property_address_road}${property.property_address_jibun ? ` (${property.property_address_jibun})` : ''}`
-                                                                : property.property_address
-                                                            }
+                                                            {property.property_address_road
+                                                                ? `${property.property_address_road}${
+                                                                      property.property_address_jibun
+                                                                          ? ` (${property.property_address_jibun})`
+                                                                          : ''
+                                                                  }`
+                                                                : property.property_address}
                                                         </p>
                                                     </div>
 
@@ -1350,16 +1424,22 @@ export function RegisterModal({
                                                             물건지 유형 <span className="text-red-500">*</span>
                                                         </span>
                                                         <p className="text-base text-gray-900 mt-1">
-                                                            {typeOption ? `${typeOption.icon} ${typeOption.label}` : '미선택'}
+                                                            {typeOption
+                                                                ? `${typeOption.icon} ${typeOption.label}`
+                                                                : '미선택'}
                                                         </p>
                                                     </div>
 
                                                     {/* 동 (스킵하지 않는 경우) */}
                                                     {!isSkipDongHo && (
                                                         <div className="bg-gray-50 rounded-lg p-3">
-                                                            <span className="text-sm font-medium text-gray-600">동</span>
+                                                            <span className="text-sm font-medium text-gray-600">
+                                                                동
+                                                            </span>
                                                             <p className="text-base text-gray-900 mt-1">
-                                                                {property.property_dong || <span className="text-gray-400">입력하지 않음</span>}
+                                                                {property.property_dong || (
+                                                                    <span className="text-gray-400">입력하지 않음</span>
+                                                                )}
                                                             </p>
                                                         </div>
                                                     )}
@@ -1367,9 +1447,13 @@ export function RegisterModal({
                                                     {/* 층 구분 (스킵하지 않는 경우) */}
                                                     {!isSkipDongHo && (
                                                         <div className="bg-gray-50 rounded-lg p-3">
-                                                            <span className="text-sm font-medium text-gray-600">층 구분</span>
+                                                            <span className="text-sm font-medium text-gray-600">
+                                                                층 구분
+                                                            </span>
                                                             <p className="text-base text-gray-900 mt-1">
-                                                                {property.property_is_basement ? '🅱️ 지하층' : '🏢 지상층'}
+                                                                {property.property_is_basement
+                                                                    ? '🅱️ 지하층'
+                                                                    : '🏢 지상층'}
                                                             </p>
                                                         </div>
                                                     )}
@@ -1379,14 +1463,16 @@ export function RegisterModal({
                                                         <div className="bg-gray-50 rounded-lg p-3">
                                                             <span className="text-sm font-medium text-gray-600">
                                                                 호수
-                                                                {(property.property_type === 'VILLA' || 
-                                                                  property.property_type === 'APARTMENT' || 
-                                                                  property.property_type === 'MIXED') && (
+                                                                {(property.property_type === 'VILLA' ||
+                                                                    property.property_type === 'APARTMENT' ||
+                                                                    property.property_type === 'MIXED') && (
                                                                     <span className="text-red-500 ml-1">*</span>
                                                                 )}
                                                             </span>
                                                             <p className="text-base text-gray-900 mt-1">
-                                                                {property.property_ho || <span className="text-gray-400">입력하지 않음</span>}
+                                                                {property.property_ho || (
+                                                                    <span className="text-gray-400">입력하지 않음</span>
+                                                                )}
                                                             </p>
                                                         </div>
                                                     )}
@@ -1406,10 +1492,13 @@ export function RegisterModal({
                                             </span>
                                         </div>
                                         <p className="text-base md:text-lg text-gray-900">
-                                            {formData.resident_address_road 
-                                                ? `${formData.resident_address_road}${formData.resident_address_jibun ? ` (${formData.resident_address_jibun})` : ''}`
-                                                : formData.resident_address
-                                            }
+                                            {formData.resident_address_road
+                                                ? `${formData.resident_address_road}${
+                                                      formData.resident_address_jibun
+                                                          ? ` (${formData.resident_address_jibun})`
+                                                          : ''
+                                                  }`
+                                                : formData.resident_address}
                                         </p>
                                     </div>
 
@@ -1421,13 +1510,15 @@ export function RegisterModal({
                                             </span>
                                         </div>
                                         <p className="text-base md:text-lg text-gray-900">
-                                            {formData.resident_address_detail || <span className="text-gray-400">입력하지 않음</span>}
+                                            {formData.resident_address_detail || (
+                                                <span className="text-gray-400">입력하지 않음</span>
+                                            )}
                                         </p>
                                     </div>
                                 </div>
 
                                 {/* 약관 동의 */}
-                                <div 
+                                <div
                                     className="mt-6 p-4 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-200 transition-colors"
                                     onClick={() => setAgreedToTerms(!agreedToTerms)}
                                 >
@@ -1483,7 +1574,9 @@ export function RegisterModal({
                                     {/* 라벨 */}
                                     <h3 className="text-lg md:text-xl font-semibold text-gray-900 mb-2 text-center">
                                         {stepConfig.label}
-                                        {isFieldRequired(stepConfig.key as StepKey) && <span className="text-red-500 ml-1">*</span>}
+                                        {isFieldRequired(stepConfig.key as StepKey) && (
+                                            <span className="text-red-500 ml-1">*</span>
+                                        )}
                                     </h3>
 
                                     {/* prefill 안내 */}
@@ -1501,10 +1594,7 @@ export function RegisterModal({
                                     <div className="w-full max-w-sm">
                                         {stepConfig.key === 'birth_date' ? (
                                             // 생년월일: BirthDatePicker 사용
-                                            <BirthDatePicker
-                                                value={getCurrentValue()}
-                                                onChange={handleValueChange}
-                                            />
+                                            <BirthDatePicker value={getCurrentValue()} onChange={handleValueChange} />
                                         ) : stepConfig.key === 'property_address' ? (
                                             // 물건지 주소: KakaoAddressSearch 사용
                                             <KakaoAddressSearch
@@ -1520,10 +1610,14 @@ export function RegisterModal({
                                                         key={option.value}
                                                         onClick={() => {
                                                             // 단독주택/다가구 주택 선택 시 동/호 초기화
-                                                            const shouldClearDongHo = option.value === 'DETACHED_HOUSE' || option.value === 'MULTI_FAMILY';
+                                                            const shouldClearDongHo =
+                                                                option.value === 'DETACHED_HOUSE' ||
+                                                                option.value === 'MULTI_FAMILY';
                                                             updateCurrentProperty({
                                                                 property_type: option.value,
-                                                                ...(shouldClearDongHo ? { property_dong: '', property_ho: '' } : {}),
+                                                                ...(shouldClearDongHo
+                                                                    ? { property_dong: '', property_ho: '' }
+                                                                    : {}),
                                                             });
                                                         }}
                                                         className={cn(
@@ -1536,7 +1630,9 @@ export function RegisterModal({
                                                         <span className="text-2xl">{option.icon}</span>
                                                         <div className="flex-1">
                                                             <p className="font-medium text-gray-900">{option.label}</p>
-                                                            <p className="text-sm text-gray-500">{option.description}</p>
+                                                            <p className="text-sm text-gray-500">
+                                                                {option.description}
+                                                            </p>
                                                         </div>
                                                         {getCurrentProperty().property_type === option.value && (
                                                             <Check className="w-5 h-5 text-[#4E8C6D]" />
@@ -1548,7 +1644,9 @@ export function RegisterModal({
                                             // 지상/지하 선택: 라디오 버튼 UI
                                             <div className="space-y-3">
                                                 <button
-                                                    onClick={() => updateCurrentProperty({ property_is_basement: false })}
+                                                    onClick={() =>
+                                                        updateCurrentProperty({ property_is_basement: false })
+                                                    }
                                                     className={cn(
                                                         'w-full p-4 rounded-xl border-2 text-left transition-all flex items-center gap-4 cursor-pointer',
                                                         !getCurrentProperty().property_is_basement
@@ -1559,14 +1657,18 @@ export function RegisterModal({
                                                     <span className="text-2xl">🏢</span>
                                                     <div className="flex-1">
                                                         <p className="font-medium text-gray-900">지상층</p>
-                                                        <p className="text-sm text-gray-500">1층 이상 (예: 101호, 1001호)</p>
+                                                        <p className="text-sm text-gray-500">
+                                                            1층 이상 (예: 101호, 1001호)
+                                                        </p>
                                                     </div>
                                                     {!getCurrentProperty().property_is_basement && (
                                                         <Check className="w-5 h-5 text-[#4E8C6D]" />
                                                     )}
                                                 </button>
                                                 <button
-                                                    onClick={() => updateCurrentProperty({ property_is_basement: true })}
+                                                    onClick={() =>
+                                                        updateCurrentProperty({ property_is_basement: true })
+                                                    }
                                                     className={cn(
                                                         'w-full p-4 rounded-xl border-2 text-left transition-all flex items-center gap-4 cursor-pointer',
                                                         getCurrentProperty().property_is_basement
@@ -1577,7 +1679,9 @@ export function RegisterModal({
                                                     <span className="text-2xl">🅱️</span>
                                                     <div className="flex-1">
                                                         <p className="font-medium text-gray-900">지하층</p>
-                                                        <p className="text-sm text-gray-500">지하 1층 이하 (예: B101, 비01)</p>
+                                                        <p className="text-sm text-gray-500">
+                                                            지하 1층 이하 (예: B101, 비01)
+                                                        </p>
                                                     </div>
                                                     {getCurrentProperty().property_is_basement && (
                                                         <Check className="w-5 h-5 text-[#4E8C6D]" />
@@ -1592,7 +1696,8 @@ export function RegisterModal({
                                                     <div className="flex items-center gap-2 text-[#4E8C6D]">
                                                         <Info className="w-5 h-5" />
                                                         <span className="font-medium">
-                                                            현재 {formData.properties.length}개의 물건지가 등록되었습니다.
+                                                            현재 {formData.properties.length}개의 물건지가
+                                                            등록되었습니다.
                                                         </span>
                                                     </div>
                                                     {formData.properties.length >= MAX_PROPERTIES && (
@@ -1603,7 +1708,7 @@ export function RegisterModal({
                                                         </p>
                                                     )}
                                                 </div>
-                                                
+
                                                 {/* 예/아니오 버튼 */}
                                                 <div className="space-y-3">
                                                     {formData.properties.length < MAX_PROPERTIES && (
@@ -1616,8 +1721,12 @@ export function RegisterModal({
                                                         >
                                                             <span className="text-2xl">➕</span>
                                                             <div className="flex-1">
-                                                                <p className="font-medium text-gray-900">예, 추가 물건지가 있습니다</p>
-                                                                <p className="text-sm text-gray-500">다른 물건지 정보를 입력합니다</p>
+                                                                <p className="font-medium text-gray-900">
+                                                                    예, 추가 물건지가 있습니다
+                                                                </p>
+                                                                <p className="text-sm text-gray-500">
+                                                                    다른 물건지 정보를 입력합니다
+                                                                </p>
                                                             </div>
                                                             <ChevronRight className="w-5 h-5 text-[#4E8C6D]" />
                                                         </button>
@@ -1631,8 +1740,12 @@ export function RegisterModal({
                                                     >
                                                         <span className="text-2xl">✅</span>
                                                         <div className="flex-1">
-                                                            <p className="font-medium text-gray-900">아니오, 다음 단계로</p>
-                                                            <p className="text-sm text-gray-500">실 거주지 주소를 입력합니다</p>
+                                                            <p className="font-medium text-gray-900">
+                                                                아니오, 다음 단계로
+                                                            </p>
+                                                            <p className="text-sm text-gray-500">
+                                                                실 거주지 주소를 입력합니다
+                                                            </p>
                                                         </div>
                                                         <ChevronRight className="w-5 h-5 text-gray-400" />
                                                     </button>
@@ -1682,11 +1795,12 @@ export function RegisterModal({
                                             </p>
                                         )}
                                         {/* 빌라 선택 시 동 입력 안내 문구 */}
-                                        {stepConfig.key === 'property_dong' && getCurrentProperty().property_type === 'VILLA' && (
-                                            <p className="text-sm text-[#4E8C6D] mt-3 bg-[#4E8C6D]/10 rounded-lg p-3">
-                                                💡 한 개동 빌라/다세대 주택은 동을 작성하지 않아도 됩니다.
-                                            </p>
-                                        )}
+                                        {stepConfig.key === 'property_dong' &&
+                                            getCurrentProperty().property_type === 'VILLA' && (
+                                                <p className="text-sm text-[#4E8C6D] mt-3 bg-[#4E8C6D]/10 rounded-lg p-3">
+                                                    💡 한 개동 빌라/다세대 주택은 동을 작성하지 않아도 됩니다.
+                                                </p>
+                                            )}
                                         {/* 다물건자 안내 문구 */}
                                         {stepConfig.key === 'property_address' && currentPropertyIndex > 0 && (
                                             <p className="text-sm text-[#4E8C6D] mt-3 bg-[#4E8C6D]/10 rounded-lg p-3">

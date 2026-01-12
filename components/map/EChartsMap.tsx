@@ -38,14 +38,14 @@ const CONSENT_CONFIG = {
     pieces: [
         { value: 'FULL_AGREED', label: '동의 완료', color: '#22c55e' },
         { value: 'PARTIAL_AGREED', label: '일부 동의', color: '#eab308' },
-        { value: 'NONE_AGREED', label: '미동의', color: '#ef4444' },
+        { value: 'NONE_AGREED', label: '비동의', color: '#ef4444' },
         { value: 'NO_OWNER', label: '미제출', color: '#94a3b8' },
     ],
     labels: {
         FULL_AGREED: { label: '동의 완료', description: '모든 소유주가 동의함' },
         PARTIAL_AGREED: { label: '일부 동의', description: '일부 소유주만 동의함' },
-        NONE_AGREED: { label: '미동의', description: '동의한 소유주 없음' },
-        NO_OWNER: { label: '미제출', description: '등록된 조합원 없음' },
+        NONE_AGREED: { label: '비동의', description: '비동의 의사 표시' },
+        NO_OWNER: { label: '미제출', description: '동의서 미제출' },
     },
     colors: {
         FULL_AGREED: '#22c55e',
