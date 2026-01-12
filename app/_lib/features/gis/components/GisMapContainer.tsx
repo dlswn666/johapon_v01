@@ -437,28 +437,41 @@ export default function GisMapContainer() {
             </div>
 
             {/* 대시보드 영역 - 지번 현황일 때는 숨김 */}
-            {viewMode !== 'address' && (
-                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                    {viewMode === 'consent' ? (
-                        <ConsentStatusBar
-                            mode="consent"
-                            currentValue={consentRate?.agreed_owner_count || 0}
-                            totalValue={consentRate?.total_owner_count || 0}
-                            requiredRate={requiredRate}
-                            currentRate={consentRate?.owner_rate || 0}
-                            areaRate={consentRate?.area_rate}
-                        />
-                    ) : (
-                        <ConsentStatusBar
-                            mode="registration"
-                            currentValue={registrationRate?.registered_count || 0}
-                            totalValue={registrationRate?.total_owners || 0}
-                            requiredRate={100}
-                            currentRate={registrationRate?.registration_rate || 0}
-                        />
-                    )}
-                </div>
-            )}
+            {viewMode !== 'address' && (() => {
+                // unions.member_count를 분모로 사용
+                const memberCount = union?.member_count || 0;
+                
+                // 동의 현황: 분자 = agreed_owner_count, 분모 = member_count
+                const agreedOwnerCount = consentRate?.agreed_owner_count || 0;
+                const consentRateCalculated = memberCount > 0 ? (agreedOwnerCount / memberCount) * 100 : 0;
+                
+                // 가입 현황: 분자 = total_members (APPROVED 수), 분모 = member_count
+                const approvedMembers = registrationRate?.total_members || 0;
+                const registrationRateCalculated = memberCount > 0 ? (approvedMembers / memberCount) * 100 : 0;
+                
+                return (
+                    <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                        {viewMode === 'consent' ? (
+                            <ConsentStatusBar
+                                mode="consent"
+                                currentValue={agreedOwnerCount}
+                                totalValue={memberCount}
+                                requiredRate={requiredRate}
+                                currentRate={consentRateCalculated}
+                                areaRate={consentRate?.area_rate}
+                            />
+                        ) : (
+                            <ConsentStatusBar
+                                mode="registration"
+                                currentValue={approvedMembers}
+                                totalValue={memberCount}
+                                requiredRate={100}
+                                currentRate={registrationRateCalculated}
+                            />
+                        )}
+                    </div>
+                );
+            })()}
 
             {/* 지도 영역 */}
             <div className="flex-1 bg-slate-50 rounded-xl border border-slate-200 overflow-hidden relative min-h-[500px]">

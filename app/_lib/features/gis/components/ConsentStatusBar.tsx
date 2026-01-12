@@ -34,8 +34,8 @@ export default function ConsentStatusBar({
         },
         registration: {
             title: '가입 현황',
-            current: '현재 조합원',
-            target: '전체 필요 조합원',
+            current: '가입 조합원',
+            target: '전체 조합원',
             unit: '명'
         }
     };

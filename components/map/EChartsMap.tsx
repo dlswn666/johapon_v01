@@ -438,9 +438,14 @@ export function MapLegend({ mode }: MapLegendProps) {
 
     const config = mode === 'registration' ? REGISTRATION_CONFIG : CONSENT_CONFIG;
 
+    // 가입 현황일 때 '미제출'(NO_OWNER) 레전드 항목 제외
+    const filteredPieces = mode === 'registration' 
+        ? config.pieces.filter((piece) => piece.value !== 'NO_OWNER')
+        : config.pieces;
+
     return (
         <div className="bg-white rounded-lg border border-slate-200 p-3 flex flex-wrap items-center justify-center gap-4">
-            {config.pieces.map((piece) => (
+            {filteredPieces.map((piece) => (
                 <div key={piece.value} className="flex items-center gap-2">
                     <span
                         className="w-3 h-3 rounded-full border border-slate-200"
