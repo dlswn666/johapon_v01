@@ -18,6 +18,7 @@ export interface ResetGisDataResult {
         unionLandLots: number;
         buildingUnits: number;
         buildings: number;
+        buildingLandLots: number;
         landLots: number;
     };
 }
@@ -64,6 +65,7 @@ export async function resetUnionGisData(unionId: string): Promise<ResetGisDataRe
             unionLandLots: 0,
             buildingUnits: 0,
             buildings: 0,
+            buildingLandLots: 0,
             landLots: 0,
         };
 
@@ -164,7 +166,27 @@ export async function resetUnionGisData(unionId: string): Promise<ResetGisDataRe
                     console.log(`[GIS Reset] Deleted ${deletedCounts.buildingUnits} building_units`);
                 }
 
-                // 4-3. buildings 삭제
+                // 4-3. building_land_lots 매핑 삭제 (해당 PNU에 연결된 것)
+                if (pnusToDelete.length > 0) {
+                    let totalMappingsDeleted = 0;
+                    for (let i = 0; i < pnusToDelete.length; i += BATCH_SIZE) {
+                        const batch = pnusToDelete.slice(i, i + BATCH_SIZE);
+                        const { error: mappingError, count: mappingCount } = await supabase
+                            .from('building_land_lots')
+                            .delete({ count: 'exact' })
+                            .in('pnu', batch);
+
+                        if (mappingError) {
+                            console.error(`[GIS Reset] Failed to delete building_land_lots batch ${i}:`, mappingError);
+                        } else {
+                            totalMappingsDeleted += mappingCount || 0;
+                        }
+                    }
+                    deletedCounts.buildingLandLots = totalMappingsDeleted;
+                    console.log(`[GIS Reset] Deleted ${deletedCounts.buildingLandLots} building_land_lots`);
+                }
+
+                // 4-4. buildings 삭제
                 if (pnusToDelete.length > 0) {
                     let totalBuildingsDeleted = 0;
                     for (let i = 0; i < pnusToDelete.length; i += BATCH_SIZE) {
@@ -184,7 +206,7 @@ export async function resetUnionGisData(unionId: string): Promise<ResetGisDataRe
                     console.log(`[GIS Reset] Deleted ${deletedCounts.buildings} buildings`);
                 }
 
-                // 4-4. land_lots 삭제
+                // 4-5. land_lots 삭제
                 let totalLandLotsDeleted = 0;
                 for (let i = 0; i < pnusToDelete.length; i += BATCH_SIZE) {
                     const batch = pnusToDelete.slice(i, i + BATCH_SIZE);
@@ -208,7 +230,7 @@ export async function resetUnionGisData(unionId: string): Promise<ResetGisDataRe
 
         return {
             success: true,
-            message: `GIS 데이터 초기화가 완료되었습니다. (작업기록: ${deletedCounts.syncJobs}건, 필지연결: ${deletedCounts.unionLandLots}건, 건물호실: ${deletedCounts.buildingUnits}건, 건물: ${deletedCounts.buildings}건, 필지정보: ${deletedCounts.landLots}건)`,
+            message: `GIS 데이터 초기화가 완료되었습니다. (작업기록: ${deletedCounts.syncJobs}건, 필지연결: ${deletedCounts.unionLandLots}건, 건물호실: ${deletedCounts.buildingUnits}건, 건물-지번매핑: ${deletedCounts.buildingLandLots}건, 건물: ${deletedCounts.buildings}건, 필지정보: ${deletedCounts.landLots}건)`,
             deletedCounts,
         };
     } catch (error) {

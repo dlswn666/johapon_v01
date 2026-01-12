@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Dialog,
     DialogContent,
@@ -22,6 +22,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { 
     MapPin, 
     Users, 
@@ -36,12 +43,14 @@ import {
     Trash2,
     Loader2,
     Layers,
-    Home
+    Home,
+    Search,
+    Plus,
 } from 'lucide-react';
-import { useParcelDetail, ParcelDetail, ConsentStageStatus, Owner, BUILDING_TYPE_LABELS } from '../api/useParcelDetail';
+import { useParcelDetail, ParcelDetail, Owner, BUILDING_TYPE_LABELS } from '../api/useParcelDetail';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
-import { updateParcelInfo, deleteParcel } from '../actions/parcelActions';
+import { updateParcelInfo, deleteParcel, linkMemberToParcel, searchUnionMembers } from '../actions/parcelActions';
 import { useMutation } from '@tanstack/react-query';
 import { queryClient } from '@/app/_lib/shared/tanstack/queryClient';
 import toast from 'react-hot-toast';
@@ -105,8 +114,10 @@ export default function ParcelDetailModal({
                                 {/* 필지 기본 정보 */}
                                 <ParcelBasicInfo parcel={parcel} />
 
-                                {/* 소유주 목록 (조합원 정보) */}
-                                <OwnersSection parcel={parcel} />
+                                {/* 소유주 목록 (조합원 정보) - 조합원이 있을 때만 표시 */}
+                                {parcel.building_units.length > 0 && (
+                                    <OwnersSection parcel={parcel} />
+                                )}
                             </>
                         ) : (
                             <div className="text-center py-12 text-gray-500">
@@ -143,7 +154,7 @@ export default function ParcelDetailModal({
             </Dialog>
 
             {/* 수정 모달 */}
-            {parcel && (
+            {parcel && unionId && (
                 <EditParcelModal
                     open={isEditModalOpen}
                     onOpenChange={setIsEditModalOpen}
@@ -304,37 +315,82 @@ function ParcelBasicInfo({ parcel }: { parcel: ParcelDetail }) {
     );
 }
 
+// 건물 유형 옵션
+const BUILDING_TYPE_OPTIONS = [
+    { value: 'DETACHED_HOUSE', label: '단독' },
+    { value: 'VILLA', label: '다세대/빌라' },
+    { value: 'APARTMENT', label: '아파트' },
+    { value: 'COMMERCIAL', label: '상업' },
+    { value: 'MIXED', label: '복합' },
+    { value: 'NONE', label: '미분류' },
+];
+
 // 수정 모달
 interface EditParcelModalProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     parcel: ParcelDetail;
-    unionId?: string;
+    unionId: string;
     onSuccess: () => void;
 }
 
 function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: EditParcelModalProps) {
+    const [activeTab, setActiveTab] = useState<'info' | 'member'>('info');
+    
+    // 필지/건물 정보 폼
     const [formData, setFormData] = useState({
-        owner_count: parcel.building_units_count,
+        // land_lots
         land_area: parcel.land_area || 0,
+        official_price: parcel.official_price || 0,
+        land_category: parcel.land_category || '',
+        // buildings
+        building_type: parcel.building_type || 'NONE',
+        building_name: parcel.building_name || '',
+        main_purpose: parcel.main_purpose || '',
+        floor_count: parcel.floor_count || 0,
+        total_unit_count: parcel.total_unit_count || 0,
     });
 
+    // 조합원 연결 폼
+    const [memberSearchQuery, setMemberSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState<{ id: string; name: string; phone_number: string | null }[]>([]);
+    const [isSearching, setIsSearching] = useState(false);
+    const [selectedMember, setSelectedMember] = useState<{ id: string; name: string } | null>(null);
+
     // 모달이 열릴 때 데이터 초기화
-    React.useEffect(() => {
+    useEffect(() => {
         if (open) {
             setFormData({
-                owner_count: parcel.building_units_count,
                 land_area: parcel.land_area || 0,
+                official_price: parcel.official_price || 0,
+                land_category: parcel.land_category || '',
+                building_type: parcel.building_type || 'NONE',
+                building_name: parcel.building_name || '',
+                main_purpose: parcel.main_purpose || '',
+                floor_count: parcel.floor_count || 0,
+                total_unit_count: parcel.total_unit_count || 0,
             });
+            setActiveTab('info');
+            setMemberSearchQuery('');
+            setSearchResults([]);
+            setSelectedMember(null);
         }
     }, [open, parcel]);
 
+    // 필지/건물 정보 수정 mutation
     const updateMutation = useMutation({
         mutationFn: async () => {
             return updateParcelInfo({
                 pnu: parcel.pnu,
-                owner_count: formData.owner_count,
                 land_area: formData.land_area,
+                official_price: formData.official_price,
+                land_category: formData.land_category || undefined,
+                building_id: parcel.building_id || undefined,
+                building_type: formData.building_type,
+                building_name: formData.building_name || undefined,
+                main_purpose: formData.main_purpose || undefined,
+                floor_count: formData.floor_count,
+                total_unit_count: formData.total_unit_count,
             });
         },
         onSuccess: () => {
@@ -348,148 +404,298 @@ function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: Edi
         },
     });
 
+    // 조합원 연결 mutation
+    const linkMemberMutation = useMutation({
+        mutationFn: async () => {
+            if (!selectedMember) throw new Error('조합원을 선택해주세요.');
+            return linkMemberToParcel({
+                pnu: parcel.pnu,
+                userId: selectedMember.id,
+            });
+        },
+        onSuccess: () => {
+            toast.success('조합원이 연결되었습니다.');
+            queryClient.invalidateQueries({ queryKey: ['parcel-detail', parcel.pnu] });
+            setSelectedMember(null);
+            setMemberSearchQuery('');
+            setSearchResults([]);
+            onSuccess();
+        },
+        onError: (error: Error) => {
+            toast.error(error.message || '조합원 연결에 실패했습니다.');
+        },
+    });
+
+    // 조합원 검색
+    const handleMemberSearch = async () => {
+        if (!memberSearchQuery.trim() || memberSearchQuery.length < 2) {
+            toast.error('2글자 이상 입력해주세요.');
+            return;
+        }
+
+        setIsSearching(true);
+        try {
+            const results = await searchUnionMembers(unionId, memberSearchQuery);
+            setSearchResults(results);
+            if (results.length === 0) {
+                toast.error('검색 결과가 없습니다.');
+            }
+        } catch {
+            toast.error('조합원 검색에 실패했습니다.');
+        } finally {
+            setIsSearching(false);
+        }
+    };
+
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-md">
+            <DialogContent className="max-w-lg max-h-[80vh] overflow-hidden flex flex-col">
                 <DialogHeader>
                     <DialogTitle>필지 정보 수정</DialogTitle>
                 </DialogHeader>
 
-                <div className="space-y-4 py-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="owner_count">소유주수</Label>
-                        <Input
-                            id="owner_count"
-                            type="number"
-                            min={0}
-                            value={formData.owner_count}
-                            onChange={(e) => setFormData({ ...formData, owner_count: parseInt(e.target.value) || 0 })}
-                        />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="land_area">면적 (㎡)</Label>
-                        <Input
-                            id="land_area"
-                            type="number"
-                            min={0}
-                            step={0.01}
-                            value={formData.land_area}
-                            onChange={(e) => setFormData({ ...formData, land_area: parseFloat(e.target.value) || 0 })}
-                        />
-                    </div>
+                {/* 탭 */}
+                <div className="flex border-b border-gray-200">
+                    <button
+                        className={cn(
+                            "flex-1 py-2 text-sm font-medium border-b-2 transition-colors",
+                            activeTab === 'info'
+                                ? "border-primary text-primary"
+                                : "border-transparent text-gray-500 hover:text-gray-700"
+                        )}
+                        onClick={() => setActiveTab('info')}
+                    >
+                        필지/건물 정보
+                    </button>
+                    <button
+                        className={cn(
+                            "flex-1 py-2 text-sm font-medium border-b-2 transition-colors",
+                            activeTab === 'member'
+                                ? "border-primary text-primary"
+                                : "border-transparent text-gray-500 hover:text-gray-700"
+                        )}
+                        onClick={() => setActiveTab('member')}
+                    >
+                        조합원 추가
+                    </button>
                 </div>
 
-                <DialogFooter>
+                <div className="flex-1 overflow-y-auto py-4">
+                    {activeTab === 'info' ? (
+                        <div className="space-y-4">
+                            {/* 필지 정보 섹션 */}
+                            <div className="space-y-3">
+                                <h4 className="text-sm font-semibold text-gray-700">필지 정보</h4>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="space-y-1">
+                                        <Label htmlFor="land_area" className="text-xs">면적 (㎡)</Label>
+                                        <Input
+                                            id="land_area"
+                                            type="number"
+                                            min={0}
+                                            step={0.01}
+                                            value={formData.land_area}
+                                            onChange={(e) => setFormData({ ...formData, land_area: parseFloat(e.target.value) || 0 })}
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <Label htmlFor="official_price" className="text-xs">공시지가 (원/㎡)</Label>
+                                        <Input
+                                            id="official_price"
+                                            type="number"
+                                            min={0}
+                                            value={formData.official_price}
+                                            onChange={(e) => setFormData({ ...formData, official_price: parseInt(e.target.value) || 0 })}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="space-y-1">
+                                    <Label htmlFor="land_category" className="text-xs">지목</Label>
+                                    <Input
+                                        id="land_category"
+                                        placeholder="예: 대지, 도로, 전, 답 등"
+                                        value={formData.land_category}
+                                        onChange={(e) => setFormData({ ...formData, land_category: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* 건물 정보 섹션 */}
+                            <div className="space-y-3 pt-3 border-t">
+                                <h4 className="text-sm font-semibold text-gray-700">건물 정보</h4>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="space-y-1">
+                                        <Label htmlFor="building_type" className="text-xs">건물 유형</Label>
+                                        <Select
+                                            value={formData.building_type}
+                                            onValueChange={(value) => setFormData({ ...formData, building_type: value })}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="선택" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {BUILDING_TYPE_OPTIONS.map((opt) => (
+                                                    <SelectItem key={opt.value} value={opt.value}>
+                                                        {opt.label}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <Label htmlFor="building_name" className="text-xs">건물 이름</Label>
+                                        <Input
+                                            id="building_name"
+                                            placeholder="예: OO빌라"
+                                            value={formData.building_name}
+                                            onChange={(e) => setFormData({ ...formData, building_name: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="space-y-1">
+                                    <Label htmlFor="main_purpose" className="text-xs">주용도</Label>
+                                    <Input
+                                        id="main_purpose"
+                                        placeholder="예: 다가구주택, 근린생활시설"
+                                        value={formData.main_purpose}
+                                        onChange={(e) => setFormData({ ...formData, main_purpose: e.target.value })}
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="space-y-1">
+                                        <Label htmlFor="floor_count" className="text-xs">층수</Label>
+                                        <Input
+                                            id="floor_count"
+                                            type="number"
+                                            min={0}
+                                            value={formData.floor_count}
+                                            onChange={(e) => setFormData({ ...formData, floor_count: parseInt(e.target.value) || 0 })}
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <Label htmlFor="total_unit_count" className="text-xs">총 세대수</Label>
+                                        <Input
+                                            id="total_unit_count"
+                                            type="number"
+                                            min={0}
+                                            value={formData.total_unit_count}
+                                            onChange={(e) => setFormData({ ...formData, total_unit_count: parseInt(e.target.value) || 0 })}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="space-y-4">
+                            {/* 조합원 검색 */}
+                            <div className="space-y-2">
+                                <Label className="text-xs">조합원 검색 (이름 또는 전화번호)</Label>
+                                <div className="flex gap-2">
+                                    <Input
+                                        placeholder="이름 또는 전화번호"
+                                        value={memberSearchQuery}
+                                        onChange={(e) => setMemberSearchQuery(e.target.value)}
+                                        onKeyDown={(e) => e.key === 'Enter' && handleMemberSearch()}
+                                    />
+                                    <Button
+                                        variant="outline"
+                                        size="icon"
+                                        onClick={handleMemberSearch}
+                                        disabled={isSearching}
+                                    >
+                                        {isSearching ? (
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                        ) : (
+                                            <Search className="w-4 h-4" />
+                                        )}
+                                    </Button>
+                                </div>
+                            </div>
+
+                            {/* 검색 결과 */}
+                            {searchResults.length > 0 && (
+                                <div className="space-y-2">
+                                    <Label className="text-xs">검색 결과</Label>
+                                    <div className="max-h-48 overflow-y-auto border rounded-lg divide-y">
+                                        {searchResults.map((user) => (
+                                            <button
+                                                key={user.id}
+                                                className={cn(
+                                                    "w-full p-3 text-left flex items-center justify-between hover:bg-gray-50 transition-colors",
+                                                    selectedMember?.id === user.id && "bg-primary/10"
+                                                )}
+                                                onClick={() => setSelectedMember({ id: user.id, name: user.name })}
+                                            >
+                                                <div className="flex items-center gap-2">
+                                                    <User className="w-4 h-4 text-gray-400" />
+                                                    <span className="font-medium text-sm">{user.name}</span>
+                                                    {user.phone_number && (
+                                                        <span className="text-xs text-gray-500">{user.phone_number}</span>
+                                                    )}
+                                                </div>
+                                                {selectedMember?.id === user.id && (
+                                                    <CheckCircle2 className="w-4 h-4 text-primary" />
+                                                )}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* 선택된 조합원 */}
+                            {selectedMember && (
+                                <div className="p-3 bg-primary/5 rounded-lg flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <Plus className="w-4 h-4 text-primary" />
+                                        <span className="text-sm font-medium">{selectedMember.name}</span>
+                                        <span className="text-xs text-gray-500">을(를) 이 필지에 연결합니다.</span>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+
+                <DialogFooter className="border-t pt-4">
                     <Button
                         variant="outline"
                         onClick={() => onOpenChange(false)}
-                        disabled={updateMutation.isPending}
+                        disabled={updateMutation.isPending || linkMemberMutation.isPending}
                     >
                         취소
                     </Button>
-                    <Button
-                        onClick={() => updateMutation.mutate()}
-                        disabled={updateMutation.isPending}
-                    >
-                        {updateMutation.isPending ? (
-                            <>
-                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                저장 중...
-                            </>
-                        ) : (
-                            '저장'
-                        )}
-                    </Button>
+                    {activeTab === 'info' ? (
+                        <Button
+                            onClick={() => updateMutation.mutate()}
+                            disabled={updateMutation.isPending}
+                        >
+                            {updateMutation.isPending ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    저장 중...
+                                </>
+                            ) : (
+                                '저장'
+                            )}
+                        </Button>
+                    ) : (
+                        <Button
+                            onClick={() => linkMemberMutation.mutate()}
+                            disabled={linkMemberMutation.isPending || !selectedMember}
+                        >
+                            {linkMemberMutation.isPending ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    연결 중...
+                                </>
+                            ) : (
+                                '조합원 연결'
+                            )}
+                        </Button>
+                    )}
                 </DialogFooter>
             </DialogContent>
         </Dialog>
-    );
-}
-
-// 동의 단계별 현황
-function _ConsentStagesSection({ 
-    stages, 
-    currentStageId 
-}: { 
-    stages: ConsentStageStatus[]; 
-    currentStageId: string | null;
-}) {
-    if (stages.length === 0) {
-        return null;
-    }
-
-    return (
-        <div>
-            <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                <Percent className="w-4 h-4" />
-                동의 단계별 현황
-            </h3>
-            <div className="space-y-2">
-                {stages.map((stage) => (
-                    <div 
-                        key={stage.stage_id}
-                        className={cn(
-                            "p-3 rounded-lg border transition-all",
-                            stage.stage_id === currentStageId 
-                                ? "border-primary bg-primary/5" 
-                                : "border-gray-200 bg-white"
-                        )}
-                    >
-                        <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2">
-                                <span className="font-medium text-sm">{stage.stage_name}</span>
-                                {stage.stage_id === currentStageId && (
-                                    <Badge className="bg-primary text-white text-xs">현재</Badge>
-                                )}
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <span className={cn(
-                                    "text-sm font-bold",
-                                    stage.is_completed ? "text-green-600" : "text-orange-500"
-                                )}>
-                                    {stage.consent_rate}%
-                                </span>
-                                <span className="text-xs text-gray-400">
-                                    / {stage.required_rate}%
-                                </span>
-                            </div>
-                        </div>
-
-                        {/* 프로그레스 바 */}
-                        <div className="relative h-2 bg-gray-100 rounded-full overflow-hidden">
-                            <div 
-                                className={cn(
-                                    "absolute inset-y-0 left-0 rounded-full transition-all",
-                                    stage.is_completed ? "bg-green-500" : "bg-orange-400"
-                                )}
-                                style={{ width: `${Math.min(stage.consent_rate, 100)}%` }}
-                            />
-                            {/* 목표선 */}
-                            <div 
-                                className="absolute inset-y-0 w-0.5 bg-gray-400"
-                                style={{ left: `${stage.required_rate}%` }}
-                            />
-                        </div>
-
-                        {/* 상세 카운트 */}
-                        <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
-                            <span className="flex items-center gap-1">
-                                <CheckCircle2 className="w-3 h-3 text-green-500" />
-                                동의 {stage.agreed_owners}
-                            </span>
-                            <span className="flex items-center gap-1">
-                                <XCircle className="w-3 h-3 text-red-500" />
-                                미동의 {stage.disagreed_owners}
-                            </span>
-                            <span className="flex items-center gap-1">
-                                <Clock className="w-3 h-3 text-gray-400" />
-                                미제출 {stage.pending_owners}
-                            </span>
-                        </div>
-                    </div>
-                ))}
-            </div>
-        </div>
     );
 }
 
@@ -502,15 +708,6 @@ const OWNERSHIP_TYPE_LABELS: Record<string, string> = {
 
 // 소유주 목록 (조합원 정보)
 function OwnersSection({ parcel }: { parcel: ParcelDetail }) {
-    // 소유주 정보가 없으면 안내 메시지 표시
-    if (parcel.building_units.length === 0) {
-        return (
-            <div className="bg-gray-50 rounded-lg p-4 text-center text-gray-500 text-sm">
-                등록된 조합원이 없습니다.
-            </div>
-        );
-    }
-
     return (
         <div>
             <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
@@ -520,14 +717,16 @@ function OwnersSection({ parcel }: { parcel: ParcelDetail }) {
             <div className="space-y-3">
                 {parcel.building_units.map((unit) => (
                     <div key={unit.id} className="border border-gray-200 rounded-lg overflow-hidden">
-                        {/* 호수 정보 */}
+                        {/* 호수 정보 헤더 */}
                         <div className="bg-gray-50 px-3 py-2 border-b border-gray-200 flex items-center justify-between">
                             <div className="flex items-center gap-2">
                                 <Building2 className="w-4 h-4 text-gray-400" />
                                 <span className="text-sm font-medium">
                                     {parcel.building_name && `${parcel.building_name} `}
-                                    {unit.dong && `${unit.dong}동 `}
-                                    {unit.ho ? `${unit.ho}호` : parcel.building_type === 'DETACHED_HOUSE' ? '단독' : '호수 정보 없음'}
+                                    {/* 단독주택이 아닌 경우에만 동 표기 */}
+                                    {unit.dong && parcel.building_type !== 'DETACHED_HOUSE' && `${unit.dong}동 `}
+                                    {/* 호수가 있으면 호수 표기, 단독주택이면 '단독', 그 외엔 빈 값 */}
+                                    {unit.ho ? `${unit.ho}호` : parcel.building_type === 'DETACHED_HOUSE' ? '단독' : '-'}
                                 </span>
                             </div>
                             {unit.exclusive_area && (
@@ -540,7 +739,7 @@ function OwnersSection({ parcel }: { parcel: ParcelDetail }) {
                         {/* 소유주 목록 */}
                         <div className="divide-y divide-gray-100">
                             {unit.owners.map((owner) => (
-                                <OwnerRow key={owner.id} owner={owner} />
+                                <OwnerRow key={owner.id} owner={owner} parcel={parcel} />
                             ))}
                         </div>
                     </div>
@@ -550,8 +749,8 @@ function OwnersSection({ parcel }: { parcel: ParcelDetail }) {
     );
 }
 
-// 소유주 행 - 조합원 이름, 건물이름/동/호수, 소유유형, 지분율 표시
-function OwnerRow({ owner }: { owner: Owner }) {
+// 소유주 행 - 조합원 이름, 동/호수, 소유유형, 지분율 표시
+function OwnerRow({ owner, parcel }: { owner: Owner; parcel: ParcelDetail }) {
     const statusConfig = {
         AGREED: { icon: CheckCircle2, color: 'text-green-500', bg: 'bg-green-50', label: '동의' },
         DISAGREED: { icon: XCircle, color: 'text-red-500', bg: 'bg-red-50', label: '미동의' },
@@ -560,6 +759,9 @@ function OwnerRow({ owner }: { owner: Owner }) {
 
     const status = statusConfig[owner.consent_status || 'PENDING'];
     const StatusIcon = status.icon;
+
+    // 동 표시 여부 (단독주택이 아닐 때만)
+    const showDong = owner.property_unit_dong && parcel.building_type !== 'DETACHED_HOUSE';
 
     return (
         <div className="px-3 py-3 flex items-center gap-3 hover:bg-gray-50/50">
@@ -570,6 +772,12 @@ function OwnerRow({ owner }: { owner: Owner }) {
                 <div className="flex items-center gap-2 flex-wrap">
                     <User className="w-3 h-3 text-gray-400" />
                     <span className="font-medium text-sm">{owner.name}</span>
+                    {/* 동 표기 (단독주택 아닐 경우) */}
+                    {showDong && (
+                        <Badge variant="outline" className="text-xs py-0">
+                            {owner.property_unit_dong}동
+                        </Badge>
+                    )}
                     {owner.is_representative && (
                         <Badge variant="secondary" className="text-xs py-0">대표</Badge>
                     )}
@@ -579,7 +787,7 @@ function OwnerRow({ owner }: { owner: Owner }) {
                     <span className="flex items-center gap-1">
                         <span className="text-gray-400">소유유형:</span>
                         <span className="font-medium">
-                            {OWNERSHIP_TYPE_LABELS['OWNER']}
+                            {OWNERSHIP_TYPE_LABELS[owner.ownership_type || 'OWNER'] || '소유주'}
                         </span>
                     </span>
                     {/* 지분율 */}

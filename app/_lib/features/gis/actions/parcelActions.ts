@@ -21,8 +21,18 @@ function getSupabaseAdmin() {
 
 export interface UpdateParcelInput {
     pnu: string;
+    // land_lots 필드
     owner_count?: number;
     land_area?: number;
+    official_price?: number;
+    land_category?: string;
+    // buildings 필드 (building_id가 있을 경우)
+    building_id?: string;
+    building_type?: string;
+    building_name?: string;
+    main_purpose?: string;
+    floor_count?: number;
+    total_unit_count?: number;
 }
 
 export interface DeleteParcelInput {
@@ -30,24 +40,118 @@ export interface DeleteParcelInput {
     unionId: string;
 }
 
+export interface LinkMemberToParcelInput {
+    pnu: string;
+    userId: string;
+    dong?: string;
+    ho?: string;
+    buildingUnitId?: string;
+    ownershipType?: string;
+}
+
 /**
- * 필지 정보 수정
+ * 필지 정보 수정 (land_lots + buildings 확장)
  */
 export async function updateParcelInfo(input: UpdateParcelInput) {
     const supabase = getSupabaseAdmin();
 
-    const updateData: Record<string, number | undefined> = {};
-    if (input.owner_count !== undefined) updateData.owner_count = input.owner_count;
-    if (input.land_area !== undefined) updateData.area = input.land_area;
+    // land_lots 업데이트
+    const landLotsUpdate: Record<string, number | string | undefined> = {};
+    if (input.owner_count !== undefined) landLotsUpdate.owner_count = input.owner_count;
+    if (input.land_area !== undefined) landLotsUpdate.area = input.land_area;
+    if (input.official_price !== undefined) landLotsUpdate.official_price = input.official_price;
+    if (input.land_category !== undefined) landLotsUpdate.land_category = input.land_category;
 
-    const { error } = await supabase
-        .from('land_lots')
-        .update(updateData)
-        .eq('pnu', input.pnu);
+    if (Object.keys(landLotsUpdate).length > 0) {
+        const { error: landError } = await supabase
+            .from('land_lots')
+            .update(landLotsUpdate)
+            .eq('pnu', input.pnu);
 
-    if (error) {
-        console.error('Update parcel error:', error);
-        throw new Error(`필지 정보 수정에 실패했습니다: ${error.message}`);
+        if (landError) {
+            console.error('Update land_lots error:', landError);
+            throw new Error(`필지 정보 수정에 실패했습니다: ${landError.message}`);
+        }
+    }
+
+    // buildings 업데이트 (building_id가 있을 경우)
+    if (input.building_id) {
+        const buildingsUpdate: Record<string, string | number | undefined> = {};
+        if (input.building_type !== undefined) buildingsUpdate.building_type = input.building_type;
+        if (input.building_name !== undefined) buildingsUpdate.building_name = input.building_name;
+        if (input.main_purpose !== undefined) buildingsUpdate.main_purpose = input.main_purpose;
+        if (input.floor_count !== undefined) buildingsUpdate.floor_count = input.floor_count;
+        if (input.total_unit_count !== undefined) buildingsUpdate.total_unit_count = input.total_unit_count;
+
+        if (Object.keys(buildingsUpdate).length > 0) {
+            const { error: buildingError } = await supabase
+                .from('buildings')
+                .update(buildingsUpdate)
+                .eq('id', input.building_id);
+
+            if (buildingError) {
+                console.error('Update buildings error:', buildingError);
+                throw new Error(`건물 정보 수정에 실패했습니다: ${buildingError.message}`);
+            }
+        }
+    }
+
+    return { success: true };
+}
+
+/**
+ * 기존 조합원을 해당 PNU에 연결 (user_property_units upsert)
+ */
+export async function linkMemberToParcel(input: LinkMemberToParcelInput) {
+    const supabase = getSupabaseAdmin();
+
+    // 기존에 동일한 user_id + pnu 조합이 있는지 확인
+    const { data: existingUnit, error: checkError } = await supabase
+        .from('user_property_units')
+        .select('id')
+        .eq('user_id', input.userId)
+        .eq('pnu', input.pnu)
+        .maybeSingle();
+
+    if (checkError) {
+        console.error('Check existing unit error:', checkError);
+        throw new Error(`조합원 연결 확인에 실패했습니다: ${checkError.message}`);
+    }
+
+    const unitData = {
+        user_id: input.userId,
+        pnu: input.pnu,
+        dong: input.dong || null,
+        ho: input.ho || null,
+        building_unit_id: input.buildingUnitId || null,
+        ownership_type: input.ownershipType || 'OWNER',
+        is_primary: false, // 연결 시에는 대표가 아닌 것으로 설정
+    };
+
+    if (existingUnit) {
+        // 업데이트
+        const { error: updateError } = await supabase
+            .from('user_property_units')
+            .update({
+                dong: unitData.dong,
+                ho: unitData.ho,
+                building_unit_id: unitData.building_unit_id,
+                ownership_type: unitData.ownership_type,
+            })
+            .eq('id', existingUnit.id);
+
+        if (updateError) {
+            console.error('Update user_property_units error:', updateError);
+            throw new Error(`조합원 연결 수정에 실패했습니다: ${updateError.message}`);
+        }
+    } else {
+        // 생성
+        const { error: insertError } = await supabase.from('user_property_units').insert(unitData);
+
+        if (insertError) {
+            console.error('Insert user_property_units error:', insertError);
+            throw new Error(`조합원 연결에 실패했습니다: ${insertError.message}`);
+        }
     }
 
     return { success: true };
@@ -257,4 +361,26 @@ export async function getAllUnionMembers(unionId: string) {
         });
 
     return users;
+}
+
+/**
+ * 조합의 조합원 검색 (이름 또는 전화번호)
+ */
+export async function searchUnionMembers(unionId: string, query: string) {
+    const supabase = getSupabaseAdmin();
+
+    const { data: users, error } = await supabase
+        .from('users')
+        .select('id, name, phone_number')
+        .eq('union_id', unionId)
+        .in('user_status', ['APPROVED', 'PRE_REGISTERED'])
+        .or(`name.ilike.%${query}%,phone_number.ilike.%${query}%`)
+        .limit(20);
+
+    if (error) {
+        console.error('Search union members error:', error);
+        throw new Error(`조합원 검색에 실패했습니다: ${error.message}`);
+    }
+
+    return users || [];
 }

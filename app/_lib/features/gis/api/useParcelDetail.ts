@@ -15,6 +15,9 @@ export interface Owner {
     consent_date?: string | null;
     property_unit_dong?: string | null;
     property_unit_ho?: string | null;
+    ownership_type?: string | null;
+    land_area?: number | null;
+    building_area?: number | null;
 }
 
 // 동의 단계별 현황 타입
@@ -46,7 +49,9 @@ export interface ParcelDetail {
     pnu: string;
     address: string;
     land_area: number | null;
+    land_category: string | null; // 지목(지번 타입)
     official_price: number | null;
+    building_id: string | null; // 건물 ID (수정 시 필요)
     building_type: string | null;
     building_name: string | null;
     main_purpose: string | null; // 주 용도
@@ -77,32 +82,58 @@ export const useParcelDetail = (pnu: string | null, stageId: string | null) => {
         queryFn: async (): Promise<ParcelDetail | null> => {
             if (!pnu) return null;
 
-            // 1. 필지 기본 정보 조회
+            // 1. 필지 기본 정보 조회 (land_category 포함)
             const { data: landLot, error: landError } = await supabase
                 .from('land_lots')
-                .select('pnu, address, area, official_price, owner_count')
+                .select('pnu, address, area, official_price, owner_count, land_category')
                 .eq('pnu', pnu)
                 .single();
 
             if (landError) {
-                console.error('필지 조회 오류:', {
-                    message: landError.message,
-                    code: landError.code,
-                    details: landError.details,
-                    hint: landError.hint,
-                    pnu,
-                });
-                // 에러 발생 시 null 반환 (쿼리는 성공으로 처리하되 데이터는 null)
+                // 에러 발생 시 throw (규칙 준수)
+                throw new Error(`필지 조회 오류: ${landError.message}`);
             }
 
-            // 2. 건물 정보 조회 (building_units 개수 포함)
-            const { data: buildingInfo } = await supabase
+            // 2. 건물 정보 조회 - 우선 buildings.pnu로 조회
+            let buildingInfo: {
+                id: string;
+                building_type: string;
+                building_name: string | null;
+                main_purpose: string | null;
+                floor_count: number | null;
+                total_unit_count: number | null;
+            } | null = null;
+
+            const { data: directBuilding } = await supabase
                 .from('buildings')
                 .select('id, building_type, building_name, main_purpose, floor_count, total_unit_count')
                 .eq('pnu', pnu)
                 .single();
 
-            // 2.1. building_units 개수 조회 (소유주 수 계산용)
+            if (directBuilding) {
+                buildingInfo = directBuilding;
+            } else {
+                // 2.1. buildings.pnu에 없으면 building_land_lots 매핑 테이블에서 조회
+                const { data: mapping } = await supabase
+                    .from('building_land_lots')
+                    .select('building_id')
+                    .eq('pnu', pnu)
+                    .single();
+
+                if (mapping?.building_id) {
+                    const { data: mappedBuilding } = await supabase
+                        .from('buildings')
+                        .select('id, building_type, building_name, main_purpose, floor_count, total_unit_count')
+                        .eq('id', mapping.building_id)
+                        .single();
+
+                    if (mappedBuilding) {
+                        buildingInfo = mappedBuilding;
+                    }
+                }
+            }
+
+            // 2.2. building_units 개수 조회 (소유주 수 계산용)
             let buildingUnitsCount = 0;
             if (buildingInfo?.id) {
                 const { count } = await supabase
@@ -122,19 +153,40 @@ export const useParcelDetail = (pnu: string | null, stageId: string | null) => {
 
             const unionId = unionLot?.union_id;
 
-            // 4. 해당 PNU와 연결된 조합원(users) 조회 - user_property_units 통해 조회
-            let members: {
+            // 4. 해당 PNU와 연결된 조합원(users) 조회 - user_property_units + users + building_units 조인
+            interface PropertyUnitWithUser {
                 id: string;
-                name: string;
-                phone_number: string;
-            }[] = [];
+                pnu: string | null;
+                dong: string | null;
+                ho: string | null;
+                ownership_type: string | null;
+                land_area: number | null;
+                building_area: number | null;
+                building_unit_id: string | null;
+                users: {
+                    id: string;
+                    name: string;
+                    phone_number: string | null;
+                    union_id: string | null;
+                    user_status: string | null;
+                };
+            }
+
+            let propertyUnitsWithUsers: PropertyUnitWithUser[] = [];
 
             if (unionId) {
                 const { data: propertyUnits, error: usersError } = await supabase
                     .from('user_property_units')
                     .select(
                         `
+                        id,
                         pnu,
+                        dong,
+                        ho,
+                        ownership_type,
+                        land_area,
+                        building_area,
+                        building_unit_id,
                         users!inner (
                             id,
                             name,
@@ -147,44 +199,45 @@ export const useParcelDetail = (pnu: string | null, stageId: string | null) => {
                     .eq('pnu', pnu);
 
                 if (usersError) {
-                    console.error('조합원 조회 오류:', {
-                        message: usersError.message,
-                        code: usersError.code,
-                        details: usersError.details,
-                        hint: usersError.hint,
-                        unionId,
-                        pnu,
-                    });
-                }
-
-                // 사용자 타입 정의
-                interface UserData {
-                    id: string;
-                    name: string;
-                    phone_number: string;
-                    union_id: string;
-                    user_status: string;
+                    throw new Error(`조합원 조회 오류: ${usersError.message}`);
                 }
 
                 // 해당 조합의 승인된 조합원 및 사전 등록 조합원 필터링
-                members = (propertyUnits || [])
+                propertyUnitsWithUsers = (propertyUnits || [])
                     .filter((pu) => {
-                        const user = pu.users as unknown as UserData | null;
+                        const user = pu.users as unknown as PropertyUnitWithUser['users'];
                         return (
                             user &&
                             user.union_id === unionId &&
                             (user.user_status === 'APPROVED' || user.user_status === 'PRE_REGISTERED')
                         );
                     })
-                    .map((pu) => {
-                        const user = pu.users as unknown as UserData;
-                        return {
-                            id: user.id,
-                            name: user.name,
-                            phone_number: user.phone_number,
-                        };
-                    });
+                    .map((pu) => pu as unknown as PropertyUnitWithUser);
             }
+
+            // 4.1. building_units 정보를 building_unit_id로 조회하여 floor/area 정보 보강
+            const buildingUnitIds = propertyUnitsWithUsers
+                .map((pu) => pu.building_unit_id)
+                .filter((id): id is string => !!id);
+
+            let buildingUnitsData: {
+                id: string;
+                dong: string | null;
+                ho: string | null;
+                floor: number | null;
+                area: number | null;
+            }[] = [];
+
+            if (buildingUnitIds.length > 0) {
+                const { data: unitsData } = await supabase
+                    .from('building_units')
+                    .select('id, dong, ho, floor, area')
+                    .in('id', buildingUnitIds);
+
+                buildingUnitsData = unitsData || [];
+            }
+
+            const buildingUnitsById = new Map(buildingUnitsData.map((u) => [u.id, u]));
 
             // 5. 동의 단계 목록 조회 (모든 단계)
             const { data: allStages, error: stagesError } = await supabase
@@ -193,16 +246,11 @@ export const useParcelDetail = (pnu: string | null, stageId: string | null) => {
                 .order('sort_order', { ascending: true });
 
             if (stagesError) {
-                console.error('동의 단계 조회 오류:', {
-                    message: stagesError.message,
-                    code: stagesError.code,
-                    details: stagesError.details,
-                    hint: stagesError.hint,
-                });
+                throw new Error(`동의 단계 조회 오류: ${stagesError.message}`);
             }
 
             // 6. 조합원 ID 목록 추출
-            const memberIds = members.map((m) => m.id);
+            const memberIds = propertyUnitsWithUsers.map((pu) => pu.users.id);
 
             // 7. 조합원별 동의 현황 조회 (user_consents)
             let memberConsents: { user_id: string; stage_id: string; status: string; consent_date: string | null }[] =
@@ -214,31 +262,37 @@ export const useParcelDetail = (pnu: string | null, stageId: string | null) => {
                     .in('user_id', memberIds);
 
                 if (consentError) {
-                    console.error('동의 현황 조회 오류:', {
-                        message: consentError.message,
-                        code: consentError.code,
-                        details: consentError.details,
-                        hint: consentError.hint,
-                        memberIds,
-                    });
+                    throw new Error(`동의 현황 조회 오류: ${consentError.message}`);
                 }
                 memberConsents = consents || [];
             }
 
-            // 8. 조합원에게 현재 선택된 단계의 동의 상태 추가
-            const ownersWithConsent: Owner[] = members.map((member) => {
-                const consent = memberConsents.find((c) => c.user_id === member.id && c.stage_id === stageId);
+            // 8. 조합원 목록 구성 (user_property_units의 dong/ho + building_units 정보 보강)
+            const ownersWithConsent: Owner[] = propertyUnitsWithUsers.map((pu) => {
+                const user = pu.users;
+                const consent = memberConsents.find((c) => c.user_id === user.id && c.stage_id === stageId);
+
+                // building_unit_id가 있으면 해당 정보로 보강
+                const buildingUnit = pu.building_unit_id ? buildingUnitsById.get(pu.building_unit_id) : null;
+
+                // dong/ho는 user_property_units에서 우선, 없으면 building_units에서 가져옴
+                const dong = pu.dong || buildingUnit?.dong || null;
+                const ho = pu.ho || buildingUnit?.ho || null;
+
                 return {
-                    id: member.id,
-                    name: member.name,
-                    phone: member.phone_number,
+                    id: user.id,
+                    name: user.name,
+                    phone: user.phone_number,
                     share: null,
                     is_representative: false,
                     is_manual: false,
                     consent_status: (consent?.status as 'AGREED' | 'DISAGREED' | 'PENDING') || 'PENDING',
                     consent_date: consent?.consent_date || null,
-                    property_unit_dong: null,
-                    property_unit_ho: null,
+                    property_unit_dong: dong,
+                    property_unit_ho: ho,
+                    ownership_type: pu.ownership_type,
+                    land_area: pu.land_area,
+                    building_area: pu.building_area,
                 };
             });
 
@@ -272,18 +326,29 @@ export const useParcelDetail = (pnu: string | null, stageId: string | null) => {
                 };
             });
 
-            // 10. 호수별로 그룹화 (building_units 호환성 유지)
+            // 10. 호수별로 그룹화 (building_unit_id 또는 dong+ho 기준)
             const unitMap = new Map<string, BuildingUnit>();
             ownersWithConsent.forEach((owner) => {
+                // 그룹 키: dong+ho (빈 문자열도 허용하여 그룹화)
                 const unitKey = `${owner.property_unit_dong || ''}-${owner.property_unit_ho || ''}`;
 
                 if (!unitMap.has(unitKey)) {
+                    // building_units에서 floor/area 정보 가져오기
+                    const matchingPu = propertyUnitsWithUsers.find(
+                        (pu) =>
+                            (pu.dong || '') === (owner.property_unit_dong || '') &&
+                            (pu.ho || '') === (owner.property_unit_ho || '')
+                    );
+                    const buildingUnit = matchingPu?.building_unit_id
+                        ? buildingUnitsById.get(matchingPu.building_unit_id)
+                        : null;
+
                     unitMap.set(unitKey, {
                         id: unitKey,
                         dong: owner.property_unit_dong || null,
                         ho: owner.property_unit_ho || null,
-                        floor: null,
-                        exclusive_area: null,
+                        floor: buildingUnit?.floor?.toString() || null,
+                        exclusive_area: buildingUnit?.area || null,
                         owners: [],
                     });
                 }
@@ -297,7 +362,9 @@ export const useParcelDetail = (pnu: string | null, stageId: string | null) => {
                 pnu,
                 address: landLot?.address || pnu,
                 land_area: landLot?.area || null,
+                land_category: landLot?.land_category || null,
                 official_price: landLot?.official_price || null,
+                building_id: buildingInfo?.id || null,
                 building_type: buildingInfo?.building_type || null,
                 building_name: buildingInfo?.building_name || null,
                 main_purpose: buildingInfo?.main_purpose || null,
@@ -331,15 +398,7 @@ export const useUnionConsentRate = (unionId: string | null, stageId: string | nu
             });
 
             if (error) {
-                console.error('동의율 조회 오류:', {
-                    message: error.message,
-                    code: error.code,
-                    details: error.details,
-                    hint: error.hint,
-                    unionId,
-                    stageId,
-                });
-                return null;
+                throw new Error(`동의율 조회 오류: ${error.message}`);
             }
 
             return data?.[0] || null;

@@ -1,19 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
-import { 
-    Search, 
-    ChevronLeft, 
-    ChevronRight,
-    Info,
-    Building2
-} from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Search, Info, Building2, MapPin } from 'lucide-react';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
-import { supabase } from '@/app/_lib/shared/supabase/client';
-import { useQuery } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
 import GisMapContainer from '@/app/_lib/features/gis/components/GisMapContainer';
 import ParcelDetailModal from '@/app/_lib/features/gis/components/ParcelDetailModal';
+import { DataTable, ColumnDef } from '@/app/_lib/widgets/common/data-table';
+import { useLandLotsInfinite, ExtendedLandLot } from '@/app/_lib/features/gis/api/useLandLotsInfinite';
 
 // 건물 유형 한글 매핑
 const BUILDING_TYPE_LABELS: Record<string, string> = {
@@ -36,18 +30,10 @@ function formatPrice(price: number | null | undefined): string {
     return `${price.toLocaleString()}원`;
 }
 
-interface ExtendedLandLot {
-    id: string;
-    union_id: string;
-    pnu: string;
-    address_text: string | null;
-    land_area: number | null;
-    created_at: string;
-    // land_lots 테이블에서 조인된 정보
-    official_price: number | null;
-    owner_count: number | null;
-    // buildings 테이블에서 조인된 정보
-    building_type: string | null;
+// 면적 포맷 함수
+function formatArea(area: number | null | undefined): string {
+    if (area === null || area === undefined) return '-';
+    return `${Number(area).toLocaleString()}`;
 }
 
 export default function LandLotManagementPage() {
@@ -56,108 +42,143 @@ export default function LandLotManagementPage() {
 
     const [viewMode, setViewMode] = useState<'list' | 'map'>('map');
     const [searchQuery, setSearchQuery] = useState('');
-    const [page, setPage] = useState(1);
-    const pageSize = 15;
+    const [searchInput, setSearchInput] = useState('');
 
     // 모달 상태
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedPnu, setSelectedPnu] = useState<string | null>(null);
 
-    // 지번 목록 조회 (확장된 정보 포함)
-    const { data: landLotsData, isLoading: isLotsLoading } = useQuery({
-        queryKey: ['union-land-lots-extended', unionId, searchQuery, page],
-        queryFn: async () => {
-            if (!unionId) return { lots: [], total: 0 };
-            
-            // 먼저 union_land_lots에서 기본 데이터 조회
-            let query = supabase
-                .from('union_land_lots')
-                .select('*', { count: 'exact' })
-                .eq('union_id', unionId)
-                .order('created_at', { ascending: false });
-
-            if (searchQuery) {
-                query = query.or(`address_text.ilike.%${searchQuery}%,pnu.ilike.%${searchQuery}%`);
-            }
-
-            const from = (page - 1) * pageSize;
-            const to = from + pageSize - 1;
-            query = query.range(from, to);
-
-            const { data: lotsData, error: lotsError, count } = await query;
-            if (lotsError) throw lotsError;
-
-            if (!lotsData || lotsData.length === 0) {
-                return { lots: [], total: count || 0 };
-            }
-
-            // PNU 목록 추출
-            const pnuList = lotsData.map(lot => lot.pnu);
-
-            // land_lots에서 추가 정보 조회
-            const { data: landLotsInfo } = await supabase
-                .from('land_lots')
-                .select('pnu, official_price, owner_count')
-                .in('pnu', pnuList);
-
-            // buildings에서 건물 유형 조회
-            const { data: buildingsInfo } = await supabase
-                .from('buildings')
-                .select('pnu, building_type')
-                .in('pnu', pnuList);
-
-            // 데이터 병합
-            const extendedLots: ExtendedLandLot[] = lotsData.map(lot => {
-                const landInfo = landLotsInfo?.find(l => l.pnu === lot.pnu);
-                const buildingInfo = buildingsInfo?.find(b => b.pnu === lot.pnu);
-                
-                return {
-                    ...lot,
-                    official_price: landInfo?.official_price || null,
-                    owner_count: landInfo?.owner_count || null,
-                    building_type: buildingInfo?.building_type || null,
-                };
-            });
-
-            return { lots: extendedLots, total: count || 0 };
-        },
-        enabled: !!unionId,
+    // 무한 스크롤 데이터 조회
+    const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useLandLotsInfinite({
+        unionId,
+        searchQuery,
+        pageSize: 50,
     });
 
-    const totalPages = Math.ceil((landLotsData?.total || 0) / pageSize);
+    // 데이터 평탄화
+    const landLots = useMemo(() => {
+        return data?.pages.flatMap((page) => page.lots) || [];
+    }, [data?.pages]);
+
+    const totalCount = data?.pages[0]?.total || 0;
+
+    // 검색 핸들러
+    const handleSearch = () => {
+        setSearchQuery(searchInput);
+    };
 
     // 행 클릭 핸들러
-    const handleRowClick = (pnu: string) => {
-        setSelectedPnu(pnu);
+    const handleRowClick = (row: ExtendedLandLot) => {
+        setSelectedPnu(row.pnu);
         setIsModalOpen(true);
     };
+
+    // 테이블 컬럼 정의
+    const columns: ColumnDef<ExtendedLandLot>[] = useMemo(
+        () => [
+            {
+                key: 'rowNumber',
+                header: '번호',
+                width: '60px',
+                align: 'center',
+                render: (_, __, index) => index + 1,
+            },
+            {
+                key: 'address_text',
+                header: '주소',
+                width: '280px',
+                render: (_, row) => (
+                    <div className="flex items-center gap-2">
+                        <MapPin className="w-4 h-4 text-gray-400 shrink-0" />
+                        <span className="truncate" title={row.address_text || '-'}>
+                            {row.address_text || '-'}
+                        </span>
+                    </div>
+                ),
+            },
+            {
+                key: 'land_category',
+                header: '지목',
+                width: '80px',
+                align: 'center',
+                render: (_, row) => (
+                    <span className="text-gray-600">{row.land_category || '-'}</span>
+                ),
+            },
+            {
+                key: 'land_area',
+                header: '면적(㎡)',
+                width: '100px',
+                align: 'right',
+                render: (_, row) => (
+                    <span className="text-gray-600">{formatArea(row.land_area)}</span>
+                ),
+            },
+            {
+                key: 'building_type',
+                header: '건물유형',
+                width: '110px',
+                align: 'center',
+                render: (_, row) =>
+                    row.building_type ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 rounded-md text-xs font-medium text-gray-700">
+                            <Building2 className="w-3 h-3" />
+                            {BUILDING_TYPE_LABELS[row.building_type] || row.building_type}
+                        </span>
+                    ) : (
+                        <span className="text-gray-400">-</span>
+                    ),
+            },
+            {
+                key: 'official_price',
+                header: '공시지가',
+                width: '110px',
+                align: 'right',
+                render: (_, row) => (
+                    <span className="text-gray-600">{formatPrice(row.official_price)}</span>
+                ),
+            },
+            {
+                key: 'owner_count',
+                header: '소유주수',
+                width: '80px',
+                align: 'center',
+                render: (_, row) => (
+                    <span className="text-gray-600">{row.owner_count ?? '-'}</span>
+                ),
+            },
+        ],
+        []
+    );
 
     return (
         <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900">대시보드</h1>
-                    <p className="text-gray-500 text-sm mt-1">우리 구역의 전체 지번 목록과 GIS 지도 현황, 가입율/동의율을 확인합니다.</p>
+                    <p className="text-gray-500 text-sm mt-1">
+                        우리 구역의 전체 지번 목록과 GIS 지도 현황, 가입율/동의율을 확인합니다.
+                    </p>
                 </div>
                 <div className="flex items-center gap-2 p-1 bg-gray-100 rounded-lg w-fit">
-                    <button 
+                    <button
                         onClick={() => setViewMode('map')}
                         className={cn(
-                            "px-4 py-1.5 rounded-md text-sm font-medium transition-all cursor-pointer",
-                            viewMode === 'map' 
-                                ? "bg-white shadow-sm text-primary" 
-                                : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                            'px-4 py-1.5 rounded-md text-sm font-medium transition-all cursor-pointer',
+                            viewMode === 'map'
+                                ? 'bg-white shadow-sm text-primary'
+                                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
                         )}
                     >
                         대시보드
                     </button>
-                    <button 
+                    <button
                         onClick={() => setViewMode('list')}
                         className={cn(
-                            "px-4 py-1.5 rounded-md text-sm font-medium transition-all cursor-pointer",
-                            viewMode === 'list' 
-                                ? "bg-white shadow-sm text-primary" 
-                                : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                            'px-4 py-1.5 rounded-md text-sm font-medium transition-all cursor-pointer',
+                            viewMode === 'list'
+                                ? 'bg-white shadow-sm text-primary'
+                                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
                         )}
                     >
                         리스트
@@ -184,130 +205,48 @@ export default function LandLotManagementPage() {
                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col min-h-[600px]">
                     {/* 검색 바 */}
                     <div className="p-4 border-b border-gray-100 bg-gray-50/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div className="relative flex-1 max-w-md">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                            <input
-                                type="text"
-                                placeholder="주소 또는 PNU로 검색..."
-                                value={searchQuery}
-                                onChange={(e) => {
-                                    setSearchQuery(e.target.value);
-                                    setPage(1);
-                                }}
-                                className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm"
-                            />
-                        </div>
-                        <div className="text-sm text-gray-500">
-                            총 <span className="font-bold text-gray-900">{landLotsData?.total || 0}</span>개의 지번
-                        </div>
-                    </div>
-
-                    {/* 테이블: 번호, 주소, 면적, 유형, 공시지가, 소유주수 */}
-                    <div className="flex-1 overflow-x-auto text-[14px]">
-                        <table className="w-full text-left">
-                            <thead className="bg-gray-50 border-b border-gray-100">
-                                <tr>
-                                    <th className="px-4 py-3 font-semibold text-gray-600 w-16 text-center">번호</th>
-                                    <th className="px-4 py-3 font-semibold text-gray-600">주소</th>
-                                    <th className="px-4 py-3 font-semibold text-gray-600 text-right w-24">면적(㎡)</th>
-                                    <th className="px-4 py-3 font-semibold text-gray-600 text-center w-28">유형</th>
-                                    <th className="px-4 py-3 font-semibold text-gray-600 text-right w-28">공시지가</th>
-                                    <th className="px-4 py-3 font-semibold text-gray-600 text-center w-24">소유주수</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-50">
-                                {isLotsLoading ? (
-                                    Array.from({ length: 5 }).map((_, i) => (
-                                        <tr key={i} className="animate-pulse">
-                                            <td className="px-4 py-4"><div className="h-4 bg-gray-100 rounded w-8 mx-auto"></div></td>
-                                            <td className="px-4 py-4"><div className="h-4 bg-gray-100 rounded w-full"></div></td>
-                                            <td className="px-4 py-4"><div className="h-4 bg-gray-100 rounded w-16 ml-auto"></div></td>
-                                            <td className="px-4 py-4"><div className="h-4 bg-gray-100 rounded w-16 mx-auto"></div></td>
-                                            <td className="px-4 py-4"><div className="h-4 bg-gray-100 rounded w-20 ml-auto"></div></td>
-                                            <td className="px-4 py-4"><div className="h-4 bg-gray-100 rounded w-8 mx-auto"></div></td>
-                                        </tr>
-                                    ))
-                                ) : landLotsData?.lots.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={6} className="px-4 py-12 text-center text-gray-400">
-                                            데이터가 없습니다.
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    landLotsData?.lots.map((lot, index) => (
-                                        <tr 
-                                            key={lot.id} 
-                                            className="hover:bg-primary/5 transition-colors cursor-pointer"
-                                            onClick={() => handleRowClick(lot.pnu)}
-                                        >
-                                            <td className="px-4 py-4 text-center text-gray-500">
-                                                {(page - 1) * pageSize + index + 1}
-                                            </td>
-                                            <td className="px-4 py-4 font-medium text-gray-900">{lot.address_text || '-'}</td>
-                                            <td className="px-4 py-4 text-right text-gray-600">
-                                                {lot.land_area?.toLocaleString() || '-'}
-                                            </td>
-                                            <td className="px-4 py-4 text-center">
-                                                {lot.building_type ? (
-                                                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 rounded-md text-xs font-medium text-gray-700">
-                                                        <Building2 className="w-3 h-3" />
-                                                        {BUILDING_TYPE_LABELS[lot.building_type] || lot.building_type}
-                                                    </span>
-                                                ) : (
-                                                    <span className="text-gray-400">-</span>
-                                                )}
-                                            </td>
-                                            <td className="px-4 py-4 text-right text-gray-600">
-                                                {formatPrice(lot.official_price)}
-                                            </td>
-                                            <td className="px-4 py-4 text-center text-gray-600">
-                                                {lot.owner_count ?? '-'}
-                                            </td>
-                                        </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-
-                    {/* 페이지네이션 */}
-                    {totalPages > 1 && (
-                        <div className="p-4 border-t border-gray-100 bg-gray-50/50 flex items-center justify-center gap-2">
-                            <button
-                                onClick={() => setPage(p => Math.max(1, p - 1))}
-                                disabled={page === 1}
-                                className="p-2 border border-gray-200 rounded-lg disabled:opacity-30 hover:bg-white transition-colors"
-                            >
-                                <ChevronLeft className="w-4 h-4" />
-                            </button>
-                            <div className="flex items-center gap-1">
-                                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                                    let pageNum = page <= 3 ? i + 1 : page + i - 2;
-                                    if (pageNum > totalPages) pageNum = totalPages - (Math.min(5, totalPages) - i - 1);
-                                    if (pageNum < 1) pageNum = 1;
-                                    return (
-                                        <button
-                                            key={pageNum}
-                                            onClick={() => setPage(pageNum)}
-                                            className={cn(
-                                                "w-8 h-8 rounded-lg text-sm font-medium transition-all",
-                                                page === pageNum ? "bg-primary text-white shadow-sm" : "hover:bg-white border border-transparent hover:border-gray-200 text-gray-500"
-                                            )}
-                                        >
-                                            {pageNum}
-                                        </button>
-                                    );
-                                })}
+                        <div className="relative flex-1 max-w-md flex gap-2">
+                            <div className="relative flex-1">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                <input
+                                    type="text"
+                                    placeholder="주소 또는 PNU로 검색..."
+                                    value={searchInput}
+                                    onChange={(e) => setSearchInput(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                                    className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm"
+                                />
                             </div>
                             <button
-                                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                                disabled={page === totalPages}
-                                className="p-2 border border-gray-200 rounded-lg disabled:opacity-30 hover:bg-white transition-colors"
+                                onClick={handleSearch}
+                                className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
                             >
-                                <ChevronRight className="w-4 h-4" />
+                                검색
                             </button>
                         </div>
-                    )}
+                        <div className="text-sm text-gray-500">
+                            총 <span className="font-bold text-gray-900">{totalCount}</span>개의 지번
+                        </div>
+                    </div>
+
+                    {/* 무한 스크롤 테이블 */}
+                    <div className="flex-1">
+                        <DataTable
+                            data={landLots}
+                            columns={columns}
+                            keyExtractor={(row) => row.id}
+                            isLoading={isLoading}
+                            emptyMessage="데이터가 없습니다."
+                            onRowClick={handleRowClick}
+                            maxHeight="calc(100vh - 400px)"
+                            stickyHeader
+                            infiniteScroll={{
+                                hasNextPage: hasNextPage ?? false,
+                                isFetchingNextPage,
+                                fetchNextPage,
+                            }}
+                        />
+                    </div>
                 </div>
             )}
 

@@ -38,9 +38,9 @@ const heroBackgroundImage =
 
 export default function MarketingPage() {
     const router = useRouter();
-    const [unions, setUnions] = useState<Union[]>([]);
+    const [_unions, setUnions] = useState<Union[]>([]);
     const [selectedSlug, setSelectedSlug] = useState<string>('');
-    const [isLoading, setIsLoading] = useState(true);
+    const [_isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
         const fetchUnions = async () => {
@@ -63,7 +63,7 @@ export default function MarketingPage() {
         fetchUnions();
     }, []);
 
-    const handleNavigate = () => {
+    const _handleNavigate = () => {
         if (selectedSlug) {
             router.push(`/${selectedSlug}`);
         }

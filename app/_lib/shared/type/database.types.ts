@@ -340,6 +340,42 @@ export type Database = {
                     }
                 ];
             };
+            building_land_lots: {
+                Row: {
+                    id: string;
+                    building_id: string;
+                    pnu: string;
+                    created_at: string | null;
+                };
+                Insert: {
+                    id?: string;
+                    building_id: string;
+                    pnu: string;
+                    created_at?: string | null;
+                };
+                Update: {
+                    id?: string;
+                    building_id?: string;
+                    pnu?: string;
+                    created_at?: string | null;
+                };
+                Relationships: [
+                    {
+                        foreignKeyName: 'building_land_lots_building_id_fkey';
+                        columns: ['building_id'];
+                        isOneToOne: false;
+                        referencedRelation: 'buildings';
+                        referencedColumns: ['id'];
+                    },
+                    {
+                        foreignKeyName: 'building_land_lots_pnu_fkey';
+                        columns: ['pnu'];
+                        isOneToOne: true;
+                        referencedRelation: 'land_lots';
+                        referencedColumns: ['pnu'];
+                    }
+                ];
+            };
             buildings: {
                 Row: {
                     building_name: string | null;
@@ -657,6 +693,7 @@ export type Database = {
                     address: string;
                     area: number | null;
                     boundary: unknown;
+                    land_category: string | null;
                     official_price: number | null;
                     owner_count: number | null;
                     pnu: string;
@@ -666,6 +703,7 @@ export type Database = {
                     address: string;
                     area?: number | null;
                     boundary?: unknown;
+                    land_category?: string | null;
                     official_price?: number | null;
                     owner_count?: number | null;
                     pnu: string;
@@ -675,6 +713,7 @@ export type Database = {
                     address?: string;
                     area?: number | null;
                     boundary?: unknown;
+                    land_category?: string | null;
                     official_price?: number | null;
                     owner_count?: number | null;
                     pnu?: string;
@@ -1974,6 +2013,11 @@ export type UserConsent = Tables<'user_consents'>;
 export type Building = Tables<'buildings'>;
 export type NewBuilding = TablesInsert<'buildings'>;
 export type UpdateBuilding = TablesUpdate<'buildings'>;
+
+// BuildingLandLot 타입 (건물-지번 매핑)
+export type BuildingLandLot = Tables<'building_land_lots'>;
+export type NewBuildingLandLot = TablesInsert<'building_land_lots'>;
+export type UpdateBuildingLandLot = TablesUpdate<'building_land_lots'>;
 
 // BuildingUnit 타입
 export type BuildingUnit = Tables<'building_units'>;
