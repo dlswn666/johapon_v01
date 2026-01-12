@@ -62,6 +62,7 @@ import { cn } from '@/lib/utils';
 import { Percent } from 'lucide-react';
 import { SelectBox } from '@/app/_lib/widgets/common/select-box';
 import { DataTable, ColumnDef } from '@/app/_lib/widgets/common/data-table';
+import { formatAddressDisplay, formatResidentAddressDisplay } from '@/app/_lib/shared/utils/address-utils';
 
 // 탭 타입
 type TabType = 'members' | 'consent' | 'invite' | 'approval';
@@ -707,13 +708,13 @@ export default function MemberManagementPage() {
                                 -
                             </div>
                         </div>
-                        {(row.resident_address_road || row.resident_address) && (
+                        {(row.resident_address_jibun || row.resident_address_road || row.resident_address) && (
                             <div className="pt-1 border-t border-gray-100">
                                 <div className="text-[13px] text-gray-600">
                                     <span className="text-[11px] bg-[#4E8C6D]/10 text-[#4E8C6D] px-1 rounded mr-1">
                                         실거주
                                     </span>
-                                    {row.resident_address_road || row.resident_address}
+                                    {formatAddressDisplay(row.resident_address_jibun, row.resident_address_road) || row.resident_address}
                                 </div>
                             </div>
                         )}
@@ -1232,18 +1233,13 @@ export default function MemberManagementPage() {
                                         <div className="flex-1">
                                             <p className="text-[12px] text-[#4E8C6D] font-medium">실 거주지</p>
                                             <div className="text-[16px] font-bold text-gray-900">
-                                                <div>{selectedUser.resident_address_road || selectedUser.resident_address || '-'}</div>
-                                                {selectedUser.resident_address_jibun && (
-                                                    <div className="text-[14px] font-normal text-gray-500 mt-1">
-                                                        <span className="text-[12px] bg-gray-200 px-1 rounded mr-1">지번</span>
-                                                        {selectedUser.resident_address_jibun}
-                                                    </div>
-                                                )}
-                                                {selectedUser.resident_address_detail && (
-                                                    <div className="text-gray-600 font-normal mt-1 border-t border-gray-200 pt-1">
-                                                        {selectedUser.resident_address_detail}
-                                                    </div>
-                                                )}
+                                                <div>
+                                                    {formatResidentAddressDisplay(
+                                                        selectedUser.resident_address_jibun,
+                                                        selectedUser.resident_address_road,
+                                                        selectedUser.resident_address_detail
+                                                    ) || selectedUser.resident_address || '-'}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>

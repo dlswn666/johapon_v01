@@ -265,21 +265,8 @@ export default function EChartsMap({
                     return html;
                 },
             },
-            visualMap: {
-                type: 'piecewise',
-                // 카테고리 기반 매핑: 문자열 status 값을 색상으로 변환
-                categories: config.pieces.map((p) => p.value),
-                inRange: {
-                    color: config.pieces.map((p) => p.color),
-                },
-                show: false, // canvas 외부에 별도 범례 컴포넌트 사용
-                orient: 'horizontal',
-                bottom: 20,
-                left: 'center',
-                textStyle: {
-                    color: '#64748b',
-                },
-            },
+            // visualMap 제거: map series에서 문자열 카테고리 매핑이 불안정하여
+            // 각 데이터 항목에 itemStyle.areaColor를 직접 주입하는 방식으로 변경
             series: [
                 {
                     name: config.seriesName,
@@ -315,6 +302,10 @@ export default function EChartsMap({
                     data: data.map((item) => ({
                         name: item.pnu,
                         value: item.status,
+                        itemStyle: {
+                            // 상태별 채움색을 직접 지정 (가장 확실한 방식)
+                            areaColor: (config.colors as Record<string, string>)[item.status] || '#94a3b8',
+                        },
                     })),
                 },
             ],
@@ -322,7 +313,7 @@ export default function EChartsMap({
 
         // GeoJSON이 변경되었거나 초기 렌더링인 경우에만 전체 옵션 적용
         const isGeoJsonChanged = prevGeoJsonRef.current !== geoJson;
-        
+
         if (isInitialRender.current || isGeoJsonChanged) {
             // 초기 렌더링 또는 GeoJSON 변경 시: 전체 옵션 적용 (zoom 포함)
             chartInstance.current.setOption(option, true);
@@ -330,14 +321,22 @@ export default function EChartsMap({
             prevGeoJsonRef.current = geoJson;
         } else {
             // 데이터만 변경된 경우: 시리즈 데이터만 업데이트 (zoom 유지)
-            chartInstance.current.setOption({
-                series: [{
-                    data: data.map((item) => ({
-                        name: item.pnu,
-                        value: item.status,
-                    })),
-                }],
-            }, { notMerge: false });
+            chartInstance.current.setOption(
+                {
+                    series: [
+                        {
+                            data: data.map((item) => ({
+                                name: item.pnu,
+                                value: item.status,
+                                itemStyle: {
+                                    areaColor: (config.colors as Record<string, string>)[item.status] || '#94a3b8',
+                                },
+                            })),
+                        },
+                    ],
+                },
+                { notMerge: false }
+            );
         }
 
         const handleResize = () => chartInstance.current?.resize();

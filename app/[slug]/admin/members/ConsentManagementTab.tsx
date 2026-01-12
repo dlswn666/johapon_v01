@@ -34,6 +34,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { formatPropertyAddressDisplay } from '@/app/_lib/shared/utils/address-utils';
 
 // 조합원 조회 결과 타입 (물건지 정보는 user_property_units에서 가져옴)
 interface MemberSearchResult {
@@ -44,6 +45,7 @@ interface MemberSearchResult {
     property_dong: string | null;
     property_ho: string | null;
     property_address_jibun: string | null;
+    property_address_road: string | null;
     building_name: string | null;
     current_consent_status: 'AGREED' | 'DISAGREED' | 'PENDING';
 }
@@ -259,6 +261,7 @@ export default function ConsentManagementTab() {
             type PropertyUnit = {
                 pnu: string | null;
                 property_address_jibun: string | null;
+                property_address_road: string | null;
                 dong: string | null;
                 ho: string | null;
                 building_name: string | null;
@@ -274,6 +277,7 @@ export default function ConsentManagementTab() {
                     property_dong: propUnit?.dong || null,
                     property_ho: propUnit?.ho || null,
                     property_address_jibun: propUnit?.property_address_jibun || null,
+                    property_address_road: propUnit?.property_address_road || null,
                     building_name: propUnit?.building_name || null,
                     current_consent_status: (consent?.status as 'AGREED' | 'DISAGREED' | 'PENDING') || 'PENDING',
                 };
@@ -859,15 +863,8 @@ export default function ConsentManagementTab() {
                                                     <td className="px-3 py-2 font-medium text-gray-900">
                                                         {member.name}
                                                     </td>
-                                                    <td className="px-3 py-2 text-gray-600 truncate max-w-[150px]">
-                                                        {member.property_address_jibun ||
-                                                            member.property_address ||
-                                                            '-'}
-                                                    </td>
-                                                    <td className="px-3 py-2 text-gray-600">
-                                                        {member.property_dong && member.property_ho
-                                                            ? `${member.property_dong}동 ${member.property_ho}호`
-                                                            : member.property_dong || member.property_ho || '-'}
+                                                    <td className="px-3 py-2 text-gray-600 truncate max-w-[200px]" title={formatPropertyAddressDisplay(member.property_address_jibun, member.property_address_road, member.property_dong, member.property_ho) || member.property_address || '-'}>
+                                                        {formatPropertyAddressDisplay(member.property_address_jibun, member.property_address_road, member.property_dong, member.property_ho) || member.property_address || '-'}
                                                     </td>
                                                     <td className="px-3 py-2 text-center">
                                                         {getConsentStatusBadge(member.current_consent_status)}
@@ -925,7 +922,7 @@ export default function ConsentManagementTab() {
                                                     <span className="font-medium text-gray-900">{member.name}</span>
                                                 </div>
                                                 <p className="text-xs text-gray-500 truncate mt-0.5">
-                                                    {member.property_address_jibun || member.property_address || '-'}
+                                                    {formatPropertyAddressDisplay(member.property_address_jibun, member.property_address_road, member.property_dong, member.property_ho) || member.property_address || '-'}
                                                 </p>
                                             </div>
                                             <Button

@@ -2,6 +2,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { normalizeDong, normalizeHo } from '@/app/_lib/shared/utils/dong-ho-utils';
+// normalizeJibunAddress, normalizeName는 RPC 함수 내부에서 처리됨
 import { OwnershipType } from '@/app/_lib/shared/type/database.types';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -201,6 +202,36 @@ export async function checkDuplicatePnu(
 }
 
 /**
+ * 이름 + 거주지 지번 기준으로 중복 사용자 ID 배열을 조회합니다.
+ * (새 사용자 제외)
+ */
+async function findDuplicateUserIds(
+    unionId: string,
+    name: string,
+    residentAddressJibun: string,
+    excludeUserId: string
+): Promise<string[]> {
+    try {
+        const { data, error } = await supabase.rpc('find_duplicate_users_by_name_residence', {
+            p_union_id: unionId,
+            p_name: name,
+            p_resident_address_jibun: residentAddressJibun,
+            p_exclude_user_id: excludeUserId,
+        });
+
+        if (error) {
+            console.error('[findDuplicateUserIds] RPC error:', error.message);
+            return [];
+        }
+
+        return (data || []).map((row: { user_id: string }) => row.user_id);
+    } catch (err) {
+        console.error('[findDuplicateUserIds] Error:', err);
+        return [];
+    }
+}
+
+/**
  * 매칭된 조합원 데이터를 users 테이블에 PRE_REGISTERED 상태로 저장합니다.
  */
 export async function savePreRegisteredMembers(
@@ -232,6 +263,9 @@ export async function savePreRegisteredMembers(
         // UUID 생성 (서버에서 생성)
         const id = crypto.randomUUID();
 
+        // 거주지 주소를 지번으로 정규화 (중복 검사용)
+        const residentAddressJibun = row.residentAddress || null;
+
         // users 테이블에 저장 (정규화된 동호수 사용)
         const { error } = await supabase.from('users').insert({
             id,
@@ -242,6 +276,7 @@ export async function savePreRegisteredMembers(
             union_id: unionId,
             user_status: 'PRE_REGISTERED',
             resident_address: row.residentAddress || null,
+            resident_address_jibun: residentAddressJibun,
             property_pnu: pnu,
             property_address_jibun: row.propertyAddress,
             property_dong: normalizedDong,
@@ -252,6 +287,24 @@ export async function savePreRegisteredMembers(
             errors.push(`${row.name}: ${error.message}`);
         } else {
             savedCount++;
+
+            // 이름 + 거주지 지번 기준으로 중복 사용자 검사 및 병합 (새 사용자가 keeper)
+            if (residentAddressJibun) {
+                try {
+                    const { data: mergeResult, error: mergeError } = await supabase.rpc('merge_users_keep_new', {
+                        p_keeper_id: id,
+                        p_duplicate_ids: await findDuplicateUserIds(unionId, row.name, residentAddressJibun, id),
+                    });
+
+                    if (mergeError) {
+                        console.error(`[사전등록] 중복 병합 실패 (${row.name}):`, mergeError.message);
+                    } else if (mergeResult?.merged_count > 0) {
+                        console.log(`[사전등록] ${row.name}: 중복 ${mergeResult.merged_count}명 병합 완료`);
+                    }
+                } catch (mergeErr) {
+                    console.error(`[사전등록] 중복 병합 오류 (${row.name}):`, mergeErr);
+                }
+            }
         }
     }
 

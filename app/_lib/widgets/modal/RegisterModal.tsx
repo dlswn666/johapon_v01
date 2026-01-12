@@ -35,6 +35,7 @@ import {
     isBasementHo,
     extractHoNumber,
 } from '@/app/_lib/shared/utils/dong-ho-utils';
+import { checkAndMergeDuplicateUsers } from '@/app/_lib/features/user-dedup/actions/mergeUsers';
 
 // 거주 유형 타입 정의
 type PropertyType = 'DETACHED_HOUSE' | 'MULTI_FAMILY' | 'VILLA' | 'APARTMENT' | 'COMMERCIAL' | 'MIXED';
@@ -1014,183 +1015,92 @@ export function RegisterModal({
             const role = isInvite && inviteData?.invite_type === 'admin' ? 'ADMIN' : isInvite ? 'USER' : 'APPLICANT';
             const userStatus = isInvite ? 'APPROVED' : 'PENDING_APPROVAL';
 
-            // PRE_REGISTERED 사용자 매칭 시도 (이름 + pnu + 동 + 호수 - user_property_units 조인)
-            let finalUserId: string | null = null;
-            let isExistingPreRegistered = false;
-
-            // 첫 번째 물건지 데이터 가져오기 (하위 호환성 및 PRE_REGISTERED 매칭용)
+            // 첫 번째 물건지 데이터 가져오기
             const primaryProperty = formData.properties[0];
 
             // 동호수 정규화 적용 (첫 번째 물건지 기준)
             const normalizedDong = normalizeDong(primaryProperty.property_dong);
             const normalizedHo = createNormalizedHo(primaryProperty.property_is_basement, primaryProperty.property_ho);
 
-            if (unionId && primaryProperty.property_pnu) {
-                // PRE_REGISTERED 사용자 검색 (user_property_units 조인으로 pnu, dong, ho 비교)
-                let preRegisteredQuery = supabase
-                    .from('user_property_units')
-                    .select('*, users!inner(*)')
-                    .eq('users.union_id', unionId)
-                    .eq('users.name', formData.name)
-                    .eq('users.user_status', 'PRE_REGISTERED')
-                    .eq('pnu', primaryProperty.property_pnu);
+            // 항상 새 사용자 생성 (이름 + 거주지 지번 기준 중복 병합은 생성 후 수행)
+            // UUID 생성: crypto.randomUUID() 사용
+            const newUserId = crypto.randomUUID();
 
-                // 동/호수 조건 추가 (정규화된 값 사용)
-                if (normalizedDong) {
-                    preRegisteredQuery = preRegisteredQuery.eq('dong', normalizedDong);
-                } else {
-                    preRegisteredQuery = preRegisteredQuery.is('dong', null);
-                }
+            // property_address_detail은 정규화된 동/호수를 합쳐서 저장 (하위 호환성)
+            const propertyAddressDetail = [normalizedDong, normalizedHo].filter(Boolean).join(' ') || null;
 
-                if (normalizedHo) {
-                    preRegisteredQuery = preRegisteredQuery.eq('ho', normalizedHo);
-                } else {
-                    preRegisteredQuery = preRegisteredQuery.is('ho', null);
-                }
+            // users 테이블에 기본 정보만 저장 (물건지 정보는 user_property_units로 이동)
+            const newUser: NewUser = {
+                id: newUserId,
+                name: formData.name,
+                email: `${newUserId}@placeholder.com`,
+                phone_number: formData.phone_number,
+                role: role,
+                union_id: unionId,
+                user_status: userStatus,
+                birth_date: formData.birth_date || null,
+                property_address: primaryProperty.property_address,
+                property_address_detail: propertyAddressDetail,
+                property_zonecode: primaryProperty.property_zonecode || null,
+                property_type: primaryProperty.property_type || null,
+                resident_address: formData.resident_address || null,
+                resident_address_detail: formData.resident_address_detail || null,
+                resident_address_road: formData.resident_address_road || null,
+                resident_address_jibun: formData.resident_address_jibun || null,
+                resident_zonecode: formData.resident_zonecode || null,
+                approved_at: isInvite ? new Date().toISOString() : null,
+            };
 
-                const { data: preRegisteredData } = await preRegisteredQuery.single();
+            const { error: userError } = await supabase.from('users').insert(newUser);
+            if (userError) throw userError;
 
-                if (preRegisteredData) {
-                    const preRegistered = preRegisteredData.users as { id: string };
-                    const propertyUnitId = preRegisteredData.id;
-
-                    // 기존 PRE_REGISTERED 레코드 업데이트 (users - 기본 정보만)
-                    const { error: updateError } = await supabase
-                        .from('users')
-                        .update({
-                            phone_number: formData.phone_number,
-                            email: `${preRegistered.id}@placeholder.com`,
-                            role: role,
-                            user_status: userStatus,
-                            birth_date: formData.birth_date || null,
-                            property_address: primaryProperty.property_address,
-                            property_address_detail: [normalizedDong, normalizedHo].filter(Boolean).join(' ') || null,
-                            property_zonecode: primaryProperty.property_zonecode || null,
-                            property_type: primaryProperty.property_type || null,
-                            resident_address: formData.resident_address || null,
-                            resident_address_detail: formData.resident_address_detail || null,
-                            resident_address_road: formData.resident_address_road || null,
-                            resident_address_jibun: formData.resident_address_jibun || null,
-                            resident_zonecode: formData.resident_zonecode || null,
-                            approved_at: isInvite ? new Date().toISOString() : null,
-                            updated_at: new Date().toISOString(),
-                        })
-                        .eq('id', preRegistered.id);
-
-                    if (updateError) throw updateError;
-
-                    // 첫 번째 user_property_units 업데이트
-                    await supabase
-                        .from('user_property_units')
-                        .update({
-                            property_address_jibun: primaryProperty.property_address_jibun || null,
-                            property_address_road: primaryProperty.property_address_road || null,
-                            dong: normalizedDong,
-                            ho: normalizedHo,
-                            updated_at: new Date().toISOString(),
-                        })
-                        .eq('id', propertyUnitId);
-
-                    // 추가 물건지가 있으면 user_property_units에 추가 저장
-                    if (formData.properties.length > 1) {
-                        const additionalProperties = formData.properties.slice(1).map((prop) => {
-                            const propNormalizedDong = normalizeDong(prop.property_dong);
-                            const propNormalizedHo = createNormalizedHo(prop.property_is_basement, prop.property_ho);
-                            return {
-                                id: crypto.randomUUID(),
-                                user_id: preRegistered.id,
-                                pnu: prop.property_pnu || null,
-                                property_address_jibun: prop.property_address_jibun || null,
-                                property_address_road: prop.property_address_road || null,
-                                dong: propNormalizedDong,
-                                ho: propNormalizedHo,
-                                is_primary: false,
-                            };
-                        });
-
-                        const { error: additionalError } = await supabase
-                            .from('user_property_units')
-                            .insert(additionalProperties);
-
-                        if (additionalError) {
-                            console.error('Additional property units insert error:', additionalError);
-                        }
-                    }
-
-                    finalUserId = preRegistered.id;
-                    isExistingPreRegistered = true;
-                    console.log(
-                        `[회원가입] PRE_REGISTERED 사용자 매칭 성공: ${preRegistered.id}, 물건지 ${formData.properties.length}개`
-                    );
-                }
-            }
-
-            // PRE_REGISTERED 매칭이 없으면 새 사용자 생성
-            if (!finalUserId) {
-                // UUID 생성: crypto.randomUUID() 사용
-                const newUserId = crypto.randomUUID();
-
-                // property_address_detail은 정규화된 동/호수를 합쳐서 저장 (하위 호환성)
-                const propertyAddressDetail = [normalizedDong, normalizedHo].filter(Boolean).join(' ') || null;
-
-                // users 테이블에 기본 정보만 저장 (물건지 정보는 user_property_units로 이동)
-                const newUser: NewUser = {
-                    id: newUserId,
-                    name: formData.name,
-                    email: `${newUserId}@placeholder.com`,
-                    phone_number: formData.phone_number,
-                    role: role,
-                    union_id: unionId,
-                    user_status: userStatus,
-                    birth_date: formData.birth_date || null,
-                    property_address: primaryProperty.property_address,
-                    property_address_detail: propertyAddressDetail,
-                    property_zonecode: primaryProperty.property_zonecode || null,
-                    property_type: primaryProperty.property_type || null,
-                    resident_address: formData.resident_address || null,
-                    resident_address_detail: formData.resident_address_detail || null,
-                    resident_address_road: formData.resident_address_road || null,
-                    resident_address_jibun: formData.resident_address_jibun || null,
-                    resident_zonecode: formData.resident_zonecode || null,
-                    approved_at: isInvite ? new Date().toISOString() : null,
+            // 모든 물건지를 user_property_units에 저장
+            const propertyUnitsToInsert = formData.properties.map((prop, index) => {
+                const propNormalizedDong = normalizeDong(prop.property_dong);
+                const propNormalizedHo = createNormalizedHo(prop.property_is_basement, prop.property_ho);
+                return {
+                    id: crypto.randomUUID(),
+                    user_id: newUserId,
+                    pnu: prop.property_pnu || null,
+                    property_address_jibun: prop.property_address_jibun || null,
+                    property_address_road: prop.property_address_road || null,
+                    dong: propNormalizedDong,
+                    ho: propNormalizedHo,
+                    is_primary: index === 0, // 첫 번째 물건지만 primary
                 };
+            });
 
-                const { error: userError } = await supabase.from('users').insert(newUser);
-                if (userError) throw userError;
+            const { error: propertyUnitError } = await supabase
+                .from('user_property_units')
+                .insert(propertyUnitsToInsert);
 
-                // 모든 물건지를 user_property_units에 저장
-                const propertyUnitsToInsert = formData.properties.map((prop, index) => {
-                    const propNormalizedDong = normalizeDong(prop.property_dong);
-                    const propNormalizedHo = createNormalizedHo(prop.property_is_basement, prop.property_ho);
-                    return {
-                        id: crypto.randomUUID(),
-                        user_id: newUserId,
-                        pnu: prop.property_pnu || null,
-                        property_address_jibun: prop.property_address_jibun || null,
-                        property_address_road: prop.property_address_road || null,
-                        dong: propNormalizedDong,
-                        ho: propNormalizedHo,
-                        is_primary: index === 0, // 첫 번째 물건지만 primary
-                    };
-                });
-
-                const { error: propertyUnitError } = await supabase
-                    .from('user_property_units')
-                    .insert(propertyUnitsToInsert);
-
-                if (propertyUnitError) {
-                    console.error('user_property_units insert error:', propertyUnitError);
-                    // 실패해도 계속 진행 (critical하지 않음)
-                } else {
-                    console.log(`[회원가입] 물건지 ${formData.properties.length}개 저장 완료`);
-                }
-
-                finalUserId = newUserId;
+            if (propertyUnitError) {
+                console.error('user_property_units insert error:', propertyUnitError);
+                // 실패해도 계속 진행 (critical하지 않음)
+            } else {
+                console.log(`[회원가입] 물건지 ${formData.properties.length}개 저장 완료`);
             }
 
-            // 사용자 ID 확인
-            const newUserId = finalUserId;
-            const _ = isExistingPreRegistered; // ESLint용 변수 사용
+            // 이름 + 거주지 지번 기준으로 중복 사용자 검사 및 병합 (새 사용자가 keeper)
+            if (unionId && formData.resident_address_jibun) {
+                try {
+                    const mergeResult = await checkAndMergeDuplicateUsers(
+                        newUserId,
+                        unionId,
+                        formData.name,
+                        formData.resident_address_jibun
+                    );
+                    if (mergeResult.merged_count && mergeResult.merged_count > 0) {
+                        console.log(
+                            `[회원가입] 중복 사용자 ${mergeResult.merged_count}명 병합 완료:`,
+                            mergeResult.affected
+                        );
+                    }
+                } catch (mergeError) {
+                    // 병합 실패는 치명적이지 않으므로 로깅만 수행
+                    console.error('[회원가입] 중복 사용자 병합 실패:', mergeError);
+                }
+            }
 
             // user_auth_links에 연결 추가
             const { error: linkError } = await supabase.from('user_auth_links').insert({
