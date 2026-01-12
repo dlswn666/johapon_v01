@@ -10,7 +10,19 @@ import ParcelDetailModal from './ParcelDetailModal';
 import ConsentStatusBar from './ConsentStatusBar';
 import { useUnionConsentRate } from '../api/useParcelDetail';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Info, LayoutGrid, Search, MapPin, X, CheckCircle2, XCircle, Clock, Users, Building2 } from 'lucide-react';
+import {
+    Loader2,
+    Info,
+    LayoutGrid,
+    Search,
+    MapPin,
+    X,
+    CheckCircle2,
+    XCircle,
+    Clock,
+    Users,
+    Building2,
+} from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -42,8 +54,8 @@ export default function GisMapContainer() {
     const { union } = useSlug();
     const unionId = union?.id;
 
-    // 조회 모드: 'consent' (동의 현황) | 'registration' (가입 현황)
-    const [viewMode, setViewMode] = useState<MapViewMode>('consent');
+    // 조회 모드: 'consent' (동의 현황) | 'registration' (가입 현황) | 'address' (지번 현황)
+    const [viewMode, setViewMode] = useState<MapViewMode>('address');
     // 조합의 사업 유형을 사용 (없으면 기본값 REDEVELOPMENT)
     const selectedBusinessType = union?.business_type || 'REDEVELOPMENT';
     const [selectedStageId, setSelectedStageId] = useState<string | null>(null);
@@ -295,29 +307,32 @@ export default function GisMapContainer() {
     }, []);
 
     // 필지 클릭 핸들러 - 다중 선택 및 더블클릭 취소 기능
-    const handleParcelClick = useCallback((pnu: string) => {
-        const now = Date.now();
-        const isDoubleClick = lastClickPnu.current === pnu && now - lastClickTime.current < 300;
-        
-        if (isDoubleClick) {
-            // 더블클릭: 해당 필지 선택 취소
-            setSelectedPnuList(prev => prev.filter(p => p !== pnu));
-            if (searchedPnu === pnu) {
-                setSearchedPnu(null);
+    const handleParcelClick = useCallback(
+        (pnu: string) => {
+            const now = Date.now();
+            const isDoubleClick = lastClickPnu.current === pnu && now - lastClickTime.current < 300;
+
+            if (isDoubleClick) {
+                // 더블클릭: 해당 필지 선택 취소
+                setSelectedPnuList((prev) => prev.filter((p) => p !== pnu));
+                if (searchedPnu === pnu) {
+                    setSearchedPnu(null);
+                }
+            } else {
+                // 단일 클릭: 리스트에 추가 (이미 있으면 맨 위로 이동)
+                setSelectedPnuList((prev) => {
+                    const filtered = prev.filter((p) => p !== pnu);
+                    return [pnu, ...filtered];
+                });
+                setSearchedPnu(pnu);
+                setSelectedPnu(pnu);
             }
-        } else {
-            // 단일 클릭: 리스트에 추가 (이미 있으면 맨 위로 이동)
-            setSelectedPnuList(prev => {
-                const filtered = prev.filter(p => p !== pnu);
-                return [pnu, ...filtered];
-            });
-            setSearchedPnu(pnu);
-            setSelectedPnu(pnu);
-        }
-        
-        lastClickTime.current = now;
-        lastClickPnu.current = pnu;
-    }, [searchedPnu]);
+
+            lastClickTime.current = now;
+            lastClickPnu.current = pnu;
+        },
+        [searchedPnu]
+    );
 
     // 현재 단계의 필수 동의율
     const requiredRate = useMemo(() => {
@@ -336,6 +351,12 @@ export default function GisMapContainer() {
                         <SelectValue placeholder="조회 모드" />
                     </SelectTrigger>
                     <SelectContent>
+                        <SelectItem value="address">
+                            <div className="flex items-center gap-2">
+                                <MapPin className="w-4 h-4" />
+                                지번 현황
+                            </div>
+                        </SelectItem>
                         <SelectItem value="consent">
                             <div className="flex items-center gap-2">
                                 <LayoutGrid className="w-4 h-4" />
@@ -482,7 +503,9 @@ export default function GisMapContainer() {
                         <div className="flex items-center gap-2">
                             <MapPin className="w-4 h-4 text-primary" />
                             <span className="font-semibold text-slate-700">선택된 필지</span>
-                            <Badge variant="secondary" className="text-xs">{selectedPnuList.length}개</Badge>
+                            <Badge variant="secondary" className="text-xs">
+                                {selectedPnuList.length}개
+                            </Badge>
                         </div>
                         <Button
                             variant="ghost"
@@ -497,54 +520,63 @@ export default function GisMapContainer() {
                             전체 해제
                         </Button>
                     </div>
-                    
+
                     {/* 선택된 필지 목록 */}
                     <div className="max-h-[300px] overflow-y-auto divide-y divide-slate-100">
                         {selectedPnuList.map((pnu) => {
-                            const parcelInfo = viewMode === 'registration' 
-                                ? registrationData.find(d => d.pnu === pnu)
-                                : consentData.find(d => d.pnu === pnu);
-                            
+                            const parcelInfo =
+                                viewMode === 'registration'
+                                    ? registrationData.find((d) => d.pnu === pnu)
+                                    : consentData.find((d) => d.pnu === pnu);
+
                             if (!parcelInfo) return null;
-                            
-                            const statusLabel = viewMode === 'registration'
-                                ? (parcelInfo as typeof registrationData[0]).registration_status === 'ALL_REGISTERED'
-                                    ? '전체 가입'
-                                    : (parcelInfo as typeof registrationData[0]).registration_status === 'PARTIAL_REGISTERED'
-                                    ? '일부 가입'
-                                    : (parcelInfo as typeof registrationData[0]).registration_status === 'NONE_REGISTERED'
-                                    ? '미가입'
-                                    : '미제출'
-                                : (parcelInfo as typeof consentData[0]).display_status === 'FULL_AGREED'
+
+                            const statusLabel =
+                                viewMode === 'registration'
+                                    ? (parcelInfo as (typeof registrationData)[0]).registration_status ===
+                                      'ALL_REGISTERED'
+                                        ? '전체 가입'
+                                        : (parcelInfo as (typeof registrationData)[0]).registration_status ===
+                                          'PARTIAL_REGISTERED'
+                                        ? '일부 가입'
+                                        : (parcelInfo as (typeof registrationData)[0]).registration_status ===
+                                          'NONE_REGISTERED'
+                                        ? '미가입'
+                                        : '미제출'
+                                    : (parcelInfo as (typeof consentData)[0]).display_status === 'FULL_AGREED'
                                     ? '동의 완료'
-                                    : (parcelInfo as typeof consentData[0]).display_status === 'PARTIAL_AGREED'
+                                    : (parcelInfo as (typeof consentData)[0]).display_status === 'PARTIAL_AGREED'
                                     ? '일부 동의'
-                                    : (parcelInfo as typeof consentData[0]).display_status === 'NONE_AGREED'
+                                    : (parcelInfo as (typeof consentData)[0]).display_status === 'NONE_AGREED'
                                     ? '미동의'
                                     : '미제출';
-                            
-                            const statusColor = viewMode === 'registration'
-                                ? (parcelInfo as typeof registrationData[0]).registration_status === 'ALL_REGISTERED'
+
+                            const statusColor =
+                                viewMode === 'registration'
+                                    ? (parcelInfo as (typeof registrationData)[0]).registration_status ===
+                                      'ALL_REGISTERED'
+                                        ? 'bg-green-100 text-green-700'
+                                        : (parcelInfo as (typeof registrationData)[0]).registration_status ===
+                                          'PARTIAL_REGISTERED'
+                                        ? 'bg-yellow-100 text-yellow-700'
+                                        : (parcelInfo as (typeof registrationData)[0]).registration_status ===
+                                          'NONE_REGISTERED'
+                                        ? 'bg-red-100 text-red-700'
+                                        : 'bg-slate-100 text-slate-600'
+                                    : (parcelInfo as (typeof consentData)[0]).display_status === 'FULL_AGREED'
                                     ? 'bg-green-100 text-green-700'
-                                    : (parcelInfo as typeof registrationData[0]).registration_status === 'PARTIAL_REGISTERED'
+                                    : (parcelInfo as (typeof consentData)[0]).display_status === 'PARTIAL_AGREED'
                                     ? 'bg-yellow-100 text-yellow-700'
-                                    : (parcelInfo as typeof registrationData[0]).registration_status === 'NONE_REGISTERED'
-                                    ? 'bg-red-100 text-red-700'
-                                    : 'bg-slate-100 text-slate-600'
-                                : (parcelInfo as typeof consentData[0]).display_status === 'FULL_AGREED'
-                                    ? 'bg-green-100 text-green-700'
-                                    : (parcelInfo as typeof consentData[0]).display_status === 'PARTIAL_AGREED'
-                                    ? 'bg-yellow-100 text-yellow-700'
-                                    : (parcelInfo as typeof consentData[0]).display_status === 'NONE_AGREED'
+                                    : (parcelInfo as (typeof consentData)[0]).display_status === 'NONE_AGREED'
                                     ? 'bg-red-100 text-red-700'
                                     : 'bg-slate-100 text-slate-600';
 
                             return (
-                                <div 
+                                <div
                                     key={pnu}
                                     className={cn(
-                                        "p-3 flex items-center gap-3 hover:bg-slate-50 cursor-pointer transition-colors",
-                                        searchedPnu === pnu && "bg-primary/5"
+                                        'p-3 flex items-center gap-3 hover:bg-slate-50 cursor-pointer transition-colors',
+                                        searchedPnu === pnu && 'bg-primary/5'
                                     )}
                                     onClick={() => setSearchedPnu(pnu)}
                                 >
@@ -553,7 +585,9 @@ export default function GisMapContainer() {
                                             <h4 className="text-sm font-medium text-slate-900 truncate">
                                                 {parcelInfo.address || '주소 정보 없음'}
                                             </h4>
-                                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusColor}`}>
+                                            <span
+                                                className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusColor}`}
+                                            >
                                                 {statusLabel}
                                             </span>
                                         </div>
@@ -581,7 +615,7 @@ export default function GisMapContainer() {
                                             size="sm"
                                             onClick={(e) => {
                                                 e.stopPropagation();
-                                                setSelectedPnuList(prev => prev.filter(p => p !== pnu));
+                                                setSelectedPnuList((prev) => prev.filter((p) => p !== pnu));
                                                 if (searchedPnu === pnu) setSearchedPnu(null);
                                             }}
                                             className="h-7 w-7 p-0 text-slate-400 hover:text-red-500"
@@ -629,11 +663,7 @@ export default function GisMapContainer() {
                                         {status === 'AGREED' && <CheckCircle2 className="w-3 h-3 mr-1" />}
                                         {status === 'DISAGREED' && <XCircle className="w-3 h-3 mr-1" />}
                                         {status === 'PENDING' && <Clock className="w-3 h-3 mr-1" />}
-                                        {status === 'AGREED'
-                                            ? '동의'
-                                            : status === 'DISAGREED'
-                                            ? '미동의'
-                                            : '미제출'}
+                                        {status === 'AGREED' ? '동의' : status === 'DISAGREED' ? '미동의' : '미제출'}
                                     </Badge>
                                 </div>
                             );
