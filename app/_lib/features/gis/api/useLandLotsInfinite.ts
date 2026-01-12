@@ -34,11 +34,7 @@ interface UseLandLotsInfiniteParams {
 /**
  * 지번 목록 무한 스크롤 조회 Hook
  */
-export function useLandLotsInfinite({
-    unionId,
-    searchQuery = '',
-    pageSize = 50,
-}: UseLandLotsInfiniteParams) {
+export function useLandLotsInfinite({ unionId, searchQuery = '', pageSize = 50 }: UseLandLotsInfiniteParams) {
     return useInfiniteQuery<InfiniteLandLotsResponse>({
         queryKey: ['union-land-lots-infinite', unionId, searchQuery],
         queryFn: async ({ pageParam }): Promise<InfiniteLandLotsResponse> => {

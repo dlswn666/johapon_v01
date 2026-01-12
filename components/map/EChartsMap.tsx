@@ -267,7 +267,11 @@ export default function EChartsMap({
             },
             visualMap: {
                 type: 'piecewise',
-                pieces: config.pieces,
+                // 카테고리 기반 매핑: 문자열 status 값을 색상으로 변환
+                categories: config.pieces.map((p) => p.value),
+                inRange: {
+                    color: config.pieces.map((p) => p.color),
+                },
                 show: false, // canvas 외부에 별도 범례 컴포넌트 사용
                 orient: 'horizontal',
                 bottom: 20,
