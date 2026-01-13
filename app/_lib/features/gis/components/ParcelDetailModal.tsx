@@ -48,6 +48,15 @@ import {
     Plus,
 } from 'lucide-react';
 import { useParcelDetail, ParcelDetail, Owner, BUILDING_TYPE_LABELS } from '../api/useParcelDetail';
+import {
+    useBuildingSearch,
+    usePnuBuildingMapping,
+    useUpdateBuildingMatch,
+    useBuildingUnitsUnion,
+    useDeleteBuildingUnit,
+    BuildingSearchResult,
+    BuildingUnitWithSource,
+} from '../api/useBuildingMatch';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { updateParcelInfo, deleteParcel, linkMemberToParcel, searchUnionMembers } from '../actions/parcelActions';
@@ -338,7 +347,7 @@ interface EditParcelModalProps {
 }
 
 function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: EditParcelModalProps) {
-    const [activeTab, setActiveTab] = useState<'info' | 'member'>('info');
+    const [activeTab, setActiveTab] = useState<'info' | 'member' | 'building-match'>('info');
     
     // 필지/건물 정보 폼
     const [formData, setFormData] = useState({
@@ -360,6 +369,21 @@ function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: Edi
     const [isSearching, setIsSearching] = useState(false);
     const [selectedMember, setSelectedMember] = useState<{ id: string; name: string } | null>(null);
 
+    // 건물 매칭 상태
+    const [buildingSearchKeyword, setBuildingSearchKeyword] = useState('');
+    const [selectedBuilding, setSelectedBuilding] = useState<BuildingSearchResult | null>(null);
+    const [unitToDelete, setUnitToDelete] = useState<BuildingUnitWithSource | null>(null);
+
+    // 건물 매칭 훅
+    const { data: buildingSearchResults, isLoading: isBuildingSearching } = useBuildingSearch(
+        buildingSearchKeyword,
+        buildingSearchKeyword.length >= 2
+    );
+    const { data: currentMapping } = usePnuBuildingMapping(parcel.pnu);
+    const { data: unitsUnion, isLoading: isLoadingUnits } = useBuildingUnitsUnion(parcel.pnu);
+    const updateMatchMutation = useUpdateBuildingMatch();
+    const deleteUnitMutation = useDeleteBuildingUnit();
+
     // 모달이 열릴 때 데이터 초기화
     useEffect(() => {
         if (open) {
@@ -377,6 +401,10 @@ function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: Edi
             setMemberSearchQuery('');
             setSearchResults([]);
             setSelectedMember(null);
+            // 건물 매칭 상태 초기화
+            setBuildingSearchKeyword('');
+            setSelectedBuilding(null);
+            setUnitToDelete(null);
         }
     }, [open, parcel]);
 
@@ -480,6 +508,17 @@ function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: Edi
                         onClick={() => setActiveTab('member')}
                     >
                         소유주 추가
+                    </button>
+                    <button
+                        className={cn(
+                            "flex-1 py-2 text-sm font-medium border-b-2 transition-colors cursor-pointer",
+                            activeTab === 'building-match'
+                                ? "border-primary text-primary"
+                                : "border-transparent text-gray-500 hover:text-gray-700"
+                        )}
+                        onClick={() => setActiveTab('building-match')}
+                    >
+                        건물 매칭
                     </button>
                 </div>
 
@@ -588,7 +627,7 @@ function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: Edi
                                 </div>
                             </div>
                         </div>
-                    ) : (
+                    ) : activeTab === 'member' ? (
                         <div className="space-y-4">
                             {/* 소유주 검색 */}
                             <div className="space-y-2">
@@ -665,14 +704,204 @@ function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: Edi
                                 </div>
                             )}
                         </div>
-                    )}
+                    ) : activeTab === 'building-match' ? (
+                        <div className="space-y-4">
+                            {/* 현재 매칭 정보 */}
+                            {currentMapping?.current_building && (
+                                <div className="p-3 bg-blue-50 rounded-lg">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <Building2 className="w-4 h-4 text-blue-600" />
+                                        <span className="text-sm font-medium text-blue-800">현재 매칭된 건물</span>
+                                    </div>
+                                    <p className="text-sm text-blue-700">
+                                        {currentMapping.current_building.building_name || '(이름 없음)'} - {BUILDING_TYPE_LABELS[currentMapping.current_building.building_type] || currentMapping.current_building.building_type}
+                                    </p>
+                                </div>
+                            )}
+
+                            {/* 건물 검색 */}
+                            <div className="space-y-2">
+                                <Label className="text-xs">건물명으로 검색</Label>
+                                <div className="flex gap-2">
+                                    <Input
+                                        placeholder="건물명 입력 (2글자 이상)"
+                                        value={buildingSearchKeyword}
+                                        onChange={(e) => setBuildingSearchKeyword(e.target.value)}
+                                    />
+                                    {isBuildingSearching && <Loader2 className="w-5 h-5 animate-spin text-gray-400" />}
+                                </div>
+                            </div>
+
+                            {/* 검색 결과 */}
+                            {buildingSearchResults && buildingSearchResults.length > 0 && (
+                                <div className="space-y-2">
+                                    <Label className="text-xs">검색 결과 (클릭하여 선택)</Label>
+                                    <div className="max-h-40 overflow-y-auto border rounded-lg divide-y">
+                                        {buildingSearchResults.map((building) => (
+                                            <button
+                                                key={building.id}
+                                                className={cn(
+                                                    "w-full p-3 text-left hover:bg-gray-100 transition-colors cursor-pointer",
+                                                    selectedBuilding?.id === building.id && "bg-primary/10"
+                                                )}
+                                                onClick={() => setSelectedBuilding(building)}
+                                            >
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-2">
+                                                        <Building2 className="w-4 h-4 text-gray-400" />
+                                                        <span className="font-medium text-sm">
+                                                            {building.building_name || '(이름 없음)'}
+                                                        </span>
+                                                        <Badge variant="outline" className="text-xs">
+                                                            {BUILDING_TYPE_LABELS[building.building_type] || building.building_type}
+                                                        </Badge>
+                                                    </div>
+                                                    {selectedBuilding?.id === building.id && (
+                                                        <CheckCircle2 className="w-4 h-4 text-primary" />
+                                                    )}
+                                                </div>
+                                                <div className="text-xs text-gray-500 mt-1 ml-6">
+                                                    {building.dong_count > 0 ? `${building.dong_count}개동` : ''} {building.unit_count}개 호실
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* 선택된 건물 */}
+                            {selectedBuilding && (
+                                <div className="p-3 bg-primary/5 rounded-lg flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <Building2 className="w-4 h-4 text-primary" />
+                                        <span className="text-sm font-medium">{selectedBuilding.building_name || '(이름 없음)'}</span>
+                                        <span className="text-xs text-gray-500">
+                                            ({selectedBuilding.dong_count > 0 ? `${selectedBuilding.dong_count}개동, ` : ''}{selectedBuilding.unit_count}개 호실)
+                                        </span>
+                                    </div>
+                                    <button
+                                        onClick={() => setSelectedBuilding(null)}
+                                        className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors cursor-pointer"
+                                        title="선택 취소"
+                                    >
+                                        <XCircle className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* 호실 목록 (Union: 이전+현재) */}
+                            {(currentMapping?.previous_building_id || currentMapping?.building_id) && (
+                                <div className="space-y-2 pt-3 border-t">
+                                    <Label className="text-xs flex items-center gap-2">
+                                        <Layers className="w-4 h-4" />
+                                        호실 목록 {currentMapping?.previous_building_id && '(이전 건물 포함)'}
+                                    </Label>
+                                    {isLoadingUnits ? (
+                                        <div className="flex items-center justify-center py-4">
+                                            <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+                                        </div>
+                                    ) : unitsUnion && unitsUnion.length > 0 ? (
+                                        <div className="max-h-48 overflow-y-auto border rounded-lg divide-y">
+                                            {unitsUnion.map((unit) => (
+                                                <div
+                                                    key={unit.id}
+                                                    className={cn(
+                                                        "p-2 flex items-center justify-between text-sm",
+                                                        unit.source === 'previous' && "bg-yellow-50"
+                                                    )}
+                                                >
+                                                    <div className="flex items-center gap-2">
+                                                        <Home className="w-4 h-4 text-gray-400" />
+                                                        <span>
+                                                            {unit.dong && `${unit.dong}동 `}
+                                                            {unit.ho ? `${unit.ho}호` : '-'}
+                                                        </span>
+                                                        {unit.source === 'previous' && (
+                                                            <Badge variant="outline" className="text-xs text-yellow-700 border-yellow-500">
+                                                                이전
+                                                            </Badge>
+                                                        )}
+                                                        {unit.source === 'current' && (
+                                                            <Badge variant="outline" className="text-xs text-blue-700 border-blue-500">
+                                                                현재
+                                                            </Badge>
+                                                        )}
+                                                    </div>
+                                                    <button
+                                                        onClick={() => setUnitToDelete(unit)}
+                                                        className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors cursor-pointer"
+                                                        title="삭제"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <p className="text-sm text-gray-500 py-2">호실 정보가 없습니다.</p>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    ) : null}
                 </div>
+
+                {/* 호실 삭제 확인 다이얼로그 */}
+                <AlertDialog open={!!unitToDelete} onOpenChange={(open) => !open && setUnitToDelete(null)}>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>호실을 삭제하시겠습니까?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                {unitToDelete && (
+                                    <>
+                                        {unitToDelete.dong && `${unitToDelete.dong}동 `}
+                                        {unitToDelete.ho ? `${unitToDelete.ho}호` : '해당 호실'}을(를) 삭제합니다.
+                                        <br />
+                                        <span className="text-yellow-600">
+                                            이 작업은 되돌릴 수 없으며, 해당 호실의 소유주 연결도 함께 해제됩니다.
+                                        </span>
+                                    </>
+                                )}
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel disabled={deleteUnitMutation.isPending}>취소</AlertDialogCancel>
+                            <AlertDialogAction
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    if (unitToDelete) {
+                                        deleteUnitMutation.mutate(
+                                            { unitId: unitToDelete.id, pnu: parcel.pnu },
+                                            {
+                                                onSuccess: () => {
+                                                    setUnitToDelete(null);
+                                                    onSuccess();
+                                                },
+                                            }
+                                        );
+                                    }
+                                }}
+                                disabled={deleteUnitMutation.isPending}
+                                className="bg-red-500 hover:bg-red-600"
+                            >
+                                {deleteUnitMutation.isPending ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                        삭제 중...
+                                    </>
+                                ) : (
+                                    '삭제'
+                                )}
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
 
                 <DialogFooter className="border-t pt-4">
                     <Button
                         variant="outline"
                         onClick={() => onOpenChange(false)}
-                        disabled={updateMutation.isPending || linkMemberMutation.isPending}
+                        disabled={updateMutation.isPending || linkMemberMutation.isPending || updateMatchMutation.isPending}
                     >
                         취소
                     </Button>
@@ -690,7 +919,7 @@ function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: Edi
                                 '저장'
                             )}
                         </Button>
-                    ) : (
+                    ) : activeTab === 'member' ? (
                         <Button
                             onClick={() => linkMemberMutation.mutate()}
                             disabled={linkMemberMutation.isPending || !selectedMember}
@@ -702,6 +931,32 @@ function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: Edi
                                 </>
                             ) : (
                                 '소유주 연결'
+                            )}
+                        </Button>
+                    ) : (
+                        <Button
+                            onClick={() => {
+                                if (selectedBuilding) {
+                                    updateMatchMutation.mutate(
+                                        { pnu: parcel.pnu, newBuildingId: selectedBuilding.id },
+                                        {
+                                            onSuccess: () => {
+                                                setSelectedBuilding(null);
+                                                onSuccess();
+                                            },
+                                        }
+                                    );
+                                }
+                            }}
+                            disabled={updateMatchMutation.isPending || !selectedBuilding}
+                        >
+                            {updateMatchMutation.isPending ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    저장 중...
+                                </>
+                            ) : (
+                                '건물 매칭 변경'
                             )}
                         </Button>
                     )}

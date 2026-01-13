@@ -346,18 +346,30 @@ export type Database = {
                     building_id: string;
                     pnu: string;
                     created_at: string | null;
+                    previous_building_id: string | null;
+                    updated_at: string | null;
+                    updated_by: string | null;
+                    note: string | null;
                 };
                 Insert: {
                     id?: string;
                     building_id: string;
                     pnu: string;
                     created_at?: string | null;
+                    previous_building_id?: string | null;
+                    updated_at?: string | null;
+                    updated_by?: string | null;
+                    note?: string | null;
                 };
                 Update: {
                     id?: string;
                     building_id?: string;
                     pnu?: string;
                     created_at?: string | null;
+                    previous_building_id?: string | null;
+                    updated_at?: string | null;
+                    updated_by?: string | null;
+                    note?: string | null;
                 };
                 Relationships: [
                     {
@@ -373,6 +385,13 @@ export type Database = {
                         isOneToOne: true;
                         referencedRelation: 'land_lots';
                         referencedColumns: ['pnu'];
+                    },
+                    {
+                        foreignKeyName: 'building_land_lots_previous_building_id_fkey';
+                        columns: ['previous_building_id'];
+                        isOneToOne: false;
+                        referencedRelation: 'buildings';
+                        referencedColumns: ['id'];
                     }
                 ];
             };
@@ -384,7 +403,6 @@ export type Database = {
                     floor_count: number | null;
                     id: string;
                     main_purpose: string | null;
-                    pnu: string;
                     total_unit_count: number | null;
                     updated_at: string | null;
                 };
@@ -395,7 +413,6 @@ export type Database = {
                     floor_count?: number | null;
                     id?: string;
                     main_purpose?: string | null;
-                    pnu: string;
                     total_unit_count?: number | null;
                     updated_at?: string | null;
                 };
@@ -406,26 +423,10 @@ export type Database = {
                     floor_count?: number | null;
                     id?: string;
                     main_purpose?: string | null;
-                    pnu?: string;
                     total_unit_count?: number | null;
                     updated_at?: string | null;
                 };
-                Relationships: [
-                    {
-                        foreignKeyName: 'buildings_pnu_fkey';
-                        columns: ['pnu'];
-                        isOneToOne: true;
-                        referencedRelation: 'land_lots';
-                        referencedColumns: ['pnu'];
-                    },
-                    {
-                        foreignKeyName: 'buildings_pnu_fkey';
-                        columns: ['pnu'];
-                        isOneToOne: true;
-                        referencedRelation: 'v_pnu_consent_status';
-                        referencedColumns: ['pnu'];
-                    }
-                ];
+                Relationships: [];
             };
             comments: {
                 Row: {

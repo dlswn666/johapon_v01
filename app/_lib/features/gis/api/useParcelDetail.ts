@@ -96,7 +96,7 @@ export const useParcelDetail = (pnu: string | null, stageId: string | null) => {
                 throw new Error(`필지 조회 오류: ${landError.message}`);
             }
 
-            // 2. 건물 정보 조회 - 우선 buildings.pnu로 조회
+            // 2. 건물 정보 조회 - building_land_lots를 단일 소스로 사용
             let buildingInfo: {
                 id: string;
                 building_type: string;
@@ -106,32 +106,22 @@ export const useParcelDetail = (pnu: string | null, stageId: string | null) => {
                 total_unit_count: number | null;
             } | null = null;
 
-            const { data: directBuilding } = await supabase
-                .from('buildings')
-                .select('id, building_type, building_name, main_purpose, floor_count, total_unit_count')
+            // building_land_lots에서 PNU로 building_id 조회
+            const { data: mapping } = await supabase
+                .from('building_land_lots')
+                .select('building_id')
                 .eq('pnu', pnu)
                 .single();
 
-            if (directBuilding) {
-                buildingInfo = directBuilding;
-            } else {
-                // 2.1. buildings.pnu에 없으면 building_land_lots 매핑 테이블에서 조회
-                const { data: mapping } = await supabase
-                    .from('building_land_lots')
-                    .select('building_id')
-                    .eq('pnu', pnu)
+            if (mapping?.building_id) {
+                const { data: building } = await supabase
+                    .from('buildings')
+                    .select('id, building_type, building_name, main_purpose, floor_count, total_unit_count')
+                    .eq('id', mapping.building_id)
                     .single();
 
-                if (mapping?.building_id) {
-                    const { data: mappedBuilding } = await supabase
-                        .from('buildings')
-                        .select('id, building_type, building_name, main_purpose, floor_count, total_unit_count')
-                        .eq('id', mapping.building_id)
-                        .single();
-
-                    if (mappedBuilding) {
-                        buildingInfo = mappedBuilding;
-                    }
+                if (building) {
+                    buildingInfo = building;
                 }
             }
 

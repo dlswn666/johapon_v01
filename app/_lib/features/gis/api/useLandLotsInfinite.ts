@@ -76,16 +76,19 @@ export function useLandLotsInfinite({ unionId, searchQuery = '', pageSize = 50 }
                 .select('pnu, area, land_category, official_price, owner_count')
                 .in('pnu', pnuList);
 
-            // buildings에서 건물 유형 조회
-            const { data: buildingsInfo } = await supabase
-                .from('buildings')
-                .select('pnu, building_type')
+            // building_land_lots + buildings 조인으로 건물 유형 조회
+            const { data: buildingMappings } = await supabase
+                .from('building_land_lots')
+                .select('pnu, buildings!inner(building_type)')
                 .in('pnu', pnuList);
 
             // 데이터 병합
             const extendedLots: ExtendedLandLot[] = lotsData.map((lot) => {
                 const landInfo = landLotsInfo?.find((l) => l.pnu === lot.pnu);
-                const buildingInfo = buildingsInfo?.find((b) => b.pnu === lot.pnu);
+                const mappingInfo = buildingMappings?.find((m) => m.pnu === lot.pnu);
+                // buildings는 inner join이므로 단일 객체로 반환됨
+                const buildingData = mappingInfo?.buildings as { building_type: string } | undefined;
+                const buildingType = buildingData?.building_type || null;
 
                 return {
                     id: lot.id,
@@ -96,7 +99,7 @@ export function useLandLotsInfinite({ unionId, searchQuery = '', pageSize = 50 }
                     land_category: landInfo?.land_category || null,
                     official_price: landInfo?.official_price || null,
                     owner_count: landInfo?.owner_count || null,
-                    building_type: buildingInfo?.building_type || null,
+                    building_type: buildingType,
                 };
             });
 
