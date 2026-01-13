@@ -299,77 +299,36 @@ export type Database = {
                 };
                 Relationships: [];
             };
-            building_units: {
-                Row: {
-                    area: number | null;
-                    building_id: string;
-                    created_at: string | null;
-                    dong: string | null;
-                    floor: number | null;
-                    ho: string | null;
-                    id: string;
-                    official_price: number | null;
-                };
-                Insert: {
-                    area?: number | null;
-                    building_id: string;
-                    created_at?: string | null;
-                    dong?: string | null;
-                    floor?: number | null;
-                    ho?: string | null;
-                    id?: string;
-                    official_price?: number | null;
-                };
-                Update: {
-                    area?: number | null;
-                    building_id?: string;
-                    created_at?: string | null;
-                    dong?: string | null;
-                    floor?: number | null;
-                    ho?: string | null;
-                    id?: string;
-                    official_price?: number | null;
-                };
-                Relationships: [
-                    {
-                        foreignKeyName: 'building_units_building_id_fkey';
-                        columns: ['building_id'];
-                        isOneToOne: false;
-                        referencedRelation: 'buildings';
-                        referencedColumns: ['id'];
-                    }
-                ];
-            };
             building_land_lots: {
                 Row: {
-                    id: string;
                     building_id: string;
-                    pnu: string;
                     created_at: string | null;
+                    id: string;
+                    note: string | null;
+                    pnu: string;
                     previous_building_id: string | null;
                     updated_at: string | null;
                     updated_by: string | null;
-                    note: string | null;
                 };
                 Insert: {
-                    id?: string;
                     building_id: string;
-                    pnu: string;
                     created_at?: string | null;
+                    id?: string;
+                    note?: string | null;
+                    pnu: string;
                     previous_building_id?: string | null;
                     updated_at?: string | null;
                     updated_by?: string | null;
-                    note?: string | null;
                 };
                 Update: {
-                    id?: string;
                     building_id?: string;
-                    pnu?: string;
                     created_at?: string | null;
+                    id?: string;
+                    note?: string | null;
+                    pnu?: string;
                     previous_building_id?: string | null;
                     updated_at?: string | null;
                     updated_by?: string | null;
-                    note?: string | null;
                 };
                 Relationships: [
                     {
@@ -387,7 +346,65 @@ export type Database = {
                         referencedColumns: ['pnu'];
                     },
                     {
+                        foreignKeyName: 'building_land_lots_pnu_fkey';
+                        columns: ['pnu'];
+                        isOneToOne: true;
+                        referencedRelation: 'v_pnu_consent_status';
+                        referencedColumns: ['pnu'];
+                    },
+                    {
                         foreignKeyName: 'building_land_lots_previous_building_id_fkey';
+                        columns: ['previous_building_id'];
+                        isOneToOne: false;
+                        referencedRelation: 'buildings';
+                        referencedColumns: ['id'];
+                    }
+                ];
+            };
+            building_units: {
+                Row: {
+                    area: number | null;
+                    building_id: string;
+                    created_at: string | null;
+                    dong: string | null;
+                    floor: number | null;
+                    ho: string | null;
+                    id: string;
+                    official_price: number | null;
+                    previous_building_id: string | null;
+                };
+                Insert: {
+                    area?: number | null;
+                    building_id: string;
+                    created_at?: string | null;
+                    dong?: string | null;
+                    floor?: number | null;
+                    ho?: string | null;
+                    id?: string;
+                    official_price?: number | null;
+                    previous_building_id?: string | null;
+                };
+                Update: {
+                    area?: number | null;
+                    building_id?: string;
+                    created_at?: string | null;
+                    dong?: string | null;
+                    floor?: number | null;
+                    ho?: string | null;
+                    id?: string;
+                    official_price?: number | null;
+                    previous_building_id?: string | null;
+                };
+                Relationships: [
+                    {
+                        foreignKeyName: 'building_units_building_id_fkey';
+                        columns: ['building_id'];
+                        isOneToOne: false;
+                        referencedRelation: 'buildings';
+                        referencedColumns: ['id'];
+                    },
+                    {
+                        foreignKeyName: 'building_units_previous_building_id_fkey';
                         columns: ['previous_building_id'];
                         isOneToOne: false;
                         referencedRelation: 'buildings';
@@ -692,35 +709,55 @@ export type Database = {
             land_lots: {
                 Row: {
                     address: string;
+                    address_text: string | null;
                     area: number | null;
                     boundary: unknown;
+                    created_at: string;
                     land_category: string | null;
                     official_price: number | null;
                     owner_count: number | null;
                     pnu: string;
+                    road_address: string | null;
+                    union_id: string | null;
                     updated_at: string;
                 };
                 Insert: {
                     address: string;
+                    address_text?: string | null;
                     area?: number | null;
                     boundary?: unknown;
+                    created_at?: string;
                     land_category?: string | null;
                     official_price?: number | null;
                     owner_count?: number | null;
                     pnu: string;
+                    road_address?: string | null;
+                    union_id?: string | null;
                     updated_at?: string;
                 };
                 Update: {
                     address?: string;
+                    address_text?: string | null;
                     area?: number | null;
                     boundary?: unknown;
+                    created_at?: string;
                     land_category?: string | null;
                     official_price?: number | null;
                     owner_count?: number | null;
                     pnu?: string;
+                    road_address?: string | null;
+                    union_id?: string | null;
                     updated_at?: string;
                 };
-                Relationships: [];
+                Relationships: [
+                    {
+                        foreignKeyName: 'land_lots_union_id_fkey';
+                        columns: ['union_id'];
+                        isOneToOne: false;
+                        referencedRelation: 'unions';
+                        referencedColumns: ['id'];
+                    }
+                ];
             };
             member_access_logs: {
                 Row: {
@@ -1082,41 +1119,6 @@ export type Database = {
                     },
                     {
                         foreignKeyName: 'union_info_union_id_fkey';
-                        columns: ['union_id'];
-                        isOneToOne: false;
-                        referencedRelation: 'unions';
-                        referencedColumns: ['id'];
-                    }
-                ];
-            };
-            union_land_lots: {
-                Row: {
-                    address_text: string | null;
-                    created_at: string | null;
-                    id: string;
-                    land_area: number | null;
-                    pnu: string;
-                    union_id: string | null;
-                };
-                Insert: {
-                    address_text?: string | null;
-                    created_at?: string | null;
-                    id?: string;
-                    land_area?: number | null;
-                    pnu: string;
-                    union_id?: string | null;
-                };
-                Update: {
-                    address_text?: string | null;
-                    created_at?: string | null;
-                    id?: string;
-                    land_area?: number | null;
-                    pnu?: string;
-                    union_id?: string | null;
-                };
-                Relationships: [
-                    {
-                        foreignKeyName: 'union_land_lots_union_id_fkey';
                         columns: ['union_id'];
                         isOneToOne: false;
                         referencedRelation: 'unions';
@@ -1534,7 +1536,7 @@ export type Database = {
                 };
                 Relationships: [
                     {
-                        foreignKeyName: 'union_land_lots_union_id_fkey';
+                        foreignKeyName: 'land_lots_union_id_fkey';
                         columns: ['union_id'];
                         isOneToOne: false;
                         referencedRelation: 'unions';
@@ -1544,75 +1546,6 @@ export type Database = {
             };
         };
         Functions: {
-            get_current_pricing: {
-                Args: Record<PropertyKey, never>;
-                Returns: {
-                    message_type: string;
-                    unit_price: number;
-                }[];
-            };
-            get_grouped_members: {
-                Args: {
-                    p_blocked_filter?: string;
-                    p_page?: number;
-                    p_page_size?: number;
-                    p_search_query?: string;
-                    p_union_id: string;
-                };
-                Returns: {
-                    birth_date: string;
-                    blocked_at: string;
-                    blocked_reason: string;
-                    building_area: number;
-                    building_ownership_ratio: number;
-                    created_at: string;
-                    email: string;
-                    group_key: string;
-                    grouped_user_ids: string[];
-                    id: string;
-                    is_blocked: boolean;
-                    land_area: number;
-                    land_ownership_ratio: number;
-                    name: string;
-                    notes: string;
-                    phone_number: string;
-                    property_address: string;
-                    property_address_detail: string;
-                    property_address_jibun: string;
-                    property_address_road: string;
-                    property_dong: string;
-                    property_ho: string;
-                    property_pnu: string;
-                    property_type: string;
-                    property_zonecode: string;
-                    resident_address: string;
-                    resident_address_detail: string;
-                    resident_address_jibun: string;
-                    resident_address_road: string;
-                    resident_zonecode: string;
-                    role: string;
-                    total_building_area: number;
-                    total_count: number;
-                    total_land_area: number;
-                    total_property_count: number;
-                    union_id: string;
-                    updated_at: string;
-                    user_status: string;
-                }[];
-            };
-            get_union_consent_map_data: {
-                Args: { p_stage_id: string; p_union_id: string };
-                Returns: {
-                    address: string;
-                    agreed_count: number;
-                    area: number;
-                    boundary_geojson: Json;
-                    consent_status: string;
-                    official_price: number;
-                    pnu: string;
-                    total_owners: number;
-                }[];
-            };
             get_union_consent_rate: {
                 Args: { p_stage_id: string; p_union_id: string };
                 Returns: {
@@ -1623,82 +1556,14 @@ export type Database = {
                     total_owner_count: number;
                 }[];
             };
-            get_union_parcels_geojson: {
-                Args: { p_union_id: string };
-                Returns: {
-                    address: string;
-                    area: number;
-                    boundary_geojson: Json;
-                    official_price: number;
-                    owner_count: number;
-                    pnu: string;
-                }[];
-            };
-            get_union_parcels_without_boundary: {
-                Args: { p_union_id: string };
-                Returns: {
-                    address: string;
-                    pnu: string;
-                }[];
-            };
-            get_union_registration_map_data: {
-                Args: { p_union_id: string };
-                Returns: {
-                    address: string;
-                    area: number;
-                    boundary_geojson: Json;
-                    official_price: number;
-                    pnu: string;
-                    registered_count: number;
-                    registration_status: string;
-                    total_owners: number;
-                }[];
-            };
             get_union_registration_rate: {
                 Args: { p_union_id: string };
                 Returns: {
-                    registered_land_lots: number;
+                    member_count: number;
+                    registered_lots: number;
                     registration_rate: number;
-                    total_land_lots: number;
-                    total_members: number;
+                    total_lots: number;
                 }[];
-            };
-            increment_free_board_views: {
-                Args: { free_board_id: number };
-                Returns: undefined;
-            };
-            increment_notice_views: {
-                Args: { notice_id: number };
-                Returns: undefined;
-            };
-            increment_question_views: {
-                Args: { question_id: number };
-                Returns: undefined;
-            };
-            increment_union_info_views: {
-                Args: { p_union_info_id: number };
-                Returns: undefined;
-            };
-            register_union_sender_key: {
-                Args: {
-                    p_channel_name: string;
-                    p_sender_key: string;
-                    p_union_id: string;
-                };
-                Returns: string;
-            };
-            sync_member_invites: {
-                Args: {
-                    p_created_by: string;
-                    p_expires_hours: number;
-                    p_members: Json;
-                    p_union_id: string;
-                };
-                Returns: Json;
-            };
-            delete_old_access_logs: {
-                Args: { months_to_keep?: number };
-                Returns: number;
             };
         };
         Enums: {
@@ -1854,20 +1719,135 @@ export const Constants = {
     },
 } as const;
 
-// ======================================
-// 커스텀 타입 정의
-// ======================================
+// 소유권 유형
+export type OwnershipType = 'OWNER' | 'CO_OWNER' | 'FAMILY';
 
-// 알림톡 로그 타입 (조인된 데이터 포함)
+export const OWNERSHIP_TYPE_LABELS: Record<OwnershipType, string> = {
+    OWNER: '소유주',
+    CO_OWNER: '공동소유',
+    FAMILY: '소유주 가족',
+};
+
+export const OWNERSHIP_TYPE_STYLES: Record<OwnershipType, string> = {
+    OWNER: 'bg-blue-100 text-blue-800',
+    CO_OWNER: 'bg-purple-100 text-purple-800',
+    FAMILY: 'bg-green-100 text-green-800',
+};
+
+// ============================================
+// 커스텀 타입 정의
+// ============================================
+
+// 사용자 관련
+export type User = Database['public']['Tables']['users']['Row'];
+export type NewUser = Database['public']['Tables']['users']['Insert'];
+export type UpdateUser = Database['public']['Tables']['users']['Update'];
+
+// 사용자 상태
+export type UserStatus =
+    | 'APPROVED'
+    | 'REJECTED'
+    | 'PRE_REGISTERED'
+    | 'PENDING_PROFILE'
+    | 'PENDING_APPROVAL'
+    | 'APPLICANT';
+
+// 물건지 정보
+export interface MemberPropertyUnitInfo {
+    id: string;
+    pnu: string | null;
+    dong: string | null;
+    ho: string | null;
+    ownership_type: OwnershipType | null;
+    is_primary: boolean | null;
+    land_area: number | null;
+    building_area: number | null;
+    land_ownership_ratio: number | null;
+    building_ownership_ratio: number | null;
+    property_address_jibun: string | null;
+    property_address_road: string | null;
+    notes: string | null;
+    building_unit_id: string | null;
+    building_name: string | null;
+    // UI 표시용 추가 필드
+    area?: number | null;
+    official_price?: number | null;
+    address?: string | null;
+}
+
+// 물건지와 함께 조회되는 조합원 정보
+export interface MemberWithProperties extends User {
+    property_units: MemberPropertyUnitInfo[];
+    isPnuMatched: boolean;
+    grouped_user_ids?: string[];
+    total_property_count?: number;
+    total_land_area?: number | null;
+    total_building_area?: number | null;
+}
+
+// 조합원 초대
+export type MemberInvite = Database['public']['Tables']['member_invites']['Row'];
+export type NewMemberInvite = Database['public']['Tables']['member_invites']['Insert'];
+export type UpdateMemberInvite = Database['public']['Tables']['member_invites']['Update'];
+export type MemberInviteWithUnion = MemberInvite & {
+    union: {
+        id: string;
+        name: string;
+        slug: string;
+    } | null;
+};
+export type SyncMemberInvitesResult = {
+    inserted: number;
+    deleted_pending: number;
+    deleted_used: number;
+    deleted_auth_user_ids?: string[];
+};
+
+// 공지사항
+export type Notice = Database['public']['Tables']['notices']['Row'];
+export type NewNotice = Database['public']['Tables']['notices']['Insert'];
+export type UpdateNotice = Database['public']['Tables']['notices']['Update'];
+
+// 자유게시판
+export type FreeBoard = Database['public']['Tables']['free_boards']['Row'];
+export type NewFreeBoard = Database['public']['Tables']['free_boards']['Insert'];
+export type UpdateFreeBoard = Database['public']['Tables']['free_boards']['Update'];
+
+// 광고
+export type AdType = Database['public']['Enums']['ad_type'];
+export type Advertisement = Database['public']['Tables']['advertisements']['Row'];
+export type NewAdvertisement = Database['public']['Tables']['advertisements']['Insert'];
+export type UpdateAdvertisement = Database['public']['Tables']['advertisements']['Update'];
+
+// QnA 게시판
+export type Question = Database['public']['Tables']['questions']['Row'];
+export type NewQuestion = Database['public']['Tables']['questions']['Insert'];
+export type UpdateQuestion = Database['public']['Tables']['questions']['Update'];
+
+// 조합 정보 (게시판)
+export type UnionInfo = Database['public']['Tables']['union_info']['Row'];
+export type NewUnionInfo = Database['public']['Tables']['union_info']['Insert'];
+export type UpdateUnionInfo = Database['public']['Tables']['union_info']['Update'];
+// UnionInfo에 추가되는 타입들
+export interface UnionInfoWithFiles extends UnionInfo {
+    files: Database['public']['Tables']['files']['Row'][];
+}
+export interface UnionInfoWithAuthor extends UnionInfo {
+    author: {
+        id: string;
+        name: string;
+    } | null;
+}
+
+// 알림톡 로그 (조합 정보 포함)
 export interface AlimtalkLogWithUnion {
     id: number;
-    union_id: string | null;
     sender_id: string;
-    notice_id: number | null;
-    template_code: string | null;
-    template_name: string | null;
+    union_id: string | null;
     title: string;
     content: string | null;
+    template_code: string | null;
+    template_name: string | null;
     recipient_count: number;
     success_count: number;
     fail_count: number;
@@ -1875,247 +1855,64 @@ export interface AlimtalkLogWithUnion {
     sms_success_count: number | null;
     cost_per_msg: number;
     estimated_cost: number | null;
-    sender_channel_name: string | null;
-    recipient_details: Json | null;
-    aligo_response: Json | null;
     sent_at: string;
-    union: { id: string; name: string; slug: string } | null;
-    sender: { id: string; name: string; email: string | null } | null;
-}
-
-// 소유 유형 타입
-export type OwnershipType = 'OWNER' | 'CO_OWNER' | 'FAMILY';
-
-// 소유 유형 레이블
-export const OWNERSHIP_TYPE_LABELS: Record<OwnershipType, string> = {
-    OWNER: '단독 소유',
-    CO_OWNER: '공동 소유',
-    FAMILY: '가족',
-};
-
-// 소유 유형 스타일
-export const OWNERSHIP_TYPE_STYLES: Record<OwnershipType, string> = {
-    OWNER: 'bg-blue-100 text-blue-700',
-    CO_OWNER: 'bg-purple-100 text-purple-700',
-    FAMILY: 'bg-green-100 text-green-700',
-};
-
-// 유틸리티 타입들
-export type User = Tables<'users'>;
-export type NewUser = TablesInsert<'users'>;
-export type UpdateUser = TablesUpdate<'users'>;
-export type MemberInvite = Tables<'member_invites'>;
-export interface MemberInviteWithUnion extends MemberInvite {
-    union: { id: string; name: string; slug: string } | null;
-}
-export interface SyncMemberInvitesResult {
-    added?: number;
-    skipped?: number;
-    errors?: string[];
-    inserted?: number;
-    deleted_pending?: number;
-    deleted_used?: number;
-    deleted_auth_user_ids?: string[];
-}
-export type UserStatus =
-    | 'APPLICANT'
-    | 'APPROVED'
-    | 'REJECTED'
-    | 'PRE_REGISTERED'
-    | 'PENDING_PROFILE'
-    | 'PENDING_APPROVAL';
-export type UserRole = 'SYSTEM_ADMIN' | 'ADMIN' | 'USER' | 'APPLICANT';
-
-// 조합 타입들
-export type Union = Tables<'unions'>;
-export type NewUnion = TablesInsert<'unions'>;
-export type UpdateUnion = TablesUpdate<'unions'>;
-
-// 슬라이드 타입
-export type HeroSlide = Tables<'hero_slides'>;
-
-// Admin Invite 타입
-export type AdminInvite = Tables<'admin_invites'>;
-export type NewAdminInvite = TablesInsert<'admin_invites'>;
-export interface AdminInviteWithUnion extends AdminInvite {
-    union: { id: string; name: string; slug: string } | null;
-}
-
-// Advertisement 타입
-export type Advertisement = Tables<'advertisements'>;
-export type NewAdvertisement = TablesInsert<'advertisements'>;
-export type UpdateAdvertisement = TablesUpdate<'advertisements'>;
-export type AdType = 'MAIN' | 'SUB' | 'BOARD';
-
-// FreeBoardPost 타입
-export type FreeBoardPost = Tables<'free_boards'>;
-export type NewFreeBoardPost = TablesInsert<'free_boards'>;
-export type UpdateFreeBoardPost = TablesUpdate<'free_boards'>;
-// 별칭
-export type FreeBoard = FreeBoardPost;
-export type NewFreeBoard = NewFreeBoardPost;
-export type UpdateFreeBoard = UpdateFreeBoardPost;
-
-// Notice 타입
-export type Notice = Tables<'notices'>;
-export type NewNotice = TablesInsert<'notices'>;
-export type UpdateNotice = TablesUpdate<'notices'>;
-
-// Question 타입
-export type Question = Tables<'questions'>;
-export type NewQuestion = TablesInsert<'questions'>;
-export type UpdateQuestion = TablesUpdate<'questions'>;
-
-// UnionInfo 타입
-export type UnionInfo = Tables<'union_info'>;
-export type NewUnionInfo = TablesInsert<'union_info'>;
-export type UpdateUnionInfo = TablesUpdate<'union_info'>;
-
-// UnionInfo 확장 타입 (작성자 정보 포함)
-export interface UnionInfoWithAuthor extends UnionInfo {
-    author: { id: string; name: string } | null;
-}
-
-// UnionInfo 확장 타입 (파일 정보 포함)
-export interface UnionInfoWithFiles extends UnionInfo {
-    author?: { id: string; name: string } | null;
-    files?: {
+    sender_channel_name: string | null;
+    notice_id: number | null;
+    aligo_response: Json | null;
+    recipient_details: Json | null;
+    union?: {
         id: string;
         name: string;
-        path: string;
-        size: number;
-        type: string;
-        bucket_id: string;
-    }[];
+        slug: string;
+    } | null;
+    sender?: {
+        id: string;
+        name: string;
+    } | null;
 }
 
-// LandLot 타입
-export type LandLot = Tables<'land_lots'>;
-export type NewLandLot = TablesInsert<'land_lots'>;
-export type UpdateLandLot = TablesUpdate<'land_lots'>;
+// 조합 관련
+export type Union = Database['public']['Tables']['unions']['Row'];
+export type NewUnion = Database['public']['Tables']['unions']['Insert'];
+export type UpdateUnion = Database['public']['Tables']['unions']['Update'];
 
-// MemberAccessLog 타입 (기존 AccessLog 대체)
-export type MemberAccessLog = Tables<'member_access_logs'>;
-export type NewMemberAccessLog = TablesInsert<'member_access_logs'>;
-// 하위 호환성을 위한 별칭
-export type AccessLog = MemberAccessLog;
-export type NewAccessLog = NewMemberAccessLog;
+// 히어로 슬라이드
+export type HeroSlide = Database['public']['Tables']['hero_slides']['Row'];
+export type NewHeroSlide = Database['public']['Tables']['hero_slides']['Insert'];
+export type UpdateHeroSlide = Database['public']['Tables']['hero_slides']['Update'];
 
-// 접근 유형 타입
+// 사용자 관련 (타입 정의가 누락된 경우를 대비하여 추가)
+export type UserRole = 'USER' | 'ADMIN' | 'SYSTEM_ADMIN';
+
+// 관리자 초대 관련
+export type AdminInvite = Database['public']['Tables']['admin_invites']['Row'];
+export type NewAdminInvite = Database['public']['Tables']['admin_invites']['Insert'];
+export type UpdateAdminInvite = Database['public']['Tables']['admin_invites']['Update'];
+export type AdminInviteWithUnion = AdminInvite & {
+    union: {
+        id: string;
+        name: string;
+        slug: string;
+    } | null;
+};
+
+// 알림톡 단가 관련
+export type AlimtalkPricing = Database['public']['Tables']['alimtalk_pricing']['Row'];
+export type NewAlimtalkPricing = Database['public']['Tables']['alimtalk_pricing']['Insert'];
+export type UpdateAlimtalkPricing = Database['public']['Tables']['alimtalk_pricing']['Update'];
+
+// 알림톡 템플릿 관련
+export type AlimtalkTemplate = Database['public']['Tables']['alimtalk_templates']['Row'];
+export type NewAlimtalkTemplate = Database['public']['Tables']['alimtalk_templates']['Insert'];
+export type UpdateAlimtalkTemplate = Database['public']['Tables']['alimtalk_templates']['Update'];
+
+// 댓글 관련
+export type Comment = Database['public']['Tables']['comments']['Row'];
+export type NewComment = Database['public']['Tables']['comments']['Insert'];
+export type UpdateComment = Database['public']['Tables']['comments']['Update'];
+
+// 조합원 접속 로그
 export type AccessType = 'LIST_VIEW' | 'DETAIL_VIEW' | 'MEMBER_UPDATE' | 'MEMBER_BLOCK';
-
-// ConsentStage 타입
-export type ConsentStage = Tables<'consent_stages'>;
-
-// UserConsent 타입
-export type UserConsent = Tables<'user_consents'>;
-
-// Building 타입
-export type Building = Tables<'buildings'>;
-export type NewBuilding = TablesInsert<'buildings'>;
-export type UpdateBuilding = TablesUpdate<'buildings'>;
-
-// BuildingLandLot 타입 (건물-지번 매핑)
-export type BuildingLandLot = Tables<'building_land_lots'>;
-export type NewBuildingLandLot = TablesInsert<'building_land_lots'>;
-export type UpdateBuildingLandLot = TablesUpdate<'building_land_lots'>;
-
-// BuildingUnit 타입
-export type BuildingUnit = Tables<'building_units'>;
-export type NewBuildingUnit = TablesInsert<'building_units'>;
-export type UpdateBuildingUnit = TablesUpdate<'building_units'>;
-
-// UserPropertyUnit 타입
-export type UserPropertyUnit = Tables<'user_property_units'>;
-export type NewUserPropertyUnit = TablesInsert<'user_property_units'>;
-export type UpdateUserPropertyUnit = TablesUpdate<'user_property_units'>;
-
-// Alimtalk 타입
-export type AlimtalkPricing = Tables<'alimtalk_pricing'>;
-export type NewAlimtalkPricing = TablesInsert<'alimtalk_pricing'>;
-export type AlimtalkTemplate = Tables<'alimtalk_templates'>;
-export type NewAlimtalkTemplate = TablesInsert<'alimtalk_templates'>;
-export type UpdateAlimtalkTemplate = TablesUpdate<'alimtalk_templates'>;
-
-// Comment 타입
-export type Comment = Tables<'comments'>;
-export type NewComment = TablesInsert<'comments'>;
-export type UpdateComment = TablesUpdate<'comments'>;
-
-// HeroSlide 타입
-export type NewHeroSlide = TablesInsert<'hero_slides'>;
-export type UpdateHeroSlide = TablesUpdate<'hero_slides'>;
-
-// UnionLandLot 타입
-export type UnionLandLot = Tables<'union_land_lots'>;
-export type NewUnionLandLot = TablesInsert<'union_land_lots'>;
-export type UpdateUnionLandLot = TablesUpdate<'union_land_lots'>;
-
-// 조합원 물건지 정보 타입
-export interface MemberPropertyUnitInfo {
-    id: string;
-    pnu?: string | null;
-    property_address_jibun?: string | null;
-    property_address_road?: string | null;
-    building_name?: string | null;
-    dong?: string | null;
-    ho?: string | null;
-    land_area?: number | null;
-    land_ownership_ratio?: number | null;
-    building_area?: number | null;
-    building_ownership_ratio?: number | null;
-    ownership_type?: OwnershipType | null;
-    is_primary?: boolean | null;
-    building_unit_id?: string | null;
-    notes?: string | null;
-    area?: number | null;
-    official_price?: number | null;
-    address?: string | null;
-}
-
-// 조합원과 물건지 정보를 포함하는 타입
-export interface MemberWithProperties extends User {
-    property_units: MemberPropertyUnitInfo[];
-}
-
-// get_grouped_members 함수 반환 타입
-export interface GroupedMember {
-    birth_date: string | null;
-    blocked_at: string | null;
-    blocked_reason: string | null;
-    building_area: number | null;
-    building_ownership_ratio: number | null;
-    created_at: string;
-    email: string | null;
-    group_key: string;
-    grouped_user_ids: string[];
-    id: string;
-    is_blocked: boolean | null;
-    land_area: number | null;
-    land_ownership_ratio: number | null;
-    name: string;
-    notes: string | null;
-    phone_number: string | null;
-    property_address: string | null;
-    property_address_detail: string | null;
-    property_address_jibun: string | null;
-    property_address_road: string | null;
-    property_dong: string | null;
-    property_ho: string | null;
-    property_pnu: string | null;
-    property_type: string | null;
-    property_zonecode: string | null;
-    resident_address: string | null;
-    resident_address_detail: string | null;
-    resident_address_jibun: string | null;
-    resident_address_road: string | null;
-    resident_zonecode: string | null;
-    role: string;
-    total_building_area: number | null;
-    total_count: number;
-    total_land_area: number | null;
-    total_property_count: number;
-    union_id: string | null;
-    updated_at: string | null;
-    user_status: string | null;
-}
+export type MemberAccessLog = Database['public']['Tables']['member_access_logs']['Row'];
+export type NewMemberAccessLog = Database['public']['Tables']['member_access_logs']['Insert'];
+export type UpdateMemberAccessLog = Database['public']['Tables']['member_access_logs']['Update'];

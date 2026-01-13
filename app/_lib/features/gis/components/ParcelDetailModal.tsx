@@ -78,8 +78,17 @@ export default function ParcelDetailModal({
     onDeleted,
 }: ParcelDetailModalProps) {
     const { data: parcel, isLoading, refetch } = useParcelDetail(pnu, stageId);
-    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    // 모드: detail(상세보기) 또는 edit(수정) - 중첩 모달 제거
+    const [mode, setMode] = useState<'detail' | 'edit'>('detail');
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
+    // onOpenChange 래퍼: 모달이 닫힐 때 모드 초기화
+    const handleOpenChange = (isOpen: boolean) => {
+        if (!isOpen) {
+            setMode('detail');
+        }
+        onOpenChange(isOpen);
+    };
 
     // 삭제 mutation
     const deleteMutation = useMutation({
@@ -102,67 +111,71 @@ export default function ParcelDetailModal({
 
     return (
         <>
-            <Dialog open={open} onOpenChange={onOpenChange}>
+            <Dialog open={open} onOpenChange={handleOpenChange}>
                 <DialogContent className="max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <MapPin className="w-5 h-5 text-primary" />
-                            필지 상세 정보
+                            {mode === 'detail' ? '필지 상세 정보' : '필지 정보 수정'}
                         </DialogTitle>
                     </DialogHeader>
 
-                    <div className="flex-1 overflow-y-auto space-y-6 pr-2">
-                        {isLoading ? (
-                            <LoadingSkeleton />
-                        ) : parcel ? (
-                            <>
-                                {/* 필지 기본 정보 */}
-                                <ParcelBasicInfo parcel={parcel} />
+                    {mode === 'detail' ? (
+                        // 상세 보기 모드
+                        <>
+                            <div className="flex-1 overflow-y-auto space-y-6 pr-2">
+                                {isLoading ? (
+                                    <LoadingSkeleton />
+                                ) : parcel ? (
+                                    <>
+                                        {/* 필지 기본 정보 */}
+                                        <ParcelBasicInfo parcel={parcel} />
 
-                                {/* 소유주 목록 (조합원 정보) - 조합원이 있을 때만 표시 */}
-                                {parcel.building_units.length > 0 && <OwnersSection parcel={parcel} />}
-                            </>
-                        ) : (
-                            <div className="text-center py-12 text-gray-500">필지 정보를 불러올 수 없습니다.</div>
-                        )}
-                    </div>
-
-                    {/* 수정/삭제 버튼 - 모달 하단 */}
-                    {parcel && (
-                        <DialogFooter className="border-t pt-4">
-                            <div className="flex items-center gap-2 ml-auto">
-                                <Button variant="outline" size="sm" onClick={() => setIsEditModalOpen(true)}>
-                                    <Pencil className="w-4 h-4 mr-1" />
-                                    수정
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => setIsDeleteDialogOpen(true)}
-                                    className="text-red-500 hover:text-red-600 hover:bg-red-50"
-                                >
-                                    <Trash2 className="w-4 h-4 mr-1" />
-                                    삭제
-                                </Button>
+                                        {/* 소유주 목록 (조합원 정보) - 조합원이 있을 때만 표시 */}
+                                        {parcel.building_units.length > 0 && <OwnersSection parcel={parcel} />}
+                                    </>
+                                ) : (
+                                    <div className="text-center py-12 text-gray-500">필지 정보를 불러올 수 없습니다.</div>
+                                )}
                             </div>
-                        </DialogFooter>
+
+                            {/* 수정/삭제 버튼 - 모달 하단 (상세 보기 모드) */}
+                            {parcel && (
+                                <DialogFooter className="border-t pt-4">
+                                    <div className="flex items-center gap-2 ml-auto">
+                                        <Button variant="outline" size="sm" onClick={() => setMode('edit')}>
+                                            <Pencil className="w-4 h-4 mr-1" />
+                                            수정
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => setIsDeleteDialogOpen(true)}
+                                            className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                                        >
+                                            <Trash2 className="w-4 h-4 mr-1" />
+                                            삭제
+                                        </Button>
+                                    </div>
+                                </DialogFooter>
+                            )}
+                        </>
+                    ) : (
+                        // 수정 모드 - EditParcelContent 인라인 렌더링
+                        parcel && unionId && (
+                            <EditParcelContent
+                                parcel={parcel}
+                                unionId={unionId}
+                                onCancel={() => setMode('detail')}
+                                onSuccess={() => {
+                                    refetch();
+                                    setMode('detail');
+                                }}
+                            />
+                        )
                     )}
                 </DialogContent>
             </Dialog>
-
-            {/* 수정 모달 */}
-            {parcel && unionId && (
-                <EditParcelModal
-                    open={isEditModalOpen}
-                    onOpenChange={setIsEditModalOpen}
-                    parcel={parcel}
-                    unionId={unionId}
-                    onSuccess={() => {
-                        refetch();
-                        setIsEditModalOpen(false);
-                    }}
-                />
-            )}
 
             {/* 삭제 확인 대화상자 */}
             <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
@@ -319,16 +332,15 @@ const BUILDING_TYPE_OPTIONS = [
     { value: 'NONE', label: '미분류' },
 ];
 
-// 수정 모달
-interface EditParcelModalProps {
-    open: boolean;
-    onOpenChange: (open: boolean) => void;
+// 수정 컨텐츠 (인라인 렌더링, Dialog 없음)
+interface EditParcelContentProps {
     parcel: ParcelDetail;
     unionId: string;
+    onCancel: () => void;
     onSuccess: () => void;
 }
 
-function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: EditParcelModalProps) {
+function EditParcelContent({ parcel, unionId, onCancel, onSuccess }: EditParcelContentProps) {
     const [activeTab, setActiveTab] = useState<'info' | 'member' | 'building-match'>('info');
 
     // 필지/건물 정보 폼
@@ -402,35 +414,33 @@ function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: Edi
     const mergeMultipleMutation = useMergeMultiplePnus();
     const undoMergeMutation = useUndoMerge();
 
-    // 모달이 열릴 때 데이터 초기화
+    // 컴포넌트 마운트 시 또는 parcel 변경 시 데이터 초기화
     useEffect(() => {
-        if (open) {
-            setFormData({
-                land_area: parcel.land_area || 0,
-                official_price: parcel.official_price || 0,
-                land_category: parcel.land_category || '',
-                building_type: parcel.building_type || 'NONE',
-                building_name: parcel.building_name || '',
-                main_purpose: parcel.main_purpose || '',
-                floor_count: parcel.floor_count || 0,
-                total_unit_count: parcel.total_unit_count || 0,
-            });
-            setActiveTab('info');
-            setMemberSearchQuery('');
-            setSearchResults([]);
-            setSelectedMember(null);
-            // 건물 매칭 상태 초기화
-            setBuildingSearchInput('');
-            setDebouncedKeyword('');
-            setSelectedBuilding(null);
-            setUnitToDelete(null);
-            setIsMergeSuccessOpen(false);
-            // 연동 지번 검색 상태 초기화
-            setLinkedParcelSearchInput('');
-            setDebouncedLinkedKeyword('');
-            setSelectedPnus([]);
-        }
-    }, [open, parcel]);
+        setFormData({
+            land_area: parcel.land_area || 0,
+            official_price: parcel.official_price || 0,
+            land_category: parcel.land_category || '',
+            building_type: parcel.building_type || 'NONE',
+            building_name: parcel.building_name || '',
+            main_purpose: parcel.main_purpose || '',
+            floor_count: parcel.floor_count || 0,
+            total_unit_count: parcel.total_unit_count || 0,
+        });
+        setActiveTab('info');
+        setMemberSearchQuery('');
+        setSearchResults([]);
+        setSelectedMember(null);
+        // 건물 매칭 상태 초기화
+        setBuildingSearchInput('');
+        setDebouncedKeyword('');
+        setSelectedBuilding(null);
+        setUnitToDelete(null);
+        setIsMergeSuccessOpen(false);
+        // 연동 지번 검색 상태 초기화
+        setLinkedParcelSearchInput('');
+        setDebouncedLinkedKeyword('');
+        setSelectedPnus([]);
+    }, [parcel]);
 
     // 필지/건물 정보 수정 mutation
     const updateMutation = useMutation({
@@ -503,14 +513,9 @@ function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: Edi
     };
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-lg max-h-[80vh] overflow-hidden flex flex-col">
-                <DialogHeader>
-                    <DialogTitle>필지 정보 수정</DialogTitle>
-                </DialogHeader>
-
-                {/* 탭 */}
-                <div className="flex border-b border-gray-200">
+        <>
+            {/* 탭 */}
+            <div className="flex border-b border-gray-200">
                     <button
                         className={cn(
                             'flex-1 py-2 text-sm font-medium border-b-2 transition-colors cursor-pointer',
@@ -1094,7 +1099,7 @@ function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: Edi
                 <DialogFooter className="border-t pt-4">
                     <Button
                         variant="outline"
-                        onClick={() => onOpenChange(false)}
+                        onClick={onCancel}
                         disabled={
                             updateMutation.isPending ||
                             linkMemberMutation.isPending ||
@@ -1215,7 +1220,6 @@ function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: Edi
                         </Button>
                     )}
                 </DialogFooter>
-            </DialogContent>
 
             {/* 병합 성공 확인 모달 */}
             <AlertDialog open={isMergeSuccessOpen} onOpenChange={setIsMergeSuccessOpen}>
@@ -1250,7 +1254,7 @@ function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: Edi
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-        </Dialog>
+        </>
     );
 }
 

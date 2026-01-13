@@ -89,13 +89,13 @@ export function useApprovedMembers({
 
             if (error) throw error;
 
-            // 2. union_land_lots에서 해당 조합의 PNU 목록 조회
-            const { data: unionLandLots } = await supabase
-                .from('union_land_lots')
+            // 2. land_lots에서 해당 조합의 PNU 목록 조회 (union_land_lots 병합됨)
+            const { data: landLotsPnuList } = await supabase
+                .from('land_lots')
                 .select('pnu')
                 .eq('union_id', unionId);
 
-            const unionPnuSet = new Set(unionLandLots?.map((l) => l.pnu) || []);
+            const unionPnuSet = new Set(landLotsPnuList?.map((l) => l.pnu) || []);
 
             // 3. user_property_units에서 사용자별 물건지 정보 조회
             const userIds = users?.map((u) => u.id) || [];
@@ -111,7 +111,14 @@ export function useApprovedMembers({
                         building_unit_id,
                         ownership_type,
                         is_primary,
+                        is_primary,
                         notes,
+                        land_area,
+                        building_area,
+                        land_ownership_ratio,
+                        building_ownership_ratio,
+                        property_address_jibun,
+                        property_address_road,
                         building_units!inner (
                             dong,
                             ho,
@@ -166,6 +173,12 @@ export function useApprovedMembers({
                             ownership_type: pu.ownership_type as OwnershipType,
                             is_primary: pu.is_primary,
                             notes: pu.notes,
+                            land_area: pu.land_area,
+                            building_area: pu.building_area,
+                            land_ownership_ratio: pu.land_ownership_ratio,
+                            building_ownership_ratio: pu.building_ownership_ratio,
+                            property_address_jibun: pu.property_address_jibun,
+                            property_address_road: pu.property_address_road,
                             dong: buildingUnit?.dong || null,
                             ho: buildingUnit?.ho || null,
                             area: landLotArea ?? buildingUnit?.area ?? null,
@@ -302,13 +315,13 @@ export function useApprovedMembersInfinite({
             const members = (groupedMembers as GroupedMemberRow[]) || [];
             const totalCount = members.length > 0 ? members[0].total_count : 0;
 
-            // 2. union_land_lots에서 PNU 목록 조회 (PNU 매칭 확인용)
-            const { data: unionLandLots } = await supabase
-                .from('union_land_lots')
+            // 2. land_lots에서 PNU 목록 조회 (PNU 매칭 확인용)
+            const { data: landLotsPnuData } = await supabase
+                .from('land_lots')
                 .select('pnu')
                 .eq('union_id', unionId);
 
-            const unionPnuSet = new Set(unionLandLots?.map((l) => l.pnu) || []);
+            const unionPnuSet = new Set(landLotsPnuData?.map((l) => l.pnu) || []);
 
             // 3. 대표 사용자들의 land_lots 정보 조회
             const pnuList = members.map((u) => u.property_pnu).filter(Boolean) as string[];
@@ -345,7 +358,14 @@ export function useApprovedMembersInfinite({
                         building_unit_id,
                         ownership_type,
                         is_primary,
+                        is_primary,
                         notes,
+                        land_area,
+                        building_area,
+                        land_ownership_ratio,
+                        building_ownership_ratio,
+                        property_address_jibun,
+                        property_address_road,
                         building_units!inner (
                             dong,
                             ho,
@@ -398,6 +418,12 @@ export function useApprovedMembersInfinite({
                             ownership_type: pu.ownership_type as OwnershipType,
                             is_primary: pu.is_primary,
                             notes: pu.notes,
+                            land_area: pu.land_area,
+                            building_area: pu.building_area,
+                            land_ownership_ratio: pu.land_ownership_ratio,
+                            building_ownership_ratio: pu.building_ownership_ratio,
+                            property_address_jibun: pu.property_address_jibun,
+                            property_address_road: pu.property_address_road,
                             dong: buildingUnit?.dong || null,
                             ho: buildingUnit?.ho || null,
                             area: landLotArea ?? buildingUnit?.area ?? null,
@@ -579,20 +605,25 @@ export function useUpdateMemberPnu() {
 }
 
 // 조합 내 필지 목록 조회 (PNU 매칭용)
+// union_land_lots는 land_lots로 병합됨
 export function useUnionLandLots(unionId: string | undefined) {
     return useQuery({
-        queryKey: ['union-land-lots-for-matching', unionId],
+        queryKey: ['land-lots-for-matching', unionId],
         queryFn: async () => {
             if (!unionId) return [];
 
             const { data, error } = await supabase
-                .from('union_land_lots')
-                .select('pnu, address_text')
+                .from('land_lots')
+                .select('pnu, address_text, address')
                 .eq('union_id', unionId)
                 .order('address_text', { ascending: true });
 
             if (error) throw error;
-            return data || [];
+            // address_text가 없으면 address 사용
+            return (data || []).map((item) => ({
+                pnu: item.pnu,
+                address_text: item.address_text || item.address,
+            }));
         },
         enabled: !!unionId,
     });
@@ -614,7 +645,14 @@ export function useMemberPropertyUnits(memberId: string | undefined) {
                     building_unit_id,
                     ownership_type,
                     is_primary,
+                    is_primary,
                     notes,
+                    land_area,
+                    building_area,
+                    land_ownership_ratio,
+                    building_ownership_ratio,
+                    property_address_jibun,
+                    property_address_road,
                     building_units!inner (
                         dong,
                         ho,
@@ -655,6 +693,12 @@ export function useMemberPropertyUnits(memberId: string | undefined) {
                     ownership_type: pu.ownership_type as OwnershipType,
                     is_primary: pu.is_primary,
                     notes: pu.notes,
+                    land_area: pu.land_area,
+                    building_area: pu.building_area,
+                    land_ownership_ratio: pu.land_ownership_ratio,
+                    building_ownership_ratio: pu.building_ownership_ratio,
+                    property_address_jibun: pu.property_address_jibun,
+                    property_address_road: pu.property_address_road,
                     dong: buildingUnit?.dong || null,
                     ho: buildingUnit?.ho || null,
                     area: buildingUnit?.area || null,

@@ -65,12 +65,12 @@ export async function matchAddressToPnu(
         // 주소 정규화 (공백 제거, 특수문자 제거)
         const normalizedAddress = propertyAddress.trim().replace(/\s+/g, ' ');
 
-        // union_land_lots에서 주소 검색 (정확히 일치 또는 포함)
+        // land_lots에서 주소 검색 (union_land_lots 병합됨)
         const { data, error } = await supabase
-            .from('union_land_lots')
-            .select('pnu, address_text')
+            .from('land_lots')
+            .select('pnu, address_text, address')
             .eq('union_id', unionId)
-            .or(`address_text.ilike.%${normalizedAddress}%,address_text.eq.${normalizedAddress}`)
+            .or(`address_text.ilike.%${normalizedAddress}%,address.ilike.%${normalizedAddress}%`)
             .limit(1);
 
         if (error) {
@@ -78,21 +78,21 @@ export async function matchAddressToPnu(
         }
 
         if (data && data.length > 0) {
-            return { pnu: data[0].pnu, matchedAddress: data[0].address_text };
+            return { pnu: data[0].pnu, matchedAddress: data[0].address_text || data[0].address };
         }
 
         // 정확한 매칭이 없으면 부분 매칭 시도 (지번만 추출해서 검색)
         const jibunMatch = normalizedAddress.match(/(\d+(-\d+)?)/);
         if (jibunMatch) {
             const { data: partialData, error: partialError } = await supabase
-                .from('union_land_lots')
-                .select('pnu, address_text')
+                .from('land_lots')
+                .select('pnu, address_text, address')
                 .eq('union_id', unionId)
-                .ilike('address_text', `%${jibunMatch[0]}%`)
+                .or(`address_text.ilike.%${jibunMatch[0]}%,address.ilike.%${jibunMatch[0]}%`)
                 .limit(1);
 
             if (!partialError && partialData && partialData.length > 0) {
-                return { pnu: partialData[0].pnu, matchedAddress: partialData[0].address_text };
+                return { pnu: partialData[0].pnu, matchedAddress: partialData[0].address_text || partialData[0].address };
             }
         }
 

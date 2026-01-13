@@ -5,11 +5,10 @@ import { supabase } from '@/app/_lib/shared/supabase/client';
 
 // 확장된 지번 정보 타입
 export interface ExtendedLandLot {
-    id: string;
-    union_id: string;
     pnu: string;
+    union_id: string;
     address_text: string | null;
-    // land_lots 테이블에서 조인된 정보
+    // land_lots 테이블 필드
     land_area: number | null;
     land_category: string | null;
     official_price: number | null;
@@ -33,10 +32,11 @@ interface UseLandLotsInfiniteParams {
 
 /**
  * 지번 목록 무한 스크롤 조회 Hook
+ * - land_lots 테이블에서 직접 조회 (union_land_lots 병합됨)
  */
 export function useLandLotsInfinite({ unionId, searchQuery = '', pageSize = 50 }: UseLandLotsInfiniteParams) {
     return useInfiniteQuery<InfiniteLandLotsResponse>({
-        queryKey: ['union-land-lots-infinite', unionId, searchQuery],
+        queryKey: ['land-lots-infinite', unionId, searchQuery],
         queryFn: async ({ pageParam }): Promise<InfiniteLandLotsResponse> => {
             if (!unionId) {
                 return { lots: [], total: 0, page: 1 };
@@ -46,10 +46,12 @@ export function useLandLotsInfinite({ unionId, searchQuery = '', pageSize = 50 }
             const from = (page - 1) * pageSize;
             const to = from + pageSize - 1;
 
-            // union_land_lots에서 기본 데이터 조회
+            // land_lots에서 직접 조회 (union_id 필터)
             let query = supabase
-                .from('union_land_lots')
-                .select('id, union_id, pnu, address_text', { count: 'exact' })
+                .from('land_lots')
+                .select('pnu, union_id, address_text, address, area, land_category, official_price, owner_count, created_at', {
+                    count: 'exact',
+                })
                 .eq('union_id', unionId)
                 .order('created_at', { ascending: false })
                 .range(from, to);
@@ -70,12 +72,6 @@ export function useLandLotsInfinite({ unionId, searchQuery = '', pageSize = 50 }
             // PNU 목록 추출
             const pnuList = lotsData.map((lot) => lot.pnu);
 
-            // land_lots에서 추가 정보 조회 (area, land_category, official_price, owner_count)
-            const { data: landLotsInfo } = await supabase
-                .from('land_lots')
-                .select('pnu, area, land_category, official_price, owner_count')
-                .in('pnu', pnuList);
-
             // building_land_lots + buildings 조인으로 건물 유형 조회
             const { data: buildingMappings } = await supabase
                 .from('building_land_lots')
@@ -84,21 +80,18 @@ export function useLandLotsInfinite({ unionId, searchQuery = '', pageSize = 50 }
 
             // 데이터 병합
             const extendedLots: ExtendedLandLot[] = lotsData.map((lot) => {
-                const landInfo = landLotsInfo?.find((l) => l.pnu === lot.pnu);
                 const mappingInfo = buildingMappings?.find((m) => m.pnu === lot.pnu);
-                // buildings는 inner join이므로 단일 객체로 반환됨
                 const buildingData = mappingInfo?.buildings as { building_type: string } | undefined;
                 const buildingType = buildingData?.building_type || null;
 
                 return {
-                    id: lot.id,
-                    union_id: lot.union_id,
                     pnu: lot.pnu,
-                    address_text: lot.address_text,
-                    land_area: landInfo?.area || null,
-                    land_category: landInfo?.land_category || null,
-                    official_price: landInfo?.official_price || null,
-                    owner_count: landInfo?.owner_count || null,
+                    union_id: lot.union_id,
+                    address_text: lot.address_text || lot.address,
+                    land_area: lot.area || null,
+                    land_category: lot.land_category || null,
+                    official_price: lot.official_price || null,
+                    owner_count: lot.owner_count || null,
                     building_type: buildingType,
                 };
             });

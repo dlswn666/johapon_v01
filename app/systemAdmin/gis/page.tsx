@@ -1234,7 +1234,7 @@ export default function GisSyncPage() {
                         <AlertDialogDescription>
                             이 작업 기록을 삭제하시겠습니까?
                             <br />
-                            수집된 필지 데이터(union_land_lots)는 유지됩니다.
+                            수집된 필지 데이터(land_lots)는 유지됩니다.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -1258,10 +1258,10 @@ export default function GisSyncPage() {
                             <p className="font-semibold text-slate-900">이 조합의 모든 GIS 데이터가 삭제됩니다.</p>
                             <ul className="list-disc list-inside text-sm text-slate-600 space-y-1">
                                 <li>동기화 작업 기록 (sync_jobs)</li>
-                                <li>조합 필지 연결 정보 (union_land_lots)</li>
-                                <li>건물 호실 정보 (building_units) - 다른 조합과 공유되지 않는 데이터만</li>
-                                <li>건물 정보 (buildings) - 다른 조합과 공유되지 않는 데이터만</li>
-                                <li>필지 상세 정보 (land_lots) - 다른 조합과 공유되지 않는 데이터만</li>
+                                <li>필지 정보 (land_lots)</li>
+                                <li>건물 호실 정보 (building_units)</li>
+                                <li>건물-지번 매핑 (building_land_lots)</li>
+                                <li>건물 정보 (buildings) - 다른 곳에서 참조하지 않는 데이터만</li>
                             </ul>
                             <p className="text-red-600 font-medium mt-3">
                                 이 작업은 되돌릴 수 없습니다. 정말 초기화하시겠습니까?

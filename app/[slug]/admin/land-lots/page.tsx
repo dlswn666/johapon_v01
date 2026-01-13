@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Search, Info, Building2, MapPin } from 'lucide-react';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
@@ -49,6 +49,14 @@ export default function LandLotManagementPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedPnu, setSelectedPnu] = useState<string | null>(null);
 
+    // 검색 디바운스: 1초 후 자동 검색
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setSearchQuery(searchInput);
+        }, 1000);
+        return () => clearTimeout(timer);
+    }, [searchInput]);
+
     // 무한 스크롤 데이터 조회
     const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useLandLotsInfinite({
         unionId,
@@ -63,7 +71,7 @@ export default function LandLotManagementPage() {
 
     const totalCount = data?.pages[0]?.total || 0;
 
-    // 검색 핸들러
+    // 검색 핸들러 (Enter 또는 버튼 클릭 시 즉시 검색)
     const handleSearch = () => {
         setSearchQuery(searchInput);
     };
@@ -241,7 +249,7 @@ export default function LandLotManagementPage() {
                         <DataTable
                             data={landLots}
                             columns={columns}
-                            keyExtractor={(row) => row.id}
+                            keyExtractor={(row) => row.pnu}
                             isLoading={isLoading}
                             emptyMessage="데이터가 없습니다."
                             onRowClick={handleRowClick}

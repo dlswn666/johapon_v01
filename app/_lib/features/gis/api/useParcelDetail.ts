@@ -87,10 +87,10 @@ export const useParcelDetail = (pnu: string | null, stageId: string | null) => {
         queryFn: async (): Promise<ParcelDetail | null> => {
             if (!normalizedPnu) return null;
 
-            // 1. 필지 기본 정보 조회 (land_category, road_address 포함)
+            // 1. 필지 기본 정보 조회 (land_category, road_address, union_id 포함)
             const { data: landLot, error: landError } = await supabase
                 .from('land_lots')
-                .select('pnu, address, area, official_price, owner_count, land_category, road_address')
+                .select('pnu, address, address_text, area, official_price, owner_count, land_category, road_address, union_id')
                 .eq('pnu', normalizedPnu)
                 .single();
 
@@ -138,15 +138,8 @@ export const useParcelDetail = (pnu: string | null, stageId: string | null) => {
                 buildingUnitsCount = count || 0;
             }
 
-            // 3. union_land_lots에서 union_id 조회
-            const { data: unionLot } = await supabase
-                .from('union_land_lots')
-                .select('union_id')
-                .eq('pnu', normalizedPnu)
-                .limit(1)
-                .maybeSingle();
-
-            const unionId = unionLot?.union_id;
+            // 3. land_lots에서 union_id 조회 (union_land_lots는 병합됨)
+            const unionId = landLot?.union_id;
 
             // 4. 해당 PNU와 연결된 소유주(users) 조회 - user_property_units + users + building_units 조인
             interface PropertyUnitWithUser {

@@ -155,13 +155,13 @@ export async function linkMemberToParcel(input: LinkMemberToParcelInput) {
 }
 
 /**
- * 필지 삭제 (union_land_lots, land_lots, 관련 user_consents 삭제)
+ * 필지 삭제 (land_lots, 관련 user_consents 삭제)
+ * - union_land_lots는 land_lots로 병합됨
  */
 export async function deleteParcel(input: DeleteParcelInput) {
     const supabase = getSupabaseAdmin();
 
     // 1. 해당 PNU에 연결된 조합원들의 동의 정보 삭제
-    // user_property_units.pnu가 이 PNU인 사용자들의 user_consents 삭제
     const { data: propertyUnits, error: usersError } = await supabase
         .from('user_property_units')
         .select(
@@ -206,36 +206,16 @@ export async function deleteParcel(input: DeleteParcelInput) {
         }
     }
 
-    // 2. union_land_lots에서 삭제
-    const { error: unionLotError } = await supabase
-        .from('union_land_lots')
+    // 2. land_lots에서 삭제 (union_id 체크)
+    const { error: landLotError } = await supabase
+        .from('land_lots')
         .delete()
         .eq('pnu', input.pnu)
         .eq('union_id', input.unionId);
 
-    if (unionLotError) {
-        console.error('Delete union_land_lots error:', unionLotError);
-        throw new Error(`조합 필지 삭제에 실패했습니다: ${unionLotError.message}`);
-    }
-
-    // 3. 다른 조합에서 사용하지 않는 경우에만 land_lots에서도 삭제
-    const { data: otherUnions, error: checkError } = await supabase
-        .from('union_land_lots')
-        .select('union_id')
-        .eq('pnu', input.pnu);
-
-    if (checkError) {
-        console.error('Check other unions error:', checkError);
-    }
-
-    // 다른 조합에서 사용하지 않으면 land_lots에서도 삭제
-    if (!otherUnions || otherUnions.length === 0) {
-        const { error: landLotError } = await supabase.from('land_lots').delete().eq('pnu', input.pnu);
-
-        if (landLotError) {
-            console.error('Delete land_lots error:', landLotError);
-            // 이 오류는 무시하고 진행 (다른 조합에서 사용 중일 수 있음)
-        }
+    if (landLotError) {
+        console.error('Delete land_lots error:', landLotError);
+        throw new Error(`필지 삭제에 실패했습니다: ${landLotError.message}`);
     }
 
     return { success: true };
@@ -473,35 +453,20 @@ export async function mergeBuildingIntoPnu(input: MergeBuildingInput): Promise<M
 
 /**
  * 연동 지번 검색 (조합 내 PNU 검색)
- * - 주소 또는 지번으로 검색
+ * - land_lots에서 직접 검색 (union_land_lots 병합됨)
+ * - 주소 또는 지번으로 ilike 검색
  * - 현재 모달 PNU 제외
  */
 export async function searchLinkedParcels(unionId: string, query: string, excludePnu: string) {
     const supabase = getSupabaseAdmin();
 
-    const { data, error } = await supabase
-        .from('union_land_lots')
-        .select(
-            `
-            pnu,
-            address_text,
-            land_lots!inner (
-                address,
-                road_address
-            ),
-            building_land_lots (
-                building_id,
-                buildings (
-                    id,
-                    building_name,
-                    building_type
-                )
-            )
-        `
-        )
+    // 1단계: land_lots에서 직접 검색
+    const { data: landLots, error } = await supabase
+        .from('land_lots')
+        .select('pnu, address, address_text, road_address')
         .eq('union_id', unionId)
         .neq('pnu', excludePnu)
-        .or(`address_text.ilike.%${query}%,pnu.ilike.%${query}%`)
+        .or(`address_text.ilike.%${query}%,pnu.ilike.%${query}%,address.ilike.%${query}%`)
         .limit(30);
 
     if (error) {
@@ -509,29 +474,30 @@ export async function searchLinkedParcels(unionId: string, query: string, exclud
         throw new Error(`지번 검색에 실패했습니다: ${error.message}`);
     }
 
-    return (data || []).map((row) => {
-        // land_lots는 inner join이지만 Supabase가 배열로 반환할 수 있음
-        const landLotRaw = row.land_lots as unknown;
-        const landLot = Array.isArray(landLotRaw)
-            ? (landLotRaw[0] as { address: string; road_address: string | null } | undefined)
-            : (landLotRaw as { address: string; road_address: string | null } | null);
+    if (!landLots || landLots.length === 0) {
+        return [];
+    }
 
-        // building_land_lots -> buildings도 배열로 반환될 수 있음
-        const mappingArr = row.building_land_lots as unknown as Array<{
-            building_id: string;
-            buildings: unknown;
-        }>;
-        const mapping = mappingArr?.[0] || null;
-        const buildingsRaw = mapping?.buildings;
+    // 2단계: building_land_lots에서 건물 정보 조회
+    const pnuList = landLots.map((ll) => ll.pnu);
+    const { data: buildingMappings } = await supabase
+        .from('building_land_lots')
+        .select('pnu, building_id, buildings(id, building_name, building_type)')
+        .in('pnu', pnuList);
+
+    // 결과 조합
+    return landLots.map((ll) => {
+        const mappingRaw = buildingMappings?.find((m) => m.pnu === ll.pnu);
+        const buildingsRaw = mappingRaw?.buildings as unknown;
         const building = Array.isArray(buildingsRaw)
             ? (buildingsRaw[0] as { id: string; building_name: string | null; building_type: string } | undefined)
             : (buildingsRaw as { id: string; building_name: string | null; building_type: string } | null);
 
         return {
-            pnu: row.pnu,
-            address: landLot?.address || row.address_text || '',
-            road_address: landLot?.road_address || null,
-            building_id: mapping?.building_id || null,
+            pnu: ll.pnu,
+            address: ll.address_text || ll.address || '',
+            road_address: ll.road_address || null,
+            building_id: mappingRaw?.building_id || null,
             building_name: building?.building_name || null,
             building_type: building?.building_type || null,
         };
