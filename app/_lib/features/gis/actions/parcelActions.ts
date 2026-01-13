@@ -63,10 +63,7 @@ export async function updateParcelInfo(input: UpdateParcelInput) {
     if (input.land_category !== undefined) landLotsUpdate.land_category = input.land_category;
 
     if (Object.keys(landLotsUpdate).length > 0) {
-        const { error: landError } = await supabase
-            .from('land_lots')
-            .update(landLotsUpdate)
-            .eq('pnu', input.pnu);
+        const { error: landError } = await supabase.from('land_lots').update(landLotsUpdate).eq('pnu', input.pnu);
 
         if (landError) {
             console.error('Update land_lots error:', landError);
@@ -167,13 +164,15 @@ export async function deleteParcel(input: DeleteParcelInput) {
     // user_property_units.pnu가 이 PNU인 사용자들의 user_consents 삭제
     const { data: propertyUnits, error: usersError } = await supabase
         .from('user_property_units')
-        .select(`
+        .select(
+            `
             user_id,
             users!inner (
                 id,
                 union_id
             )
-        `)
+        `
+        )
         .eq('pnu', input.pnu);
 
     if (usersError) {
@@ -199,10 +198,7 @@ export async function deleteParcel(input: DeleteParcelInput) {
 
     if (users && users.length > 0) {
         const userIds = users.map((u) => u.id);
-        const { error: consentsError } = await supabase
-            .from('user_consents')
-            .delete()
-            .in('user_id', userIds);
+        const { error: consentsError } = await supabase.from('user_consents').delete().in('user_id', userIds);
 
         if (consentsError) {
             console.error('Delete user consents error:', consentsError);
@@ -234,10 +230,7 @@ export async function deleteParcel(input: DeleteParcelInput) {
 
     // 다른 조합에서 사용하지 않으면 land_lots에서도 삭제
     if (!otherUnions || otherUnions.length === 0) {
-        const { error: landLotError } = await supabase
-            .from('land_lots')
-            .delete()
-            .eq('pnu', input.pnu);
+        const { error: landLotError } = await supabase.from('land_lots').delete().eq('pnu', input.pnu);
 
         if (landLotError) {
             console.error('Delete land_lots error:', landLotError);
@@ -257,7 +250,8 @@ export async function getParcelMembers(pnu: string, unionId: string) {
     // user_property_units 테이블에서 해당 PNU에 연결된 사용자 조회
     const { data: propertyUnits, error } = await supabase
         .from('user_property_units')
-        .select(`
+        .select(
+            `
             pnu,
             property_address_jibun,
             users!inner (
@@ -267,7 +261,8 @@ export async function getParcelMembers(pnu: string, unionId: string) {
                 user_status,
                 union_id
             )
-        `)
+        `
+        )
         .eq('pnu', pnu);
 
     if (error) {
@@ -315,7 +310,8 @@ export async function getAllUnionMembers(unionId: string) {
     // 해당 조합의 승인된 사용자 중 user_property_units에 PNU가 있는 사용자 조회
     const { data: propertyUnits, error } = await supabase
         .from('user_property_units')
-        .select(`
+        .select(
+            `
             pnu,
             property_address_jibun,
             users!inner (
@@ -325,7 +321,8 @@ export async function getAllUnionMembers(unionId: string) {
                 user_status,
                 union_id
             )
-        `)
+        `
+        )
         .not('pnu', 'is', null);
 
     if (error) {
@@ -421,7 +418,13 @@ export async function mergeBuildingIntoPnu(input: MergeBuildingInput): Promise<M
 
     // source와 target이 같으면 병합 불필요
     if (targetBuildingId === input.sourceBuildingId) {
-        throw new Error('같은 건물을 병합할 수 없습니다.');
+        // 안내 처리: 같은 건물을 선택한 경우 병합할 내용이 없으므로 성공 응답으로 종료
+        return {
+            success: true,
+            movedUnitsCount: 0,
+            updatedMappingsCount: 0,
+            targetBuildingId,
+        };
     }
 
     // (b) building_units에서 source → target으로 이동
@@ -441,7 +444,7 @@ export async function mergeBuildingIntoPnu(input: MergeBuildingInput): Promise<M
     // (c) building_land_lots에서 source를 가리키던 PNU들도 target으로 update
     const { data: updatedMappings, error: landLotsError } = await supabase
         .from('building_land_lots')
-        .update({ 
+        .update({
             building_id: targetBuildingId,
             previous_building_id: input.sourceBuildingId,
             updated_at: new Date().toISOString(),
@@ -461,5 +464,286 @@ export async function mergeBuildingIntoPnu(input: MergeBuildingInput): Promise<M
         movedUnitsCount,
         updatedMappingsCount,
         targetBuildingId,
+    };
+}
+
+// ============================================================================
+// 다중 PNU 병합 (Merge Wizard)
+// ============================================================================
+
+/**
+ * 연동 지번 검색 (조합 내 PNU 검색)
+ * - 주소 또는 지번으로 검색
+ * - 현재 모달 PNU 제외
+ */
+export async function searchLinkedParcels(unionId: string, query: string, excludePnu: string) {
+    const supabase = getSupabaseAdmin();
+
+    const { data, error } = await supabase
+        .from('union_land_lots')
+        .select(
+            `
+            pnu,
+            address_text,
+            land_lots!inner (
+                address,
+                road_address
+            ),
+            building_land_lots (
+                building_id,
+                buildings (
+                    id,
+                    building_name,
+                    building_type
+                )
+            )
+        `
+        )
+        .eq('union_id', unionId)
+        .neq('pnu', excludePnu)
+        .or(`address_text.ilike.%${query}%,pnu.ilike.%${query}%`)
+        .limit(30);
+
+    if (error) {
+        console.error('Search linked parcels error:', error);
+        throw new Error(`지번 검색에 실패했습니다: ${error.message}`);
+    }
+
+    return (data || []).map((row) => {
+        // land_lots는 inner join이지만 Supabase가 배열로 반환할 수 있음
+        const landLotRaw = row.land_lots as unknown;
+        const landLot = Array.isArray(landLotRaw)
+            ? (landLotRaw[0] as { address: string; road_address: string | null } | undefined)
+            : (landLotRaw as { address: string; road_address: string | null } | null);
+
+        // building_land_lots -> buildings도 배열로 반환될 수 있음
+        const mappingArr = row.building_land_lots as unknown as Array<{
+            building_id: string;
+            buildings: unknown;
+        }>;
+        const mapping = mappingArr?.[0] || null;
+        const buildingsRaw = mapping?.buildings;
+        const building = Array.isArray(buildingsRaw)
+            ? (buildingsRaw[0] as { id: string; building_name: string | null; building_type: string } | undefined)
+            : (buildingsRaw as { id: string; building_name: string | null; building_type: string } | null);
+
+        return {
+            pnu: row.pnu,
+            address: landLot?.address || row.address_text || '',
+            road_address: landLot?.road_address || null,
+            building_id: mapping?.building_id || null,
+            building_name: building?.building_name || null,
+            building_type: building?.building_type || null,
+        };
+    });
+}
+
+/**
+ * 다중 PNU 병합: 선택한 PNU들의 호실을 현재 PNU의 건물(target)로 이동
+ * - building_units.building_id를 target으로 update하면서 previous_building_id 기록
+ * - building_land_lots도 target으로 update하면서 previous_building_id 기록
+ */
+export interface MergeMultiplePnusInput {
+    targetPnu: string; // 현재 모달의 PNU (target building 기준)
+    sourcePnus: string[]; // 병합할 소스 PNU 목록
+}
+
+export interface MergeMultiplePnusResult {
+    success: boolean;
+    movedUnitsCount: number;
+    updatedMappingsCount: number;
+    targetBuildingId: string;
+    skippedPnus: string[]; // 매핑이 없거나 이미 같은 건물인 PNU
+}
+
+export async function mergeMultiplePnusIntoPnu(input: MergeMultiplePnusInput): Promise<MergeMultiplePnusResult> {
+    const supabase = getSupabaseAdmin();
+    const targetPnu = input.targetPnu.trim();
+
+    // (a) 현재 PNU의 target building_id 조회
+    const { data: currentMapping, error: mappingError } = await supabase
+        .from('building_land_lots')
+        .select('building_id')
+        .eq('pnu', targetPnu)
+        .single();
+
+    if (mappingError || !currentMapping?.building_id) {
+        throw new Error('현재 PNU에 연결된 건물이 없습니다. 먼저 건물을 매칭해주세요.');
+    }
+
+    const targetBuildingId = currentMapping.building_id;
+    let totalMovedUnits = 0;
+    let totalUpdatedMappings = 0;
+    const skippedPnus: string[] = [];
+
+    // (b) 각 source PNU 처리
+    for (const sourcePnu of input.sourcePnus) {
+        const pnu = sourcePnu.trim();
+
+        // source PNU의 building_id 조회
+        const { data: sourceMapping } = await supabase
+            .from('building_land_lots')
+            .select('building_id')
+            .eq('pnu', pnu)
+            .maybeSingle();
+
+        if (!sourceMapping?.building_id) {
+            skippedPnus.push(pnu);
+            continue;
+        }
+
+        const sourceBuildingId = sourceMapping.building_id;
+
+        // 같은 건물이면 스킵
+        if (sourceBuildingId === targetBuildingId) {
+            skippedPnus.push(pnu);
+            continue;
+        }
+
+        // (c) building_units에서 source → target으로 이동 (previous_building_id 기록)
+        const { data: movedUnits, error: unitsError } = await supabase
+            .from('building_units')
+            .update({
+                building_id: targetBuildingId,
+                previous_building_id: sourceBuildingId,
+            })
+            .eq('building_id', sourceBuildingId)
+            .select('id');
+
+        if (unitsError) {
+            console.error(`Move building_units for ${pnu} error:`, unitsError);
+            // 에러가 나도 다음 PNU 진행
+            continue;
+        }
+
+        totalMovedUnits += movedUnits?.length || 0;
+
+        // (d) building_land_lots에서 source를 가리키던 모든 PNU들을 target으로 update
+        const { data: updatedMappings, error: landLotsError } = await supabase
+            .from('building_land_lots')
+            .update({
+                building_id: targetBuildingId,
+                previous_building_id: sourceBuildingId,
+                updated_at: new Date().toISOString(),
+            })
+            .eq('building_id', sourceBuildingId)
+            .select('pnu');
+
+        if (landLotsError) {
+            console.error(`Update building_land_lots for ${pnu} error:`, landLotsError);
+            continue;
+        }
+
+        totalUpdatedMappings += updatedMappings?.length || 0;
+    }
+
+    return {
+        success: true,
+        movedUnitsCount: totalMovedUnits,
+        updatedMappingsCount: totalUpdatedMappings,
+        targetBuildingId,
+        skippedPnus,
+    };
+}
+
+// ============================================================================
+// 병합 되돌리기 (Undo Merge)
+// ============================================================================
+
+/**
+ * 병합 되돌리기: previous_building_id가 있는 호실과 매핑을 원래대로 복원
+ * - building_units.building_id = previous_building_id로 복원, previous_building_id = null
+ * - building_land_lots도 동일하게 복원
+ */
+export interface UndoMergeInput {
+    targetPnu: string; // 현재 모달의 PNU
+}
+
+export interface UndoMergeResult {
+    success: boolean;
+    restoredUnitsCount: number;
+    restoredMappingsCount: number;
+}
+
+export async function undoMergeForPnu(input: UndoMergeInput): Promise<UndoMergeResult> {
+    const supabase = getSupabaseAdmin();
+    const pnu = input.targetPnu.trim();
+
+    // (a) 현재 PNU의 building_id 조회
+    const { data: currentMapping, error: mappingError } = await supabase
+        .from('building_land_lots')
+        .select('building_id, previous_building_id')
+        .eq('pnu', pnu)
+        .single();
+
+    if (mappingError || !currentMapping) {
+        throw new Error('현재 PNU에 연결된 건물 정보를 찾을 수 없습니다.');
+    }
+
+    const targetBuildingId = currentMapping.building_id;
+
+    // (b) building_units에서 해당 건물 소속 중 previous_building_id가 있는 것을 복원
+    // 주의: 모든 previous_building_id 그룹별로 처리
+    const { data: unitsToRestore, error: unitsQueryError } = await supabase
+        .from('building_units')
+        .select('id, previous_building_id')
+        .eq('building_id', targetBuildingId)
+        .not('previous_building_id', 'is', null);
+
+    if (unitsQueryError) {
+        console.error('Query units to restore error:', unitsQueryError);
+        throw new Error(`호실 복원 조회에 실패했습니다: ${unitsQueryError.message}`);
+    }
+
+    let restoredUnitsCount = 0;
+
+    // 각 유닛을 이전 building으로 복원
+    for (const unit of unitsToRestore || []) {
+        const { error: unitUpdateError } = await supabase
+            .from('building_units')
+            .update({
+                building_id: unit.previous_building_id,
+                previous_building_id: null,
+            })
+            .eq('id', unit.id);
+
+        if (!unitUpdateError) {
+            restoredUnitsCount++;
+        }
+    }
+
+    // (c) building_land_lots에서 현재 building을 가리키면서 previous가 있는 것들을 복원
+    const { data: mappingsToRestore, error: mappingsQueryError } = await supabase
+        .from('building_land_lots')
+        .select('id, previous_building_id')
+        .eq('building_id', targetBuildingId)
+        .not('previous_building_id', 'is', null);
+
+    if (mappingsQueryError) {
+        console.error('Query mappings to restore error:', mappingsQueryError);
+        throw new Error(`매핑 복원 조회에 실패했습니다: ${mappingsQueryError.message}`);
+    }
+
+    let restoredMappingsCount = 0;
+
+    for (const mapping of mappingsToRestore || []) {
+        const { error: mappingUpdateError } = await supabase
+            .from('building_land_lots')
+            .update({
+                building_id: mapping.previous_building_id,
+                previous_building_id: null,
+                updated_at: new Date().toISOString(),
+            })
+            .eq('id', mapping.id);
+
+        if (!mappingUpdateError) {
+            restoredMappingsCount++;
+        }
+    }
+
+    return {
+        success: true,
+        restoredUnitsCount,
+        restoredMappingsCount,
     };
 }

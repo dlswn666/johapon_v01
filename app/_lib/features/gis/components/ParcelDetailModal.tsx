@@ -1,13 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogFooter,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -22,20 +16,14 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
-import { 
-    MapPin, 
-    Users, 
-    Building2, 
-    CheckCircle2, 
-    XCircle, 
-    Clock, 
+    MapPin,
+    Users,
+    Building2,
+    CheckCircle2,
+    XCircle,
+    Clock,
     Percent,
     User,
     Phone,
@@ -46,6 +34,9 @@ import {
     Home,
     Search,
     Plus,
+    X,
+    RotateCcw,
+    Link2,
 } from 'lucide-react';
 import { useParcelDetail, ParcelDetail, Owner, BUILDING_TYPE_LABELS } from '../api/useParcelDetail';
 import {
@@ -55,8 +46,12 @@ import {
     useBuildingUnitsUnion,
     useDeleteBuildingUnit,
     useMergeBuilding,
+    useLinkedParcelSearch,
+    useMergeMultiplePnus,
+    useUndoMerge,
     BuildingSearchResult,
     BuildingUnitWithSource,
+    LinkedParcelResult,
 } from '../api/useBuildingMatch';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -74,13 +69,13 @@ interface ParcelDetailModalProps {
     onDeleted?: () => void;
 }
 
-export default function ParcelDetailModal({ 
-    open, 
-    onOpenChange, 
-    pnu, 
+export default function ParcelDetailModal({
+    open,
+    onOpenChange,
+    pnu,
     stageId,
     unionId,
-    onDeleted 
+    onDeleted,
 }: ParcelDetailModalProps) {
     const { data: parcel, isLoading, refetch } = useParcelDetail(pnu, stageId);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -125,14 +120,10 @@ export default function ParcelDetailModal({
                                 <ParcelBasicInfo parcel={parcel} />
 
                                 {/* 소유주 목록 (조합원 정보) - 조합원이 있을 때만 표시 */}
-                                {parcel.building_units.length > 0 && (
-                                    <OwnersSection parcel={parcel} />
-                                )}
+                                {parcel.building_units.length > 0 && <OwnersSection parcel={parcel} />}
                             </>
                         ) : (
-                            <div className="text-center py-12 text-gray-500">
-                                필지 정보를 불러올 수 없습니다.
-                            </div>
+                            <div className="text-center py-12 text-gray-500">필지 정보를 불러올 수 없습니다.</div>
                         )}
                     </div>
 
@@ -140,11 +131,7 @@ export default function ParcelDetailModal({
                     {parcel && (
                         <DialogFooter className="border-t pt-4">
                             <div className="flex items-center gap-2 ml-auto">
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => setIsEditModalOpen(true)}
-                                >
+                                <Button variant="outline" size="sm" onClick={() => setIsEditModalOpen(true)}>
                                     <Pencil className="w-4 h-4 mr-1" />
                                     수정
                                 </Button>
@@ -183,14 +170,12 @@ export default function ParcelDetailModal({
                     <AlertDialogHeader>
                         <AlertDialogTitle>필지를 삭제하시겠습니까?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            이 작업은 되돌릴 수 없습니다. 필지와 관련된 모든 데이터가 삭제되며, 
-                            지도에서도 해당 필지가 제거됩니다.
+                            이 작업은 되돌릴 수 없습니다. 필지와 관련된 모든 데이터가 삭제되며, 지도에서도 해당 필지가
+                            제거됩니다.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel disabled={deleteMutation.isPending}>
-                            취소
-                        </AlertDialogCancel>
+                        <AlertDialogCancel disabled={deleteMutation.isPending}>취소</AlertDialogCancel>
                         <AlertDialogAction
                             onClick={(e) => {
                                 e.preventDefault();
@@ -234,9 +219,7 @@ function ParcelBasicInfo({ parcel }: { parcel: ParcelDetail }) {
             <div>
                 <p className="text-sm text-gray-500 mb-1">주소</p>
                 <p className="font-semibold text-gray-900">{parcel.address}</p>
-                {parcel.road_address && (
-                    <p className="text-sm text-gray-600 mt-0.5">({parcel.road_address})</p>
-                )}
+                {parcel.road_address && <p className="text-sm text-gray-600 mt-0.5">({parcel.road_address})</p>}
             </div>
 
             {/* 1행: 건물 유형, 건물 이름 */}
@@ -247,8 +230,8 @@ function ParcelBasicInfo({ parcel }: { parcel: ParcelDetail }) {
                         <span className="text-xs">건물 유형</span>
                     </div>
                     <p className="text-sm font-bold text-gray-900">
-                        {parcel.building_type 
-                            ? BUILDING_TYPE_LABELS[parcel.building_type] || parcel.building_type 
+                        {parcel.building_type
+                            ? BUILDING_TYPE_LABELS[parcel.building_type] || parcel.building_type
                             : '-'}
                     </p>
                 </div>
@@ -319,9 +302,7 @@ function ParcelBasicInfo({ parcel }: { parcel: ParcelDetail }) {
                         <Percent className="w-4 h-4" />
                         <span className="text-xs">공시지가</span>
                     </div>
-                    <p className="text-sm font-bold text-gray-900">
-                        {formatPrice(parcel.official_price)}
-                    </p>
+                    <p className="text-sm font-bold text-gray-900">{formatPrice(parcel.official_price)}</p>
                 </div>
             </div>
         </div>
@@ -349,7 +330,7 @@ interface EditParcelModalProps {
 
 function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: EditParcelModalProps) {
     const [activeTab, setActiveTab] = useState<'info' | 'member' | 'building-match'>('info');
-    
+
     // 필지/건물 정보 폼
     const [formData, setFormData] = useState({
         // land_lots
@@ -366,7 +347,9 @@ function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: Edi
 
     // 소유주 연결 폼
     const [memberSearchQuery, setMemberSearchQuery] = useState('');
-    const [searchResults, setSearchResults] = useState<{ id: string; name: string; phone_number: string | null; resident_address: string | null }[]>([]);
+    const [searchResults, setSearchResults] = useState<
+        { id: string; name: string; phone_number: string | null; resident_address: string | null }[]
+    >([]);
     const [isSearching, setIsSearching] = useState(false);
     const [selectedMember, setSelectedMember] = useState<{ id: string; name: string } | null>(null);
 
@@ -377,6 +360,11 @@ function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: Edi
     const [unitToDelete, setUnitToDelete] = useState<BuildingUnitWithSource | null>(null);
     const [isMergeSuccessOpen, setIsMergeSuccessOpen] = useState(false); // 병합 성공 확인 모달
 
+    // 연동 지번 검색 상태 (다중 PNU 병합용)
+    const [linkedParcelSearchInput, setLinkedParcelSearchInput] = useState('');
+    const [debouncedLinkedKeyword, setDebouncedLinkedKeyword] = useState('');
+    const [selectedPnus, setSelectedPnus] = useState<LinkedParcelResult[]>([]); // 병합할 PNU들 (멀티선택)
+
     // 건물명 검색 1초 디바운스
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -384,6 +372,14 @@ function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: Edi
         }, 1000);
         return () => clearTimeout(timer);
     }, [buildingSearchInput]);
+
+    // 연동 지번 검색 1초 디바운스
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedLinkedKeyword(linkedParcelSearchInput);
+        }, 1000);
+        return () => clearTimeout(timer);
+    }, [linkedParcelSearchInput]);
 
     // 건물 매칭 훅
     const { data: buildingSearchResults, isLoading: isBuildingSearching } = useBuildingSearch(
@@ -395,6 +391,16 @@ function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: Edi
     const updateMatchMutation = useUpdateBuildingMatch();
     const deleteUnitMutation = useDeleteBuildingUnit();
     const mergeMutation = useMergeBuilding();
+
+    // 연동 지번 검색 훅 (다중 PNU 병합용)
+    const { data: linkedParcelResults, isLoading: isLinkedSearching } = useLinkedParcelSearch(
+        unionId,
+        debouncedLinkedKeyword,
+        parcel.pnu,
+        debouncedLinkedKeyword.length >= 2
+    );
+    const mergeMultipleMutation = useMergeMultiplePnus();
+    const undoMergeMutation = useUndoMerge();
 
     // 모달이 열릴 때 데이터 초기화
     useEffect(() => {
@@ -419,6 +425,10 @@ function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: Edi
             setSelectedBuilding(null);
             setUnitToDelete(null);
             setIsMergeSuccessOpen(false);
+            // 연동 지번 검색 상태 초기화
+            setLinkedParcelSearchInput('');
+            setDebouncedLinkedKeyword('');
+            setSelectedPnus([]);
         }
     }, [open, parcel]);
 
@@ -503,10 +513,10 @@ function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: Edi
                 <div className="flex border-b border-gray-200">
                     <button
                         className={cn(
-                            "flex-1 py-2 text-sm font-medium border-b-2 transition-colors cursor-pointer",
+                            'flex-1 py-2 text-sm font-medium border-b-2 transition-colors cursor-pointer',
                             activeTab === 'info'
-                                ? "border-primary text-primary"
-                                : "border-transparent text-gray-500 hover:text-gray-700"
+                                ? 'border-primary text-primary'
+                                : 'border-transparent text-gray-500 hover:text-gray-700'
                         )}
                         onClick={() => setActiveTab('info')}
                     >
@@ -514,10 +524,10 @@ function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: Edi
                     </button>
                     <button
                         className={cn(
-                            "flex-1 py-2 text-sm font-medium border-b-2 transition-colors cursor-pointer",
+                            'flex-1 py-2 text-sm font-medium border-b-2 transition-colors cursor-pointer',
                             activeTab === 'member'
-                                ? "border-primary text-primary"
-                                : "border-transparent text-gray-500 hover:text-gray-700"
+                                ? 'border-primary text-primary'
+                                : 'border-transparent text-gray-500 hover:text-gray-700'
                         )}
                         onClick={() => setActiveTab('member')}
                     >
@@ -525,10 +535,10 @@ function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: Edi
                     </button>
                     <button
                         className={cn(
-                            "flex-1 py-2 text-sm font-medium border-b-2 transition-colors cursor-pointer",
+                            'flex-1 py-2 text-sm font-medium border-b-2 transition-colors cursor-pointer',
                             activeTab === 'building-match'
-                                ? "border-primary text-primary"
-                                : "border-transparent text-gray-500 hover:text-gray-700"
+                                ? 'border-primary text-primary'
+                                : 'border-transparent text-gray-500 hover:text-gray-700'
                         )}
                         onClick={() => setActiveTab('building-match')}
                     >
@@ -544,29 +554,42 @@ function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: Edi
                                 <h4 className="text-sm font-semibold text-gray-700">필지 정보</h4>
                                 <div className="grid grid-cols-2 gap-3">
                                     <div className="space-y-1">
-                                        <Label htmlFor="land_area" className="text-xs">면적 (㎡)</Label>
+                                        <Label htmlFor="land_area" className="text-xs">
+                                            면적 (㎡)
+                                        </Label>
                                         <Input
                                             id="land_area"
                                             type="number"
                                             min={0}
                                             step={0.01}
                                             value={formData.land_area}
-                                            onChange={(e) => setFormData({ ...formData, land_area: parseFloat(e.target.value) || 0 })}
+                                            onChange={(e) =>
+                                                setFormData({ ...formData, land_area: parseFloat(e.target.value) || 0 })
+                                            }
                                         />
                                     </div>
                                     <div className="space-y-1">
-                                        <Label htmlFor="official_price" className="text-xs">공시지가 (원/㎡)</Label>
+                                        <Label htmlFor="official_price" className="text-xs">
+                                            공시지가 (원/㎡)
+                                        </Label>
                                         <Input
                                             id="official_price"
                                             type="number"
                                             min={0}
                                             value={formData.official_price}
-                                            onChange={(e) => setFormData({ ...formData, official_price: parseInt(e.target.value) || 0 })}
+                                            onChange={(e) =>
+                                                setFormData({
+                                                    ...formData,
+                                                    official_price: parseInt(e.target.value) || 0,
+                                                })
+                                            }
                                         />
                                     </div>
                                 </div>
                                 <div className="space-y-1">
-                                    <Label htmlFor="land_category" className="text-xs">지목</Label>
+                                    <Label htmlFor="land_category" className="text-xs">
+                                        지목
+                                    </Label>
                                     <Input
                                         id="land_category"
                                         placeholder="예: 대지, 도로, 전, 답 등"
@@ -581,10 +604,14 @@ function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: Edi
                                 <h4 className="text-sm font-semibold text-gray-700">건물 정보</h4>
                                 <div className="grid grid-cols-2 gap-3">
                                     <div className="space-y-1">
-                                        <Label htmlFor="building_type" className="text-xs">건물 유형</Label>
+                                        <Label htmlFor="building_type" className="text-xs">
+                                            건물 유형
+                                        </Label>
                                         <Select
                                             value={formData.building_type}
-                                            onValueChange={(value) => setFormData({ ...formData, building_type: value })}
+                                            onValueChange={(value) =>
+                                                setFormData({ ...formData, building_type: value })
+                                            }
                                         >
                                             <SelectTrigger>
                                                 <SelectValue placeholder="선택" />
@@ -599,17 +626,23 @@ function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: Edi
                                         </Select>
                                     </div>
                                     <div className="space-y-1">
-                                        <Label htmlFor="building_name" className="text-xs">건물 이름</Label>
+                                        <Label htmlFor="building_name" className="text-xs">
+                                            건물 이름
+                                        </Label>
                                         <Input
                                             id="building_name"
                                             placeholder="예: OO빌라"
                                             value={formData.building_name}
-                                            onChange={(e) => setFormData({ ...formData, building_name: e.target.value })}
+                                            onChange={(e) =>
+                                                setFormData({ ...formData, building_name: e.target.value })
+                                            }
                                         />
                                     </div>
                                 </div>
                                 <div className="space-y-1">
-                                    <Label htmlFor="main_purpose" className="text-xs">주용도</Label>
+                                    <Label htmlFor="main_purpose" className="text-xs">
+                                        주용도
+                                    </Label>
                                     <Input
                                         id="main_purpose"
                                         placeholder="예: 다가구주택, 근린생활시설"
@@ -619,23 +652,34 @@ function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: Edi
                                 </div>
                                 <div className="grid grid-cols-2 gap-3">
                                     <div className="space-y-1">
-                                        <Label htmlFor="floor_count" className="text-xs">층수</Label>
+                                        <Label htmlFor="floor_count" className="text-xs">
+                                            층수
+                                        </Label>
                                         <Input
                                             id="floor_count"
                                             type="number"
                                             min={0}
                                             value={formData.floor_count}
-                                            onChange={(e) => setFormData({ ...formData, floor_count: parseInt(e.target.value) || 0 })}
+                                            onChange={(e) =>
+                                                setFormData({ ...formData, floor_count: parseInt(e.target.value) || 0 })
+                                            }
                                         />
                                     </div>
                                     <div className="space-y-1">
-                                        <Label htmlFor="total_unit_count" className="text-xs">총 세대수</Label>
+                                        <Label htmlFor="total_unit_count" className="text-xs">
+                                            총 세대수
+                                        </Label>
                                         <Input
                                             id="total_unit_count"
                                             type="number"
                                             min={0}
                                             value={formData.total_unit_count}
-                                            onChange={(e) => setFormData({ ...formData, total_unit_count: parseInt(e.target.value) || 0 })}
+                                            onChange={(e) =>
+                                                setFormData({
+                                                    ...formData,
+                                                    total_unit_count: parseInt(e.target.value) || 0,
+                                                })
+                                            }
                                         />
                                     </div>
                                 </div>
@@ -677,8 +721,8 @@ function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: Edi
                                             <button
                                                 key={user.id}
                                                 className={cn(
-                                                    "w-full p-3 text-left flex items-center justify-between hover:bg-gray-100 transition-colors cursor-pointer",
-                                                    selectedMember?.id === user.id && "bg-primary/10"
+                                                    'w-full p-3 text-left flex items-center justify-between hover:bg-gray-100 transition-colors cursor-pointer',
+                                                    selectedMember?.id === user.id && 'bg-primary/10'
                                                 )}
                                                 onClick={() => setSelectedMember({ id: user.id, name: user.name })}
                                             >
@@ -688,7 +732,9 @@ function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: Edi
                                                         <span className="font-medium text-sm">{user.name}</span>
                                                     </div>
                                                     {user.resident_address && (
-                                                        <span className="text-xs text-gray-500 ml-6">({user.resident_address})</span>
+                                                        <span className="text-xs text-gray-500 ml-6">
+                                                            ({user.resident_address})
+                                                        </span>
                                                     )}
                                                 </div>
                                                 {selectedMember?.id === user.id && (
@@ -720,22 +766,156 @@ function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: Edi
                         </div>
                     ) : activeTab === 'building-match' ? (
                         <div className="space-y-4">
-                            {/* 현재 매칭 정보 */}
+                            {/* 현재 매칭 정보 + 되돌리기 버튼 */}
                             {currentMapping?.current_building && (
                                 <div className="p-3 bg-blue-50 rounded-lg">
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <Building2 className="w-4 h-4 text-blue-600" />
-                                        <span className="text-sm font-medium text-blue-800">현재 매칭된 건물</span>
+                                    <div className="flex items-center justify-between mb-1">
+                                        <div className="flex items-center gap-2">
+                                            <Building2 className="w-4 h-4 text-blue-600" />
+                                            <span className="text-sm font-medium text-blue-800">현재 매칭된 건물</span>
+                                        </div>
+                                        {/* 되돌리기 버튼 - previous가 있는 units/mappings이 있을 때만 표시 */}
+                                        {unitsUnion && unitsUnion.some((u) => u.source === 'previous') && (
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="text-xs h-7"
+                                                onClick={() => {
+                                                    undoMergeMutation.mutate(
+                                                        { targetPnu: parcel.pnu },
+                                                        {
+                                                            onSuccess: () => {
+                                                                refetchMapping();
+                                                                refetchUnits();
+                                                            },
+                                                        }
+                                                    );
+                                                }}
+                                                disabled={undoMergeMutation.isPending}
+                                            >
+                                                {undoMergeMutation.isPending ? (
+                                                    <Loader2 className="w-3 h-3 animate-spin mr-1" />
+                                                ) : (
+                                                    <RotateCcw className="w-3 h-3 mr-1" />
+                                                )}
+                                                병합 되돌리기
+                                            </Button>
+                                        )}
                                     </div>
                                     <p className="text-sm text-blue-700">
-                                        {currentMapping.current_building.building_name || '(이름 없음)'} - {BUILDING_TYPE_LABELS[currentMapping.current_building.building_type] || currentMapping.current_building.building_type}
+                                        {currentMapping.current_building.building_name || '(이름 없음)'} -{' '}
+                                        {BUILDING_TYPE_LABELS[currentMapping.current_building.building_type] ||
+                                            currentMapping.current_building.building_type}
                                     </p>
                                 </div>
                             )}
 
-                            {/* 건물 검색 (1초 디바운스) */}
+                            {/* 연동 지번 검색 (다중 PNU 병합용) */}
+                            <div className="space-y-2 pt-2 border-t">
+                                <Label className="text-xs flex items-center gap-2">
+                                    <Link2 className="w-4 h-4" />
+                                    연동 지번 검색 (병합할 지번 선택)
+                                </Label>
+                                <div className="flex gap-2">
+                                    <Input
+                                        placeholder="주소 또는 지번 입력 (2글자 이상)"
+                                        value={linkedParcelSearchInput}
+                                        onChange={(e) => setLinkedParcelSearchInput(e.target.value)}
+                                    />
+                                    {isLinkedSearching && <Loader2 className="w-5 h-5 animate-spin text-gray-400" />}
+                                </div>
+                            </div>
+
+                            {/* 연동 지번 검색 결과 (체크박스로 멀티선택) */}
+                            {linkedParcelResults && linkedParcelResults.length > 0 && (
+                                <div className="space-y-2">
+                                    <Label className="text-xs">검색 결과 (체크하여 여러 건 선택)</Label>
+                                    <div className="max-h-40 overflow-y-auto border rounded-lg divide-y">
+                                        {linkedParcelResults.map((lp) => {
+                                            const isSelected = selectedPnus.some((s) => s.pnu === lp.pnu);
+                                            return (
+                                                <button
+                                                    key={lp.pnu}
+                                                    className={cn(
+                                                        'w-full p-2.5 text-left cursor-pointer',
+                                                        isSelected
+                                                            ? 'bg-primary/10'
+                                                            : 'hover:bg-gray-100 transition-colors'
+                                                    )}
+                                                    onClick={() => {
+                                                        if (isSelected) {
+                                                            setSelectedPnus((prev) =>
+                                                                prev.filter((s) => s.pnu !== lp.pnu)
+                                                            );
+                                                        } else {
+                                                            setSelectedPnus((prev) => [...prev, lp]);
+                                                        }
+                                                    }}
+                                                >
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="flex items-center gap-2">
+                                                                <MapPin className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                                                                <span className="text-sm font-medium truncate">
+                                                                    {lp.address}
+                                                                </span>
+                                                            </div>
+                                                            <div className="text-xs text-gray-500 mt-0.5 ml-5.5 flex items-center gap-2 flex-wrap">
+                                                                <span className="font-mono">{lp.pnu.slice(-4)}</span>
+                                                                {lp.building_name && (
+                                                                    <Badge variant="outline" className="text-xs py-0">
+                                                                        {lp.building_name}
+                                                                    </Badge>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                        {isSelected && (
+                                                            <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
+                                                        )}
+                                                    </div>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* 선택된 지번 목록 (칩) */}
+                            {selectedPnus.length > 0 && (
+                                <div className="space-y-2">
+                                    <Label className="text-xs">선택된 지번 ({selectedPnus.length}건)</Label>
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {selectedPnus.map((sp) => (
+                                            <Badge
+                                                key={sp.pnu}
+                                                variant="secondary"
+                                                className="flex items-center gap-1 pr-1"
+                                            >
+                                                <span className="max-w-[120px] truncate text-xs">
+                                                    {sp.address.slice(-15)}
+                                                </span>
+                                                <button
+                                                    onClick={() =>
+                                                        setSelectedPnus((prev) => prev.filter((s) => s.pnu !== sp.pnu))
+                                                    }
+                                                    className="p-0.5 hover:bg-gray-300 rounded-full cursor-pointer"
+                                                >
+                                                    <X className="w-3 h-3" />
+                                                </button>
+                                            </Badge>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* 구분선 */}
+                            <div className="border-t pt-3">
+                                <Label className="text-xs text-gray-500">또는 건물명으로 검색</Label>
+                            </div>
+
+                            {/* 건물 검색 (1초 디바운스) - 옵션 */}
                             <div className="space-y-2">
-                                <Label className="text-xs">건물명으로 검색 (병합할 건물 선택)</Label>
+                                <Label className="text-xs">건물명으로 검색 (선택사항)</Label>
                                 <div className="flex gap-2">
                                     <Input
                                         placeholder="건물명 입력 (2글자 이상)"
@@ -746,22 +926,21 @@ function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: Edi
                                 </div>
                             </div>
 
-                            {/* 검색 결과 */}
+                            {/* 건물 검색 결과 */}
                             {buildingSearchResults && buildingSearchResults.length > 0 && (
                                 <div className="space-y-2">
-                                    <Label className="text-xs">검색 결과 (클릭하여 선택)</Label>
-                                    <div className="max-h-40 overflow-y-auto border rounded-lg divide-y">
+                                    <Label className="text-xs">건물 검색 결과</Label>
+                                    <div className="max-h-32 overflow-y-auto border rounded-lg divide-y">
                                         {buildingSearchResults.map((building) => {
                                             const isSelected = selectedBuilding?.id === building.id;
                                             return (
                                                 <button
                                                     key={building.id}
                                                     className={cn(
-                                                        "w-full p-3 text-left cursor-pointer",
-                                                        // 선택된 카드는 hover 비활성, 선택 안 된 카드만 hover 효과
-                                                        isSelected 
-                                                            ? "bg-primary/10" 
-                                                            : "hover:bg-gray-100 transition-colors"
+                                                        'w-full p-2.5 text-left cursor-pointer',
+                                                        isSelected
+                                                            ? 'bg-primary/10'
+                                                            : 'hover:bg-gray-100 transition-colors'
                                                     )}
                                                     onClick={() => setSelectedBuilding(building)}
                                                 >
@@ -772,7 +951,8 @@ function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: Edi
                                                                 {building.building_name || '(이름 없음)'}
                                                             </span>
                                                             <Badge variant="outline" className="text-xs">
-                                                                {BUILDING_TYPE_LABELS[building.building_type] || building.building_type}
+                                                                {BUILDING_TYPE_LABELS[building.building_type] ||
+                                                                    building.building_type}
                                                             </Badge>
                                                         </div>
                                                         {isSelected && (
@@ -780,7 +960,8 @@ function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: Edi
                                                         )}
                                                     </div>
                                                     <div className="text-xs text-gray-500 mt-1 ml-6">
-                                                        {building.dong_count > 0 ? `${building.dong_count}개동` : ''} {building.unit_count}개 호실
+                                                        {building.dong_count > 0 ? `${building.dong_count}개동` : ''}{' '}
+                                                        {building.unit_count}개 호실
                                                     </div>
                                                 </button>
                                             );
@@ -794,9 +975,15 @@ function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: Edi
                                 <div className="p-3 bg-primary/5 rounded-lg flex items-center justify-between">
                                     <div className="flex items-center gap-2">
                                         <Building2 className="w-4 h-4 text-primary" />
-                                        <span className="text-sm font-medium">{selectedBuilding.building_name || '(이름 없음)'}</span>
+                                        <span className="text-sm font-medium">
+                                            {selectedBuilding.building_name || '(이름 없음)'}
+                                        </span>
                                         <span className="text-xs text-gray-500">
-                                            ({selectedBuilding.dong_count > 0 ? `${selectedBuilding.dong_count}개동, ` : ''}{selectedBuilding.unit_count}개 호실)
+                                            (
+                                            {selectedBuilding.dong_count > 0
+                                                ? `${selectedBuilding.dong_count}개동, `
+                                                : ''}
+                                            {selectedBuilding.unit_count}개 호실)
                                         </span>
                                     </div>
                                     <button
@@ -908,15 +1095,19 @@ function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: Edi
                     <Button
                         variant="outline"
                         onClick={() => onOpenChange(false)}
-                        disabled={updateMutation.isPending || linkMemberMutation.isPending || updateMatchMutation.isPending}
+                        disabled={
+                            updateMutation.isPending ||
+                            linkMemberMutation.isPending ||
+                            updateMatchMutation.isPending ||
+                            mergeMutation.isPending ||
+                            mergeMultipleMutation.isPending ||
+                            undoMergeMutation.isPending
+                        }
                     >
                         취소
                     </Button>
                     {activeTab === 'info' ? (
-                        <Button
-                            onClick={() => updateMutation.mutate()}
-                            disabled={updateMutation.isPending}
-                        >
+                        <Button onClick={() => updateMutation.mutate()} disabled={updateMutation.isPending}>
                             {updateMutation.isPending ? (
                                 <>
                                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -943,13 +1134,59 @@ function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: Edi
                     ) : (
                         <Button
                             onClick={() => {
+                                // 다중 PNU 병합 (연동 지번 선택 시)
+                                if (selectedPnus.length > 0) {
+                                    mergeMultipleMutation.mutate(
+                                        {
+                                            targetPnu: parcel.pnu,
+                                            sourcePnus: selectedPnus.map((s) => s.pnu),
+                                        },
+                                        {
+                                            onSuccess: (result) => {
+                                                if (result.movedUnitsCount === 0 && result.updatedMappingsCount === 0) {
+                                                    toast(
+                                                        result.skippedPnus.length > 0
+                                                            ? '선택한 지번이 모두 스킵되었습니다. (이미 같은 건물이거나 매핑 없음)'
+                                                            : '병합할 내용이 없습니다.'
+                                                    );
+                                                    setSelectedPnus([]);
+                                                    return;
+                                                }
+                                                setSelectedPnus([]);
+                                                setLinkedParcelSearchInput('');
+                                                setIsMergeSuccessOpen(true);
+                                            },
+                                        }
+                                    );
+                                    return;
+                                }
+
+                                // 단일 건물 병합 (건물 검색으로 선택 시)
                                 if (selectedBuilding) {
+                                    // 안내 처리: 현재 PNU가 이미 선택한 건물로 매칭되어 있으면 병합할 내용이 없음
+                                    if (
+                                        currentMapping?.building_id &&
+                                        selectedBuilding.id === currentMapping.building_id
+                                    ) {
+                                        toast('이미 현재 건물로 매칭되어 있어 병합할 내용이 없습니다.');
+                                        setSelectedBuilding(null);
+                                        return;
+                                    }
+
                                     // 병합: 선택한 건물의 호실을 현재 PNU 건물로 이동
                                     mergeMutation.mutate(
                                         { pnu: parcel.pnu, sourceBuildingId: selectedBuilding.id },
                                         {
-                                            onSuccess: () => {
+                                            onSuccess: (result) => {
+                                                // 서버에서도 동일 건물인 경우 0건 응답으로 안내 처리
+                                                if (result.movedUnitsCount === 0 && result.updatedMappingsCount === 0) {
+                                                    toast('이미 현재 건물로 매칭되어 있어 병합할 내용이 없습니다.');
+                                                    setSelectedBuilding(null);
+                                                    return;
+                                                }
+
                                                 setSelectedBuilding(null);
+                                                setBuildingSearchInput('');
                                                 setIsMergeSuccessOpen(true);
                                             },
                                             onError: (error: Error) => {
@@ -959,13 +1196,19 @@ function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: Edi
                                     );
                                 }
                             }}
-                            disabled={mergeMutation.isPending || !selectedBuilding}
+                            disabled={
+                                mergeMutation.isPending ||
+                                mergeMultipleMutation.isPending ||
+                                (!selectedBuilding && selectedPnus.length === 0)
+                            }
                         >
-                            {mergeMutation.isPending ? (
+                            {mergeMutation.isPending || mergeMultipleMutation.isPending ? (
                                 <>
                                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                                     병합 중...
                                 </>
+                            ) : selectedPnus.length > 0 ? (
+                                `${selectedPnus.length}건 병합`
                             ) : (
                                 '건물 병합'
                             )}
@@ -980,8 +1223,8 @@ function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: Edi
                     <AlertDialogHeader>
                         <AlertDialogTitle>병합이 완료되었습니다</AlertDialogTitle>
                         <AlertDialogDescription>
-                            선택한 건물의 호실이 현재 필지의 건물로 이동되었습니다.
-                            확인을 누르면 호실 목록이 갱신됩니다.
+                            선택한 지번/건물의 호실이 현재 필지의 건물로 이동되었습니다. 확인을 누르면 호실 목록이
+                            갱신됩니다.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -990,11 +1233,16 @@ function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: Edi
                                 // 관련 쿼리 무효화 및 재조회
                                 queryClient.invalidateQueries({ queryKey: ['pnu-building-mapping', parcel.pnu] });
                                 queryClient.invalidateQueries({ queryKey: ['building-units-union', parcel.pnu] });
-                                queryClient.invalidateQueries({ queryKey: ['parcel-detail', parcel.pnu], exact: false });
+                                queryClient.invalidateQueries({
+                                    queryKey: ['parcel-detail', parcel.pnu],
+                                    exact: false,
+                                });
+                                queryClient.invalidateQueries({ queryKey: ['consent-map', unionId] });
                                 // refetch 실행
                                 refetchMapping();
                                 refetchUnits();
                                 setIsMergeSuccessOpen(false);
+                                onSuccess();
                             }}
                         >
                             확인
@@ -1033,13 +1281,15 @@ function OwnersSection({ parcel }: { parcel: ParcelDetail }) {
                                     {/* 단독주택이 아닌 경우에만 동 표기 */}
                                     {unit.dong && parcel.building_type !== 'DETACHED_HOUSE' && `${unit.dong}동 `}
                                     {/* 호수가 있으면 호수 표기, 단독주택이면 '단독', 그 외엔 빈 값 */}
-                                    {unit.ho ? `${unit.ho}호` : parcel.building_type === 'DETACHED_HOUSE' ? '단독' : '-'}
+                                    {unit.ho
+                                        ? `${unit.ho}호`
+                                        : parcel.building_type === 'DETACHED_HOUSE'
+                                        ? '단독'
+                                        : '-'}
                                 </span>
                             </div>
                             {unit.exclusive_area && (
-                                <span className="text-xs text-gray-500">
-                                    전용 {unit.exclusive_area}㎡
-                                </span>
+                                <span className="text-xs text-gray-500">전용 {unit.exclusive_area}㎡</span>
                             )}
                         </div>
 
@@ -1061,7 +1311,7 @@ function OwnerRow({ owner, parcel }: { owner: Owner; parcel: ParcelDetail }) {
     const statusConfig = {
         AGREED: { icon: CheckCircle2, color: 'text-green-500', bg: 'bg-green-50', label: '동의' },
         DISAGREED: { icon: XCircle, color: 'text-red-500', bg: 'bg-red-50', label: '미동의' },
-        PENDING: { icon: Clock, color: 'text-gray-400', bg: 'bg-gray-50', label: '미제출' }
+        PENDING: { icon: Clock, color: 'text-gray-400', bg: 'bg-gray-50', label: '미제출' },
     };
 
     const status = statusConfig[owner.consent_status || 'PENDING'];
@@ -1072,8 +1322,8 @@ function OwnerRow({ owner, parcel }: { owner: Owner; parcel: ParcelDetail }) {
 
     return (
         <div className="px-3 py-3 flex items-center gap-3 hover:bg-gray-50/50">
-            <div className={cn("w-8 h-8 rounded-full flex items-center justify-center shrink-0", status.bg)}>
-                <StatusIcon className={cn("w-4 h-4", status.color)} />
+            <div className={cn('w-8 h-8 rounded-full flex items-center justify-center shrink-0', status.bg)}>
+                <StatusIcon className={cn('w-4 h-4', status.color)} />
             </div>
             <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
@@ -1091,7 +1341,9 @@ function OwnerRow({ owner, parcel }: { owner: Owner; parcel: ParcelDetail }) {
                         </Badge>
                     )}
                     {owner.is_representative && (
-                        <Badge variant="secondary" className="text-xs py-0">대표</Badge>
+                        <Badge variant="secondary" className="text-xs py-0">
+                            대표
+                        </Badge>
                     )}
                 </div>
                 <div className="flex items-center gap-3 text-xs text-gray-500 mt-1 flex-wrap">
@@ -1118,10 +1370,7 @@ function OwnerRow({ owner, parcel }: { owner: Owner; parcel: ParcelDetail }) {
                     )}
                 </div>
             </div>
-            <Badge 
-                variant="outline" 
-                className={cn("text-xs shrink-0", status.color)}
-            >
+            <Badge variant="outline" className={cn('text-xs shrink-0', status.color)}>
                 {status.label}
             </Badge>
         </div>

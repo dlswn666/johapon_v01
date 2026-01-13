@@ -135,13 +135,15 @@ export const usePnuBuildingMapping = (pnu: string | null) => {
 
             const { data, error } = await supabase
                 .from('building_land_lots')
-                .select(`
+                .select(
+                    `
                     id,
                     pnu,
                     building_id,
                     previous_building_id,
                     note
-                `)
+                `
+                )
                 .eq('pnu', pnu)
                 .single();
 
@@ -183,15 +185,7 @@ export const usePnuBuildingMapping = (pnu: string | null) => {
  */
 export const useUpdateBuildingMatch = () => {
     return useMutation({
-        mutationFn: async ({
-            pnu,
-            newBuildingId,
-            note,
-        }: {
-            pnu: string;
-            newBuildingId: string;
-            note?: string;
-        }) => {
+        mutationFn: async ({ pnu, newBuildingId, note }: { pnu: string; newBuildingId: string; note?: string }) => {
             // 1. 기존 매핑 조회
             const { data: existingMapping } = await supabase
                 .from('building_land_lots')
@@ -339,5 +333,112 @@ export const useMergeBuilding = () => {
             return mergeBuildingIntoPnu({ pnu, sourceBuildingId });
         },
         // onSuccess, onError는 호출하는 컴포넌트에서 처리
+    });
+};
+
+// ============================================================================
+// 다중 PNU 병합 (Merge Wizard)
+// ============================================================================
+
+/**
+ * 연동 지번 검색 결과 타입
+ */
+export interface LinkedParcelResult {
+    pnu: string;
+    address: string;
+    road_address: string | null;
+    building_id: string | null;
+    building_name: string | null;
+    building_type: string | null;
+}
+
+/**
+ * 연동 지번 검색 훅 (주소/지번으로 검색, 현재 PNU 제외)
+ */
+export const useLinkedParcelSearch = (
+    unionId: string | null,
+    query: string,
+    excludePnu: string | null,
+    enabled: boolean = true
+) => {
+    return useQuery({
+        queryKey: ['linked-parcel-search', unionId, query, excludePnu],
+        queryFn: async (): Promise<LinkedParcelResult[]> => {
+            if (!unionId || !query || query.length < 2 || !excludePnu) return [];
+
+            const { searchLinkedParcels } = await import('../actions/parcelActions');
+            return searchLinkedParcels(unionId, query, excludePnu);
+        },
+        enabled: enabled && !!unionId && !!excludePnu && query.length >= 2,
+        staleTime: 30000,
+    });
+};
+
+/**
+ * 다중 PNU 병합 Mutation
+ */
+export interface MergeMultiplePnusParams {
+    targetPnu: string;
+    sourcePnus: string[];
+}
+
+export interface MergeMultiplePnusResult {
+    success: boolean;
+    movedUnitsCount: number;
+    updatedMappingsCount: number;
+    targetBuildingId: string;
+    skippedPnus: string[];
+}
+
+export const useMergeMultiplePnus = () => {
+    return useMutation({
+        mutationFn: async ({ targetPnu, sourcePnus }: MergeMultiplePnusParams): Promise<MergeMultiplePnusResult> => {
+            const { mergeMultiplePnusIntoPnu } = await import('../actions/parcelActions');
+            return mergeMultiplePnusIntoPnu({ targetPnu, sourcePnus });
+        },
+        onSuccess: (result, variables) => {
+            // 관련 쿼리 무효화
+            queryClient.invalidateQueries({ queryKey: ['pnu-building-mapping', variables.targetPnu] });
+            queryClient.invalidateQueries({ queryKey: ['building-units-union', variables.targetPnu] });
+            queryClient.invalidateQueries({ queryKey: ['parcel-detail', variables.targetPnu], exact: false });
+            // source PNU들도 무효화
+            variables.sourcePnus.forEach((pnu) => {
+                queryClient.invalidateQueries({ queryKey: ['pnu-building-mapping', pnu] });
+                queryClient.invalidateQueries({ queryKey: ['building-units-union', pnu] });
+                queryClient.invalidateQueries({ queryKey: ['parcel-detail', pnu], exact: false });
+            });
+            const skippedMsg = result.skippedPnus.length > 0 ? ` (${result.skippedPnus.length}건 스킵)` : '';
+            toast.success(`${result.movedUnitsCount}개 호실이 병합되었습니다${skippedMsg}`);
+        },
+        onError: (error: Error) => {
+            toast.error(error.message || '병합에 실패했습니다.');
+        },
+    });
+};
+
+/**
+ * 병합 되돌리기 Mutation
+ */
+export interface UndoMergeResult {
+    success: boolean;
+    restoredUnitsCount: number;
+    restoredMappingsCount: number;
+}
+
+export const useUndoMerge = () => {
+    return useMutation({
+        mutationFn: async ({ targetPnu }: { targetPnu: string }): Promise<UndoMergeResult> => {
+            const { undoMergeForPnu } = await import('../actions/parcelActions');
+            return undoMergeForPnu({ targetPnu });
+        },
+        onSuccess: (result, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['pnu-building-mapping', variables.targetPnu] });
+            queryClient.invalidateQueries({ queryKey: ['building-units-union', variables.targetPnu] });
+            queryClient.invalidateQueries({ queryKey: ['parcel-detail', variables.targetPnu], exact: false });
+            toast.success(`${result.restoredUnitsCount}개 호실이 복원되었습니다.`);
+        },
+        onError: (error: Error) => {
+            toast.error(error.message || '되돌리기에 실패했습니다.');
+        },
     });
 };
