@@ -79,16 +79,19 @@ export interface BuildingUnit {
 
 // 필지 상세 정보 조회 Hook
 export const useParcelDetail = (pnu: string | null, stageId: string | null) => {
+    // PNU 정규화 (trim)
+    const normalizedPnu = pnu?.trim() || null;
+    
     return useQuery({
-        queryKey: ['parcel-detail', pnu, stageId],
+        queryKey: ['parcel-detail', normalizedPnu, stageId],
         queryFn: async (): Promise<ParcelDetail | null> => {
-            if (!pnu) return null;
+            if (!normalizedPnu) return null;
 
             // 1. 필지 기본 정보 조회 (land_category, road_address 포함)
             const { data: landLot, error: landError } = await supabase
                 .from('land_lots')
                 .select('pnu, address, area, official_price, owner_count, land_category, road_address')
-                .eq('pnu', pnu)
+                .eq('pnu', normalizedPnu)
                 .single();
 
             if (landError) {
@@ -110,8 +113,8 @@ export const useParcelDetail = (pnu: string | null, stageId: string | null) => {
             const { data: mapping } = await supabase
                 .from('building_land_lots')
                 .select('building_id')
-                .eq('pnu', pnu)
-                .single();
+                .eq('pnu', normalizedPnu)
+                .maybeSingle();
 
             if (mapping?.building_id) {
                 const { data: building } = await supabase
@@ -139,9 +142,9 @@ export const useParcelDetail = (pnu: string | null, stageId: string | null) => {
             const { data: unionLot } = await supabase
                 .from('union_land_lots')
                 .select('union_id')
-                .eq('pnu', pnu)
+                .eq('pnu', normalizedPnu)
                 .limit(1)
-                .single();
+                .maybeSingle();
 
             const unionId = unionLot?.union_id;
 
@@ -190,7 +193,7 @@ export const useParcelDetail = (pnu: string | null, stageId: string | null) => {
                         )
                     `
                     )
-                    .eq('pnu', pnu);
+                    .eq('pnu', normalizedPnu);
 
                 if (usersError) {
                     throw new Error(`조합원 조회 오류: ${usersError.message}`);
@@ -354,8 +357,8 @@ export const useParcelDetail = (pnu: string | null, stageId: string | null) => {
             const buildingUnits = Array.from(unitMap.values());
 
             return {
-                pnu,
-                address: landLot?.address || pnu,
+                pnu: normalizedPnu,
+                address: landLot?.address || normalizedPnu,
                 road_address: landLot?.road_address || null,
                 land_area: landLot?.area || null,
                 land_category: landLot?.land_category || null,
@@ -375,8 +378,9 @@ export const useParcelDetail = (pnu: string | null, stageId: string | null) => {
                 },
             };
         },
-        enabled: !!pnu,
-        staleTime: 30000, // 30초 동안 캐시 유지
+        enabled: !!normalizedPnu,
+        staleTime: 0, // 항상 fresh하게 유지하여 모달 오픈 시 최신 데이터 조회
+        refetchOnMount: 'always', // 마운트 시 항상 재조회
     });
 };
 

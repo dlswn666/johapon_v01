@@ -384,3 +384,82 @@ export async function searchUnionMembers(unionId: string, query: string) {
 
     return users || [];
 }
+
+/**
+ * 건물 병합: 선택한 건물(source)의 호실을 현재 PNU의 건물(target)로 이동
+ * - building_units.building_id를 target으로 update
+ * - building_land_lots에서 source를 가리키던 PNU들도 target으로 update
+ */
+export interface MergeBuildingInput {
+    pnu: string; // 현재 모달의 PNU (target building 기준)
+    sourceBuildingId: string; // 병합할 소스 건물 ID
+}
+
+export interface MergeBuildingResult {
+    success: boolean;
+    movedUnitsCount: number;
+    updatedMappingsCount: number;
+    targetBuildingId: string;
+}
+
+export async function mergeBuildingIntoPnu(input: MergeBuildingInput): Promise<MergeBuildingResult> {
+    const supabase = getSupabaseAdmin();
+    const pnu = input.pnu.trim();
+
+    // (a) 현재 PNU의 target building_id 조회
+    const { data: currentMapping, error: mappingError } = await supabase
+        .from('building_land_lots')
+        .select('building_id')
+        .eq('pnu', pnu)
+        .single();
+
+    if (mappingError || !currentMapping?.building_id) {
+        throw new Error('현재 PNU에 연결된 건물이 없습니다. 먼저 건물을 매칭해주세요.');
+    }
+
+    const targetBuildingId = currentMapping.building_id;
+
+    // source와 target이 같으면 병합 불필요
+    if (targetBuildingId === input.sourceBuildingId) {
+        throw new Error('같은 건물을 병합할 수 없습니다.');
+    }
+
+    // (b) building_units에서 source → target으로 이동
+    const { data: movedUnits, error: unitsError } = await supabase
+        .from('building_units')
+        .update({ building_id: targetBuildingId })
+        .eq('building_id', input.sourceBuildingId)
+        .select('id');
+
+    if (unitsError) {
+        console.error('Move building_units error:', unitsError);
+        throw new Error(`호실 이동에 실패했습니다: ${unitsError.message}`);
+    }
+
+    const movedUnitsCount = movedUnits?.length || 0;
+
+    // (c) building_land_lots에서 source를 가리키던 PNU들도 target으로 update
+    const { data: updatedMappings, error: landLotsError } = await supabase
+        .from('building_land_lots')
+        .update({ 
+            building_id: targetBuildingId,
+            previous_building_id: input.sourceBuildingId,
+            updated_at: new Date().toISOString(),
+        })
+        .eq('building_id', input.sourceBuildingId)
+        .select('pnu');
+
+    if (landLotsError) {
+        console.error('Update building_land_lots error:', landLotsError);
+        throw new Error(`PNU 매핑 업데이트에 실패했습니다: ${landLotsError.message}`);
+    }
+
+    const updatedMappingsCount = updatedMappings?.length || 0;
+
+    return {
+        success: true,
+        movedUnitsCount,
+        updatedMappingsCount,
+        targetBuildingId,
+    };
+}

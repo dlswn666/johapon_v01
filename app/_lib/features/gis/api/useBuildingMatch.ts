@@ -314,3 +314,30 @@ export const useDeleteBuildingUnit = () => {
         },
     });
 };
+
+/**
+ * 건물 병합 Mutation (서버 액션 호출)
+ * 선택한 건물(source)의 호실을 현재 PNU의 건물(target)로 병합
+ */
+export interface MergeBuildingParams {
+    pnu: string;
+    sourceBuildingId: string;
+}
+
+export interface MergeBuildingResult {
+    success: boolean;
+    movedUnitsCount: number;
+    updatedMappingsCount: number;
+    targetBuildingId: string;
+}
+
+export const useMergeBuilding = () => {
+    return useMutation({
+        mutationFn: async ({ pnu, sourceBuildingId }: MergeBuildingParams): Promise<MergeBuildingResult> => {
+            // 서버 액션을 동적 import로 호출 (클라이언트 컴포넌트에서 사용)
+            const { mergeBuildingIntoPnu } = await import('../actions/parcelActions');
+            return mergeBuildingIntoPnu({ pnu, sourceBuildingId });
+        },
+        // onSuccess, onError는 호출하는 컴포넌트에서 처리
+    });
+};

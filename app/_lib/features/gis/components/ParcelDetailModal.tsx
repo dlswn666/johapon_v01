@@ -54,6 +54,7 @@ import {
     useUpdateBuildingMatch,
     useBuildingUnitsUnion,
     useDeleteBuildingUnit,
+    useMergeBuilding,
     BuildingSearchResult,
     BuildingUnitWithSource,
 } from '../api/useBuildingMatch';
@@ -370,19 +371,30 @@ function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: Edi
     const [selectedMember, setSelectedMember] = useState<{ id: string; name: string } | null>(null);
 
     // 건물 매칭 상태
-    const [buildingSearchKeyword, setBuildingSearchKeyword] = useState('');
+    const [buildingSearchInput, setBuildingSearchInput] = useState(''); // 즉시 반영(UI용)
+    const [debouncedKeyword, setDebouncedKeyword] = useState(''); // 1초 후 반영(쿼리용)
     const [selectedBuilding, setSelectedBuilding] = useState<BuildingSearchResult | null>(null);
     const [unitToDelete, setUnitToDelete] = useState<BuildingUnitWithSource | null>(null);
+    const [isMergeSuccessOpen, setIsMergeSuccessOpen] = useState(false); // 병합 성공 확인 모달
+
+    // 건물명 검색 1초 디바운스
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedKeyword(buildingSearchInput);
+        }, 1000);
+        return () => clearTimeout(timer);
+    }, [buildingSearchInput]);
 
     // 건물 매칭 훅
     const { data: buildingSearchResults, isLoading: isBuildingSearching } = useBuildingSearch(
-        buildingSearchKeyword,
-        buildingSearchKeyword.length >= 2
+        debouncedKeyword,
+        debouncedKeyword.length >= 2
     );
-    const { data: currentMapping } = usePnuBuildingMapping(parcel.pnu);
-    const { data: unitsUnion, isLoading: isLoadingUnits } = useBuildingUnitsUnion(parcel.pnu);
+    const { data: currentMapping, refetch: refetchMapping } = usePnuBuildingMapping(parcel.pnu);
+    const { data: unitsUnion, isLoading: isLoadingUnits, refetch: refetchUnits } = useBuildingUnitsUnion(parcel.pnu);
     const updateMatchMutation = useUpdateBuildingMatch();
     const deleteUnitMutation = useDeleteBuildingUnit();
+    const mergeMutation = useMergeBuilding();
 
     // 모달이 열릴 때 데이터 초기화
     useEffect(() => {
@@ -402,9 +414,11 @@ function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: Edi
             setSearchResults([]);
             setSelectedMember(null);
             // 건물 매칭 상태 초기화
-            setBuildingSearchKeyword('');
+            setBuildingSearchInput('');
+            setDebouncedKeyword('');
             setSelectedBuilding(null);
             setUnitToDelete(null);
+            setIsMergeSuccessOpen(false);
         }
     }, [open, parcel]);
 
@@ -719,14 +733,14 @@ function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: Edi
                                 </div>
                             )}
 
-                            {/* 건물 검색 */}
+                            {/* 건물 검색 (1초 디바운스) */}
                             <div className="space-y-2">
-                                <Label className="text-xs">건물명으로 검색</Label>
+                                <Label className="text-xs">건물명으로 검색 (병합할 건물 선택)</Label>
                                 <div className="flex gap-2">
                                     <Input
                                         placeholder="건물명 입력 (2글자 이상)"
-                                        value={buildingSearchKeyword}
-                                        onChange={(e) => setBuildingSearchKeyword(e.target.value)}
+                                        value={buildingSearchInput}
+                                        onChange={(e) => setBuildingSearchInput(e.target.value)}
                                     />
                                     {isBuildingSearching && <Loader2 className="w-5 h-5 animate-spin text-gray-400" />}
                                 </div>
@@ -737,34 +751,40 @@ function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: Edi
                                 <div className="space-y-2">
                                     <Label className="text-xs">검색 결과 (클릭하여 선택)</Label>
                                     <div className="max-h-40 overflow-y-auto border rounded-lg divide-y">
-                                        {buildingSearchResults.map((building) => (
-                                            <button
-                                                key={building.id}
-                                                className={cn(
-                                                    "w-full p-3 text-left hover:bg-gray-100 transition-colors cursor-pointer",
-                                                    selectedBuilding?.id === building.id && "bg-primary/10"
-                                                )}
-                                                onClick={() => setSelectedBuilding(building)}
-                                            >
-                                                <div className="flex items-center justify-between">
-                                                    <div className="flex items-center gap-2">
-                                                        <Building2 className="w-4 h-4 text-gray-400" />
-                                                        <span className="font-medium text-sm">
-                                                            {building.building_name || '(이름 없음)'}
-                                                        </span>
-                                                        <Badge variant="outline" className="text-xs">
-                                                            {BUILDING_TYPE_LABELS[building.building_type] || building.building_type}
-                                                        </Badge>
-                                                    </div>
-                                                    {selectedBuilding?.id === building.id && (
-                                                        <CheckCircle2 className="w-4 h-4 text-primary" />
+                                        {buildingSearchResults.map((building) => {
+                                            const isSelected = selectedBuilding?.id === building.id;
+                                            return (
+                                                <button
+                                                    key={building.id}
+                                                    className={cn(
+                                                        "w-full p-3 text-left cursor-pointer",
+                                                        // 선택된 카드는 hover 비활성, 선택 안 된 카드만 hover 효과
+                                                        isSelected 
+                                                            ? "bg-primary/10" 
+                                                            : "hover:bg-gray-100 transition-colors"
                                                     )}
-                                                </div>
-                                                <div className="text-xs text-gray-500 mt-1 ml-6">
-                                                    {building.dong_count > 0 ? `${building.dong_count}개동` : ''} {building.unit_count}개 호실
-                                                </div>
-                                            </button>
-                                        ))}
+                                                    onClick={() => setSelectedBuilding(building)}
+                                                >
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="flex items-center gap-2">
+                                                            <Building2 className="w-4 h-4 text-gray-400" />
+                                                            <span className="font-medium text-sm">
+                                                                {building.building_name || '(이름 없음)'}
+                                                            </span>
+                                                            <Badge variant="outline" className="text-xs">
+                                                                {BUILDING_TYPE_LABELS[building.building_type] || building.building_type}
+                                                            </Badge>
+                                                        </div>
+                                                        {isSelected && (
+                                                            <CheckCircle2 className="w-4 h-4 text-primary" />
+                                                        )}
+                                                    </div>
+                                                    <div className="text-xs text-gray-500 mt-1 ml-6">
+                                                        {building.dong_count > 0 ? `${building.dong_count}개동` : ''} {building.unit_count}개 호실
+                                                    </div>
+                                                </button>
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             )}
@@ -794,7 +814,7 @@ function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: Edi
                                 <div className="space-y-2 pt-3 border-t">
                                     <Label className="text-xs flex items-center gap-2">
                                         <Layers className="w-4 h-4" />
-                                        호실 목록 {currentMapping?.previous_building_id && '(이전 건물 포함)'}
+                                        호실 목록
                                     </Label>
                                     {isLoadingUnits ? (
                                         <div className="flex items-center justify-center py-4">
@@ -805,10 +825,7 @@ function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: Edi
                                             {unitsUnion.map((unit) => (
                                                 <div
                                                     key={unit.id}
-                                                    className={cn(
-                                                        "p-2 flex items-center justify-between text-sm",
-                                                        unit.source === 'previous' && "bg-yellow-50"
-                                                    )}
+                                                    className="p-2 flex items-center justify-between text-sm"
                                                 >
                                                     <div className="flex items-center gap-2">
                                                         <Home className="w-4 h-4 text-gray-400" />
@@ -816,16 +833,6 @@ function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: Edi
                                                             {unit.dong && `${unit.dong}동 `}
                                                             {unit.ho ? `${unit.ho}호` : '-'}
                                                         </span>
-                                                        {unit.source === 'previous' && (
-                                                            <Badge variant="outline" className="text-xs text-yellow-700 border-yellow-500">
-                                                                이전
-                                                            </Badge>
-                                                        )}
-                                                        {unit.source === 'current' && (
-                                                            <Badge variant="outline" className="text-xs text-blue-700 border-blue-500">
-                                                                현재
-                                                            </Badge>
-                                                        )}
                                                     </div>
                                                     <button
                                                         onClick={() => setUnitToDelete(unit)}
@@ -937,31 +944,64 @@ function EditParcelModal({ open, onOpenChange, parcel, unionId, onSuccess }: Edi
                         <Button
                             onClick={() => {
                                 if (selectedBuilding) {
-                                    updateMatchMutation.mutate(
-                                        { pnu: parcel.pnu, newBuildingId: selectedBuilding.id },
+                                    // 병합: 선택한 건물의 호실을 현재 PNU 건물로 이동
+                                    mergeMutation.mutate(
+                                        { pnu: parcel.pnu, sourceBuildingId: selectedBuilding.id },
                                         {
                                             onSuccess: () => {
                                                 setSelectedBuilding(null);
-                                                onSuccess();
+                                                setIsMergeSuccessOpen(true);
+                                            },
+                                            onError: (error: Error) => {
+                                                toast.error(error.message || '병합에 실패했습니다.');
                                             },
                                         }
                                     );
                                 }
                             }}
-                            disabled={updateMatchMutation.isPending || !selectedBuilding}
+                            disabled={mergeMutation.isPending || !selectedBuilding}
                         >
-                            {updateMatchMutation.isPending ? (
+                            {mergeMutation.isPending ? (
                                 <>
                                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                    저장 중...
+                                    병합 중...
                                 </>
                             ) : (
-                                '건물 매칭 변경'
+                                '건물 병합'
                             )}
                         </Button>
                     )}
                 </DialogFooter>
             </DialogContent>
+
+            {/* 병합 성공 확인 모달 */}
+            <AlertDialog open={isMergeSuccessOpen} onOpenChange={setIsMergeSuccessOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>병합이 완료되었습니다</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            선택한 건물의 호실이 현재 필지의 건물로 이동되었습니다.
+                            확인을 누르면 호실 목록이 갱신됩니다.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogAction
+                            onClick={() => {
+                                // 관련 쿼리 무효화 및 재조회
+                                queryClient.invalidateQueries({ queryKey: ['pnu-building-mapping', parcel.pnu] });
+                                queryClient.invalidateQueries({ queryKey: ['building-units-union', parcel.pnu] });
+                                queryClient.invalidateQueries({ queryKey: ['parcel-detail', parcel.pnu], exact: false });
+                                // refetch 실행
+                                refetchMapping();
+                                refetchUnits();
+                                setIsMergeSuccessOpen(false);
+                            }}
+                        >
+                            확인
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </Dialog>
     );
 }
