@@ -12,7 +12,8 @@
       "Bash(find:*)",
       "Bash(grep:*)",
       "Bash(npm run build:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "WebSearch"
     ]
   },
   "mcpServers": {

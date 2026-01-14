@@ -266,7 +266,7 @@ export async function savePreRegisteredMembers(
         // 거주지 주소를 지번으로 정규화 (중복 검사용)
         const residentAddressJibun = row.residentAddress || null;
 
-        // users 테이블에 저장 (정규화된 동호수 사용)
+        // users 테이블에 저장 (스키마 변경: property_pnu, property_address_jibun, property_dong, property_ho는 user_property_units에 저장)
         const { error } = await supabase.from('users').insert({
             id,
             name: row.name,
@@ -277,15 +277,26 @@ export async function savePreRegisteredMembers(
             user_status: 'PRE_REGISTERED',
             resident_address: row.residentAddress || null,
             resident_address_jibun: residentAddressJibun,
-            property_pnu: pnu,
-            property_address_jibun: row.propertyAddress,
-            property_dong: normalizedDong,
-            property_ho: normalizedHo,
+            property_address: row.propertyAddress || null, // 기본 주소는 users에 저장
         });
 
         if (error) {
             errors.push(`${row.name}: ${error.message}`);
         } else {
+            // user_property_units에 물건지 상세 정보 저장
+            const { error: propertyUnitError } = await supabase.from('user_property_units').insert({
+                user_id: id,
+                pnu: pnu,
+                property_address_jibun: row.propertyAddress,
+                dong: normalizedDong,
+                ho: normalizedHo,
+                is_primary: true, // 사전등록 시 첫 번째 물건지를 대표로 설정
+            });
+
+            if (propertyUnitError) {
+                console.error(`[사전등록] 물건지 정보 저장 실패 (${row.name}):`, propertyUnitError.message);
+            }
+
             savedCount++;
 
             // 이름 + 거주지 지번 기준으로 중복 사용자 검사 및 병합 (새 사용자가 keeper)
@@ -353,19 +364,55 @@ export async function manualMatchUser(
             };
         }
 
-        // 사용자 정보 업데이트 (정규화된 동호수 사용)
-        const { error } = await supabase
+        // users.property_address 업데이트
+        const { error: userError } = await supabase
             .from('users')
             .update({
-                property_pnu: matchResult.pnu,
-                property_address_jibun: newPropertyAddress,
-                property_dong: normalizedDong,
-                property_ho: normalizedHo,
+                property_address: newPropertyAddress,
             })
             .eq('id', userId);
 
-        if (error) {
-            return { success: false, error: error.message };
+        if (userError) {
+            return { success: false, error: userError.message };
+        }
+
+        // user_property_units에서 기존 대표 물건지 확인
+        const { data: existingUnit } = await supabase
+            .from('user_property_units')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('is_primary', true)
+            .single();
+
+        if (existingUnit) {
+            // 기존 대표 물건지 업데이트
+            const { error: updateError } = await supabase
+                .from('user_property_units')
+                .update({
+                    pnu: matchResult.pnu,
+                    property_address_jibun: newPropertyAddress,
+                    dong: normalizedDong,
+                    ho: normalizedHo,
+                })
+                .eq('id', existingUnit.id);
+
+            if (updateError) {
+                return { success: false, error: updateError.message };
+            }
+        } else {
+            // 새 대표 물건지 생성
+            const { error: insertError } = await supabase.from('user_property_units').insert({
+                user_id: userId,
+                pnu: matchResult.pnu,
+                property_address_jibun: newPropertyAddress,
+                dong: normalizedDong,
+                ho: normalizedHo,
+                is_primary: true,
+            });
+
+            if (insertError) {
+                return { success: false, error: insertError.message };
+            }
         }
 
         return { success: true, pnu: matchResult.pnu };
@@ -405,58 +452,70 @@ export async function getPreRegisteredMembers(
         const searchTerm = options?.searchTerm?.trim();
         const matchFilter = options?.matchFilter ?? 'all';
 
-        // 기본 쿼리 구성
-        let countQuery = supabase
-            .from('users')
-            .select('id', { count: 'exact', head: true })
-            .eq('union_id', unionId)
-            .eq('user_status', 'PRE_REGISTERED');
-
+        // user_property_units 조인하여 물건지 정보 조회 (스키마 변경으로 property_pnu 등은 user_property_units에만 존재)
         let dataQuery = supabase
             .from('users')
-            .select('id, name, phone_number, property_pnu, property_address_jibun, property_dong, property_ho, resident_address, created_at')
+            .select(`
+                id, name, phone_number, resident_address, created_at, property_address,
+                user_property_units!left(pnu, property_address_jibun, dong, ho, is_primary)
+            `)
             .eq('union_id', unionId)
             .eq('user_status', 'PRE_REGISTERED');
 
-        // 매칭 필터 적용
-        if (matchFilter === 'matched') {
-            countQuery = countQuery.not('property_pnu', 'is', null);
-            dataQuery = dataQuery.not('property_pnu', 'is', null);
-        } else if (matchFilter === 'unmatched') {
-            countQuery = countQuery.is('property_pnu', null);
-            dataQuery = dataQuery.is('property_pnu', null);
-        }
-
-        // 검색어가 있으면 검색 조건 추가
+        // 검색어가 있으면 검색 조건 추가 (users.property_address로 검색)
         if (searchTerm) {
             const searchPattern = `%${searchTerm}%`;
-            const searchFilter = `name.ilike.${searchPattern},phone_number.ilike.${searchPattern},property_address_jibun.ilike.${searchPattern}`;
-            
-            countQuery = countQuery.or(searchFilter);
+            const searchFilter = `name.ilike.${searchPattern},phone_number.ilike.${searchPattern},property_address.ilike.${searchPattern}`;
             dataQuery = dataQuery.or(searchFilter);
         }
 
-        // 전체 개수 조회
-        const { count, error: countError } = await countQuery;
-
-        if (countError) {
-            return { success: false, error: countError.message };
-        }
-
-        const totalCount = count || 0;
-
-        // 페이지네이션 적용하여 데이터 조회 (지번 기준 정렬)
-        const { data, error } = await dataQuery
-            .order('property_address_jibun', { ascending: true, nullsFirst: false })
-            .range(offset, offset + limit - 1);
+        // 데이터 조회
+        const { data: rawData, error } = await dataQuery.order('name', { ascending: true });
 
         if (error) {
             return { success: false, error: error.message };
         }
 
-        const hasMore = offset + (data?.length || 0) < totalCount;
+        // user_property_units 배열을 평탄화하여 property_pnu, property_address_jibun 등 추출
+        type PropertyUnit = { pnu: string | null; property_address_jibun: string | null; dong: string | null; ho: string | null; is_primary: boolean | null };
+        const mappedData = (rawData || []).map((user) => {
+            const primaryUnit = (user.user_property_units as PropertyUnit[] | null)?.find((u) => u.is_primary) ||
+                                (user.user_property_units as PropertyUnit[] | null)?.[0] || null;
+            return {
+                id: user.id,
+                name: user.name,
+                phone_number: user.phone_number,
+                property_pnu: primaryUnit?.pnu || null,
+                property_address_jibun: primaryUnit?.property_address_jibun || user.property_address || null,
+                property_dong: primaryUnit?.dong || null,
+                property_ho: primaryUnit?.ho || null,
+                resident_address: user.resident_address,
+                created_at: user.created_at,
+            };
+        });
 
-        return { success: true, data, totalCount, hasMore };
+        // 클라이언트에서 매칭 필터 적용
+        let filteredData = mappedData;
+        if (matchFilter === 'matched') {
+            filteredData = mappedData.filter((d) => d.property_pnu !== null);
+        } else if (matchFilter === 'unmatched') {
+            filteredData = mappedData.filter((d) => d.property_pnu === null);
+        }
+
+        // 지번 기준 정렬
+        filteredData.sort((a, b) => {
+            const aAddr = a.property_address_jibun || '';
+            const bAddr = b.property_address_jibun || '';
+            return aAddr.localeCompare(bAddr, 'ko');
+        });
+
+        const totalCount = filteredData.length;
+
+        // 페이지네이션 적용
+        const paginatedData = filteredData.slice(offset, offset + limit);
+        const hasMore = offset + paginatedData.length < totalCount;
+
+        return { success: true, data: paginatedData, totalCount, hasMore };
     } catch (error) {
         return { success: false, error: String(error) };
     }
@@ -527,25 +586,61 @@ export async function updateUnmatchedMember(
             }
         }
 
-        // 사용자 정보 업데이트 (매칭 실패 시에도 주소/동/호수는 저장)
-        const { error } = await supabase
+        // users.property_address 업데이트
+        const { error: userError } = await supabase
             .from('users')
             .update({
-                property_pnu: pnu, // 매칭 실패 시 null
-                property_address_jibun: propertyAddress,
-                property_dong: normalizedDong,
-                property_ho: normalizedHo,
+                property_address: propertyAddress,
             })
             .eq('id', userId);
 
-        if (error) {
-            return { success: false, matched: false, error: error.message };
+        if (userError) {
+            return { success: false, matched: false, error: userError.message };
         }
 
-        return { 
-            success: true, 
-            matched: !!pnu, 
-            pnu: pnu ?? undefined 
+        // user_property_units에서 기존 대표 물건지 확인
+        const { data: existingUnit } = await supabase
+            .from('user_property_units')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('is_primary', true)
+            .single();
+
+        if (existingUnit) {
+            // 기존 대표 물건지 업데이트
+            const { error: updateError } = await supabase
+                .from('user_property_units')
+                .update({
+                    pnu: pnu, // 매칭 실패 시 null
+                    property_address_jibun: propertyAddress,
+                    dong: normalizedDong,
+                    ho: normalizedHo,
+                })
+                .eq('id', existingUnit.id);
+
+            if (updateError) {
+                return { success: false, matched: false, error: updateError.message };
+            }
+        } else {
+            // 새 대표 물건지 생성
+            const { error: insertError } = await supabase.from('user_property_units').insert({
+                user_id: userId,
+                pnu: pnu, // 매칭 실패 시 null
+                property_address_jibun: propertyAddress,
+                dong: normalizedDong,
+                ho: normalizedHo,
+                is_primary: true,
+            });
+
+            if (insertError) {
+                return { success: false, matched: false, error: insertError.message };
+            }
+        }
+
+        return {
+            success: true,
+            matched: !!pnu,
+            pnu: pnu ?? undefined
         };
     } catch (error) {
         return { success: false, matched: false, error: String(error) };

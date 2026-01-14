@@ -168,8 +168,22 @@ export default function ConsentManagementTab() {
         setFocusedIndex(-1);
 
         try {
+            // 주소 검색 시 user_property_units에서 먼저 조회하여 user_id 목록 획득
+            // (스키마 변경으로 property_address_jibun은 user_property_units에만 존재)
+            let addressUserIds: string[] = [];
+            if (searchAddress) {
+                const { data: addressUnitsData } = await supabase
+                    .from('user_property_units')
+                    .select('user_id')
+                    .ilike('property_address_jibun', `%${searchAddress}%`);
+
+                if (addressUnitsData && addressUnitsData.length > 0) {
+                    addressUserIds = [...new Set(addressUnitsData.map((u) => u.user_id))];
+                }
+            }
+
             // 건물이름 검색 시 buildings 테이블에서 먼저 조회하여 user_id 목록 획득
-            let buildingUserIds: string[] = [];
+            let buildingUserIds: string[] = []
             if (searchBuilding) {
                 // 1. buildings 테이블에서 건물이름으로 검색
                 const { data: buildingsData } = await supabase
@@ -234,9 +248,17 @@ export default function ConsentManagementTab() {
                 query = query.ilike('name', `%${searchName}%`);
             }
 
-            // 주소 검색 조건 구성: property_address로만 검색
+            // 주소 검색 조건 구성: users.property_address 또는 user_property_units.property_address_jibun에서 검색
+            // addressUserIds가 있으면 해당 user_id로 필터링 (user_property_units에서 매칭된 조합원)
+            // addressUserIds가 없어도 users.property_address에서 매칭될 수 있으므로 OR 조건으로 처리
             if (searchAddress) {
-                query = query.ilike('property_address', `%${searchAddress}%`);
+                if (addressUserIds.length > 0) {
+                    // user_property_units에서 매칭된 조합원이 있으면 해당 조합원 + property_address 검색 결과 합침
+                    query = query.or(`id.in.(${addressUserIds.join(',')}),property_address.ilike.%${searchAddress}%`);
+                } else {
+                    // user_property_units에서 매칭된 조합원이 없으면 property_address만 검색
+                    query = query.ilike('property_address', `%${searchAddress}%`);
+                }
             }
 
             const { data: members, error } = await query.limit(100);

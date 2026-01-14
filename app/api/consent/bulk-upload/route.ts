@@ -114,30 +114,25 @@ async function processConsentUploadSync(unionId: string, stageId: string, data: 
 
     for (const row of data) {
         try {
-            // 조합원 찾기 (이름 + 주소로 매칭) - 승인 + 사전등록 조합원 모두 포함
+            // 조합원 찾기 (이름으로 1차 필터) - 승인 + 사전등록 조합원 모두 포함
+            // 스키마 변경으로 property_address_jibun, property_dong, property_ho는 user_property_units에만 존재
             let query = supabase
                 .from('users')
-                .select('id')
+                .select(`
+                    id,
+                    property_address,
+                    user_property_units!left(property_address_jibun, dong, ho)
+                `)
                 .eq('union_id', unionId)
                 .in('user_status', ['APPROVED', 'PRE_REGISTERED'])
                 .ilike('name', row.name.trim());
 
-            // 주소로 필터
+            // 주소로 필터 (users.property_address로만 1차 필터)
             if (row.address) {
-                query = query.or(
-                    `property_address.ilike.%${row.address}%,property_address_jibun.ilike.%${row.address}%`
-                );
+                query = query.ilike('property_address', `%${row.address}%`);
             }
 
-            // 동/호로 추가 필터
-            if (row.dong) {
-                query = query.ilike('property_dong', `%${row.dong}%`);
-            }
-            if (row.ho) {
-                query = query.ilike('property_ho', `%${row.ho}%`);
-            }
-
-            const { data: members, error: searchError } = await query.limit(1);
+            const { data: members, error: searchError } = await query;
 
             if (searchError || !members || members.length === 0) {
                 errors.push({ row: row.rowNumber, message: `조합원을 찾을 수 없습니다: ${row.name}` });
@@ -145,7 +140,70 @@ async function processConsentUploadSync(unionId: string, stageId: string, data: 
                 continue;
             }
 
-            const memberId = members[0].id;
+            // 2차 필터: 주소, 동/호 상세 매칭 (user_property_units 기준)
+            type UserWithPropertyUnits = {
+                id: string;
+                property_address: string | null;
+                user_property_units: { property_address_jibun: string | null; dong: string | null; ho: string | null }[] | null;
+            };
+
+            let matchedMember: UserWithPropertyUnits | null = null;
+            for (const member of members as UserWithPropertyUnits[]) {
+                const propertyUnits = member.user_property_units || [];
+
+                // 주소, 동, 호 조건이 모두 없으면 첫 번째 조합원 매칭
+                if (!row.address && !row.dong && !row.ho) {
+                    matchedMember = member;
+                    break;
+                }
+
+                // 상세 물건지 정보가 없으면 users.property_address로만 매칭
+                if (propertyUnits.length === 0) {
+                    if (row.address && member.property_address?.includes(row.address)) {
+                        matchedMember = member;
+                        break;
+                    }
+                    continue;
+                }
+
+                // user_property_units에서 주소, 동, 호 매칭
+                for (const unit of propertyUnits) {
+                    let addressMatch = true;
+                    let dongMatch = true;
+                    let hoMatch = true;
+
+                    // 주소 매칭 (property_address_jibun 또는 users.property_address)
+                    if (row.address) {
+                        addressMatch = (unit.property_address_jibun?.includes(row.address) ?? false) ||
+                                       (member.property_address?.includes(row.address) ?? false);
+                    }
+
+                    // 동 매칭
+                    if (row.dong) {
+                        dongMatch = unit.dong?.toLowerCase().includes(row.dong.toLowerCase()) ?? false;
+                    }
+
+                    // 호 매칭
+                    if (row.ho) {
+                        hoMatch = unit.ho?.toLowerCase().includes(row.ho.toLowerCase()) ?? false;
+                    }
+
+                    if (addressMatch && dongMatch && hoMatch) {
+                        matchedMember = member;
+                        break;
+                    }
+                }
+
+                if (matchedMember) break;
+            }
+
+            if (!matchedMember) {
+                errors.push({ row: row.rowNumber, message: `조합원을 찾을 수 없습니다: ${row.name}` });
+                failCount++;
+                continue;
+            }
+
+            const memberId = matchedMember.id;
             // 한글/영문 동의 상태 파싱
             const status = parseConsentStatus(row.status);
 
@@ -192,27 +250,88 @@ async function processConsentUpload(jobId: string, unionId: string, stageId: str
 
         try {
             // 조합원 찾기 - 승인 + 사전등록 조합원 모두 포함
+            // 스키마 변경으로 property_address_jibun, property_dong, property_ho는 user_property_units에만 존재
             let query = supabase
                 .from('users')
-                .select('id')
+                .select(`
+                    id,
+                    property_address,
+                    user_property_units!left(property_address_jibun, dong, ho)
+                `)
                 .eq('union_id', unionId)
                 .in('user_status', ['APPROVED', 'PRE_REGISTERED'])
                 .ilike('name', row.name.trim());
 
+            // 주소로 필터 (users.property_address로만 1차 필터)
             if (row.address) {
-                query = query.or(
-                    `property_address.ilike.%${row.address}%,property_address_jibun.ilike.%${row.address}%`
-                );
+                query = query.ilike('property_address', `%${row.address}%`);
             }
 
-            const { data: members } = await query.limit(1);
+            const { data: members } = await query;
 
             if (!members || members.length === 0) {
                 failCount++;
                 continue;
             }
 
-            const memberId = members[0].id;
+            // 2차 필터: 주소, 동/호 상세 매칭 (user_property_units 기준)
+            type UserWithPropertyUnits = {
+                id: string;
+                property_address: string | null;
+                user_property_units: { property_address_jibun: string | null; dong: string | null; ho: string | null }[] | null;
+            };
+
+            let matchedMember: UserWithPropertyUnits | null = null;
+            for (const member of members as UserWithPropertyUnits[]) {
+                const propertyUnits = member.user_property_units || [];
+
+                // 주소, 동, 호 조건이 모두 없으면 첫 번째 조합원 매칭
+                if (!row.address && !row.dong && !row.ho) {
+                    matchedMember = member;
+                    break;
+                }
+
+                // 상세 물건지 정보가 없으면 users.property_address로만 매칭
+                if (propertyUnits.length === 0) {
+                    if (row.address && member.property_address?.includes(row.address)) {
+                        matchedMember = member;
+                        break;
+                    }
+                    continue;
+                }
+
+                // user_property_units에서 주소, 동, 호 매칭
+                for (const unit of propertyUnits) {
+                    let addressMatch = true;
+                    let dongMatch = true;
+                    let hoMatch = true;
+
+                    if (row.address) {
+                        addressMatch = (unit.property_address_jibun?.includes(row.address) ?? false) ||
+                                       (member.property_address?.includes(row.address) ?? false);
+                    }
+                    if (row.dong) {
+                        dongMatch = unit.dong?.toLowerCase().includes(row.dong.toLowerCase()) ?? false;
+                    }
+                    if (row.ho) {
+                        hoMatch = unit.ho?.toLowerCase().includes(row.ho.toLowerCase()) ?? false;
+                    }
+
+                    if (addressMatch && dongMatch && hoMatch) {
+                        matchedMember = member;
+                        break;
+                    }
+                }
+
+                if (matchedMember) break;
+            }
+
+            if (!matchedMember) {
+                failCount++;
+                continue;
+            }
+
+            const memberId = matchedMember.id;
             // 한글/영문 동의 상태 파싱
             const status = parseConsentStatus(row.status);
 
