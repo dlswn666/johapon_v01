@@ -1034,6 +1034,7 @@ export type Database = {
                     error_log: string | null;
                     id: string;
                     is_published: boolean | null;
+                    job_type: Database['public']['Enums']['sync_job_type_enum'];
                     preview_data: Json | null;
                     progress: number;
                     status: Database['public']['Enums']['sync_status_enum'];
@@ -1045,6 +1046,7 @@ export type Database = {
                     error_log?: string | null;
                     id?: string;
                     is_published?: boolean | null;
+                    job_type?: Database['public']['Enums']['sync_job_type_enum'];
                     preview_data?: Json | null;
                     progress?: number;
                     status?: Database['public']['Enums']['sync_status_enum'];
@@ -1056,6 +1058,7 @@ export type Database = {
                     error_log?: string | null;
                     id?: string;
                     is_published?: boolean | null;
+                    job_type?: Database['public']['Enums']['sync_job_type_enum'];
                     preview_data?: Json | null;
                     progress?: number;
                     status?: Database['public']['Enums']['sync_status_enum'];
@@ -1576,6 +1579,7 @@ export type Database = {
                 | 'HOUSING_ASSOCIATION'
                 | 'STREET_HOUSING'
                 | 'SMALL_RECONSTRUCTION';
+            sync_job_type_enum: 'GIS_MAP' | 'CONSENT_UPLOAD' | 'MEMBER_UPLOAD' | 'MEMBER_INVITE';
             sync_status_enum: 'PROCESSING' | 'COMPLETED' | 'FAILED';
         };
         CompositeTypes: {

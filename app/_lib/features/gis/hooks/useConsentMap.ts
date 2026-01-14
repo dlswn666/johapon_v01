@@ -25,11 +25,12 @@ export function useConsentMap(unionId: string | undefined, stageId: string | nul
             setLoading(true);
 
             try {
-                // 1. 배포 상태 확인 (배포된 작업이 하나라도 있는지 확인)
+                // 1. 배포 상태 확인 (배포된 GIS_MAP 작업이 하나라도 있는지 확인)
                 const { data: publishedJobs, error: jobError } = await supabase
                     .from('sync_jobs')
                     .select('is_published')
                     .eq('union_id', unionId)
+                    .eq('job_type', 'GIS_MAP')
                     .eq('status', 'COMPLETED')
                     .eq('is_published', true)
                     .limit(1);

@@ -81,11 +81,12 @@ export async function resetUnionGisData(unionId: string): Promise<ResetGisDataRe
         const pnuList = landLots?.map((lot) => lot.pnu) || [];
         console.log(`[GIS Reset] Found ${pnuList.length} PNUs to process`);
 
-        // 2. sync_jobs 삭제
+        // 2. sync_jobs 삭제 (GIS_MAP 타입만)
         const { error: syncJobsError, count: syncJobsCount } = await supabase
             .from('sync_jobs')
             .delete({ count: 'exact' })
-            .eq('union_id', unionId);
+            .eq('union_id', unionId)
+            .eq('job_type', 'GIS_MAP');
 
         if (syncJobsError) {
             console.error('[GIS Reset] Failed to delete sync_jobs:', syncJobsError);

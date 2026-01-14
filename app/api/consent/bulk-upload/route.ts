@@ -50,8 +50,10 @@ export async function POST(request: NextRequest) {
                 .from('sync_jobs')
                 .insert({
                     union_id: unionId,
+                    job_type: 'CONSENT_UPLOAD',
                     status: 'PROCESSING',
                     progress: 0,
+                    is_published: true, // 동의서 업로드는 배포 불필요
                     preview_data: {
                         type: 'consent_bulk_upload',
                         stageId,

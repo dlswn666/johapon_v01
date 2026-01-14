@@ -64,6 +64,7 @@ import { Edit } from 'lucide-react';
 interface SyncJob {
     id: string;
     union_id: string;
+    job_type: 'GIS_MAP' | 'CONSENT_UPLOAD' | 'MEMBER_UPLOAD' | 'MEMBER_INVITE';
     status: 'PROCESSING' | 'COMPLETED' | 'FAILED';
     progress: number;
     is_published: boolean;
@@ -168,6 +169,7 @@ export default function GisSyncPage() {
                 .from('sync_jobs')
                 .select('*')
                 .eq('union_id', selectedUnionId)
+                .eq('job_type', 'GIS_MAP')
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
