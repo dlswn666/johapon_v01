@@ -25,17 +25,16 @@ export function useConsentMap(unionId: string | undefined, stageId: string | nul
             setLoading(true);
 
             try {
-                // 1. 배포 상태 확인 (가장 최근 완료된 작업 기준)
-                const { data: job, error: jobError } = await supabase
+                // 1. 배포 상태 확인 (배포된 작업이 하나라도 있는지 확인)
+                const { data: publishedJobs, error: jobError } = await supabase
                     .from('sync_jobs')
                     .select('is_published')
                     .eq('union_id', unionId)
                     .eq('status', 'COMPLETED')
-                    .order('created_at', { ascending: false })
-                    .limit(1)
-                    .single();
+                    .eq('is_published', true)
+                    .limit(1);
 
-                if (jobError || !job?.is_published) {
+                if (jobError || !publishedJobs || publishedJobs.length === 0) {
                     setIsPublished(false);
                     setGeoJson(null);
                     setConsentData([]);

@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { AlertCircle } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import UnionInfoFooter from '@/app/_lib/widgets/union-info-footer/UnionInfoFooter';
@@ -33,7 +34,13 @@ export default function UnionLayoutContent({ children }: UnionLayoutContentProps
 
     // 로딩 중
     if (isUnionLoading || isAuthLoading) {
-        return <div className="min-h-screen bg-gray-50">{children}</div>;
+        return (
+            <div className="min-h-screen bg-gray-50">
+                <div className="container mx-auto max-w-[1280px] px-4 py-8">
+                    <Skeleton className="w-full h-[600px] rounded-[24px]" />
+                </div>
+            </div>
+        );
     }
 
     // 비활성화된 조합 접근 차단
