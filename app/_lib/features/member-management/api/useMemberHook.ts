@@ -121,19 +121,14 @@ export function useApprovedMembers({
                         property_address_road,
                         dong,
                         ho,
+                        building_name,
                         building_units (
                             dong,
                             ho,
                             area,
                             official_price,
                             buildings (
-                                building_name,
-                                pnu,
-                                land_lots (
-                                    address,
-                                    area,
-                                    official_price
-                                )
+                                building_name
                             )
                         )
                     `
@@ -156,23 +151,14 @@ export function useApprovedMembers({
                             official_price: number | null;
                             buildings: {
                                 building_name: string | null;
-                                pnu: string;
-                                land_lots: {
-                                    address: string;
-                                    area: number | null;
-                                    official_price: number | null;
-                                } | null;
                             } | null;
                         } | null;
 
-                        // land_lots에서 면적/공시지가 우선 사용 (building_units에 데이터가 없음)
-                        const landLotArea = buildingUnit?.buildings?.land_lots?.area;
-                        const landLotPrice = buildingUnit?.buildings?.land_lots?.official_price;
-
-                        // pnu, dong, ho는 user_property_units에서 직접 가져오고, 없으면 building_units에서 가져옴
+                        // pnu, dong, ho, building_name은 user_property_units에서 직접 가져옴
                         const directPnu = (pu as unknown as { pnu: string | null }).pnu;
                         const directDong = (pu as unknown as { dong: string | null }).dong;
                         const directHo = (pu as unknown as { ho: string | null }).ho;
+                        const directBuildingName = (pu as unknown as { building_name: string | null }).building_name;
 
                         propertyUnitsMap[userId].push({
                             id: pu.id,
@@ -188,11 +174,11 @@ export function useApprovedMembers({
                             property_address_road: pu.property_address_road,
                             dong: directDong || buildingUnit?.dong || null,
                             ho: directHo || buildingUnit?.ho || null,
-                            area: landLotArea ?? buildingUnit?.area ?? null,
-                            official_price: landLotPrice ?? buildingUnit?.official_price ?? null,
-                            building_name: buildingUnit?.buildings?.building_name || null,
-                            pnu: directPnu || buildingUnit?.buildings?.pnu || null,
-                            address: buildingUnit?.buildings?.land_lots?.address || null,
+                            area: buildingUnit?.area ?? null,
+                            official_price: buildingUnit?.official_price ?? null,
+                            building_name: directBuildingName || buildingUnit?.buildings?.building_name || null,
+                            pnu: directPnu || null,
+                            address: pu.property_address_jibun || null,
                         });
                     });
                 }
@@ -375,19 +361,14 @@ export function useApprovedMembersInfinite({
                         property_address_road,
                         dong,
                         ho,
+                        building_name,
                         building_units (
                             dong,
                             ho,
                             area,
                             official_price,
                             buildings (
-                                building_name,
-                                pnu,
-                                land_lots (
-                                    address,
-                                    area,
-                                    official_price
-                                )
+                                building_name
                             )
                         )
                     `
