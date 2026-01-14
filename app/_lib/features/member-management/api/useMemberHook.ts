@@ -108,9 +108,9 @@ export function useApprovedMembers({
                         `
                         id,
                         user_id,
+                        pnu,
                         building_unit_id,
                         ownership_type,
-                        is_primary,
                         is_primary,
                         notes,
                         land_area,
@@ -119,15 +119,17 @@ export function useApprovedMembers({
                         building_ownership_ratio,
                         property_address_jibun,
                         property_address_road,
-                        building_units!inner (
+                        dong,
+                        ho,
+                        building_units (
                             dong,
                             ho,
                             area,
                             official_price,
-                            buildings!inner (
+                            buildings (
                                 building_name,
                                 pnu,
-                                land_lots!inner (
+                                land_lots (
                                     address,
                                     area,
                                     official_price
@@ -146,7 +148,7 @@ export function useApprovedMembers({
                             propertyUnitsMap[userId] = [];
                         }
 
-                        // 타입 안전하게 처리
+                        // building_units는 left join이므로 null일 수 있음
                         const buildingUnit = pu.building_units as unknown as {
                             dong: string | null;
                             ho: string | null;
@@ -155,17 +157,22 @@ export function useApprovedMembers({
                             buildings: {
                                 building_name: string | null;
                                 pnu: string;
-                                land_lots: { 
+                                land_lots: {
                                     address: string;
                                     area: number | null;
                                     official_price: number | null;
-                                };
-                            };
-                        };
+                                } | null;
+                            } | null;
+                        } | null;
 
                         // land_lots에서 면적/공시지가 우선 사용 (building_units에 데이터가 없음)
                         const landLotArea = buildingUnit?.buildings?.land_lots?.area;
                         const landLotPrice = buildingUnit?.buildings?.land_lots?.official_price;
+
+                        // pnu, dong, ho는 user_property_units에서 직접 가져오고, 없으면 building_units에서 가져옴
+                        const directPnu = (pu as unknown as { pnu: string | null }).pnu;
+                        const directDong = (pu as unknown as { dong: string | null }).dong;
+                        const directHo = (pu as unknown as { ho: string | null }).ho;
 
                         propertyUnitsMap[userId].push({
                             id: pu.id,
@@ -179,12 +186,12 @@ export function useApprovedMembers({
                             building_ownership_ratio: pu.building_ownership_ratio,
                             property_address_jibun: pu.property_address_jibun,
                             property_address_road: pu.property_address_road,
-                            dong: buildingUnit?.dong || null,
-                            ho: buildingUnit?.ho || null,
+                            dong: directDong || buildingUnit?.dong || null,
+                            ho: directHo || buildingUnit?.ho || null,
                             area: landLotArea ?? buildingUnit?.area ?? null,
                             official_price: landLotPrice ?? buildingUnit?.official_price ?? null,
                             building_name: buildingUnit?.buildings?.building_name || null,
-                            pnu: buildingUnit?.buildings?.pnu || null,
+                            pnu: directPnu || buildingUnit?.buildings?.pnu || null,
                             address: buildingUnit?.buildings?.land_lots?.address || null,
                         });
                     });
@@ -355,9 +362,9 @@ export function useApprovedMembersInfinite({
                         `
                         id,
                         user_id,
+                        pnu,
                         building_unit_id,
                         ownership_type,
-                        is_primary,
                         is_primary,
                         notes,
                         land_area,
@@ -366,15 +373,17 @@ export function useApprovedMembersInfinite({
                         building_ownership_ratio,
                         property_address_jibun,
                         property_address_road,
-                        building_units!inner (
+                        dong,
+                        ho,
+                        building_units (
                             dong,
                             ho,
                             area,
                             official_price,
-                            buildings!inner (
+                            buildings (
                                 building_name,
                                 pnu,
-                                land_lots!inner (
+                                land_lots (
                                     address,
                                     area,
                                     official_price
@@ -393,6 +402,7 @@ export function useApprovedMembersInfinite({
                             propertyUnitsMap[userId] = [];
                         }
 
+                        // building_units는 left join이므로 null일 수 있음
                         const buildingUnit = pu.building_units as unknown as {
                             dong: string | null;
                             ho: string | null;
@@ -405,12 +415,17 @@ export function useApprovedMembersInfinite({
                                     address: string;
                                     area: number | null;
                                     official_price: number | null;
-                                };
-                            };
-                        };
+                                } | null;
+                            } | null;
+                        } | null;
 
                         const landLotArea = buildingUnit?.buildings?.land_lots?.area;
                         const landLotPrice = buildingUnit?.buildings?.land_lots?.official_price;
+
+                        // pnu, dong, ho는 user_property_units에서 직접 가져오고, 없으면 building_units에서 가져옴
+                        const directPnu = (pu as unknown as { pnu: string | null }).pnu;
+                        const directDong = (pu as unknown as { dong: string | null }).dong;
+                        const directHo = (pu as unknown as { ho: string | null }).ho;
 
                         propertyUnitsMap[userId].push({
                             id: pu.id,
@@ -424,12 +439,12 @@ export function useApprovedMembersInfinite({
                             building_ownership_ratio: pu.building_ownership_ratio,
                             property_address_jibun: pu.property_address_jibun,
                             property_address_road: pu.property_address_road,
-                            dong: buildingUnit?.dong || null,
-                            ho: buildingUnit?.ho || null,
+                            dong: directDong || buildingUnit?.dong || null,
+                            ho: directHo || buildingUnit?.ho || null,
                             area: landLotArea ?? buildingUnit?.area ?? null,
                             official_price: landLotPrice ?? buildingUnit?.official_price ?? null,
                             building_name: buildingUnit?.buildings?.building_name || null,
-                            pnu: buildingUnit?.buildings?.pnu || null,
+                            pnu: directPnu || buildingUnit?.buildings?.pnu || null,
                             address: buildingUnit?.buildings?.land_lots?.address || null,
                         });
                     });
