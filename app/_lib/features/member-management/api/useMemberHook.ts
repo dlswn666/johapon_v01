@@ -127,7 +127,7 @@ export function useApprovedMembers({
                             ho,
                             area,
                             official_price,
-                            buildings (
+                            buildings!building_units_building_id_fkey (
                                 building_name
                             )
                         )
@@ -339,10 +339,11 @@ export function useApprovedMembersInfinite({
 
             // 4. 대표 사용자들의 property_units 정보 조회
             const userIds = members.map((u) => u.id);
+            console.log('[DEBUG] Target userIds:', userIds);
             const propertyUnitsMap: Record<string, MemberPropertyUnitInfo[]> = {};
 
             if (userIds.length > 0) {
-                const { data: propertyUnits } = await supabase
+                const { data: propertyUnits, error: puError } = await supabase
                     .from('user_property_units')
                     .select(
                         `
@@ -367,7 +368,7 @@ export function useApprovedMembersInfinite({
                             ho,
                             area,
                             official_price,
-                            buildings (
+                            buildings!building_units_building_id_fkey (
                                 building_name
                             )
                         )
@@ -375,6 +376,8 @@ export function useApprovedMembersInfinite({
                     )
                     .in('user_id', userIds)
                     .order('is_primary', { ascending: false });
+
+                if (puError) throw puError;
 
                 if (propertyUnits) {
                     propertyUnits.forEach((pu) => {
@@ -646,7 +649,7 @@ export function useMemberPropertyUnits(memberId: string | undefined) {
                         ho,
                         area,
                         official_price,
-                        buildings!inner (
+                        buildings!building_units_building_id_fkey!inner (
                             building_name,
                             pnu,
                             land_lots!inner (

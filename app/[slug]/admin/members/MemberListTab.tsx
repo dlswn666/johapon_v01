@@ -129,25 +129,25 @@ export default function MemberListTab() {
                 width: '100px',
                 render: (_, row) => (
                     <div className="flex items-center gap-2">
-                        <span
-                            className="text-[14px] font-medium text-gray-900 whitespace-nowrap max-w-[80px] overflow-hidden text-ellipsis inline-block"
-                            title={row.name || ''}
-                        >
-                            {truncateName(row.name, 8)}
-                        </span>
-                        {!row.isPnuMatched && row.property_units?.[0]?.pnu && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 whitespace-nowrap">
-                                <AlertTriangle className="w-3 h-3 mr-1" />
-                                PNU 미매칭
+                            <span
+                                className="text-[14px] font-medium text-gray-900 whitespace-nowrap max-w-[80px] overflow-hidden text-ellipsis inline-block"
+                                title={row.name || ''}
+                            >
+                                {truncateName(row.name, 8)}
                             </span>
-                        )}
-                        {!row.property_units?.[0]?.pnu && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600 whitespace-nowrap">
-                                <MapPin className="w-3 h-3 mr-1" />
-                                PNU 없음
-                            </span>
-                        )}
-                    </div>
+                            {!row.isPnuMatched && row.property_units?.[0]?.pnu && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 whitespace-nowrap">
+                                    <AlertTriangle className="w-3 h-3 mr-1" />
+                                    PNU 미매칭
+                                </span>
+                            )}
+                            {!row.property_units?.[0]?.pnu && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600 whitespace-nowrap">
+                                    <MapPin className="w-3 h-3 mr-1" />
+                                    PNU 없음
+                                </span>
+                            )}
+                        </div>
                 ),
             },
             // 3. 소유유형
