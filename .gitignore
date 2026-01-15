@@ -42,3 +42,6 @@ next-env.d.ts
 *.md
 
 .gemini
+.claude
+settings.local.json
+
