@@ -8,8 +8,46 @@ import { Session, User as SupabaseUser } from '@supabase/supabase-js';
 import { KAKAO_SERVICE_TERMS_STRING } from '@/app/_lib/shared/constants/kakaoServiceTerms';
 import BlockedUserModal from '@/app/_lib/widgets/common/BlockedUserModal';
 
+import { isLocalhost } from '@/app/_lib/shared/utils/isLocalhost';
+
 // 사용자 역할 타입
 export type UserRole = 'SYSTEM_ADMIN' | 'ADMIN' | 'USER' | 'APPLICANT';
+
+/**
+ * 개발용 systemAdmin 목(mock) 사용자 데이터
+ * localhost 개발 환경에서만 사용됨
+ */
+const DEV_SYSTEM_ADMIN_USER: User = {
+    id: 'dev-system-admin-id',
+    name: '개발용 시스템관리자',
+    email: 'dev-admin@localhost.dev',
+    phone_number: '010-0000-0000',
+    role: 'SYSTEM_ADMIN',
+    user_status: 'APPROVED',
+    union_id: null,
+    created_at: new Date().toISOString(),
+    updated_at: null,
+    approved_at: new Date().toISOString(),
+    birth_date: null,
+    blocked_at: null,
+    blocked_reason: null,
+    executive_sort_order: null,
+    executive_title: null,
+    is_blocked: false,
+    is_executive: false,
+    notes: null,
+    property_address: null,
+    property_address_detail: null,
+    property_type: null,
+    property_zonecode: null,
+    rejected_at: null,
+    rejected_reason: null,
+    resident_address: null,
+    resident_address_detail: null,
+    resident_address_jibun: null,
+    resident_address_road: null,
+    resident_zonecode: null,
+};
 
 interface AuthContextType {
     user: User | null; // 현재 조합에서의 프로필
@@ -242,9 +280,20 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     useEffect(() => {
         const initAuth = async () => {
             console.log('[AUTH_DEBUG] 🚀 initAuth 시작');
-            
+
+            // [DEV ONLY] localhost 환경에서는 인증 스킵하고 systemAdmin으로 자동 로그인
+            if (isLocalhost()) {
+                console.log('[AUTH_DEBUG] 🔧 [DEV MODE] localhost 감지 - systemAdmin으로 자동 로그인');
+                setUser(DEV_SYSTEM_ADMIN_USER);
+                setAuthUser(null); // 실제 Supabase 인증은 없음
+                setSession(null);
+                setIsLoading(false);
+                console.log('[AUTH_DEBUG] ✅ [DEV MODE] 자동 로그인 완료');
+                return;
+            }
+
             // 타임아웃 헬퍼 (10초로 증설)
-            const timeout = (ms: number) => new Promise((_, reject) => 
+            const timeout = (ms: number) => new Promise((_, reject) =>
                 setTimeout(() => reject(new Error(`Timeout after ${ms}ms`)), ms)
             );
 
@@ -280,11 +329,17 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
 
         initAuth();
 
+        // [DEV ONLY] localhost 환경에서는 auth 이벤트 무시
+        if (isLocalhost()) {
+            console.log('[AUTH_DEBUG] 🔧 [DEV MODE] localhost - auth 이벤트 구독 스킵');
+            return () => {};
+        }
+
         const {
             data: { subscription },
         } = supabase.auth.onAuthStateChange(async (event, newSession) => {
             console.log(`[AUTH_DEBUG] 🔔 [AUTH_EVENT] ${event}`);
-            
+
             try {
                 if (event === 'SIGNED_OUT') {
                     console.log('[DEBUG] 🗑️ SIGNED_OUT 처리');
@@ -363,7 +418,8 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     // 파생 상태 계산
     const isSystemAdmin = user?.role === 'SYSTEM_ADMIN';
     const isAdmin = isSystemAdmin || user?.role === 'ADMIN';
-    const isAuthenticated = !!authUser;
+    // [DEV ONLY] localhost에서는 user가 있으면 인증된 것으로 처리
+    const isAuthenticated = !!authUser || (isLocalhost() && !!user);
     const userStatus = (user?.user_status ?? null) as 'PRE_REGISTERED' | 'PENDING_PROFILE' | 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED' | null;
     const isBlocked = user?.is_blocked ?? false;
 

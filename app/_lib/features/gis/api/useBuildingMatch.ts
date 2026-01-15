@@ -273,12 +273,25 @@ export const useBuildingUnitsUnion = (pnu: string | null) => {
 
             const buildingNameMap = new Map(buildings?.map((b) => [b.id, b.building_name]) || []);
 
-            // 5. source 표시 추가
-            return (units || []).map((unit) => ({
+            // 5. source 표시 추가 및 동/호수 기준 정렬
+            const unitsWithSource = (units || []).map((unit) => ({
                 ...unit,
                 source: unit.building_id === mapping.building_id ? 'current' : 'previous',
                 building_name: buildingNameMap.get(unit.building_id) || null,
             })) as BuildingUnitWithSource[];
+
+            // 동/호수 기준 정렬 (1동 101호 → 1동 102호 → 2동 101호 순)
+            return unitsWithSource.sort((a, b) => {
+                // 동 비교 (숫자로 변환, 없으면 0)
+                const dongA = parseInt(a.dong || '0', 10) || 0;
+                const dongB = parseInt(b.dong || '0', 10) || 0;
+                if (dongA !== dongB) return dongA - dongB;
+
+                // 호수 비교 (숫자로 변환, 없으면 0)
+                const hoA = parseInt(a.ho || '0', 10) || 0;
+                const hoB = parseInt(b.ho || '0', 10) || 0;
+                return hoA - hoB;
+            });
         },
         enabled: !!pnu,
     });
@@ -423,6 +436,7 @@ export interface UndoMergeResult {
     success: boolean;
     restoredUnitsCount: number;
     restoredMappingsCount: number;
+    restoredUserUnitsCount?: number;
 }
 
 export const useUndoMerge = () => {

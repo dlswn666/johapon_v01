@@ -1315,6 +1315,7 @@ export type Database = {
                     notes: string | null;
                     ownership_type: string | null;
                     pnu: string | null;
+                    previous_pnu: string | null;
                     property_address_jibun: string | null;
                     property_address_road: string | null;
                     updated_at: string | null;
@@ -1335,6 +1336,7 @@ export type Database = {
                     notes?: string | null;
                     ownership_type?: string | null;
                     pnu?: string | null;
+                    previous_pnu?: string | null;
                     property_address_jibun?: string | null;
                     property_address_road?: string | null;
                     updated_at?: string | null;
@@ -1355,6 +1357,7 @@ export type Database = {
                     notes?: string | null;
                     ownership_type?: string | null;
                     pnu?: string | null;
+                    previous_pnu?: string | null;
                     property_address_jibun?: string | null;
                     property_address_road?: string | null;
                     updated_at?: string | null;

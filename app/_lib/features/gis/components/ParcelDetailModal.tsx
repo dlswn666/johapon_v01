@@ -514,6 +514,17 @@ function EditParcelContent({ parcel, unionId, onCancel, onSuccess }: EditParcelC
 
     return (
         <>
+            {/* 수정 모드 - 필지 주소 표시 */}
+            <div className="bg-gray-50 rounded-lg p-3 mb-3">
+                <div className="flex items-center gap-2 text-sm">
+                    <MapPin className="w-4 h-4 text-gray-500" />
+                    <span className="font-medium text-gray-700">{parcel.address}</span>
+                </div>
+                {parcel.road_address && (
+                    <p className="text-xs text-gray-500 ml-6 mt-0.5">({parcel.road_address})</p>
+                )}
+            </div>
+
             {/* 탭 */}
             <div className="flex border-b border-gray-200">
                     <button

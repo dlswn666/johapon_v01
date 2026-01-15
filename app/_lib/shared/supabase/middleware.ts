@@ -2,6 +2,18 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
 /**
+ * [DEV ONLY] localhost 환경인지 확인하는 유틸리티 함수
+ * production 환경에서는 절대 true를 반환하지 않음
+ */
+function isLocalhostRequest(request: NextRequest): boolean {
+    // production 환경에서는 절대 작동하지 않음
+    if (process.env.NODE_ENV === 'production') return false;
+
+    const host = request.headers.get('host') || '';
+    return host.startsWith('localhost') || host.startsWith('127.0.0.1');
+}
+
+/**
  * 공개 경로 목록 (인증 없이 접근 가능)
  */
 const PUBLIC_PATHS = [
@@ -153,6 +165,12 @@ export async function updateSession(request: NextRequest) {
 
     // 1. 공개 경로는 인증 검사 없이 통과
     if (isPublicPath(pathname)) {
+        return supabaseResponse;
+    }
+
+    // [DEV ONLY] localhost 환경에서는 인증 체크 스킵
+    if (isLocalhostRequest(request)) {
+        console.log('[MIDDLEWARE] 🔧 [DEV MODE] localhost 감지 - 인증 체크 스킵');
         return supabaseResponse;
     }
 

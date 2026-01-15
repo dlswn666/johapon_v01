@@ -347,7 +347,18 @@ export const useParcelDetail = (pnu: string | null, stageId: string | null) => {
                 unitMap.get(unitKey)!.owners.push(owner);
             });
 
-            const buildingUnits = Array.from(unitMap.values());
+            // 동/호수 기준 정렬 (1동 101호 → 1동 102호 → 2동 101호 순)
+            const buildingUnits = Array.from(unitMap.values()).sort((a, b) => {
+                // 동 비교 (숫자로 변환, 없으면 0)
+                const dongA = parseInt(a.dong || '0', 10) || 0;
+                const dongB = parseInt(b.dong || '0', 10) || 0;
+                if (dongA !== dongB) return dongA - dongB;
+
+                // 호수 비교 (숫자로 변환, 없으면 0)
+                const hoA = parseInt(a.ho || '0', 10) || 0;
+                const hoB = parseInt(b.ho || '0', 10) || 0;
+                return hoA - hoB;
+            });
 
             return {
                 pnu: normalizedPnu,

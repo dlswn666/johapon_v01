@@ -460,13 +460,24 @@ export async function mergeBuildingIntoPnu(input: MergeBuildingInput): Promise<M
 export async function searchLinkedParcels(unionId: string, query: string, excludePnu: string) {
     const supabase = getSupabaseAdmin();
 
+    // 검색어 정규화: 하이픈 제거 버전도 준비 (791-1982 → 7911982)
+    const queryNormalized = query.replace(/-/g, '');
+
     // 1단계: land_lots에서 직접 검색
+    // 하이픈 포함/미포함 모두 검색하기 위해 두 가지 쿼리 조합
+    let orCondition = `address_text.ilike.%${query}%,pnu.ilike.%${query}%,address.ilike.%${query}%`;
+
+    // 하이픈이 있었다면 제거된 버전으로도 검색
+    if (query !== queryNormalized) {
+        orCondition += `,address_text.ilike.%${queryNormalized}%,pnu.ilike.%${queryNormalized}%,address.ilike.%${queryNormalized}%`;
+    }
+
     const { data: landLots, error } = await supabase
         .from('land_lots')
         .select('pnu, address, address_text, road_address')
         .eq('union_id', unionId)
         .neq('pnu', excludePnu)
-        .or(`address_text.ilike.%${query}%,pnu.ilike.%${query}%,address.ilike.%${query}%`)
+        .or(orCondition)
         .limit(30);
 
     if (error) {
@@ -601,6 +612,20 @@ export async function mergeMultiplePnusIntoPnu(input: MergeMultiplePnusInput): P
         }
 
         totalUpdatedMappings += updatedMappings?.length || 0;
+
+        // (e) user_property_units에서 source PNU → target PNU로 변경 (previous_pnu 기록)
+        const { error: userUnitsError } = await supabase
+            .from('user_property_units')
+            .update({
+                pnu: targetPnu,
+                previous_pnu: pnu, // 원래 PNU 저장
+            })
+            .eq('pnu', pnu);
+
+        if (userUnitsError) {
+            console.error(`Update user_property_units for ${pnu} error:`, userUnitsError);
+            // 에러가 나도 다음 PNU 진행
+        }
     }
 
     return {
@@ -629,6 +654,7 @@ export interface UndoMergeResult {
     success: boolean;
     restoredUnitsCount: number;
     restoredMappingsCount: number;
+    restoredUserUnitsCount?: number;
 }
 
 export async function undoMergeForPnu(input: UndoMergeInput): Promise<UndoMergeResult> {
@@ -707,9 +733,39 @@ export async function undoMergeForPnu(input: UndoMergeInput): Promise<UndoMergeR
         }
     }
 
+    // (d) user_property_units에서 previous_pnu가 있는 것들을 복원
+    // 현재 target PNU를 가리키면서 previous_pnu가 있는 레코드들을 원래 PNU로 복원
+    const { data: userUnitsToRestore, error: userUnitsQueryError } = await supabase
+        .from('user_property_units')
+        .select('id, previous_pnu')
+        .eq('pnu', pnu)
+        .not('previous_pnu', 'is', null);
+
+    if (userUnitsQueryError) {
+        console.error('Query user_property_units to restore error:', userUnitsQueryError);
+        // 에러가 나도 결과 반환
+    }
+
+    let restoredUserUnitsCount = 0;
+
+    for (const userUnit of userUnitsToRestore || []) {
+        const { error: userUnitUpdateError } = await supabase
+            .from('user_property_units')
+            .update({
+                pnu: userUnit.previous_pnu,
+                previous_pnu: null,
+            })
+            .eq('id', userUnit.id);
+
+        if (!userUnitUpdateError) {
+            restoredUserUnitsCount++;
+        }
+    }
+
     return {
         success: true,
         restoredUnitsCount,
         restoredMappingsCount,
+        restoredUserUnitsCount,
     };
 }
