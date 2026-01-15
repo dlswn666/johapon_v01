@@ -170,7 +170,11 @@ export function useLogAccessEvent() {
                 ip_address: null,
             });
 
-            if (error) throw error;
+            // 로그 기록 실패는 주요 기능을 막지 않도록 에러를 무시 (409 중복 에러 등)
+            if (error) {
+                console.warn('[AccessLog] 로그 기록 실패:', error.message);
+                // throw하지 않음 - 로그 기록 실패가 주요 기능을 막지 않도록
+            }
         },
     });
 }

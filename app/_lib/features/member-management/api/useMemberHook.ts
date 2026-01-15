@@ -793,6 +793,9 @@ export interface CoOwnerInfo {
     property_address_jibun: string | null;
     building_unit_id: string;
     ownership_type: OwnershipType;
+    // 물건지 정보 (PNU 매칭 확인용)
+    property_units?: MemberPropertyUnitInfo[];
+    isPnuMatched: boolean;
 }
 
 // 공동 소유자 조회 (동일한 building_unit_id를 가진 모든 사용자)
@@ -811,7 +814,12 @@ export function useCoOwners(memberId: string | undefined) {
             if (memberUnitsError) throw memberUnitsError;
             if (!memberUnits || memberUnits.length === 0) return [];
 
-            const buildingUnitIds = memberUnits.map((u) => u.building_unit_id);
+            const buildingUnitIds = memberUnits
+                .map((u) => u.building_unit_id)
+                .filter((id): id is string => id !== null && id !== undefined);
+
+            // building_unit_id가 없는 경우 빈 배열 반환
+            if (buildingUnitIds.length === 0) return [];
 
             // 2. 동일한 building_unit_id를 가진 모든 사용자의 property_units 조회 (현재 사용자 포함)
             const { data: coOwnerUnits, error: coOwnerUnitsError } = await supabase
@@ -850,10 +858,7 @@ export function useCoOwners(memberId: string | undefined) {
                     notes,
                     is_blocked,
                     blocked_at,
-                    blocked_reason,
-                    property_pnu,
-                    property_address,
-                    property_address_jibun
+                    blocked_reason
                 `
                 )
                 .in('id', coOwnerUserIds);
@@ -861,10 +866,93 @@ export function useCoOwners(memberId: string | undefined) {
             if (coOwnerUsersError) throw coOwnerUsersError;
             if (!coOwnerUsers) return [];
 
-            // 4. 사용자 정보와 물건지 정보 결합
+            // 4. 각 공동소유자의 property_units 정보 조회
+            const { data: allPropertyUnits, error: puError } = await supabase
+                .from('user_property_units')
+                .select(
+                    `
+                    id,
+                    user_id,
+                    pnu,
+                    building_unit_id,
+                    ownership_type,
+                    is_primary,
+                    notes,
+                    land_area,
+                    building_area,
+                    land_ownership_ratio,
+                    building_ownership_ratio,
+                    property_address_jibun,
+                    property_address_road,
+                    dong,
+                    ho,
+                    building_name,
+                    building_units (
+                        dong,
+                        ho,
+                        area,
+                        official_price,
+                        buildings!building_units_building_id_fkey (
+                            building_name
+                        )
+                    )
+                `
+                )
+                .in('user_id', coOwnerUserIds)
+                .order('is_primary', { ascending: false });
+
+            if (puError) throw puError;
+
+            // property_units를 userId별로 그룹핑
+            const propertyUnitsMap: Record<string, MemberPropertyUnitInfo[]> = {};
+            if (allPropertyUnits) {
+                allPropertyUnits.forEach((pu) => {
+                    const userId = pu.user_id;
+                    if (!propertyUnitsMap[userId]) {
+                        propertyUnitsMap[userId] = [];
+                    }
+
+                    const buildingUnit = pu.building_units as unknown as {
+                        dong: string | null;
+                        ho: string | null;
+                        area: number | null;
+                        official_price: number | null;
+                        buildings: {
+                            building_name: string | null;
+                        } | null;
+                    } | null;
+
+                    propertyUnitsMap[userId].push({
+                        id: pu.id,
+                        building_unit_id: pu.building_unit_id,
+                        ownership_type: pu.ownership_type as OwnershipType,
+                        is_primary: pu.is_primary,
+                        notes: pu.notes,
+                        land_area: pu.land_area,
+                        building_area: pu.building_area,
+                        land_ownership_ratio: pu.land_ownership_ratio,
+                        building_ownership_ratio: pu.building_ownership_ratio,
+                        property_address_jibun: pu.property_address_jibun,
+                        property_address_road: pu.property_address_road,
+                        dong: pu.dong || buildingUnit?.dong || null,
+                        ho: pu.ho || buildingUnit?.ho || null,
+                        area: pu.land_area ?? buildingUnit?.area ?? null,
+                        official_price: buildingUnit?.official_price ?? null,
+                        building_name: pu.building_name || buildingUnit?.buildings?.building_name || null,
+                        pnu: pu.pnu || null,
+                        address: pu.property_address_jibun || null,
+                    });
+                });
+            }
+
+            // 5. 사용자 정보와 물건지 정보 결합
             const userMap = new Map(coOwnerUsers.map((u) => [u.id, u]));
             const result: CoOwnerInfo[] = coOwnerUnits.map((unit) => {
                 const user = userMap.get(unit.user_id);
+                const userPropertyUnits = propertyUnitsMap[unit.user_id] || [];
+                const primaryUnit = userPropertyUnits.find((u) => u.is_primary) || userPropertyUnits[0];
+                const primaryPnu = primaryUnit?.pnu || null;
+
                 return {
                     id: unit.user_id,
                     name: user?.name || '',
@@ -883,11 +971,13 @@ export function useCoOwners(memberId: string | undefined) {
                     is_blocked: user?.is_blocked || null,
                     blocked_at: user?.blocked_at || null,
                     blocked_reason: user?.blocked_reason || null,
-                    property_pnu: user?.property_pnu || null,
-                    property_address: user?.property_address || null,
-                    property_address_jibun: user?.property_address_jibun || null,
+                    property_pnu: primaryPnu,
+                    property_address: primaryUnit?.property_address_road || null,
+                    property_address_jibun: primaryUnit?.property_address_jibun || null,
                     building_unit_id: unit.building_unit_id,
                     ownership_type: unit.ownership_type as OwnershipType,
+                    property_units: userPropertyUnits,
+                    isPnuMatched: !!primaryPnu, // PNU가 있으면 매칭된 것으로 간주
                 };
             });
 
