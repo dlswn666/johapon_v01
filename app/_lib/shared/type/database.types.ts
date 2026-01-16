@@ -75,6 +75,7 @@ export type Database = {
                     created_at: string | null;
                     id: string;
                     image_url: string | null;
+                    image_url_mobile: string | null;
                     is_payment_completed: boolean | null;
                     link_url: string | null;
                     price: number | null;
@@ -91,6 +92,7 @@ export type Database = {
                     created_at?: string | null;
                     id?: string;
                     image_url?: string | null;
+                    image_url_mobile?: string | null;
                     is_payment_completed?: boolean | null;
                     link_url?: string | null;
                     price?: number | null;
@@ -107,6 +109,7 @@ export type Database = {
                     created_at?: string | null;
                     id?: string;
                     image_url?: string | null;
+                    image_url_mobile?: string | null;
                     is_payment_completed?: boolean | null;
                     link_url?: string | null;
                     price?: number | null;

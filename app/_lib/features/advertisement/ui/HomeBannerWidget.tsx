@@ -4,6 +4,7 @@ import React from 'react';
 import { useRandomAds } from '../api/useAdvertisement';
 import { Advertisement } from '@/app/_lib/shared/type/database.types';
 import Image from 'next/image';
+import { useMediaQuery } from '@/app/_lib/shared/hooks/useMediaQuery';
 
 // 모바일 배너 광고용 기본 데이터
 const DEFAULT_BANNER_ADS: Advertisement[] = [
@@ -18,6 +19,7 @@ const DEFAULT_BANNER_ADS: Advertisement[] = [
         price: 0,
         image_url:
             'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?q=80&w=400&h=300&auto=format&fit=crop',
+        image_url_mobile: null,
         link_url: null,
         created_at: '',
         title: '삼성앱카드 3천원 할인',
@@ -35,6 +37,7 @@ const DEFAULT_BANNER_ADS: Advertisement[] = [
         price: 0,
         image_url:
             'https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?q=80&w=400&h=300&auto=format&fit=crop',
+        image_url_mobile: null,
         link_url: null,
         created_at: '',
         title: '캐시로드 포인트 적립',
@@ -52,6 +55,7 @@ const DEFAULT_BANNER_ADS: Advertisement[] = [
         price: 0,
         image_url:
             'https://images.unsplash.com/photo-1560472355-536de3962603?q=80&w=400&h=300&auto=format&fit=crop',
+        image_url_mobile: null,
         link_url: null,
         created_at: '',
         title: '조합원 할인 혜택',
@@ -69,6 +73,7 @@ const DEFAULT_BANNER_ADS: Advertisement[] = [
         price: 0,
         image_url:
             'https://images.unsplash.com/photo-1553729459-efe14ef6055d?q=80&w=400&h=300&auto=format&fit=crop',
+        image_url_mobile: null,
         link_url: null,
         created_at: '',
         title: '이달의 특가 상품',
@@ -78,13 +83,16 @@ const DEFAULT_BANNER_ADS: Advertisement[] = [
 ];
 
 // 개별 배너 카드 컴포넌트
-function BannerCard({ ad }: { ad: Advertisement }) {
+function BannerCard({ ad, isMobile }: { ad: Advertisement; isMobile: boolean }) {
+    // 모바일이면 모바일 이미지 우선 사용, 없으면 웹 이미지로 폴백
+    const imageUrl = isMobile && ad.image_url_mobile ? ad.image_url_mobile : ad.image_url;
+
     return (
         <div className="relative w-full h-[120px] bg-white rounded-[8px] shadow-sm border border-slate-200 overflow-hidden group">
-            {ad.image_url ? (
+            {imageUrl ? (
                 <>
                     <Image
-                        src={ad.image_url}
+                        src={imageUrl}
                         alt={ad.business_name}
                         fill
                         className="object-cover group-hover:scale-105 transition-transform duration-500"
@@ -115,6 +123,7 @@ function BannerCard({ ad }: { ad: Advertisement }) {
 // 모바일 홈 배너 광고 컴포넌트 (2열 그리드)
 export function HomeBannerWidget() {
     const { data: ads, isLoading } = useRandomAds('SUB', 2);
+    const isMobile = useMediaQuery('(max-width: 767px)');
 
     // 광고 데이터 (API 데이터 또는 기본 데이터)
     const bannerAds = React.useMemo(() => {
@@ -140,7 +149,7 @@ export function HomeBannerWidget() {
         <div className="flex flex-col gap-1">
             <div className="grid grid-cols-2 gap-[8px]">
                 {bannerAds.map((ad) => (
-                    <BannerCard key={ad.id} ad={ad} />
+                    <BannerCard key={ad.id} ad={ad} isMobile={isMobile} />
                 ))}
             </div>
             <p className="text-[9px] text-slate-400 text-center font-medium uppercase tracking-widest">

@@ -28,6 +28,7 @@ export function AdForm({ ad, onSuccess, onCancel }: AdFormProps) {
   const { slug } = useSlug();
   const [adType, setAdType] = useState<AdType>(ad?.type || 'MAIN');
   const [imagePreview, setImagePreview] = useState<string | null>(ad?.image_url || null);
+  const [imageMobilePreview, setImageMobilePreview] = useState<string | null>(ad?.image_url_mobile || null);
   const [contractPreview, setContractPreview] = useState<string | null>(ad?.contract_file_url || null);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -43,6 +44,7 @@ export function AdForm({ ad, onSuccess, onCancel }: AdFormProps) {
       price: 0,
       is_payment_completed: false,
       image_url: '',
+      image_url_mobile: '',
       link_url: '',
       title: '',
       content: '',
@@ -67,7 +69,7 @@ export function AdForm({ ad, onSuccess, onCancel }: AdFormProps) {
     }
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: 'image_url' | 'contract_file_url') => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: 'image_url' | 'image_url_mobile' | 'contract_file_url') => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -80,8 +82,9 @@ export function AdForm({ ad, onSuccess, onCancel }: AdFormProps) {
       const { data: { publicUrl } } = supabase.storage.from('files').getPublicUrl(path);
       setValue(field, publicUrl);
       if (field === 'image_url') setImagePreview(publicUrl);
+      else if (field === 'image_url_mobile') setImageMobilePreview(publicUrl);
       else setContractPreview(publicUrl);
-      
+
       toast.success('업로드 완료');
     } catch (_error) {
       toast.error('업로드 실패');
@@ -167,14 +170,15 @@ export function AdForm({ ad, onSuccess, onCancel }: AdFormProps) {
       {/* 유형별 동적 필드 */}
       {adType !== 'BOARD' ? (
         <>
+          {/* 웹용 광고 이미지 */}
           <div className="space-y-2">
-            <Label className="text-slate-300">광고 이미지</Label>
+            <Label className="text-slate-300">광고 이미지 (웹)</Label>
             <div className="flex items-start gap-4">
               {imagePreview ? (
                 <div className="relative w-32 h-32 rounded-lg overflow-hidden border border-slate-600">
-                  <Image src={imagePreview} alt="미리보기" fill className="object-cover" />
-                  <button 
-                    type="button" 
+                  <Image src={imagePreview} alt="웹 미리보기" fill className="object-cover" />
+                  <button
+                    type="button"
                     onClick={() => { setImagePreview(null); setValue('image_url', ''); }}
                     className="absolute top-1 right-1 p-1 bg-red-500 rounded-full text-white"
                   >
@@ -182,12 +186,12 @@ export function AdForm({ ad, onSuccess, onCancel }: AdFormProps) {
                   </button>
                 </div>
               ) : (
-                <div className="w-32 h-32 border-2 border-dashed border-slate-700 rounded-lg flex flex-col items-center justify-center bg-slate-800/50 text-slate-500">
+                <div className="relative w-32 h-32 border-2 border-dashed border-slate-700 rounded-lg flex flex-col items-center justify-center bg-slate-800/50 text-slate-500">
                   <Upload className="w-6 h-6 mb-2" />
                   <span className="text-xs">이미지 업로드</span>
-                  <input 
-                    type="file" 
-                    className="absolute w-32 h-32 opacity-0 cursor-pointer" 
+                  <input
+                    type="file"
+                    className="absolute w-32 h-32 opacity-0 cursor-pointer"
                     onChange={(e) => handleFileUpload(e, 'image_url')}
                     accept="image/*"
                   />
@@ -196,21 +200,62 @@ export function AdForm({ ad, onSuccess, onCancel }: AdFormProps) {
               <div className="flex-1 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
                 <div className="flex gap-2 text-blue-400 mb-1">
                   <Info className="w-4 h-4" />
-                  <span className="text-xs font-semibold">이미지 규격 가이드</span>
+                  <span className="text-xs font-semibold">웹 이미지 규격 가이드</span>
                 </div>
                 <p className="text-xs text-slate-400 leading-relaxed">
-                  {adType === 'MAIN' 
+                  {adType === 'MAIN'
                     ? '메인 배너: 세로형(120x600px) 권장. 좌우 고정 배치됩니다.'
                     : '서브 슬라이드: 가로형(1200x200px) 권장. 하단 슬라이더로 노출됩니다.'}
                 </p>
               </div>
             </div>
           </div>
+
+          {/* 모바일용 광고 이미지 */}
+          <div className="space-y-2">
+            <Label className="text-slate-300">광고 이미지 (모바일) - 선택</Label>
+            <div className="flex items-start gap-4">
+              {imageMobilePreview ? (
+                <div className="relative w-32 h-32 rounded-lg overflow-hidden border border-emerald-600">
+                  <Image src={imageMobilePreview} alt="모바일 미리보기" fill className="object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => { setImageMobilePreview(null); setValue('image_url_mobile', ''); }}
+                    className="absolute top-1 right-1 p-1 bg-red-500 rounded-full text-white"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ) : (
+                <div className="relative w-32 h-32 border-2 border-dashed border-emerald-700 rounded-lg flex flex-col items-center justify-center bg-emerald-900/20 text-emerald-500">
+                  <Upload className="w-6 h-6 mb-2" />
+                  <span className="text-xs">모바일 이미지</span>
+                  <input
+                    type="file"
+                    className="absolute w-32 h-32 opacity-0 cursor-pointer"
+                    onChange={(e) => handleFileUpload(e, 'image_url_mobile')}
+                    accept="image/*"
+                  />
+                </div>
+              )}
+              <div className="flex-1 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
+                <div className="flex gap-2 text-emerald-400 mb-1">
+                  <Info className="w-4 h-4" />
+                  <span className="text-xs font-semibold">모바일 이미지 규격 가이드</span>
+                </div>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  모바일 전용 이미지입니다. 320x100px 또는 300x250px 권장.<br />
+                  미등록 시 웹 이미지가 대신 사용됩니다.
+                </p>
+              </div>
+            </div>
+          </div>
+
           <div className="space-y-2">
             <Label className="text-slate-300">이동 링크 URL (선택)</Label>
-            <Input 
+            <Input
               {...register('link_url')}
-              className="bg-slate-700/50 border-slate-600 text-white" 
+              className="bg-slate-700/50 border-slate-600 text-white"
               placeholder="https://example.com"
             />
           </div>

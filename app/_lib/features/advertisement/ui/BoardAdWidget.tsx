@@ -11,9 +11,9 @@ export function BoardAdWidget() {
   const { data: ads, isLoading } = useRandomAds('BOARD', 3);
 
   const DEFAULT_BOARD_ADS: Advertisement[] = [
-    { id: 'def-brd-1', business_name: '조합 협력사 모집', type: 'BOARD', union_id: '', contract_start_date: '', contract_end_date: '', is_payment_completed: true, price: 0, image_url: null, link_url: null, created_at: '', title: '[모집] 조합과 함께할 신규 협력사를 찾습니다', content: '공고: 조합원 전용 혜택을 제공할 수 있는 우수한 업체를 모집합니다.', contract_file_url: null },
-    { id: 'def-brd-2', business_name: '파트너십 안내', type: 'BOARD', union_id: '', contract_start_date: '', contract_end_date: '', is_payment_completed: true, price: 0, image_url: null, link_url: null, created_at: '', title: '[안내] 협력 업체 입점 문의 및 절차', content: '조합 홈페이지 내 광고 및 협력 업체 등록 안내입니다.', contract_file_url: null },
-    { id: 'def-brd-3', business_name: '서비스 공고', type: 'BOARD', union_id: '', contract_start_date: '', contract_end_date: '', is_payment_completed: true, price: 0, image_url: null, link_url: null, created_at: '', title: '[공고] 분야별 전문 업체 상시 모집', content: '법률, 세무, 인테리어 등 다양한 분야의 파트너를 기다립니다.', contract_file_url: null },
+    { id: 'def-brd-1', business_name: '조합 협력사 모집', type: 'BOARD', union_id: '', contract_start_date: '', contract_end_date: '', is_payment_completed: true, price: 0, image_url: null, image_url_mobile: null, link_url: null, created_at: '', title: '[모집] 조합과 함께할 신규 협력사를 찾습니다', content: '공고: 조합원 전용 혜택을 제공할 수 있는 우수한 업체를 모집합니다.', contract_file_url: null },
+    { id: 'def-brd-2', business_name: '파트너십 안내', type: 'BOARD', union_id: '', contract_start_date: '', contract_end_date: '', is_payment_completed: true, price: 0, image_url: null, image_url_mobile: null, link_url: null, created_at: '', title: '[안내] 협력 업체 입점 문의 및 절차', content: '조합 홈페이지 내 광고 및 협력 업체 등록 안내입니다.', contract_file_url: null },
+    { id: 'def-brd-3', business_name: '서비스 공고', type: 'BOARD', union_id: '', contract_start_date: '', contract_end_date: '', is_payment_completed: true, price: 0, image_url: null, image_url_mobile: null, link_url: null, created_at: '', title: '[공고] 분야별 전문 업체 상시 모집', content: '법률, 세무, 인테리어 등 다양한 분야의 파트너를 기다립니다.', contract_file_url: null },
   ];
 
   const activeAds = ads && ads.length > 0 ? ads : DEFAULT_BOARD_ADS;
