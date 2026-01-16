@@ -48,6 +48,11 @@ export function HeroSlider({ slides, autoPlayInterval = 4000, className }: HeroS
     const sliderRef = useRef<HTMLDivElement>(null);
     const autoPlayRef = useRef<NodeJS.Timeout | null>(null);
 
+    // 터치 스와이프 관련 상태
+    const touchStartX = useRef<number>(0);
+    const touchEndX = useRef<number>(0);
+    const isSwiping = useRef<boolean>(false);
+
     // 슬라이드가 없으면 기본 슬라이드 사용
     const activeSlides = useMemo(() => {
         return slides && slides.length > 0 ? slides : DEFAULT_SLIDES;
@@ -129,6 +134,50 @@ export function HeroSlider({ slides, autoPlayInterval = 4000, className }: HeroS
         };
     }, [hasMultipleSlides, autoPlayInterval, goToNext]);
 
+    // 터치 스와이프 핸들러
+    const handleTouchStart = useCallback((e: React.TouchEvent) => {
+        touchStartX.current = e.touches[0].clientX;
+        isSwiping.current = true;
+        // 스와이프 시작 시 자동 슬라이드 일시 정지
+        if (autoPlayRef.current) {
+            clearInterval(autoPlayRef.current);
+        }
+    }, []);
+
+    const handleTouchMove = useCallback((e: React.TouchEvent) => {
+        if (!isSwiping.current) return;
+        touchEndX.current = e.touches[0].clientX;
+    }, []);
+
+    const handleTouchEnd = useCallback(() => {
+        if (!isSwiping.current || !hasMultipleSlides) {
+            isSwiping.current = false;
+            return;
+        }
+
+        const swipeDistance = touchStartX.current - touchEndX.current;
+        const minSwipeDistance = 50; // 최소 스와이프 거리
+
+        if (Math.abs(swipeDistance) > minSwipeDistance) {
+            if (swipeDistance > 0) {
+                // 왼쪽으로 스와이프 → 다음 슬라이드
+                goToNext();
+            } else {
+                // 오른쪽으로 스와이프 → 이전 슬라이드
+                goToPrev();
+            }
+        }
+
+        // 터치 끝나면 자동 슬라이드 재시작
+        if (hasMultipleSlides) {
+            autoPlayRef.current = setInterval(goToNext, autoPlayInterval);
+        }
+
+        isSwiping.current = false;
+        touchStartX.current = 0;
+        touchEndX.current = 0;
+    }, [hasMultipleSlides, goToNext, goToPrev, autoPlayInterval]);
+
     // 슬라이드 클릭 핸들러
     const handleSlideClick = (slide: HeroSlide) => {
         if (slide.link_url) {
@@ -151,9 +200,12 @@ export function HeroSlider({ slides, autoPlayInterval = 4000, className }: HeroS
 
     return (
         <div
-            className={cn('relative w-full overflow-hidden', className)}
+            className={cn('relative w-full overflow-hidden touch-pan-y', className)}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
         >
             {/* 슬라이드 컨테이너 */}
             <div
