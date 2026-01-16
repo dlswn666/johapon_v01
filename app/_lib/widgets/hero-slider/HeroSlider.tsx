@@ -222,7 +222,7 @@ export function HeroSlider({ slides, autoPlayInterval = 4000, className }: HeroS
                     <div
                         key={`${slide.id}-${index}`}
                         className={cn(
-                            'flex-shrink-0 w-full h-full relative',
+                            'flex-shrink-0 w-full h-full relative bg-gray-100',
                             slide.link_url ? 'cursor-pointer' : 'cursor-default'
                         )}
                         onClick={() => handleSlideClick(slide)}
@@ -231,7 +231,7 @@ export function HeroSlider({ slides, autoPlayInterval = 4000, className }: HeroS
                             src={slide.image_url}
                             alt={`Slide ${index + 1}`}
                             fill
-                            className="object-cover"
+                            className="object-contain"
                             draggable={false}
                             priority={index === 0}
                         />
