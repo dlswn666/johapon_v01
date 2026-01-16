@@ -1,35 +1,72 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import Image from 'next/image';
 import { ChevronRight } from 'lucide-react';
+import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
+import { CommunityLink } from '@/app/_lib/shared/type/database.types';
 
-interface CommunityLink {
+interface DisplayLink {
     id: string;
     label: string;
-    icon: string;
+    icon: React.ReactNode;
     url: string;
 }
 
-const COMMUNITY_LINKS: CommunityLink[] = [
-    {
-        id: 'naver',
-        label: '네이버 카페',
-        icon: '/images/home/naver.svg',
-        url: 'https://cafe.naver.com', // 실제 URL은 조합 설정에서 가져올 수 있음
-    },
-    {
-        id: 'youtube',
-        label: '유튜브',
-        icon: '/images/home/youtube.svg',
-        url: 'https://youtube.com', // 실제 URL은 조합 설정에서 가져올 수 있음
-    },
-];
-
 export function HomeCommunitySection() {
+    const { union } = useSlug();
+
+    // 조합 설정에서 활성화된 커뮤니티 링크 가져오기
+    const communityLinks = useMemo(() => {
+        const links = (union?.community_links as CommunityLink[] | null) || [];
+        const displayLinks: DisplayLink[] = [];
+
+        const naverCafe = links.find((link) => link.platform === 'naver_cafe' && link.active);
+        const youtube = links.find((link) => link.platform === 'youtube' && link.active);
+
+        if (naverCafe) {
+            displayLinks.push({
+                id: 'naver',
+                label: '네이버 카페',
+                icon: (
+                    <Image
+                        src="/images/home/naver.svg"
+                        alt="네이버 카페"
+                        fill
+                        className="object-cover"
+                    />
+                ),
+                url: naverCafe.url,
+            });
+        }
+
+        if (youtube) {
+            displayLinks.push({
+                id: 'youtube',
+                label: '유튜브',
+                icon: (
+                    <Image
+                        src="/images/home/youtube.svg"
+                        alt="유튜브"
+                        fill
+                        className="object-cover"
+                    />
+                ),
+                url: youtube.url,
+            });
+        }
+
+        return displayLinks;
+    }, [union?.community_links]);
+
     const handleLinkClick = (url: string) => {
         window.open(url, '_blank', 'noopener,noreferrer');
     };
+
+    // 등록된 커뮤니티 링크가 없으면 섹션 숨김
+    if (communityLinks.length === 0) {
+        return null;
+    }
 
     return (
         <div className="border border-[#cdd1d5] rounded-[11px] md:rounded-[16px] px-[10px] md:px-[33px] py-[10px] md:py-[29px] h-full">
@@ -38,7 +75,7 @@ export function HomeCommunitySection() {
 
             {/* 링크 목록 */}
             <div className="flex flex-col gap-[7px] md:gap-[10px]">
-                {COMMUNITY_LINKS.map((link) => (
+                {communityLinks.map((link) => (
                     <button
                         key={link.id}
                         onClick={() => handleLinkClick(link.url)}
@@ -46,7 +83,7 @@ export function HomeCommunitySection() {
                     >
                         {/* 아이콘 */}
                         <div className="relative size-[24px] md:size-[38px] rounded-[8px] md:rounded-[12px] overflow-hidden shrink-0">
-                            <Image src={link.icon} alt={link.label} fill className="object-cover" />
+                            {link.icon}
                         </div>
 
                         {/* 라벨 + 화살표 */}

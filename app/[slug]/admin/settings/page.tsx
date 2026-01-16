@@ -53,6 +53,8 @@ export default function UnionSettingsPage() {
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     business_type: (pendingData.business_type as any) || undefined,
                     current_stage_id: pendingData.current_stage_id || undefined,
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    community_links: (pendingData.community_links as any) || [],
                 },
             });
 

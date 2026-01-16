@@ -1,5 +1,12 @@
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
+// 커뮤니티 링크 타입 (unions.community_links JSONB 컬럼용)
+export type CommunityLink = {
+    platform: 'naver_cafe' | 'youtube' | 'other';
+    url: string;
+    active: boolean;
+};
+
 export type Database = {
     // Allows to automatically instantiate createClient with right options
     // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
@@ -1158,6 +1165,7 @@ export type Database = {
                     slug: string;
                     updated_at: string;
                     vault_sender_key_id: string | null;
+                    community_links: CommunityLink[] | null;
                 };
                 Insert: {
                     address?: string | null;
@@ -1184,6 +1192,7 @@ export type Database = {
                     slug: string;
                     updated_at?: string;
                     vault_sender_key_id?: string | null;
+                    community_links?: CommunityLink[] | null;
                 };
                 Update: {
                     address?: string | null;
@@ -1210,6 +1219,7 @@ export type Database = {
                     slug?: string;
                     updated_at?: string;
                     vault_sender_key_id?: string | null;
+                    community_links?: CommunityLink[] | null;
                 };
                 Relationships: [
                     {

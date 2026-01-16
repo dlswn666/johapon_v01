@@ -6,14 +6,16 @@ import Image from 'next/image';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Upload, X, Loader2 } from 'lucide-react';
+import { Upload, X, Loader2, Youtube } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { UnionWithActive } from '../model/useUnionManagementStore';
+import { CommunityLink } from '@/app/_lib/shared/type/database.types';
 import { supabase } from '@/app/_lib/shared/supabase/client';
 import { useDevelopmentStages } from '@/app/_lib/features/development-stages/api/useDevelopmentStages';
 import { DatePicker } from '@/app/_lib/widgets/common/date-picker/DatePicker';
@@ -56,6 +58,11 @@ const unionFormSchema = z.object({
     area_size: z.string().optional(),
     establishment_date: z.string().optional(),
     approval_date: z.string().optional(),
+    // 커뮤니티 링크
+    naver_cafe_active: z.boolean().optional(),
+    naver_cafe_url: z.string().optional(),
+    youtube_active: z.boolean().optional(),
+    youtube_url: z.string().optional(),
 });
 
 export type UnionFormData = z.infer<typeof unionFormSchema> & {
@@ -63,6 +70,7 @@ export type UnionFormData = z.infer<typeof unionFormSchema> & {
     address?: string;
     phone?: string;
     email?: string;
+    community_links?: CommunityLink[];
 };
 
 interface UnionFormProps {
@@ -100,6 +108,10 @@ export default function UnionForm({ mode, initialData, onSubmit, onCancel, isSub
             area_size: '',
             establishment_date: '',
             approval_date: '',
+            naver_cafe_active: false,
+            naver_cafe_url: '',
+            youtube_active: false,
+            youtube_url: '',
         },
     });
 
@@ -115,6 +127,11 @@ export default function UnionForm({ mode, initialData, onSubmit, onCancel, isSub
         if (initialData) {
             // 사업 유형이 없으면 기본값(REDEVELOPMENT) 설정
             const defaultBusinessType = initialData.business_type || BUSINESS_TYPE_OPTIONS[0].value;
+
+            // community_links에서 네이버 카페, 유튜브 URL 파싱
+            const communityLinks = (initialData.community_links as CommunityLink[] | null) || [];
+            const naverCafe = communityLinks.find((link) => link.platform === 'naver_cafe');
+            const youtube = communityLinks.find((link) => link.platform === 'youtube');
 
             form.reset({
                 name: initialData.name || '',
@@ -132,6 +149,10 @@ export default function UnionForm({ mode, initialData, onSubmit, onCancel, isSub
                 area_size: initialData.area_size?.toString() || '',
                 establishment_date: initialData.establishment_date || '',
                 approval_date: initialData.approval_date || '',
+                naver_cafe_active: naverCafe?.active ?? false,
+                naver_cafe_url: naverCafe?.url || '',
+                youtube_active: youtube?.active ?? false,
+                youtube_url: youtube?.url || '',
             });
             if (initialData.logo_url) {
                 setLogoPreview(initialData.logo_url);
@@ -198,10 +219,28 @@ export default function UnionForm({ mode, initialData, onSubmit, onCancel, isSub
                 logoUrl = (await uploadLogo()) || '';
             }
 
+            // community_links 배열 생성
+            const communityLinks: CommunityLink[] = [];
+            if (values.naver_cafe_url) {
+                communityLinks.push({
+                    platform: 'naver_cafe',
+                    url: values.naver_cafe_url,
+                    active: values.naver_cafe_active ?? false,
+                });
+            }
+            if (values.youtube_url) {
+                communityLinks.push({
+                    platform: 'youtube',
+                    url: values.youtube_url,
+                    active: values.youtube_active ?? false,
+                });
+            }
+
             await onSubmit({
                 ...values,
                 logo_url: logoUrl,
                 is_active: initialData?.is_active ?? true,
+                community_links: communityLinks,
             });
         } catch (error) {
             console.error('Submit error:', error);
@@ -668,6 +707,106 @@ export default function UnionForm({ mode, initialData, onSubmit, onCancel, isSub
                             </FormItem>
                         )}
                     />
+
+                    {/* ==================== 재개발 커뮤니티 ==================== */}
+                    <div className="pt-4 pb-2 border-t">
+                        <h3 className="text-lg font-semibold text-gray-900">재개발 커뮤니티</h3>
+                        <p className="text-sm text-gray-500 mt-1">조합원들이 자주 사용하는 외부 커뮤니티 링크를 등록하세요.</p>
+                    </div>
+
+                    {/* 네이버 카페 */}
+                    <div className="space-y-3 p-4 bg-gray-50 rounded-[12px]">
+                        <div className="flex items-center gap-3">
+                            <FormField
+                                control={form.control}
+                                name="naver_cafe_active"
+                                render={({ field }) => (
+                                    <FormItem className="flex items-center gap-2 space-y-0">
+                                        <FormControl>
+                                            <Checkbox
+                                                checked={field.value}
+                                                onCheckedChange={field.onChange}
+                                                disabled={isReadOnly}
+                                            />
+                                        </FormControl>
+                                        <FormLabel className="text-[14px] font-bold text-gray-700 cursor-pointer flex items-center gap-2">
+                                            <div className="w-5 h-5 bg-[#03C75A] rounded flex items-center justify-center">
+                                                <span className="text-white text-[10px] font-bold">N</span>
+                                            </div>
+                                            네이버 카페
+                                        </FormLabel>
+                                    </FormItem>
+                                )}
+                            />
+                        </div>
+                        <FormField
+                            control={form.control}
+                            name="naver_cafe_url"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormControl>
+                                        <Input
+                                            {...field}
+                                            type="url"
+                                            placeholder="https://cafe.naver.com/..."
+                                            disabled={isReadOnly}
+                                            className={cn(
+                                                'h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]',
+                                                'bg-white'
+                                            )}
+                                        />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    </div>
+
+                    {/* 유튜브 */}
+                    <div className="space-y-3 p-4 bg-gray-50 rounded-[12px]">
+                        <div className="flex items-center gap-3">
+                            <FormField
+                                control={form.control}
+                                name="youtube_active"
+                                render={({ field }) => (
+                                    <FormItem className="flex items-center gap-2 space-y-0">
+                                        <FormControl>
+                                            <Checkbox
+                                                checked={field.value}
+                                                onCheckedChange={field.onChange}
+                                                disabled={isReadOnly}
+                                            />
+                                        </FormControl>
+                                        <FormLabel className="text-[14px] font-bold text-gray-700 cursor-pointer flex items-center gap-2">
+                                            <Youtube className="w-5 h-5 text-[#FF0000]" />
+                                            유튜브
+                                        </FormLabel>
+                                    </FormItem>
+                                )}
+                            />
+                        </div>
+                        <FormField
+                            control={form.control}
+                            name="youtube_url"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormControl>
+                                        <Input
+                                            {...field}
+                                            type="url"
+                                            placeholder="https://youtube.com/@... 또는 https://youtube.com/channel/..."
+                                            disabled={isReadOnly}
+                                            className={cn(
+                                                'h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]',
+                                                'bg-white'
+                                            )}
+                                        />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    </div>
 
                     {/* 버튼 영역 */}
                     {!isReadOnly && (
