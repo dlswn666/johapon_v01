@@ -478,7 +478,7 @@ export function useMemberDetail(memberId: string | undefined) {
     });
 }
 
-// 조합원 정보 수정 (생년월일, 전화번호, 거주지, 특이사항)
+// 조합원 정보 수정 (이름, 생년월일, 전화번호, 거주지, 특이사항)
 export function useUpdateMember() {
     const queryClient = useQueryClient();
 
@@ -490,6 +490,7 @@ export function useUpdateMember() {
             memberId: string;
             updates: Pick<
                 UpdateUser,
+                | 'name'
                 | 'birth_date'
                 | 'phone_number'
                 | 'resident_address'
@@ -796,6 +797,286 @@ export interface CoOwnerInfo {
     // 물건지 정보 (PNU 매칭 확인용)
     property_units?: MemberPropertyUnitInfo[];
     isPnuMatched: boolean;
+}
+
+// ====== 동의 관련 Hook ======
+
+// 동의 단계별 현황 타입
+export interface MemberConsentStatus {
+    stage_id: string;
+    stage_name: string;
+    stage_code: string;
+    required_rate: number;
+    status: 'AGREED' | 'DISAGREED' | 'PENDING';
+    consent_date: string | null;
+}
+
+// 조합원 동의 단계별 현황 조회
+export function useMemberConsentStatus(memberId: string | undefined, businessType: string | undefined) {
+    return useQuery({
+        queryKey: ['member-consent-status', memberId, businessType],
+        queryFn: async (): Promise<MemberConsentStatus[]> => {
+            if (!memberId || !businessType) return [];
+
+            // 1. 해당 사업 유형의 동의 단계 목록 조회
+            const { data: stages, error: stagesError } = await supabase
+                .from('consent_stages')
+                .select('id, stage_name, stage_code, required_rate, sort_order')
+                .eq('business_type', businessType)
+                .order('sort_order', { ascending: true });
+
+            if (stagesError) {
+                console.error('동의 단계 조회 오류:', stagesError);
+                return [];
+            }
+
+            if (!stages || stages.length === 0) return [];
+
+            // 2. 조합원의 동의 현황 조회
+            const { data: consents, error: consentsError } = await supabase
+                .from('user_consents')
+                .select('stage_id, status, consent_date')
+                .eq('user_id', memberId);
+
+            if (consentsError) {
+                console.error('동의 현황 조회 오류:', consentsError);
+            }
+
+            // 3. 단계별 동의 상태 매핑
+            return stages.map((stage) => {
+                const consent = consents?.find((c) => c.stage_id === stage.id);
+                return {
+                    stage_id: stage.id,
+                    stage_name: stage.stage_name,
+                    stage_code: stage.stage_code,
+                    required_rate: stage.required_rate,
+                    status: (consent?.status as 'AGREED' | 'DISAGREED' | 'PENDING') || 'PENDING',
+                    consent_date: consent?.consent_date || null,
+                };
+            });
+        },
+        enabled: !!memberId && !!businessType,
+    });
+}
+
+// ====== 승인 관리 관련 Hook ======
+
+// 사용자 상태 필터 타입
+type UserStatusFilter = 'ALL' | User['user_status'];
+type UserRoleFilter = 'ALL' | 'SYSTEM_ADMIN' | 'ADMIN' | 'USER' | 'APPLICANT';
+
+// 승인 관리용 사용자 목록 조회 파라미터
+interface UseAdminUsersParams {
+    unionId: string | undefined;
+    statusFilter?: UserStatusFilter;
+    roleFilter?: UserRoleFilter;
+    searchQuery?: string;
+    page?: number;
+    pageSize?: number;
+    enabled?: boolean;
+}
+
+// 승인 관리용 사용자 목록 조회
+export function useAdminUsers({
+    unionId,
+    statusFilter = 'ALL',
+    roleFilter = 'ALL',
+    searchQuery = '',
+    page = 1,
+    pageSize = 10,
+    enabled = true,
+}: UseAdminUsersParams) {
+    return useQuery({
+        queryKey: ['admin-users', unionId, statusFilter, roleFilter, searchQuery, page],
+        queryFn: async () => {
+            let query = supabase
+                .from('users')
+                .select('*', { count: 'exact' })
+                .order('created_at', { ascending: false });
+
+            if (unionId) {
+                query = query.eq('union_id', unionId);
+            }
+
+            if (statusFilter !== 'ALL') {
+                query = query.eq('user_status', statusFilter);
+            }
+
+            if (roleFilter !== 'ALL') {
+                query = query.eq('role', roleFilter);
+            }
+
+            if (searchQuery) {
+                query = query.or(
+                    `name.ilike.%${searchQuery}%,phone_number.ilike.%${searchQuery}%,property_address.ilike.%${searchQuery}%`
+                );
+            }
+
+            const from = (page - 1) * pageSize;
+            const to = from + pageSize - 1;
+            query = query.range(from, to);
+
+            const { data, error, count } = await query;
+
+            if (error) throw error;
+
+            return { users: data as User[], total: count || 0 };
+        },
+        enabled: enabled && !!unionId,
+    });
+}
+
+// 사용자 승인 mutation
+export function useApproveUser() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (userId: string) => {
+            const { error } = await supabase
+                .from('users')
+                .update({
+                    user_status: 'APPROVED',
+                    role: 'USER',
+                    approved_at: new Date().toISOString(),
+                    rejected_reason: null,
+                    rejected_at: null,
+                    updated_at: new Date().toISOString(),
+                })
+                .eq('id', userId);
+
+            if (error) throw error;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+        },
+    });
+}
+
+// 사용자 반려 mutation
+export function useRejectUser() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ userId, reason }: { userId: string; reason: string }) => {
+            const { error } = await supabase
+                .from('users')
+                .update({
+                    user_status: 'REJECTED',
+                    rejected_reason: reason,
+                    rejected_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString(),
+                })
+                .eq('id', userId);
+
+            if (error) throw error;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+        },
+    });
+}
+
+// 역할 변경 mutation
+export function useUpdateUserRole() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ userId, role }: { userId: string; role: string }) => {
+            const { error } = await supabase
+                .from('users')
+                .update({
+                    role,
+                    updated_at: new Date().toISOString(),
+                })
+                .eq('id', userId);
+
+            if (error) throw error;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+        },
+    });
+}
+
+// 반려 취소 mutation (REJECTED → PENDING_APPROVAL)
+export function useCancelRejection() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (userId: string) => {
+            const { error } = await supabase
+                .from('users')
+                .update({
+                    user_status: 'PENDING_APPROVAL',
+                    rejected_reason: null,
+                    rejected_at: null,
+                    updated_at: new Date().toISOString(),
+                })
+                .eq('id', userId);
+
+            if (error) throw error;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+        },
+    });
+}
+
+// 임원 여부 변경 mutation
+export function useUpdateExecutiveStatus() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ userId, isExecutive }: { userId: string; isExecutive: boolean }) => {
+            const { error } = await supabase
+                .from('users')
+                .update({ is_executive: isExecutive })
+                .eq('id', userId);
+
+            if (error) throw error;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+        },
+    });
+}
+
+// 임원 직위 변경 mutation
+export function useUpdateExecutiveTitle() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ userId, title }: { userId: string; title: string }) => {
+            const { error } = await supabase
+                .from('users')
+                .update({ executive_title: title })
+                .eq('id', userId);
+
+            if (error) throw error;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+        },
+    });
+}
+
+// 노출 순서 변경 mutation
+export function useUpdateExecutiveSortOrder() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ userId, sortOrder }: { userId: string; sortOrder: number }) => {
+            const { error } = await supabase
+                .from('users')
+                .update({ executive_sort_order: sortOrder })
+                .eq('id', userId);
+
+            if (error) throw error;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+        },
+    });
 }
 
 // 공동 소유자 조회 (동일한 building_unit_id를 가진 모든 사용자)

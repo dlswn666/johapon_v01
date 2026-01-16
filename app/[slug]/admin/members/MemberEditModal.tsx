@@ -22,8 +22,6 @@ import {
     Edit3,
     Users,
 } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/app/_lib/shared/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import toast from 'react-hot-toast';
@@ -34,6 +32,7 @@ import {
     useUnionLandLots,
     useUpdateOwnershipType,
     useCoOwners,
+    useMemberConsentStatus,
     MemberWithLandInfo,
     CoOwnerInfo,
 } from '@/app/_lib/features/member-management/api/useMemberHook';
@@ -103,6 +102,7 @@ export default function MemberEditModal({ member: initialMember, onClose, onBloc
     const [isEditMode, setIsEditMode] = useState(false);
 
     // 수정 가능 필드 상태
+    const [memberName, setMemberName] = useState('');
     const [birthDate, setBirthDate] = useState('');
     const [phoneNumber, setPhoneNumber] = useState('');
     const [residentAddress, setResidentAddress] = useState({
@@ -117,6 +117,7 @@ export default function MemberEditModal({ member: initialMember, onClose, onBloc
     // currentMember 변경 시 폼 필드 업데이트
     useEffect(() => {
         const member = currentMember;
+        setMemberName('name' in member ? member.name : '');
         setBirthDate(member.birth_date || '');
         setPhoneNumber(member.phone_number || '');
         setResidentAddress({
@@ -142,6 +143,10 @@ export default function MemberEditModal({ member: initialMember, onClose, onBloc
     const [isPnuSaving, setIsPnuSaving] = useState(false);
     const [isOwnershipSaving, setIsOwnershipSaving] = useState(false);
 
+    // 저장 확인/완료 모달 상태
+    const [showSaveConfirmModal, setShowSaveConfirmModal] = useState(false);
+    const [showSaveSuccessModal, setShowSaveSuccessModal] = useState(false);
+
     // API 호출
     const { mutateAsync: updateMember } = useUpdateMember();
     const { mutateAsync: updateMemberPnu } = useUpdateMemberPnu();
@@ -162,51 +167,11 @@ export default function MemberEditModal({ member: initialMember, onClose, onBloc
         return allCoOwners.length > 1;
     }, [allCoOwners]);
 
-    // 조합원 동의 단계별 현황 조회
-    const { data: memberConsentStatus, isLoading: isConsentLoading } = useQuery({
-        queryKey: ['member-consent-status', currentMember.id, union?.business_type],
-        queryFn: async () => {
-            if (!currentMember.id || !union?.business_type) return [];
-
-            // 1. 해당 사업 유형의 동의 단계 목록 조회
-            const { data: stages, error: stagesError } = await supabase
-                .from('consent_stages')
-                .select('id, stage_name, stage_code, required_rate, sort_order')
-                .eq('business_type', union.business_type)
-                .order('sort_order', { ascending: true });
-
-            if (stagesError) {
-                console.error('동의 단계 조회 오류:', stagesError);
-                return [];
-            }
-
-            if (!stages || stages.length === 0) return [];
-
-            // 2. 조합원의 동의 현황 조회
-            const { data: consents, error: consentsError } = await supabase
-                .from('user_consents')
-                .select('stage_id, status, consent_date')
-                .eq('user_id', currentMember.id);
-
-            if (consentsError) {
-                console.error('동의 현황 조회 오류:', consentsError);
-            }
-
-            // 3. 단계별 동의 상태 매핑
-            return stages.map((stage) => {
-                const consent = consents?.find((c) => c.stage_id === stage.id);
-                return {
-                    stage_id: stage.id,
-                    stage_name: stage.stage_name,
-                    stage_code: stage.stage_code,
-                    required_rate: stage.required_rate,
-                    status: (consent?.status as 'AGREED' | 'DISAGREED' | 'PENDING') || 'PENDING',
-                    consent_date: consent?.consent_date || null,
-                };
-            });
-        },
-        enabled: !!currentMember.id && !!union?.business_type,
-    });
+    // 조합원 동의 단계별 현황 조회 (Hook 사용)
+    const { data: memberConsentStatus, isLoading: isConsentLoading } = useMemberConsentStatus(
+        currentMember.id,
+        union?.business_type ?? undefined
+    );
 
     // 물건지 목록 (initialMember 기준)
     const propertyUnits = initialMember.property_units || [];
@@ -229,6 +194,7 @@ export default function MemberEditModal({ member: initialMember, onClose, onBloc
     // 수정 모드 취소
     const handleCancelEdit = () => {
         // 원래 값으로 복원
+        setMemberName('name' in currentMember ? currentMember.name : '');
         setBirthDate(currentMember.birth_date || '');
         setPhoneNumber(currentMember.phone_number || '');
         setResidentAddress({
@@ -242,14 +208,26 @@ export default function MemberEditModal({ member: initialMember, onClose, onBloc
         setIsEditMode(false);
     };
 
-    // 저장
-    const handleSave = async () => {
+    // 저장 버튼 클릭 - 확인 모달 표시
+    const handleSave = () => {
+        // 이름 유효성 검사
+        if (!memberName.trim()) {
+            toast.error('이름을 입력해주세요.');
+            return;
+        }
+        setShowSaveConfirmModal(true);
+    };
+
+    // 저장 확인 후 실제 저장 수행
+    const handleConfirmSave = async () => {
+        setShowSaveConfirmModal(false);
         setIsSaving(true);
 
         try {
             await updateMember({
                 memberId: currentMember.id,
                 updates: {
+                    name: memberName.trim(),
                     birth_date: birthDate || null,
                     phone_number: phoneNumber,
                     resident_address: residentAddress.address,
@@ -271,15 +249,34 @@ export default function MemberEditModal({ member: initialMember, onClose, onBloc
                 });
             }
 
-            toast.success('조합원 정보가 저장되었습니다.');
-            setIsEditMode(false);
-            onClose();
+            // currentMember 상태 업데이트 (변경된 값으로)
+            setCurrentMember((prev) => ({
+                ...prev,
+                name: memberName.trim(),
+                birth_date: birthDate || null,
+                phone_number: phoneNumber,
+                resident_address: residentAddress.address,
+                resident_address_detail: residentAddress.addressDetail,
+                resident_address_road: residentAddress.addressRoad,
+                resident_address_jibun: residentAddress.addressJibun,
+                resident_zonecode: residentAddress.zonecode,
+                notes: notes || null,
+            }));
+
+            // 저장 완료 모달 표시
+            setShowSaveSuccessModal(true);
         } catch (error) {
             console.error('저장 오류:', error);
             toast.error('저장에 실패했습니다.');
         } finally {
             setIsSaving(false);
         }
+    };
+
+    // 저장 완료 모달 확인 - 조회 모드로 전환
+    const handleSuccessConfirm = () => {
+        setShowSaveSuccessModal(false);
+        setIsEditMode(false);
     };
 
     // PNU 매칭
@@ -414,7 +411,17 @@ export default function MemberEditModal({ member: initialMember, onClose, onBloc
                         <div className="flex-1">
                             <p className="text-[12px] text-gray-500">이름</p>
                             <div className="flex items-center gap-2">
-                                <p className="text-[16px] font-bold text-gray-900">{currentMemberName}</p>
+                                {isEditMode ? (
+                                    <Input
+                                        type="text"
+                                        value={memberName}
+                                        onChange={(e) => setMemberName(e.target.value)}
+                                        placeholder="이름을 입력하세요"
+                                        className="h-10 text-[16px] font-bold max-w-[200px]"
+                                    />
+                                ) : (
+                                    <p className="text-[16px] font-bold text-gray-900">{memberName || currentMemberName}</p>
+                                )}
                                 {currentMemberIsBlocked ? (
                                     <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[12px] font-medium bg-red-100 text-red-700">
                                         <Ban className="w-3 h-3 mr-1" />
@@ -1030,6 +1037,57 @@ export default function MemberEditModal({ member: initialMember, onClose, onBloc
                     )}
                 </div>
             </div>
+
+            {/* 저장 확인 모달 */}
+            {showSaveConfirmModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60]">
+                    <div className="bg-white rounded-xl shadow-xl p-6 w-[320px]">
+                        <p className="text-[16px] font-semibold text-gray-900 text-center mb-6">
+                            저장하시겠습니까?
+                        </p>
+                        <div className="flex gap-3">
+                            <Button
+                                variant="outline"
+                                onClick={() => setShowSaveConfirmModal(false)}
+                                className="flex-1 h-10 rounded-lg"
+                            >
+                                취소
+                            </Button>
+                            <Button
+                                onClick={handleConfirmSave}
+                                disabled={isSaving}
+                                className="flex-1 h-10 rounded-lg bg-[#4E8C6D] hover:bg-[#3d7058] text-white"
+                            >
+                                {isSaving ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                    '확인'
+                                )}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* 저장 완료 모달 */}
+            {showSaveSuccessModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60]">
+                    <div className="bg-white rounded-xl shadow-xl p-6 w-[320px]">
+                        <div className="flex flex-col items-center mb-6">
+                            <CheckCircle className="w-12 h-12 text-[#4E8C6D] mb-3" />
+                            <p className="text-[16px] font-semibold text-gray-900">
+                                저장되었습니다.
+                            </p>
+                        </div>
+                        <Button
+                            onClick={handleSuccessConfirm}
+                            className="w-full h-10 rounded-lg bg-[#4E8C6D] hover:bg-[#3d7058] text-white"
+                        >
+                            확인
+                        </Button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

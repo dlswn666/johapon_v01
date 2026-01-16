@@ -52,8 +52,16 @@ import { sendAlimTalk } from '@/app/_lib/features/alimtalk/actions/sendAlimTalk'
 import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import { MemberInvite, User, UserStatus } from '@/app/_lib/shared/type/database.types';
-import { supabase } from '@/app/_lib/shared/supabase/client';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+    useAdminUsers,
+    useApproveUser,
+    useRejectUser,
+    useUpdateUserRole,
+    useCancelRejection,
+    useUpdateExecutiveStatus,
+    useUpdateExecutiveTitle,
+    useUpdateExecutiveSortOrder,
+} from '@/app/_lib/features/member-management/api/useMemberHook';
 import MemberDetailModal from './MemberDetailModal';
 import ManualInviteModal from './ManualInviteModal';
 import MemberListTab from './MemberListTab';
@@ -109,7 +117,6 @@ interface ExcelMember {
 
 export default function MemberManagementPage() {
     const searchParams = useSearchParams();
-    const queryClient = useQueryClient();
     const { user, isAdmin, isSystemAdmin } = useAuth();
     const { union, isLoading: unionLoading } = useSlug();
     const unionId = union?.id;
@@ -190,43 +197,14 @@ export default function MemberManagementPage() {
     const [newRole, setNewRole] = useState<string>('');
     const [showRejectModal, setShowRejectModal] = useState(false);
 
-    // 사용자 목록 조회
-    const { data: usersData, isLoading: usersLoading } = useQuery({
-        queryKey: ['admin-users', union?.id, statusFilter, roleFilter, searchQuery, page],
-        queryFn: async () => {
-            let query = supabase
-                .from('users')
-                .select('*', { count: 'exact' })
-                .order('created_at', { ascending: false });
-
-            if (union?.id) {
-                query = query.eq('union_id', union.id);
-            }
-
-            if (statusFilter !== 'ALL') {
-                query = query.eq('user_status', statusFilter);
-            }
-
-            if (roleFilter !== 'ALL') {
-                query = query.eq('role', roleFilter);
-            }
-
-            if (searchQuery) {
-                query = query.or(
-                    `name.ilike.%${searchQuery}%,phone_number.ilike.%${searchQuery}%,property_address.ilike.%${searchQuery}%`
-                );
-            }
-
-            const from = (page - 1) * pageSize;
-            const to = from + pageSize - 1;
-            query = query.range(from, to);
-
-            const { data, error, count } = await query;
-
-            if (error) throw error;
-
-            return { users: data as User[], total: count || 0 };
-        },
+    // 사용자 목록 조회 (Hook 사용)
+    const { data: usersData, isLoading: usersLoading } = useAdminUsers({
+        unionId: union?.id,
+        statusFilter,
+        roleFilter,
+        searchQuery,
+        page,
+        pageSize,
         enabled: isAdmin && activeTab === 'approval',
     });
 
@@ -234,26 +212,31 @@ export default function MemberManagementPage() {
 
 
 
-    // 사용자 승인 mutation
-    const approveMutation = useMutation({
-        mutationFn: async (userId: string) => {
-            const { error } = await supabase
-                .from('users')
-                .update({
-                    user_status: 'APPROVED',
-                    role: 'USER',
-                    approved_at: new Date().toISOString(),
-                    rejected_reason: null,
-                    rejected_at: null,
-                    updated_at: new Date().toISOString(),
-                })
-                .eq('id', userId);
+    // 사용자 승인 mutation (Hook 사용)
+    const approveMutation = useApproveUser();
 
-            if (error) throw error;
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['admin-users', unionId] });
-            queryClient.refetchQueries({ queryKey: ['admin-users', unionId] });
+    // 사용자 반려 mutation (Hook 사용)
+    const rejectMutation = useRejectUser();
+
+    // 역할 변경 mutation (Hook 사용)
+    const updateRoleMutation = useUpdateUserRole();
+
+    // 반려 취소 mutation (Hook 사용)
+    const cancelRejectionMutation = useCancelRejection();
+
+    // 임원 여부 변경 mutation (Hook 사용)
+    const updateExecutiveStatusMutation = useUpdateExecutiveStatus();
+
+    // 임원 직위 변경 mutation (Hook 사용)
+    const updateExecutiveTitleMutation = useUpdateExecutiveTitle();
+
+    // 노출 순서 변경 mutation (Hook 사용)
+    const updateExecutiveSortOrderMutation = useUpdateExecutiveSortOrder();
+
+    // 승인 처리 핸들러
+    const handleApprove = async (userId: string) => {
+        try {
+            await approveMutation.mutateAsync(userId);
             toast.success('사용자가 승인되었습니다.');
             setShowDetailModal(false);
             setSelectedUser(null);
@@ -262,7 +245,7 @@ export default function MemberManagementPage() {
             if (selectedUser) {
                 sendAlimTalk({
                     unionId: unionId!,
-                    templateCode: 'UE_3602', // 승인 템플릿 코드
+                    templateCode: 'UE_3602',
                     recipients: [{
                         phoneNumber: selectedUser.phone_number || '',
                         name: selectedUser.name,
@@ -273,30 +256,15 @@ export default function MemberManagementPage() {
                     }]
                 });
             }
-        },
-        onError: () => {
+        } catch {
             toast.error('승인 처리 중 오류가 발생했습니다.');
-        },
-    });
+        }
+    };
 
-    // 사용자 반려 mutation
-    const rejectMutation = useMutation({
-        mutationFn: async ({ userId, reason }: { userId: string; reason: string }) => {
-            const { error } = await supabase
-                .from('users')
-                .update({
-                    user_status: 'REJECTED',
-                    rejected_reason: reason,
-                    rejected_at: new Date().toISOString(),
-                    updated_at: new Date().toISOString(),
-                })
-                .eq('id', userId);
-
-            if (error) throw error;
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['admin-users', unionId] });
-            queryClient.refetchQueries({ queryKey: ['admin-users', unionId] });
+    // 반려 처리 핸들러
+    const handleReject = async (userId: string, reason: string) => {
+        try {
+            await rejectMutation.mutateAsync({ userId, reason });
             toast.success('사용자가 반려되었습니다.');
             setShowDetailModal(false);
             setSelectedUser(null);
@@ -306,73 +274,44 @@ export default function MemberManagementPage() {
             if (selectedUser) {
                 sendAlimTalk({
                     unionId: unionId!,
-                    templateCode: 'UE_3603', // 반려 템플릿 코드
+                    templateCode: 'UE_3603',
                     recipients: [{
                         phoneNumber: selectedUser.phone_number || '',
                         name: selectedUser.name,
                         variables: {
                             조합명: union?.name || '',
                             이름: selectedUser.name,
-                            사유: rejectionReason
+                            사유: reason
                         }
                     }]
                 });
             }
-        },
-        onError: () => {
+        } catch {
             toast.error('반려 처리 중 오류가 발생했습니다.');
-        },
-    });
+        }
+    };
 
-    // 역할 변경 mutation
-    const updateRoleMutation = useMutation({
-        mutationFn: async ({ userId, role }: { userId: string; role: string }) => {
-            const { error } = await supabase
-                .from('users')
-                .update({
-                    role,
-                    updated_at: new Date().toISOString(),
-                })
-                .eq('id', userId);
-
-            if (error) throw error;
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['admin-users', unionId] });
-            queryClient.refetchQueries({ queryKey: ['admin-users', unionId] });
+    // 역할 변경 핸들러
+    const handleUpdateRole = async (userId: string, role: string) => {
+        try {
+            await updateRoleMutation.mutateAsync({ userId, role });
             toast.success('역할이 변경되었습니다.');
-        },
-        onError: () => {
+        } catch {
             toast.error('역할 변경 중 오류가 발생했습니다.');
-        },
-    });
+        }
+    };
 
-    // 반려 취소 mutation (REJECTED → PENDING_APPROVAL)
-    const cancelRejectionMutation = useMutation({
-        mutationFn: async (userId: string) => {
-            const { error } = await supabase
-                .from('users')
-                .update({
-                    user_status: 'PENDING_APPROVAL',
-                    rejected_reason: null,
-                    rejected_at: null,
-                    updated_at: new Date().toISOString(),
-                })
-                .eq('id', userId);
-
-            if (error) throw error;
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['admin-users', unionId] });
-            queryClient.refetchQueries({ queryKey: ['admin-users', unionId] });
+    // 반려 취소 핸들러
+    const handleCancelRejection = async (userId: string) => {
+        try {
+            await cancelRejectionMutation.mutateAsync(userId);
             toast.success('반려가 취소되었습니다. 다시 승인 대기 상태입니다.');
             setShowDetailModal(false);
             setSelectedUser(null);
-        },
-        onError: () => {
+        } catch {
             toast.error('반려 취소 중 오류가 발생했습니다.');
-        },
-    });
+        }
+    };
 
     // 페이지 수 계산
     const totalPages = useMemo(() => {
@@ -1268,9 +1207,8 @@ export default function MemberManagementPage() {
                                         <div className="flex items-center h-12">
                                             <Switch
                                                 checked={selectedUser.is_executive ?? false}
-                                                onCheckedChange={async (checked: boolean) => {
-                                                    await supabase.from('users').update({ is_executive: checked }).eq('id', selectedUser.id);
-                                                    queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+                                                onCheckedChange={(checked: boolean) => {
+                                                    updateExecutiveStatusMutation.mutate({ userId: selectedUser.id, isExecutive: checked });
                                                 }}
                                             />
                                             <span className="ml-2 text-sm text-gray-600">홈페이지 노출</span>
@@ -1287,9 +1225,8 @@ export default function MemberManagementPage() {
                                             onChange={(_e: React.ChangeEvent<HTMLInputElement>) => {
                                                 // 로컬 상태 업데이트 로직 필요 시 추가
                                             }}
-                                            onBlur={async (e: React.FocusEvent<HTMLInputElement>) => {
-                                                await supabase.from('users').update({ executive_title: e.target.value }).eq('id', selectedUser.id);
-                                                queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+                                            onBlur={(e: React.FocusEvent<HTMLInputElement>) => {
+                                                updateExecutiveTitleMutation.mutate({ userId: selectedUser.id, title: e.target.value });
                                             }}
                                             className="h-12"
                                         />
@@ -1300,9 +1237,8 @@ export default function MemberManagementPage() {
                                             type="number"
                                             value={selectedUser.executive_sort_order || 0}
                                             onChange={() => {}}
-                                            onBlur={async (e: React.FocusEvent<HTMLInputElement>) => {
-                                                await supabase.from('users').update({ executive_sort_order: parseInt(e.target.value) }).eq('id', selectedUser.id);
-                                                queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+                                            onBlur={(e: React.FocusEvent<HTMLInputElement>) => {
+                                                updateExecutiveSortOrderMutation.mutate({ userId: selectedUser.id, sortOrder: parseInt(e.target.value) });
                                             }}
                                             className="h-12"
                                         />
@@ -1311,12 +1247,7 @@ export default function MemberManagementPage() {
 
                                 <div className="pt-2">
                                     <button
-                                        onClick={() =>
-                                            updateRoleMutation.mutate({
-                                                userId: selectedUser.id,
-                                                role: newRole,
-                                            })
-                                        }
+                                        onClick={() => handleUpdateRole(selectedUser.id, newRole)}
                                         disabled={newRole === selectedUser.role || updateRoleMutation.isPending}
                                         className="w-full h-12 bg-[#4E8C6D] text-white rounded-xl hover:bg-[#3d7058] transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-[14px] font-medium cursor-pointer"
                                     >
@@ -1357,7 +1288,7 @@ export default function MemberManagementPage() {
                                         </button>
                                         {selectedUser.user_status === 'PENDING_APPROVAL' && (
                                             <button
-                                                onClick={() => approveMutation.mutate(selectedUser.id)}
+                                                onClick={() => handleApprove(selectedUser.id)}
                                                 disabled={approveMutation.isPending}
                                                 className="flex-1 h-12 rounded-xl bg-[#4E8C6D] text-white hover:bg-[#3d7058] transition-colors disabled:opacity-50 flex items-center justify-center gap-2 text-[14px] font-medium cursor-pointer"
                                             >
@@ -1370,7 +1301,7 @@ export default function MemberManagementPage() {
 
                                 {selectedUser.user_status === 'REJECTED' && (
                                     <button
-                                        onClick={() => cancelRejectionMutation.mutate(selectedUser.id)}
+                                        onClick={() => handleCancelRejection(selectedUser.id)}
                                         disabled={cancelRejectionMutation.isPending}
                                         className="flex-1 h-12 rounded-xl bg-amber-500 text-white hover:bg-amber-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 text-[14px] font-medium cursor-pointer"
                                     >
@@ -1430,10 +1361,7 @@ export default function MemberManagementPage() {
                                 </button>
                                 <button
                                     onClick={() => {
-                                        rejectMutation.mutate({
-                                            userId: selectedUser.id,
-                                            reason: rejectionReason,
-                                        });
+                                        handleReject(selectedUser.id, rejectionReason);
                                         setShowRejectModal(false);
                                     }}
                                     disabled={rejectionReason.trim().length === 0 || rejectMutation.isPending}
