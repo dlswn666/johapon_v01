@@ -6,9 +6,7 @@ import { CommentList } from './CommentList';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MessageSquare, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-// TODO: 실제 로그인 시스템 연동 후 제거
-const TEMP_USER_ID = 'systemAdmin';
+import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 
 interface CommentSectionProps {
     entityType: EntityType;
@@ -21,12 +19,12 @@ interface CommentSectionProps {
 
 /**
  * 댓글 섹션 메인 컨테이너
- * 
+ *
  * 사용 예시:
  * ```tsx
- * <CommentSection 
- *   entityType="notice" 
- *   entityId={noticeId} 
+ * <CommentSection
+ *   entityType="notice"
+ *   entityId={noticeId}
  * />
  * ```
  */
@@ -38,9 +36,8 @@ export function CommentSection({
     noPadding = false,
     noBorder = false,
 }: CommentSectionProps) {
-    // TODO: 실제 로그인 시스템 연동 시 아래 주석 해제
-    // const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-    const currentUserId = TEMP_USER_ID;
+    const { user } = useAuth();
+    const currentUserId = user?.id || null;
 
     // 댓글 목록 조회
     const {
@@ -75,11 +72,17 @@ export function CommentSection({
             <CardContent className={cn('space-y-4', noPadding && 'px-0 pb-6')}>
                 {/* 댓글 입력 폼 */}
                 <div className={cn(noPadding && 'px-6')}>
-                    <CommentForm
-                        entityType={entityType}
-                        entityId={entityId}
-                        authorId={currentUserId}
-                    />
+                    {currentUserId ? (
+                        <CommentForm
+                            entityType={entityType}
+                            entityId={entityId}
+                            authorId={currentUserId}
+                        />
+                    ) : (
+                        <div className="text-center py-4 text-muted-foreground text-sm">
+                            댓글을 작성하려면 로그인이 필요합니다.
+                        </div>
+                    )}
                 </div>
 
                 {/* 구분선 */}
@@ -101,7 +104,7 @@ export function CommentSection({
                         comments={comments}
                         entityType={entityType}
                         entityId={entityId}
-                        currentUserId={currentUserId}
+                        currentUserId={currentUserId || undefined}
                     />
                 )}
                 </div>
