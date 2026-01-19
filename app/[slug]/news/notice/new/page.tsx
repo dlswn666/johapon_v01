@@ -26,6 +26,8 @@ const formSchema = z
         content: z.string().min(1, '내용을 입력해주세요.'),
         is_popup: z.boolean(),
         send_alimtalk: z.boolean().default(false),
+        alimtalk_schedule_type: z.enum(['immediate', 'scheduled']).default('immediate'),
+        scheduled_at: z.date().nullable().optional(),
         start_date: z.date().nullable().optional(),
         end_date: z.date().nullable().optional(),
     })
@@ -74,6 +76,8 @@ const NewNoticePage = () => {
             content: '',
             is_popup: false,
             send_alimtalk: false,
+            alimtalk_schedule_type: 'immediate' as const,
+            scheduled_at: null,
             start_date: null,
             end_date: null,
         },
@@ -83,6 +87,11 @@ const NewNoticePage = () => {
     const isPopup = useWatch({ control: form.control, name: 'is_popup' });
     const startDate = useWatch({ control: form.control, name: 'start_date' });
     const endDate = useWatch({ control: form.control, name: 'end_date' });
+
+    // 알림톡 예약 상태 감지
+    const sendAlimtalk = useWatch({ control: form.control, name: 'send_alimtalk' });
+    const alimtalkScheduleType = useWatch({ control: form.control, name: 'alimtalk_schedule_type' });
+    const scheduledAt = useWatch({ control: form.control, name: 'scheduled_at' });
 
     // 팝업 기간 선택 영역 ref (에러 시 스크롤용)
     const popupDateRef = useRef<HTMLDivElement>(null);
@@ -102,11 +111,19 @@ const NewNoticePage = () => {
     function onSubmit(values: z.infer<typeof formSchema>) {
         if (!union || !user) return;
 
+        // 예약 발송 시 scheduled_at 필수 체크
+        if (values.send_alimtalk && values.alimtalk_schedule_type === 'scheduled' && !values.scheduled_at) {
+            form.setError('scheduled_at', { message: '예약 발송 시간을 선택해주세요.' });
+            return;
+        }
+
         addNotice({
             title: values.title,
             content: values.content,
             is_popup: values.is_popup,
             send_alimtalk: values.send_alimtalk,
+            alimtalk_schedule_type: values.alimtalk_schedule_type,
+            scheduled_at: values.scheduled_at ? values.scheduled_at.toISOString() : null,
             start_date: values.start_date ? values.start_date.toISOString() : null,
             end_date: values.end_date ? values.end_date.toISOString() : null,
             author_id: user.id,
@@ -143,6 +160,77 @@ const NewNoticePage = () => {
                                     label="알림톡 발송"
                                     variant="card"
                                 />
+                            </div>
+
+                            {/* 알림톡 예약 설정 영역 */}
+                            <div
+                                className={cn(
+                                    'overflow-hidden transition-all duration-300 ease-out',
+                                    sendAlimtalk ? 'max-h-[300px] opacity-100' : 'max-h-0 opacity-0'
+                                )}
+                            >
+                                <div className="rounded-[12px] border border-[#CCCCCC] bg-white p-6">
+                                    <h4 className="text-[14px] font-bold text-[#5FA37C] mb-4">
+                                        알림톡 발송 설정
+                                    </h4>
+                                    <div className="space-y-4">
+                                        <div className="flex gap-4">
+                                            <label className="flex items-center gap-2 cursor-pointer">
+                                                <input
+                                                    type="radio"
+                                                    checked={alimtalkScheduleType === 'immediate'}
+                                                    onChange={() => form.setValue('alimtalk_schedule_type', 'immediate')}
+                                                    className="w-4 h-4 text-[#5FA37C]"
+                                                />
+                                                <span className="text-sm text-gray-700">바로 발송</span>
+                                            </label>
+                                            <label className="flex items-center gap-2 cursor-pointer">
+                                                <input
+                                                    type="radio"
+                                                    checked={alimtalkScheduleType === 'scheduled'}
+                                                    onChange={() => form.setValue('alimtalk_schedule_type', 'scheduled')}
+                                                    className="w-4 h-4 text-[#5FA37C]"
+                                                />
+                                                <span className="text-sm text-gray-700">예약 발송</span>
+                                            </label>
+                                        </div>
+
+                                        {/* 예약 시간 선택 */}
+                                        <div
+                                            className={cn(
+                                                'overflow-hidden transition-all duration-300 ease-out',
+                                                alimtalkScheduleType === 'scheduled' ? 'max-h-[100px] opacity-100' : 'max-h-0 opacity-0'
+                                            )}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <span className="text-sm text-gray-600">예약 일시:</span>
+                                                <input
+                                                    type="datetime-local"
+                                                    value={scheduledAt ? new Date(scheduledAt.getTime() - scheduledAt.getTimezoneOffset() * 60000).toISOString().slice(0, 16) : ''}
+                                                    onChange={(e) => {
+                                                        const value = e.target.value;
+                                                        if (value) {
+                                                            form.setValue('scheduled_at', new Date(value));
+                                                            form.clearErrors('scheduled_at');
+                                                        } else {
+                                                            form.setValue('scheduled_at', null);
+                                                        }
+                                                    }}
+                                                    min={new Date().toISOString().slice(0, 16)}
+                                                    className={cn(
+                                                        'px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-[#5FA37C] outline-none',
+                                                        form.formState.errors.scheduled_at ? 'border-red-500' : 'border-gray-300'
+                                                    )}
+                                                />
+                                            </div>
+                                            {form.formState.errors.scheduled_at && (
+                                                <p className="text-sm text-red-500 mt-1">
+                                                    {form.formState.errors.scheduled_at.message}
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
                             {/* 팝업 기간 선택 - 애니메이션 적용 */}

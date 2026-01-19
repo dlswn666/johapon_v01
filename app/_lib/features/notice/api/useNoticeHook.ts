@@ -228,10 +228,14 @@ export const useAddNotice = () => {
     const { union, slug } = useSlug();
 
     return useMutation({
-        mutationFn: async (newNotice: NewNotice & { send_alimtalk?: boolean }) => {
+        mutationFn: async (newNotice: NewNotice & {
+            send_alimtalk?: boolean;
+            alimtalk_schedule_type?: 'immediate' | 'scheduled';
+            scheduled_at?: string | null;
+        }) => {
             if (!union?.id) throw new Error('Union context missing');
 
-            const { send_alimtalk, ...noticeDataToInsert } = newNotice;
+            const { send_alimtalk, alimtalk_schedule_type, scheduled_at, ...noticeDataToInsert } = newNotice;
 
             // 1. 공지사항 우선 생성 (ID 확보)
             const noticeWithUnion = {
@@ -271,39 +275,65 @@ export const useAddNotice = () => {
 
             // 5. 알림톡 발송 로직
             if (send_alimtalk) {
-                try {
-                    // 해당 조합의 '승인됨' 상태의 일반 조합원 조회 (수신 대상)
-                    const { data: approvedMembers } = await supabase
-                        .from('users')
-                        .select('phone_number, name')
-                        .eq('union_id', union.id)
-                        .eq('user_status', 'APPROVED')
-                        .eq('role', 'USER');
+                const isScheduled = alimtalk_schedule_type === 'scheduled' && scheduled_at;
 
-                    if (approvedMembers && approvedMembers.length > 0) {
-                        const createdDate = new Date(noticeData.created_at);
-                        await sendAlimTalk({
-                            unionId: union.id,
-                            templateCode: 'UE_2827', // 공지사항 등록 알림 템플릿
-                            recipients: approvedMembers.map((member) => ({
-                                phoneNumber: member.phone_number,
-                                name: member.name,
-                                variables: {
-                                    조합명: union.name,
-                                    이름: member.name,
-                                    안내제목: noticeData.title,
-                                    등록일시: createdDate.toLocaleString('ko-KR'),
-                                    조합슬러그: slug,
-                                    공지사항ID: noticeData.id,
-                                },
-                            })),
-                            noticeId: noticeData.id,
-                        });
-                        console.log(`[공지사항 알림톡] ${approvedMembers.length}명에게 발송 요청 완료`);
+                if (isScheduled) {
+                    // 예약 발송: scheduled_alimtalks 테이블에 저장
+                    try {
+                        const { error: scheduleError } = await supabase
+                            .from('scheduled_alimtalks')
+                            .insert({
+                                notice_id: noticeData.id,
+                                union_id: union.id,
+                                template_code: 'UE_2827',
+                                scheduled_at: scheduled_at,
+                                status: 'pending',
+                            });
+
+                        if (scheduleError) {
+                            console.error('알림톡 예약 저장 실패:', scheduleError);
+                        } else {
+                            console.log(`[공지사항 알림톡] 예약 발송 등록 완료 - ${scheduled_at}`);
+                        }
+                    } catch (scheduleError) {
+                        console.error('알림톡 예약 실패:', scheduleError);
                     }
-                } catch (alimTalkError) {
-                    console.error('알림톡 발송 실패 (공지사항 등록):', alimTalkError);
-                    // 알림톡 발송 실패해도 공지사항 등록은 성공으로 처리
+                } else {
+                    // 바로 발송
+                    try {
+                        // 해당 조합의 '승인됨' 상태의 일반 조합원 조회 (수신 대상)
+                        const { data: approvedMembers } = await supabase
+                            .from('users')
+                            .select('phone_number, name')
+                            .eq('union_id', union.id)
+                            .eq('user_status', 'APPROVED')
+                            .eq('role', 'USER');
+
+                        if (approvedMembers && approvedMembers.length > 0) {
+                            const createdDate = new Date(noticeData.created_at);
+                            await sendAlimTalk({
+                                unionId: union.id,
+                                templateCode: 'UE_2827', // 공지사항 등록 알림 템플릿
+                                recipients: approvedMembers.map((member) => ({
+                                    phoneNumber: member.phone_number,
+                                    name: member.name,
+                                    variables: {
+                                        조합명: union.name,
+                                        이름: member.name,
+                                        안내제목: noticeData.title,
+                                        등록일시: createdDate.toLocaleString('ko-KR'),
+                                        조합슬러그: slug,
+                                        공지사항ID: noticeData.id,
+                                    },
+                                })),
+                                noticeId: noticeData.id,
+                            });
+                            console.log(`[공지사항 알림톡] ${approvedMembers.length}명에게 발송 요청 완료`);
+                        }
+                    } catch (alimTalkError) {
+                        console.error('알림톡 발송 실패 (공지사항 등록):', alimTalkError);
+                        // 알림톡 발송 실패해도 공지사항 등록은 성공으로 처리
+                    }
                 }
             }
 

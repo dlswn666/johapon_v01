@@ -67,6 +67,7 @@ export default function UnionMobileSidebar({ isOpen, onClose }: UnionMobileSideb
                 { label: '조합 정보 설정', href: `/${union?.slug || ''}/admin/settings` },
                 { label: '슬라이드 관리', href: `/${union?.slug || ''}/admin/slides` },
                 { label: '알림톡 내역', href: `/${union?.slug || ''}/admin/alimtalk` },
+                { label: '문자 발송', href: `/${union?.slug || ''}/admin/sms` },
                 { label: '조합원 관리', href: `/${union?.slug || ''}/admin/members` },
                 { label: '동의율 관리', href: `/${union?.slug || ''}/admin/land-lots` },
             ],

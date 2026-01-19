@@ -66,6 +66,9 @@ import MemberDetailModal from './MemberDetailModal';
 import ManualInviteModal from './ManualInviteModal';
 import MemberListTab from './MemberListTab';
 import ConsentManagementTab from './ConsentManagementTab';
+import ConflictResolutionModal from './ConflictResolutionModal';
+import { useResolveConflict, createConflictComparisonData } from '@/app/_lib/features/member-management/api/useConflictResolutionHook';
+import { ConflictComparisonData, ConflictResolutionRequest } from '@/app/_lib/shared/type/conflict.types';
 import { cn } from '@/lib/utils';
 import { Percent } from 'lucide-react';
 import { SelectBox } from '@/app/_lib/widgets/common/select-box';
@@ -197,6 +200,12 @@ export default function MemberManagementPage() {
     const [newRole, setNewRole] = useState<string>('');
     const [showRejectModal, setShowRejectModal] = useState(false);
 
+    // 충돌 해결 관련 상태
+    const [showConflictModal, setShowConflictModal] = useState(false);
+    const [conflictData, setConflictData] = useState<ConflictComparisonData | null>(null);
+    const [conflictPropertyUnitId, setConflictPropertyUnitId] = useState<string>('');
+    const [conflictExistingUserId, setConflictExistingUserId] = useState<string>('');
+
     // 사용자 목록 조회 (Hook 사용)
     const { data: usersData, isLoading: usersLoading } = useAdminUsers({
         unionId: union?.id,
@@ -233,9 +242,36 @@ export default function MemberManagementPage() {
     // 노출 순서 변경 mutation (Hook 사용)
     const updateExecutiveSortOrderMutation = useUpdateExecutiveSortOrder();
 
-    // 승인 처리 핸들러
+    // 충돌 해결 mutation (Hook 사용)
+    const resolveConflictMutation = useResolveConflict();
+
+    // 승인 처리 핸들러 (충돌 검사 포함)
     const handleApprove = async (userId: string) => {
         try {
+            // 1. 충돌 검사 수행
+            const conflictCheckResponse = await fetch(`/api/members/check-conflict?userId=${userId}`);
+            const conflictResult = await conflictCheckResponse.json();
+
+            if (conflictResult.hasConflict && conflictResult.conflicts.length > 0) {
+                // 충돌이 발견되면 충돌 해결 모달 표시
+                const firstConflict = conflictResult.conflicts[0];
+                const comparisonData = createConflictComparisonData(
+                    {
+                        name: selectedUser?.name || '',
+                        phone_number: selectedUser?.phone_number || null,
+                        property_address: selectedUser?.property_address || null,
+                    },
+                    firstConflict
+                );
+
+                setConflictData(comparisonData);
+                setConflictPropertyUnitId(firstConflict.propertyUnitId);
+                setConflictExistingUserId(firstConflict.existingOwner.userId);
+                setShowConflictModal(true);
+                return; // 모달에서 처리하도록 함
+            }
+
+            // 2. 충돌이 없으면 바로 승인
             await approveMutation.mutateAsync(userId);
             toast.success('사용자가 승인되었습니다.');
             setShowDetailModal(false);
@@ -1378,6 +1414,50 @@ export default function MemberManagementPage() {
                         </div>
                     </div>
                 )}
+
+                {/* 충돌 해결 모달 */}
+                <ConflictResolutionModal
+                    isOpen={showConflictModal}
+                    onClose={() => {
+                        setShowConflictModal(false);
+                        setConflictData(null);
+                    }}
+                    conflict={conflictData}
+                    pendingUserId={selectedUser?.id || ''}
+                    existingUserId={conflictExistingUserId}
+                    conflictedPropertyUnitId={conflictPropertyUnitId}
+                    onResolve={async (request: ConflictResolutionRequest) => {
+                        try {
+                            const result = await resolveConflictMutation.mutateAsync(request);
+                            if (result.success) {
+                                toast.success(result.message);
+                                setShowConflictModal(false);
+                                setShowDetailModal(false);
+                                setSelectedUser(null);
+
+                                // 승인 안내 알림톡 발송 (승인된 경우)
+                                if (result.resolvedUserId && selectedUser) {
+                                    sendAlimTalk({
+                                        unionId: unionId!,
+                                        templateCode: 'UE_3602',
+                                        recipients: [{
+                                            phoneNumber: selectedUser.phone_number || '',
+                                            name: selectedUser.name,
+                                            variables: {
+                                                조합명: union?.name || '',
+                                                이름: selectedUser.name
+                                            }
+                                        }]
+                                    });
+                                }
+                            } else {
+                                toast.error(result.message);
+                            }
+                        } catch {
+                            toast.error('충돌 해결 중 오류가 발생했습니다.');
+                        }
+                    }}
+                />
             </div>
         </div>
     );

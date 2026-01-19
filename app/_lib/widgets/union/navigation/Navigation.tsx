@@ -61,6 +61,7 @@ export default function UnionNavigation() {
         subItems: [
             { href: `/${slug}/admin/slides`, label: '슬라이드 관리' },
             { href: `/${slug}/admin/alimtalk`, label: '알림톡 내역' },
+            { href: `/${slug}/admin/sms`, label: '문자 발송' },
             { href: `/${slug}/admin/members`, label: '조합원 관리' },
         ],
     };
