@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { SignJWT } from 'jose';
 
 // 프록시 서버 설정
-const PROXY_SERVER_URL = process.env.ALIMTALK_PROXY_URL || 'http://localhost:3001';
-const PROXY_API_TOKEN = process.env.PROXY_API_TOKEN || '';
+const PROXY_URL = process.env.ALIMTALK_PROXY_URL || 'http://localhost:3100';
 
 // Supabase 클라이언트 (서버 사이드)
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -23,6 +23,23 @@ interface SendRequest {
   startIndex?: number;
 }
 
+// JWT 토큰 생성 (프록시 서버 인증용)
+async function generateProxyToken(unionId: string, userId: string): Promise<string> {
+  const jwtSecret = process.env.JWT_SECRET;
+
+  if (!jwtSecret) {
+    throw new Error('JWT_SECRET 환경변수가 설정되지 않았습니다.');
+  }
+
+  const secret = new TextEncoder().encode(jwtSecret);
+
+  return await new SignJWT({ unionId, userId })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('5m')
+    .sign(secret);
+}
+
 // 변수 치환 함수
 function replaceVariables(template: string, recipient: Recipient): string {
   return template
@@ -32,11 +49,11 @@ function replaceVariables(template: string, recipient: Recipient): string {
 
 export async function POST(request: NextRequest) {
   try {
-    // 프록시 서버 토큰 체크
-    if (!PROXY_API_TOKEN) {
-      console.error('Missing PROXY_API_TOKEN');
+    // JWT_SECRET 체크
+    if (!process.env.JWT_SECRET) {
+      console.error('Missing JWT_SECRET');
       return NextResponse.json(
-        { error: '프록시 서버 인증 토큰이 설정되어 있지 않습니다.' },
+        { error: 'JWT_SECRET 환경변수가 설정되어 있지 않습니다.' },
         { status: 500 }
       );
     }
@@ -65,12 +82,15 @@ export async function POST(request: NextRequest) {
       message: replaceVariables(message, recipient),
     }));
 
+    // JWT 토큰 생성 (시스템 관리자용)
+    const token = await generateProxyToken(unionId, 'system-admin');
+
     // 프록시 서버 API 호출
-    const proxyResponse = await fetch(`${PROXY_SERVER_URL}/api/sms/send`, {
+    const proxyResponse = await fetch(`${PROXY_URL}/api/sms/send`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${PROXY_API_TOKEN}`,
+        'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify({
         recipients: processedRecipients,
@@ -103,7 +123,6 @@ export async function POST(request: NextRequest) {
         });
       } catch (logError) {
         console.error('SMS 로그 저장 실패:', logError);
-        // 로그 저장 실패해도 전송은 성공
       }
 
       return NextResponse.json({
@@ -114,7 +133,6 @@ export async function POST(request: NextRequest) {
         message: proxyResult.message,
       });
     } else {
-      // 프록시 서버 에러
       return NextResponse.json(
         {
           error: proxyResult.error || proxyResult.message || '프록시 서버 오류',
