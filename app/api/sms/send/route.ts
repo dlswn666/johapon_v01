@@ -1,13 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 import { SignJWT } from 'jose';
 
 // 프록시 서버 설정
 const PROXY_URL = process.env.ALIMTALK_PROXY_URL || 'http://localhost:3100';
-
-// Supabase 클라이언트 (서버 사이드)
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 interface Recipient {
   name: string;
@@ -20,7 +15,6 @@ interface SendRequest {
   message: string;
   msgType: 'SMS' | 'LMS' | 'MMS';
   title?: string;
-  startIndex?: number;
 }
 
 // JWT 토큰 생성 (프록시 서버 인증용)
@@ -40,13 +34,6 @@ async function generateProxyToken(unionId: string, userId: string): Promise<stri
     .sign(secret);
 }
 
-// 변수 치환 함수
-function replaceVariables(template: string, recipient: Recipient): string {
-  return template
-    .replace(/\{이름\}/g, recipient.name)
-    .replace(/\{name\}/g, recipient.name);
-}
-
 export async function POST(request: NextRequest) {
   try {
     // JWT_SECRET 체크
@@ -59,7 +46,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body: SendRequest = await request.json();
-    const { unionId, recipients, message, msgType, title, startIndex = 0 } = body;
+    const { unionId, recipients, message, msgType, title } = body;
 
     if (!unionId || !recipients || !message || !msgType) {
       return NextResponse.json(
@@ -75,17 +62,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 수신자별 메시지 변수 치환
-    const processedRecipients = recipients.map((recipient) => ({
-      name: recipient.name,
-      phone: recipient.phone,
-      message: replaceVariables(message, recipient),
-    }));
-
-    // JWT 토큰 생성 (시스템 관리자용)
+    // JWT 토큰 생성
     const token = await generateProxyToken(unionId, 'system-admin');
 
     // 프록시 서버 API 호출
+    // 프록시 서버가 {이름} 변수 치환을 처리함
     const proxyResponse = await fetch(`${PROXY_URL}/api/sms/send`, {
       method: 'POST',
       headers: {
@@ -93,9 +74,15 @@ export async function POST(request: NextRequest) {
         'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify({
-        recipients: processedRecipients,
+        unionId,
+        senderId: 'system-admin',
+        message,
         msgType,
-        title: msgType === 'LMS' ? title : undefined,
+        title: (msgType === 'LMS' || msgType === 'MMS') ? title : undefined,
+        recipients: recipients.map((r) => ({
+          name: r.name,
+          phone: r.phone,
+        })),
       }),
     });
 
@@ -104,39 +91,22 @@ export async function POST(request: NextRequest) {
     console.log('[SMS 발송 결과 - 프록시]', {
       unionId,
       recipientCount: recipients.length,
-      startIndex,
+      status: proxyResponse.status,
       result: proxyResult,
     });
 
     if (proxyResponse.ok && proxyResult.success) {
-      // 발송 로그 저장
-      try {
-        const supabase = createClient(supabaseUrl, supabaseServiceKey);
-        await supabase.from('sms_send_logs').insert({
-          union_id: unionId,
-          msg_type: msgType,
-          total_count: recipients.length,
-          success_count: proxyResult.success_cnt || recipients.length,
-          fail_count: proxyResult.error_cnt || 0,
-          status: 'completed',
-          aligo_msg_id: proxyResult.msg_id,
-        });
-      } catch (logError) {
-        console.error('SMS 로그 저장 실패:', logError);
-      }
-
       return NextResponse.json({
         success: true,
-        msg_id: proxyResult.msg_id,
-        success_cnt: proxyResult.success_cnt || recipients.length,
-        error_cnt: proxyResult.error_cnt || 0,
-        message: proxyResult.message,
+        msg_id: proxyResult.data?.msgIds?.[0],
+        success_cnt: proxyResult.data?.successCount || recipients.length,
+        error_cnt: proxyResult.data?.failCount || 0,
+        message: '발송 완료',
       });
     } else {
       return NextResponse.json(
         {
           error: proxyResult.error || proxyResult.message || '프록시 서버 오류',
-          result_code: proxyResult.result_code,
           success_cnt: 0,
           error_cnt: recipients.length,
         },
