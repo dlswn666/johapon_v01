@@ -141,7 +141,20 @@ export const useParcelDetail = (pnu: string | null, stageId: string | null) => {
             // 3. land_lots에서 union_id 조회 (union_land_lots는 병합됨)
             const unionId = landLot?.union_id;
 
-            // 4. 해당 PNU와 연결된 소유주(users) 조회 - user_property_units + users + building_units 조인
+            // 3.1. 건물에 연결된 모든 PNU 목록 조회 (건물 매칭된 필지들의 소유주 병합 표시용)
+            let allLinkedPnus: string[] = [normalizedPnu];
+            if (buildingInfo?.id) {
+                const { data: linkedPnusData } = await supabase
+                    .from('building_land_lots')
+                    .select('pnu')
+                    .eq('building_id', buildingInfo.id);
+
+                if (linkedPnusData && linkedPnusData.length > 0) {
+                    allLinkedPnus = linkedPnusData.map((p) => p.pnu).filter(Boolean) as string[];
+                }
+            }
+
+            // 4. 건물에 연결된 모든 PNU의 소유주(users) 조회 - user_property_units + users + building_units 조인
             interface PropertyUnitWithUser {
                 id: string;
                 pnu: string | null;
@@ -186,7 +199,7 @@ export const useParcelDetail = (pnu: string | null, stageId: string | null) => {
                         )
                     `
                     )
-                    .eq('pnu', normalizedPnu);
+                    .in('pnu', allLinkedPnus); // 건물에 연결된 모든 PNU의 소유주 조회
 
                 if (usersError) {
                     throw new Error(`조합원 조회 오류: ${usersError.message}`);
