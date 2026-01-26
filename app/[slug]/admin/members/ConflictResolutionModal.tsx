@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { AlertTriangle, User, UserPlus, Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -8,7 +8,11 @@ import {
   ConflictResolutionModalProps,
   ConflictResolutionAction,
   ConflictResolutionRequest,
+  ExistingCoOwnerInfo,
+  CoOwnerRatioAdjustment,
 } from '@/app/_lib/shared/type/conflict.types';
+import { fetchExistingCoOwners } from '@/app/_lib/features/member-management/api/useConflictResolutionHook';
+import { supabase } from '@/app/_lib/shared/supabase/client';
 import ShareRatioModal from './ShareRatioModal';
 
 export default function ConflictResolutionModal({
@@ -23,13 +27,49 @@ export default function ConflictResolutionModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showShareRatioModal, setShowShareRatioModal] = useState(false);
   const [showRelationshipModal, setShowRelationshipModal] = useState(false);
+  const [otherCoOwners, setOtherCoOwners] = useState<ExistingCoOwnerInfo[]>([]);
+  const [isLoadingCoOwners, setIsLoadingCoOwners] = useState(false);
+
+  // 기존 공동소유자 조회 함수
+  const loadOtherCoOwners = useCallback(async () => {
+    setIsLoadingCoOwners(true);
+    try {
+      // 물건지 정보(building_unit_id, pnu) 조회
+      const { data: propertyUnit, error } = await supabase
+        .from('user_property_units')
+        .select('building_unit_id, pnu')
+        .eq('id', conflictedPropertyUnitId)
+        .single();
+
+      if (error || !propertyUnit) {
+        console.error('Failed to fetch property unit:', error);
+        setOtherCoOwners([]);
+        return;
+      }
+
+      // 기존+신규 외의 다른 공동소유자 조회
+      const coOwners = await fetchExistingCoOwners(
+        propertyUnit.building_unit_id,
+        propertyUnit.pnu,
+        [existingUserId, pendingUserId]
+      );
+
+      setOtherCoOwners(coOwners);
+    } catch (err) {
+      console.error('Failed to load co-owners:', err);
+      setOtherCoOwners([]);
+    } finally {
+      setIsLoadingCoOwners(false);
+    }
+  }, [conflictedPropertyUnitId, existingUserId, pendingUserId]);
 
   if (!conflict) return null;
 
   // 액션 선택 핸들러
   const handleActionSelect = async (action: ConflictResolutionAction) => {
     if (action === 'add_co_owner') {
-      // 공동 소유자의 경우 지분율 설정 모달 표시
+      // 공동 소유자의 경우 먼저 다른 공동소유자 조회 후 지분율 설정 모달 표시
+      await loadOtherCoOwners();
       setShowShareRatioModal(true);
     } else if (action === 'add_proxy') {
       // 가족/대리인의 경우 관계 선택 모달 표시
@@ -62,12 +102,17 @@ export default function ConflictResolutionModal({
     }
   };
 
-  // 지분율 설정 완료 핸들러
-  const handleShareRatioConfirm = async (existingRatio: number, newRatio: number) => {
+  // 지분율 설정 완료 핸들러 (FEAT-012: 다른 공동소유자 지분 조정 포함)
+  const handleShareRatioConfirm = async (
+    existingRatio: number,
+    newRatio: number,
+    otherCoOwnerAdjustments?: CoOwnerRatioAdjustment[]
+  ) => {
     setShowShareRatioModal(false);
     await executeAction('add_co_owner', {
       shareRatioForExisting: existingRatio,
       shareRatioForNew: newRatio,
+      otherCoOwnerAdjustments,
     });
   };
 
@@ -199,9 +244,11 @@ export default function ConflictResolutionModal({
                 variant="outline"
                 className="h-auto py-4 flex flex-col items-start text-left hover:bg-purple-50 hover:border-purple-300"
                 onClick={() => handleActionSelect('add_co_owner')}
-                disabled={isSubmitting}
+                disabled={isSubmitting || isLoadingCoOwners}
               >
-                <span className="font-medium text-gray-900">공동 소유자입니다</span>
+                <span className="font-medium text-gray-900">
+                  {isLoadingCoOwners ? '공동소유자 확인 중...' : '공동 소유자입니다'}
+                </span>
                 <span className="text-xs text-gray-500 mt-1">
                   부부 공동명의 등 (추가)
                 </span>
@@ -247,6 +294,7 @@ export default function ConflictResolutionModal({
         existingOwnerName={conflict.existing.name}
         newOwnerName={conflict.pending.name}
         onConfirm={handleShareRatioConfirm}
+        otherCoOwners={otherCoOwners}
       />
 
       {/* 관계 선택 모달 */}

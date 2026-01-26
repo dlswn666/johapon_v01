@@ -5,6 +5,17 @@
 
 import { OwnershipType } from './database.types';
 
+// 지분 조정 방식
+export type RatioAdjustmentMode = 'equal' | 'proportional' | 'manual';
+
+// 공동소유자 지분 조정 정보
+export interface CoOwnerRatioAdjustment {
+  userId: string;
+  name: string;
+  previousRatio: number;
+  newRatio: number;
+}
+
 // 충돌 해결 액션 타입
 export type ConflictResolutionAction =
   | 'update'        // 동일인 - 정보 덮어쓰기
@@ -66,6 +77,9 @@ export interface ConflictResolutionRequest {
   shareRatioForExisting?: number;  // 기존 소유자 지분율 (0-100)
   shareRatioForNew?: number;       // 신규 소유자 지분율 (0-100)
 
+  // 다른 공동소유자 지분 조정 (FEAT-012)
+  otherCoOwnerAdjustments?: CoOwnerRatioAdjustment[];
+
   // 가족/대리인 시 관계 설정
   relationshipType?: 'FAMILY' | 'PROXY';
 }
@@ -109,11 +123,25 @@ export interface ConflictResolutionModalProps {
   onResolve: (request: ConflictResolutionRequest) => Promise<void>;
 }
 
+// 기존 공동소유자 정보 (지분율 검증용)
+export interface ExistingCoOwnerInfo {
+  userId: string;
+  name: string;
+  landOwnershipRatio: number;
+  buildingOwnershipRatio: number;
+}
+
 // 지분율 설정 모달 프롭스
 export interface ShareRatioModalProps {
   isOpen: boolean;
   onClose: () => void;
   existingOwnerName: string;
   newOwnerName: string;
-  onConfirm: (existingRatio: number, newRatio: number) => void;
+  onConfirm: (
+    existingRatio: number,
+    newRatio: number,
+    otherCoOwnerAdjustments?: CoOwnerRatioAdjustment[]
+  ) => void;
+  // 다른 공동소유자 목록 (기존+신규 외의 공동소유자)
+  otherCoOwners?: ExistingCoOwnerInfo[];
 }

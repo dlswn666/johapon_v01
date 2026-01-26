@@ -1497,6 +1497,121 @@ export type Database = {
                     }
                 ];
             };
+            // FEAT-009: 사용자 관계 테이블
+            user_relationships: {
+                Row: {
+                    id: string;
+                    user_id: string;
+                    related_user_id: string;
+                    relationship_type: string;
+                    verified: boolean | null;
+                    created_at: string | null;
+                    verified_at: string | null;
+                };
+                Insert: {
+                    id?: string;
+                    user_id: string;
+                    related_user_id: string;
+                    relationship_type: string;
+                    verified?: boolean | null;
+                    created_at?: string | null;
+                    verified_at?: string | null;
+                };
+                Update: {
+                    id?: string;
+                    user_id?: string;
+                    related_user_id?: string;
+                    relationship_type?: string;
+                    verified?: boolean | null;
+                    created_at?: string | null;
+                    verified_at?: string | null;
+                };
+                Relationships: [
+                    {
+                        foreignKeyName: 'user_relationships_user_id_fkey';
+                        columns: ['user_id'];
+                        isOneToOne: false;
+                        referencedRelation: 'users';
+                        referencedColumns: ['id'];
+                    },
+                    {
+                        foreignKeyName: 'user_relationships_related_user_id_fkey';
+                        columns: ['related_user_id'];
+                        isOneToOne: false;
+                        referencedRelation: 'users';
+                        referencedColumns: ['id'];
+                    }
+                ];
+            };
+            // FEAT-010: 소유권 변동 이력 테이블
+            property_ownership_history: {
+                Row: {
+                    id: string;
+                    property_unit_id: string;
+                    from_user_id: string | null;
+                    to_user_id: string | null;
+                    change_type: string;
+                    previous_ratio: number | null;
+                    new_ratio: number | null;
+                    change_reason: string | null;
+                    changed_at: string | null;
+                    changed_by: string | null;
+                };
+                Insert: {
+                    id?: string;
+                    property_unit_id: string;
+                    from_user_id?: string | null;
+                    to_user_id?: string | null;
+                    change_type: string;
+                    previous_ratio?: number | null;
+                    new_ratio?: number | null;
+                    change_reason?: string | null;
+                    changed_at?: string | null;
+                    changed_by?: string | null;
+                };
+                Update: {
+                    id?: string;
+                    property_unit_id?: string;
+                    from_user_id?: string | null;
+                    to_user_id?: string | null;
+                    change_type?: string;
+                    previous_ratio?: number | null;
+                    new_ratio?: number | null;
+                    change_reason?: string | null;
+                    changed_at?: string | null;
+                    changed_by?: string | null;
+                };
+                Relationships: [
+                    {
+                        foreignKeyName: 'property_ownership_history_property_unit_id_fkey';
+                        columns: ['property_unit_id'];
+                        isOneToOne: false;
+                        referencedRelation: 'user_property_units';
+                        referencedColumns: ['id'];
+                    },
+                    {
+                        foreignKeyName: 'property_ownership_history_from_user_id_fkey';
+                        columns: ['from_user_id'];
+                        isOneToOne: false;
+                        referencedRelation: 'users';
+                        referencedColumns: ['id'];
+                    },
+                    {
+                        foreignKeyName: 'property_ownership_history_to_user_id_fkey';
+                        columns: ['to_user_id'];
+                        isOneToOne: false;
+                        referencedRelation: 'users';
+                        referencedColumns: ['id'];
+                    },
+                    {
+                        foreignKeyName: 'property_ownership_history_changed_by_fkey';
+                        columns: ['changed_by'];
+                        isOneToOne: false;
+                        referencedRelation: 'users';
+                        referencedColumns: ['id'];
+                    }
+                ];
+            };
         };
         Views: {
             geography_columns: {
@@ -1767,6 +1882,7 @@ export type UpdateUser = Database['public']['Tables']['users']['Update'];
 export type UserStatus =
     | 'APPROVED'
     | 'REJECTED'
+    | 'TRANSFERRED'   // FEAT-008: 소유권 이전(매매)으로 인한 탈퇴
     | 'PRE_REGISTERED'
     | 'PENDING_PROFILE'
     | 'PENDING_APPROVAL'
@@ -1936,3 +2052,15 @@ export type AccessType = 'LIST_VIEW' | 'DETAIL_VIEW' | 'MEMBER_UPDATE' | 'MEMBER
 export type MemberAccessLog = Database['public']['Tables']['member_access_logs']['Row'];
 export type NewMemberAccessLog = Database['public']['Tables']['member_access_logs']['Insert'];
 export type UpdateMemberAccessLog = Database['public']['Tables']['member_access_logs']['Update'];
+
+// FEAT-009: 사용자 관계 (가족/대리인/법정후견인)
+export type RelationshipType = 'FAMILY' | 'PROXY' | 'LEGAL_GUARDIAN';
+export type UserRelationship = Database['public']['Tables']['user_relationships']['Row'];
+export type NewUserRelationship = Database['public']['Tables']['user_relationships']['Insert'];
+export type UpdateUserRelationship = Database['public']['Tables']['user_relationships']['Update'];
+
+// FEAT-010: 소유권 변동 이력
+export type OwnershipChangeType = 'TRANSFER' | 'CO_OWNER_ADDED' | 'CO_OWNER_REMOVED' | 'RATIO_CHANGED';
+export type PropertyOwnershipHistory = Database['public']['Tables']['property_ownership_history']['Row'];
+export type NewPropertyOwnershipHistory = Database['public']['Tables']['property_ownership_history']['Insert'];
+export type UpdatePropertyOwnershipHistory = Database['public']['Tables']['property_ownership_history']['Update'];

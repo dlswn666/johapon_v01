@@ -88,6 +88,7 @@ const USER_STATUS_LABELS: Record<UserStatus, string> = {
     PENDING_APPROVAL: '승인 대기',
     APPROVED: '승인됨',
     REJECTED: '반려됨',
+    TRANSFERRED: '매매탈퇴',  // FEAT-008: 소유권 이전으로 인한 탈퇴
     APPLICANT: '신청자',
 };
 
@@ -97,6 +98,7 @@ const USER_STATUS_COLORS: Record<UserStatus, string> = {
     PENDING_APPROVAL: 'bg-yellow-100 text-yellow-700',
     APPROVED: 'bg-green-100 text-green-700',
     REJECTED: 'bg-red-100 text-red-700',
+    TRANSFERRED: 'bg-orange-100 text-orange-700',  // FEAT-008: 소유권 이전으로 인한 탈퇴
     APPLICANT: 'bg-blue-100 text-blue-700',
 };
 
@@ -1018,6 +1020,7 @@ export default function MemberManagementPage() {
                                         { value: 'PENDING_APPROVAL', label: '승인 대기' },
                                         { value: 'APPROVED', label: '승인됨' },
                                         { value: 'REJECTED', label: '반려됨' },
+                                        { value: 'TRANSFERRED', label: '매매탈퇴' },
                                         { value: 'PENDING_PROFILE', label: '프로필 미입력' },
                                     ]}
                                     className="min-w-[140px]"

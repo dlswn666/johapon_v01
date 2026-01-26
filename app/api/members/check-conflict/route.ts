@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     // 1. 승인 대기 사용자 정보 조회
     const { data: pendingUser, error: userError } = await supabase
       .from('users')
-      .select('id, name, phone_number, property_address, property_pnu')
+      .select('id, name, phone_number, property_address')
       .eq('id', userId)
       .single();
 
@@ -112,8 +112,9 @@ export async function GET(request: NextRequest) {
       for (const existingUnit of existingUnits || []) {
         const existingUser = existingUnit.users as unknown as User;
 
-        // APPROVED 상태인 사용자와만 충돌 확인
-        if (existingUser.user_status !== 'APPROVED') {
+        // BUG-014: APPROVED 또는 PRE_REGISTERED 상태인 사용자와 충돌 확인
+        // (사전등록 조합원과의 충돌도 감지해야 함)
+        if (!['APPROVED', 'PRE_REGISTERED'].includes(existingUser.user_status || '')) {
           continue;
         }
 
