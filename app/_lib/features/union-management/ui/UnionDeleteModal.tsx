@@ -90,6 +90,8 @@ export default function UnionDeleteModal({
                         }}
                         placeholder={unionName}
                         className={error ? 'border-red-500' : ''}
+                        autoComplete="off"
+                        spellCheck={false}
                     />
                     {error && <p className="text-sm text-red-500">{error}</p>}
                 </div>

@@ -421,6 +421,7 @@ export default function GisMapContainer() {
                         onChange={(e) => setSearchQuery(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                         className="pl-10 pr-8"
+                        autoComplete="off"
                     />
                     {searchQuery && (
                         <button

@@ -43,28 +43,27 @@ const INFO_LINKS: InfoLink[] = [
 ];
 
 export function HomeInfoSection() {
-    const handleLinkClick = (url: string) => {
-        window.open(url, '_blank', 'noopener,noreferrer');
-    };
-
     return (
-        <div className="bg-white border border-[#cdd1d5] rounded-[5px] md:rounded-[12px] px-[11px] md:px-[24px] py-[12px] md:py-[28px] h-auto md:h-[235px] overflow-hidden">
+        <section className="bg-white border border-[#cdd1d5] rounded-[5px] md:rounded-[12px] px-[11px] md:px-[24px] py-[12px] md:py-[28px] h-auto md:h-[235px] overflow-hidden" aria-labelledby="info-section-title">
             {/* 섹션 제목 */}
-            <h3 className="font-bold text-[14px] md:text-[24px] text-black tracking-[0.45px] md:tracking-[1px] mb-[13px] md:mb-[30px]">재개발 정보</h3>
+            <h3 id="info-section-title" className="font-bold text-[14px] md:text-[24px] text-black tracking-[0.45px] md:tracking-[1px] mb-[13px] md:mb-[30px]">재개발 정보</h3>
 
             {/* 링크 그리드: 모바일(가로 스크롤), PC(일반 flex) */}
-            <div className="flex gap-[4px] md:gap-[10px] overflow-x-auto md:overflow-visible scrollbar-hide pb-2 md:pb-0">
+            <nav className="flex gap-[4px] md:gap-[10px] overflow-x-auto md:overflow-visible scrollbar-hide pb-2 md:pb-0" aria-label="외부 재개발 정보 링크">
                 {INFO_LINKS.map((link) => (
-                    <div
+                    <a
                         key={link.id}
-                        onClick={() => handleLinkClick(link.url)}
-                        className="h-[53px] md:h-[81px] w-[91px] md:w-[140px] rounded-[4px] md:rounded-[8px] border border-[#cdd1d5] overflow-hidden flex items-center justify-center hover:opacity-80 transition-opacity cursor-pointer shrink-0"
+                        href={link.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="h-[53px] md:h-[81px] w-[91px] md:w-[140px] rounded-[4px] md:rounded-[8px] border border-[#cdd1d5] overflow-hidden flex items-center justify-center hover:opacity-80 transition-opacity shrink-0 focus-visible:ring-2 focus-visible:ring-[#4E8C6D] focus-visible:ring-offset-2 outline-none"
                         style={{ backgroundColor: link.bgColor }}
+                        aria-label={`${link.label} (새 창에서 열림)`}
                     >
-                        <Image src={link.icon} alt={link.label} width={100} height={34} className="object-contain w-[62px] md:w-[100px] h-auto" />
-                    </div>
+                        <Image src={link.icon} alt="" width={100} height={34} className="object-contain w-[62px] md:w-[100px] h-auto" aria-hidden="true" />
+                    </a>
                 ))}
-            </div>
-        </div>
+            </nav>
+        </section>
     );
 }

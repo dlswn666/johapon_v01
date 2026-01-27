@@ -84,7 +84,7 @@ export default function MarketingPage() {
                 <div className="relative z-10 flex flex-col items-center justify-center h-full px-4 md:px-6 pt-12 md:pt-16 w-full">
                     <div className="text-center space-y-4 md:space-y-6 max-w-6xl w-full px-4 md:px-6 mx-auto">
                         <h1
-                            className="font-bold text-white"
+                            className="font-bold text-white [text-wrap:balance]"
                             style={{
                                 fontSize: 'var(--text-marketing-hero)',
                                 lineHeight: 'var(--leading-marketing-hero)',
@@ -122,7 +122,7 @@ export default function MarketingPage() {
                     {/* 헤더 영역 */}
                     <div className="text-center mb-10 md:mb-16">
                         <h2
-                            className="font-bold text-gray-900 mb-3 md:mb-4 leading-tight"
+                            className="font-bold text-gray-900 mb-3 md:mb-4 leading-tight [text-wrap:balance]"
                             style={{
                                 fontSize: 'var(--text-marketing-section-title)',
                                 lineHeight: 'var(--leading-marketing-section-title)',
@@ -230,7 +230,7 @@ export default function MarketingPage() {
                 <div className="max-w-6xl mx-auto">
                     <div className="text-center mb-10 md:mb-16">
                         <h2
-                            className="font-bold text-[#2d2d2d] mb-3 md:mb-4"
+                            className="font-bold text-[#2d2d2d] mb-3 md:mb-4 [text-wrap:balance]"
                             style={{
                                 fontSize: 'var(--text-marketing-section-title)',
                                 lineHeight: 'var(--leading-marketing-section-title)',
@@ -501,7 +501,7 @@ export default function MarketingPage() {
                                 <span className="text-[#4e8c6d] font-bold text-sm">철통 보안 시스템</span>
                             </div>
                             <h2
-                                className="font-bold text-[#2d2d2d] mb-3 md:mb-4"
+                                className="font-bold text-[#2d2d2d] mb-3 md:mb-4 [text-wrap:balance]"
                                 style={{
                                     fontSize: 'var(--text-marketing-section-title)',
                                     lineHeight: 'var(--leading-marketing-section-title)',
@@ -614,7 +614,7 @@ export default function MarketingPage() {
                             <span className="text-[#4e8c6d] font-bold text-sm">누구나 쉬운 소통</span>
                         </div>
                         <h2
-                            className="font-bold text-[#2d2d2d] mb-3 md:mb-4"
+                            className="font-bold text-[#2d2d2d] mb-3 md:mb-4 [text-wrap:balance]"
                             style={{
                                 fontSize: 'var(--text-marketing-section-title)',
                                 lineHeight: 'var(--leading-marketing-section-title)',
@@ -771,7 +771,7 @@ export default function MarketingPage() {
                                 <span className="text-[#4e8c6d] font-bold text-sm">운영비 걱정 없는 조합</span>
                             </div>
                             <h2
-                                className="font-bold text-[#2d2d2d] mb-3 md:mb-4"
+                                className="font-bold text-[#2d2d2d] mb-3 md:mb-4 [text-wrap:balance]"
                                 style={{
                                     fontSize: 'var(--text-marketing-section-title)',
                                     lineHeight: 'var(--leading-marketing-section-title)',
@@ -981,7 +981,7 @@ export default function MarketingPage() {
             <section className="bg-gradient-to-b from-[#4e8c6d] to-[#5fa37c] py-16 md:py-24 px-4 md:px-6">
                 <div className="max-w-4xl mx-auto text-center">
                     <h2
-                        className="font-bold text-white mb-4 md:mb-6"
+                        className="font-bold text-white mb-4 md:mb-6 [text-wrap:balance]"
                         style={{
                             fontSize: 'var(--text-marketing-section-title)',
                             lineHeight: 'var(--leading-marketing-section-title)',

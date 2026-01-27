@@ -336,6 +336,8 @@ export default function UnionForm({ mode, initialData, onSubmit, onCancel, isSub
                                         {...field}
                                         placeholder="조합명을 입력하세요"
                                         disabled={isReadOnly}
+                                        autoComplete="organization"
+                                        spellCheck={false}
                                         onChange={(e) => {
                                             field.onChange(e);
                                             handleNameChange(e.target.value);
@@ -365,6 +367,8 @@ export default function UnionForm({ mode, initialData, onSubmit, onCancel, isSub
                                         {...field}
                                         placeholder="예: my-union"
                                         disabled={isReadOnly || mode === 'edit'}
+                                        autoComplete="off"
+                                        spellCheck={false}
                                         className={cn(
                                             'h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]',
                                             'bg-white'
@@ -417,6 +421,7 @@ export default function UnionForm({ mode, initialData, onSubmit, onCancel, isSub
                                         {...field}
                                         placeholder="사무실 상세 주소를 입력하세요"
                                         disabled={isReadOnly}
+                                        autoComplete="street-address"
                                         className={cn(
                                             'h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]',
                                             'bg-white'
@@ -441,8 +446,12 @@ export default function UnionForm({ mode, initialData, onSubmit, onCancel, isSub
                                     <FormControl>
                                         <Input
                                             {...field}
+                                            type="tel"
                                             placeholder="02-123-4567"
                                             disabled={isReadOnly}
+                                            autoComplete="tel"
+                                            inputMode="tel"
+                                            spellCheck={false}
                                             className={cn(
                                                 'h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]',
                                                 'bg-white'
@@ -468,6 +477,8 @@ export default function UnionForm({ mode, initialData, onSubmit, onCancel, isSub
                                             {...field}
                                             placeholder="000-00-00000"
                                             disabled={isReadOnly}
+                                            autoComplete="off"
+                                            spellCheck={false}
                                             className={cn(
                                                 'h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]',
                                                 'bg-white'
@@ -492,6 +503,7 @@ export default function UnionForm({ mode, initialData, onSubmit, onCancel, isSub
                                         {...field}
                                         placeholder="평일 09:00~18:00, 주말 휴무"
                                         disabled={isReadOnly}
+                                        autoComplete="off"
                                         className={cn(
                                             'h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]',
                                             'bg-white'
@@ -556,6 +568,7 @@ export default function UnionForm({ mode, initialData, onSubmit, onCancel, isSub
                                             {...field}
                                             placeholder="예: 미아 3구역"
                                             disabled={isReadOnly}
+                                            autoComplete="off"
                                             className={cn(
                                                 'h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]',
                                                 'bg-white'
@@ -623,6 +636,8 @@ export default function UnionForm({ mode, initialData, onSubmit, onCancel, isSub
                                             type="number"
                                             placeholder="0"
                                             disabled={isReadOnly}
+                                            autoComplete="off"
+                                            inputMode="numeric"
                                             onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
                                             className={cn(
                                                 'h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]',
@@ -697,6 +712,8 @@ export default function UnionForm({ mode, initialData, onSubmit, onCancel, isSub
                                         type="text"
                                         placeholder="예: 12000"
                                         disabled={isReadOnly}
+                                        autoComplete="off"
+                                        inputMode="numeric"
                                         className={cn(
                                             'h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]',
                                             'bg-white'
@@ -750,6 +767,9 @@ export default function UnionForm({ mode, initialData, onSubmit, onCancel, isSub
                                             type="url"
                                             placeholder="https://cafe.naver.com/..."
                                             disabled={isReadOnly}
+                                            autoComplete="url"
+                                            inputMode="url"
+                                            spellCheck={false}
                                             className={cn(
                                                 'h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]',
                                                 'bg-white'
@@ -796,6 +816,9 @@ export default function UnionForm({ mode, initialData, onSubmit, onCancel, isSub
                                             type="url"
                                             placeholder="https://youtube.com/@... 또는 https://youtube.com/channel/..."
                                             disabled={isReadOnly}
+                                            autoComplete="url"
+                                            inputMode="url"
+                                            spellCheck={false}
                                             className={cn(
                                                 'h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]',
                                                 'bg-white'

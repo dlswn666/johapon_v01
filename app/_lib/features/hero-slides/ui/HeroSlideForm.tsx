@@ -160,10 +160,14 @@ export default function HeroSlideForm({ mode, initialData, onSubmit, isSubmittin
                         <Input
                             id="link_url"
                             name="link_url"
+                            type="url"
                             value={formData.link_url}
                             onChange={handleChange}
                             placeholder="https://example.com (클릭 시 이동할 URL)"
                             disabled={isReadOnly}
+                            autoComplete="url"
+                            inputMode="url"
+                            spellCheck={false}
                             className={cn(
                                 'h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]',
                                 'bg-white'
@@ -188,6 +192,8 @@ export default function HeroSlideForm({ mode, initialData, onSubmit, isSubmittin
                             onChange={handleChange}
                             placeholder="0"
                             disabled={isReadOnly}
+                            autoComplete="off"
+                            inputMode="numeric"
                             className={cn(
                                 'w-32 h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]',
                                 'bg-white',

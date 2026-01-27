@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useRandomAds } from '../api/useAdvertisement';
 import { Advertisement } from '@/app/_lib/shared/type/database.types';
 import Image from 'next/image';
@@ -125,15 +125,13 @@ export function HomeBannerWidget() {
     const { data: ads, isLoading } = useRandomAds('SUB', 2);
     const isMobile = useMediaQuery('(max-width: 767px)');
 
-    // 광고 데이터 (API 데이터 또는 기본 데이터)
-    const bannerAds = React.useMemo(() => {
+    // useMemo를 사용하여 ads 변경 시 bannerAds 계산
+    const bannerAds = useMemo<Advertisement[]>(() => {
         if (ads && ads.length >= 2) {
             return [ads[0], ads[1]];
         }
-        // 기본 광고에서 랜덤 2개 선택
-        // eslint-disable-next-line react-hooks/purity
-        const shuffled = [...DEFAULT_BANNER_ADS].sort(() => 0.5 - Math.random());
-        return shuffled.slice(0, 2);
+        // 기본값 사용 (서버/클라이언트 동일하게 처음 2개 사용)
+        return DEFAULT_BANNER_ADS.slice(0, 2);
     }, [ads]);
 
     if (isLoading) {

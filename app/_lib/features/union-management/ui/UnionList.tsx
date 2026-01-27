@@ -136,6 +136,7 @@ export default function UnionList({
                             onChange={(e) => onSearchChange(e.target.value)}
                             onKeyDown={handleKeyDown}
                             className="pl-10"
+                            autoComplete="off"
                         />
                     </div>
                     <Select

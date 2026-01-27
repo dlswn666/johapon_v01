@@ -582,6 +582,8 @@ function EditParcelContent({ parcel, unionId, onCancel, onSuccess }: EditParcelC
                                             onChange={(e) =>
                                                 setFormData({ ...formData, land_area: parseFloat(e.target.value) || 0 })
                                             }
+                                            autoComplete="off"
+                                            inputMode="decimal"
                                         />
                                     </div>
                                     <div className="space-y-1">
@@ -599,6 +601,8 @@ function EditParcelContent({ parcel, unionId, onCancel, onSuccess }: EditParcelC
                                                     official_price: parseInt(e.target.value) || 0,
                                                 })
                                             }
+                                            autoComplete="off"
+                                            inputMode="numeric"
                                         />
                                     </div>
                                 </div>
@@ -611,6 +615,7 @@ function EditParcelContent({ parcel, unionId, onCancel, onSuccess }: EditParcelC
                                         placeholder="예: 대지, 도로, 전, 답 등"
                                         value={formData.land_category}
                                         onChange={(e) => setFormData({ ...formData, land_category: e.target.value })}
+                                        autoComplete="off"
                                     />
                                 </div>
                             </div>
@@ -652,6 +657,7 @@ function EditParcelContent({ parcel, unionId, onCancel, onSuccess }: EditParcelC
                                             onChange={(e) =>
                                                 setFormData({ ...formData, building_name: e.target.value })
                                             }
+                                            autoComplete="off"
                                         />
                                     </div>
                                 </div>
@@ -664,6 +670,7 @@ function EditParcelContent({ parcel, unionId, onCancel, onSuccess }: EditParcelC
                                         placeholder="예: 다가구주택, 근린생활시설"
                                         value={formData.main_purpose}
                                         onChange={(e) => setFormData({ ...formData, main_purpose: e.target.value })}
+                                        autoComplete="off"
                                     />
                                 </div>
                                 <div className="grid grid-cols-2 gap-3">
@@ -679,6 +686,8 @@ function EditParcelContent({ parcel, unionId, onCancel, onSuccess }: EditParcelC
                                             onChange={(e) =>
                                                 setFormData({ ...formData, floor_count: parseInt(e.target.value) || 0 })
                                             }
+                                            autoComplete="off"
+                                            inputMode="numeric"
                                         />
                                     </div>
                                     <div className="space-y-1">
@@ -696,6 +705,8 @@ function EditParcelContent({ parcel, unionId, onCancel, onSuccess }: EditParcelC
                                                     total_unit_count: parseInt(e.target.value) || 0,
                                                 })
                                             }
+                                            autoComplete="off"
+                                            inputMode="numeric"
                                         />
                                     </div>
                                 </div>
@@ -712,6 +723,8 @@ function EditParcelContent({ parcel, unionId, onCancel, onSuccess }: EditParcelC
                                         value={memberSearchQuery}
                                         onChange={(e) => setMemberSearchQuery(e.target.value)}
                                         onKeyDown={(e) => e.key === 'Enter' && handleMemberSearch()}
+                                        autoComplete="off"
+                                        spellCheck={false}
                                     />
                                     <Button
                                         variant="outline"
@@ -837,6 +850,7 @@ function EditParcelContent({ parcel, unionId, onCancel, onSuccess }: EditParcelC
                                         placeholder="주소 또는 지번 입력 (2글자 이상)"
                                         value={linkedParcelSearchInput}
                                         onChange={(e) => setLinkedParcelSearchInput(e.target.value)}
+                                        autoComplete="off"
                                     />
                                     {isLinkedSearching && <Loader2 className="w-5 h-5 animate-spin text-gray-400" />}
                                 </div>
@@ -937,6 +951,7 @@ function EditParcelContent({ parcel, unionId, onCancel, onSuccess }: EditParcelC
                                         placeholder="건물명 입력 (2글자 이상)"
                                         value={buildingSearchInput}
                                         onChange={(e) => setBuildingSearchInput(e.target.value)}
+                                        autoComplete="off"
                                     />
                                     {isBuildingSearching && <Loader2 className="w-5 h-5 animate-spin text-gray-400" />}
                                 </div>

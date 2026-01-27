@@ -21,6 +21,8 @@ export interface ColumnDef<T> {
     align?: 'left' | 'center' | 'right';
     /** 텍스트 줄바꿈 허용 여부 (기본값: false = nowrap) */
     wrap?: boolean;
+    /** 숫자 컬럼 여부 (tabular-nums 적용) */
+    numeric?: boolean;
     /** 최소 너비 (예: '120px', '10rem') */
     minWidth?: string;
     /** 너비 (예: '200px', '20%') */

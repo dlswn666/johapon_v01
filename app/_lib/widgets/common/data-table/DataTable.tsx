@@ -298,6 +298,7 @@ export function DataTable<T extends object>({
                                                             styles.cell,
                                                             !column.wrap && 'whitespace-nowrap',
                                                             getAlignClass(column.align),
+                                                            column.numeric && 'tabular-nums',
                                                             column.className
                                                         )}
                                                         style={{
@@ -472,6 +473,7 @@ export function DataTable<T extends object>({
                                                     styles.cell,
                                                     !column.wrap && 'whitespace-nowrap',
                                                     getAlignClass(column.align),
+                                                    column.numeric && 'tabular-nums',
                                                     column.className
                                                 )}
                                                 style={{

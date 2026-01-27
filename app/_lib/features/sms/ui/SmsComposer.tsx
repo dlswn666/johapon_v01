@@ -186,10 +186,12 @@ export default function SmsComposer({ onSend }: SmsComposerProps) {
               </label>
               <input
                 type="text"
+                name="sms-title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="[조합명] 안내 문자"
                 maxLength={100}
+                autoComplete="off"
                 className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
               />
             </div>
@@ -206,10 +208,12 @@ export default function SmsComposer({ onSend }: SmsComposerProps) {
               </span>
             </div>
             <textarea
+              name="sms-message"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               placeholder="{이름}님 안녕하세요.&#10;&#10;OO재개발조합입니다.&#10;중요한 안내사항을 전달드립니다.&#10;&#10;감사합니다."
               rows={8}
+              autoComplete="off"
               className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none resize-none ${
                 isOverLimit ? 'border-red-500' : 'border-gray-300 focus:border-blue-500'
               }`}

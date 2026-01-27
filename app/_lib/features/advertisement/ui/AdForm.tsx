@@ -117,10 +117,12 @@ export function AdForm({ ad, onSuccess, onCancel }: AdFormProps) {
         </div>
         <div className="space-y-2">
           <Label className="text-slate-300">업체명</Label>
-          <Input 
+          <Input
             {...register('business_name', { required: true })}
-            className="bg-slate-700/50 border-slate-600 text-white" 
+            className="bg-slate-700/50 border-slate-600 text-white"
             placeholder="업체명을 입력하세요"
+            autoComplete="organization"
+            spellCheck={false}
           />
         </div>
       </div>
@@ -255,8 +257,12 @@ export function AdForm({ ad, onSuccess, onCancel }: AdFormProps) {
             <Label className="text-slate-300">이동 링크 URL (선택)</Label>
             <Input
               {...register('link_url')}
+              type="url"
               className="bg-slate-700/50 border-slate-600 text-white"
               placeholder="https://example.com"
+              autoComplete="url"
+              inputMode="url"
+              spellCheck={false}
             />
           </div>
         </>

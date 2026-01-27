@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import Image from 'next/image';
 import { ChevronRight } from 'lucide-react';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
@@ -59,9 +59,9 @@ export function HomeCommunitySection() {
         return displayLinks;
     }, [union?.community_links]);
 
-    const handleLinkClick = (url: string) => {
+    const handleLinkClick = useCallback((url: string) => {
         window.open(url, '_blank', 'noopener,noreferrer');
-    };
+    }, []);
 
     // 등록된 커뮤니티 링크가 없으면 섹션 숨김
     if (communityLinks.length === 0) {

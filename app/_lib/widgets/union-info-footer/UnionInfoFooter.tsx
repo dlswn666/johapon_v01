@@ -13,6 +13,9 @@ interface UnionInfoFooterProps {
 const placeholderText = '텍스트가 없습니다.';
 
 export function UnionInfoFooter({ union, className }: UnionInfoFooterProps) {
+    // 서버/클라이언트 모두 동일한 현재 연도 사용
+    const currentYear = new Date().getFullYear();
+
     return (
         <footer className={cn('bg-[#1e2939] text-white w-full py-[37px]', className)}>
             <div className="container mx-auto max-w-[1280px] px-4">
@@ -104,8 +107,8 @@ export function UnionInfoFooter({ union, className }: UnionInfoFooterProps) {
 
                 {/* Copyright */}
                 <div className="border-t border-[#364153] pt-6 mt-6">
-                    <p className="text-[#99a1af] text-[15.75px] text-center leading-[23.625px]">
-                        © {new Date().getFullYear()} {union.name}. All rights reserved. | Powered by 조합온
+                    <p className="text-[#99a1af] text-[15.75px] text-center leading-[23.625px]" suppressHydrationWarning>
+                        © {currentYear} {union.name}. All rights reserved. | Powered by 조합온
                     </p>
                 </div>
             </div>

@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { HeroSlide } from '@/app/_lib/shared/type/database.types';
 import { cn } from '@/lib/utils';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useReducedMotion } from '@/hooks/use-reduced-motion';
 
 // 기본 슬라이드 이미지 (슬라이드가 없을 때 사용)
 const DEFAULT_SLIDES: HeroSlide[] = [
@@ -47,6 +48,7 @@ export function HeroSlider({ slides, autoPlayInterval = 4000, className }: HeroS
     const [isTransitioning, setIsTransitioning] = useState(false);
     const sliderRef = useRef<HTMLDivElement>(null);
     const autoPlayRef = useRef<NodeJS.Timeout | null>(null);
+    const reducedMotion = useReducedMotion();
 
     // 터치 스와이프 관련 상태
     const touchStartX = useRef<number>(0);
@@ -117,9 +119,9 @@ export function HeroSlider({ slides, autoPlayInterval = 4000, className }: HeroS
         return () => clearTimeout(timer);
     }, [currentIndex, isTransitioning, hasMultipleSlides, activeSlides.length]);
 
-    // 자동 슬라이드
+    // 자동 슬라이드 (reduced-motion이 활성화되면 자동 슬라이드 비활성화)
     useEffect(() => {
-        if (!hasMultipleSlides) return;
+        if (!hasMultipleSlides || reducedMotion) return;
 
         const startAutoPlay = () => {
             autoPlayRef.current = setInterval(goToNext, autoPlayInterval);
@@ -132,7 +134,7 @@ export function HeroSlider({ slides, autoPlayInterval = 4000, className }: HeroS
                 clearInterval(autoPlayRef.current);
             }
         };
-    }, [hasMultipleSlides, autoPlayInterval, goToNext]);
+    }, [hasMultipleSlides, autoPlayInterval, goToNext, reducedMotion]);
 
     // 터치 스와이프 핸들러
     const handleTouchStart = useCallback((e: React.TouchEvent) => {
@@ -206,13 +208,16 @@ export function HeroSlider({ slides, autoPlayInterval = 4000, className }: HeroS
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
+            role="region"
+            aria-roledescription="carousel"
+            aria-label="히어로 슬라이드"
         >
             {/* 슬라이드 컨테이너 */}
             <div
                 ref={sliderRef}
                 className={cn(
                     'flex h-[400px] md:h-[500px] lg:h-[600px]',
-                    isTransitioning ? 'transition-transform duration-500 ease-in-out' : ''
+                    isTransitioning && !reducedMotion ? 'transition-transform duration-500 ease-in-out' : ''
                 )}
                 style={{
                     transform: `translateX(-${actualIndex * 100}%)`,
@@ -244,17 +249,17 @@ export function HeroSlider({ slides, autoPlayInterval = 4000, className }: HeroS
                 <>
                     <button
                         onClick={goToPrev}
-                        className="absolute left-[16px] md:left-[36px] top-1/2 -translate-y-1/2 bg-[rgba(255,255,255,0.3)] hover:bg-[rgba(255,255,255,0.4)] text-white rounded-full transition-colors z-20 w-[32px] h-[32px] md:w-[63px] md:h-[63px] flex items-center justify-center cursor-pointer"
+                        className="absolute left-[16px] md:left-[36px] top-1/2 -translate-y-1/2 bg-[rgba(255,255,255,0.3)] hover:bg-[rgba(255,255,255,0.4)] text-white rounded-full transition-colors z-20 w-[32px] h-[32px] md:w-[63px] md:h-[63px] flex items-center justify-center cursor-pointer focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-gray-800 outline-none"
                         aria-label="이전 슬라이드"
                     >
-                        <ChevronLeft className="w-4 h-4 md:w-6 md:h-6" />
+                        <ChevronLeft className="w-4 h-4 md:w-6 md:h-6" aria-hidden="true" />
                     </button>
                     <button
                         onClick={goToNext}
-                        className="absolute right-[16px] md:right-[36px] top-1/2 -translate-y-1/2 bg-[rgba(255,255,255,0.3)] hover:bg-[rgba(255,255,255,0.4)] text-white rounded-full transition-colors z-20 w-[32px] h-[32px] md:w-[63px] md:h-[63px] flex items-center justify-center cursor-pointer"
+                        className="absolute right-[16px] md:right-[36px] top-1/2 -translate-y-1/2 bg-[rgba(255,255,255,0.3)] hover:bg-[rgba(255,255,255,0.4)] text-white rounded-full transition-colors z-20 w-[32px] h-[32px] md:w-[63px] md:h-[63px] flex items-center justify-center cursor-pointer focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-gray-800 outline-none"
                         aria-label="다음 슬라이드"
                     >
-                        <ChevronRight className="w-4 h-4 md:w-6 md:h-6" />
+                        <ChevronRight className="w-4 h-4 md:w-6 md:h-6" aria-hidden="true" />
                     </button>
                 </>
             )}
@@ -272,12 +277,13 @@ export function HeroSlider({ slides, autoPlayInterval = 4000, className }: HeroS
                                 key={index}
                                 onClick={() => goToSlide(index)}
                                 className={cn(
-                                    'rounded-full transition-all duration-300 cursor-pointer',
+                                    'rounded-full transition-[background-color] duration-300 cursor-pointer focus-visible:ring-2 focus-visible:ring-white outline-none',
                                     isActive
                                         ? 'bg-white w-[10px] h-[10px] md:w-[13.5px] md:h-[13.5px]'
                                         : 'bg-[rgba(255,255,255,0.5)] w-[10px] h-[10px] md:w-[13.5px] md:h-[13.5px] hover:bg-[rgba(255,255,255,0.7)]'
                                 )}
                                 aria-label={`슬라이드 ${index + 1}로 이동`}
+                                aria-current={isActive ? 'true' : undefined}
                             />
                         );
                     })}

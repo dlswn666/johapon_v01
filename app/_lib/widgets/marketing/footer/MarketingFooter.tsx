@@ -1,7 +1,12 @@
+'use client';
+
 import React from 'react';
 import Link from 'next/link';
 
 export function MarketingFooter() {
+    // 저작권 연도 - 정적 값 사용 (hydration-safe)
+    const currentYear = 2025;
+
     return (
         <footer className="bg-[#1e2939] text-white w-full py-8 md:py-[37px]">
             <div className="container mx-auto max-w-[1280px] px-4">
@@ -111,7 +116,7 @@ export function MarketingFooter() {
                         className="text-[#99a1af] text-center"
                         style={{ fontSize: 'var(--text-marketing-footer-body)', lineHeight: '1.5' }}
                     >
-                        © {new Date().getFullYear()} 조합온. All rights reserved.
+                        © {currentYear} 조합온. All rights reserved.
                     </p>
                 </div>
             </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useRandomAds } from '../api/useAdvertisement';
 import { Advertisement } from '@/app/_lib/shared/type/database.types';
 import Image from 'next/image';
@@ -17,11 +17,13 @@ export function SideAdWidget() {
   const { data: ads, isLoading } = useRandomAds('MAIN', 1);
   const isMobile = useMediaQuery('(max-width: 767px)');
 
-  // 데이터가 없을 때 표시할 기본 광고 선정 (랜덤)
-  const activeAd = React.useMemo(() => {
-    if (ads && ads.length > 0) return ads[0];
-    // eslint-disable-next-line react-hooks/purity
-    return DEFAULT_MAIN_ADS[Math.floor(Math.random() * DEFAULT_MAIN_ADS.length)];
+  // useMemo를 사용하여 ads 변경 시 activeAd 계산
+  const activeAd = useMemo<Advertisement>(() => {
+    if (ads && ads.length > 0) {
+      return ads[0];
+    }
+    // 기본값 사용 (서버/클라이언트 동일하게 첫 번째 사용)
+    return DEFAULT_MAIN_ADS[0];
   }, [ads]);
 
   // 모바일이면 모바일 이미지 우선 사용, 없으면 웹 이미지로 폴백

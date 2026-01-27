@@ -5,6 +5,7 @@ import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Notice } from '@/app/_lib/shared/type/database.types';
+import { useMediaQuery } from '@/app/_lib/shared/hooks/useMediaQuery';
 
 interface NoticePopupProps {
     notice: Pick<Notice, 'id' | 'title' | 'content'>;
@@ -59,6 +60,9 @@ export function NoticePopup({
     });
     const [hideFor24HoursChecked, setHideFor24HoursChecked] = useState(false);
 
+    // Hydration-safe: useSyncExternalStore 기반 useMediaQuery 훅 사용
+    const isDesktop = useMediaQuery('(min-width: 640px)');
+
     // 닫기 핸들러
     const handleClose = () => {
         if (hideFor24HoursChecked) {
@@ -87,9 +91,9 @@ export function NoticePopup({
                 className
             )}
             style={{
-                // sm 미만(모바일)에서는 style의 top, left 무시 (클래스로 제어)
+                // Hydration-safe: useMediaQuery 훅으로 데스크탑 여부 확인
                 // sm 이상(데스크탑)에서만 오프셋 적용
-                ...(typeof window !== 'undefined' && window.innerWidth >= 640 ? {
+                ...(isDesktop ? {
                     top: `${desktopTopOffset}px`,
                     left: `${desktopLeftOffset}px`,
                 } : {})
