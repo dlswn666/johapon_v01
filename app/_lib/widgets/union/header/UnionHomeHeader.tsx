@@ -129,21 +129,24 @@ export default function UnionHomeHeader() {
         <>
             <header className="bg-white border-b border-gray-200 shadow-[0px_1px_3px_0px_rgba(0,0,0,0.1),0px_1px_2px_-1px_rgba(0,0,0,0.1)]">
                 {/* 모바일 헤더 (md 미만) */}
-                <div className="h-[60px] md:hidden relative">
+                <div className="md:hidden relative safe-top" style={{ height: 'calc(60px + env(safe-area-inset-top, 0px))' }}>
                     <div className="container mx-auto px-4 h-full flex items-center justify-between">
                         {/* 왼쪽: 사이드바 토글 버튼 */}
                         <button
                             onClick={toggleSidebar}
-                            className="size-[40px] flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                            className="size-[40px] flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#4E8C6D] focus-visible:ring-offset-2 outline-none"
                             aria-label="메뉴 열기"
+                            aria-expanded={isSidebarOpen}
+                            aria-controls="mobile-sidebar"
                         >
-                            <PanelLeft className="size-[24px] text-[#4e8c6d]" />
+                            <PanelLeft className="size-[24px] text-[#4e8c6d]" aria-hidden="true" />
                         </button>
 
                         {/* 중앙: 조합 로고 + 조합명 */}
-                        <div
-                            onClick={() => router.push(`/${union.slug}`)}
-                            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
+                        <Link
+                            href={`/${union.slug}`}
+                            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-2 hover:opacity-80 transition-opacity"
+                            aria-label={`${union.name} 홈으로 이동`}
                         >
                             <div className="bg-[#4e8c6d] rounded-full size-[36px] flex items-center justify-center shrink-0 relative overflow-hidden">
                                 {union.logo_url ? (
@@ -154,14 +157,14 @@ export default function UnionHomeHeader() {
                                         className="rounded-full object-cover"
                                     />
                                 ) : (
-                                    <Home className="size-[18px] text-white" />
+                                    <Home className="size-[18px] text-white" aria-hidden="true" />
                                 )}
                             </div>
                             <p className="text-[14px] font-bold text-[#4e8c6d] max-w-[120px] truncate">{union.name}</p>
-                        </div>
+                        </Link>
 
                         {/* 오른쪽: 빈 공간 (균형을 위해) */}
-                        <div className="size-[40px]" />
+                        <div className="size-[40px]" aria-hidden="true" />
                     </div>
                 </div>
 
@@ -169,9 +172,10 @@ export default function UnionHomeHeader() {
                 <div className="h-[90px] hidden md:block relative">
                     <div className="container mx-auto px-4 h-full flex items-center justify-between">
                         {/* 왼쪽: 로고 영역 */}
-                        <div
-                            onClick={() => router.push(`/${union.slug}`)}
-                            className="flex items-center gap-[13.5px] cursor-pointer hover:opacity-80 transition-opacity"
+                        <Link
+                            href={`/${union.slug}`}
+                            className="flex items-center gap-[13.5px] hover:opacity-80 transition-opacity"
+                            aria-label={`${union.name} 홈으로 이동`}
                         >
                             <div className="bg-[#4e8c6d] rounded-full size-[54px] flex items-center justify-center shrink-0 relative overflow-hidden">
                                 {union.logo_url ? (
@@ -182,13 +186,13 @@ export default function UnionHomeHeader() {
                                         className="rounded-full object-cover"
                                     />
                                 ) : (
-                                    <Home className="size-[27px] text-white" />
+                                    <Home className="size-[27px] text-white" aria-hidden="true" />
                                 )}
                             </div>
                             <div className="flex flex-col">
-                                <p className="text-[18px] leading-[27px] font-bold text-[#4e8c6d]">{union.name}</p>
+                                <p className="text-[18px] leading-[27px] font-bold text-[#4e8c6d] max-w-[200px] truncate" title={union.name}>{union.name}</p>
                             </div>
-                        </div>
+                        </Link>
 
                         {/* 중앙: 네비게이션 - shadcn NavigationMenu 적용 */}
                         <NavigationMenu viewport={false} className="flex items-center">
@@ -254,7 +258,7 @@ export default function UnionHomeHeader() {
                             {/* 인사 문구 */}
                             {user && (
                                 <div className="flex flex-col items-end">
-                                    <span className="text-[14px] font-medium text-gray-800">{user.name}님</span>
+                                    <span className="text-[14px] font-medium text-gray-800 max-w-[100px] truncate inline-block" title={user.name}>{user.name}님</span>
                                     <span className="text-[12px] text-gray-500">안녕하세요</span>
                                 </div>
                             )}
@@ -263,16 +267,19 @@ export default function UnionHomeHeader() {
                             <div className="relative" ref={userMenuRef} onMouseLeave={() => setIsUserMenuOpen(false)}>
                                 <button
                                     onClick={toggleUserMenu}
-                                    className="h-[45px] px-[18px] py-0 rounded-[13.5px] flex items-center gap-[9px] hover:bg-gray-50 transition-colors cursor-pointer"
+                                    className="h-[45px] px-[18px] py-0 rounded-[13.5px] flex items-center gap-[9px] hover:bg-gray-50 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#4E8C6D] focus-visible:ring-offset-2 outline-none"
+                                    aria-label="사용자 메뉴 열기"
+                                    aria-expanded={isUserMenuOpen}
+                                    aria-haspopup="menu"
                                 >
                                     <div className="size-[27px] flex items-center justify-center">
                                         {user ? (
-                                            <UserCircle className="size-[27px] text-[#4e8c6d]" />
+                                            <UserCircle className="size-[27px] text-[#4e8c6d]" aria-hidden="true" />
                                         ) : (
-                                            <User className="size-[27px] text-[#4e8c6d]" />
+                                            <User className="size-[27px] text-[#4e8c6d]" aria-hidden="true" />
                                         )}
                                     </div>
-                                    <ChevronDown className="size-[18px] text-[#4e8c6d]" />
+                                    <ChevronDown className="size-[18px] text-[#4e8c6d]" aria-hidden="true" />
                                 </button>
 
                                 {/* 사용자 메뉴 드롭다운 */}
@@ -281,19 +288,23 @@ export default function UnionHomeHeader() {
                                         className="absolute top-full right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-[180px]"
                                         onMouseEnter={() => setIsUserMenuOpen(true)}
                                         onMouseLeave={() => setIsUserMenuOpen(false)}
+                                        role="menu"
+                                        aria-label="사용자 메뉴"
                                     >
                                         <Link
                                             href={`/${union.slug}/my-property`}
-                                            className="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors rounded-t-lg cursor-pointer flex items-center gap-2"
+                                            className="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors rounded-t-lg cursor-pointer flex items-center gap-2 focus-visible:bg-gray-100 focus-visible:outline-none"
                                             onClick={() => setIsUserMenuOpen(false)}
+                                            role="menuitem"
                                         >
-                                            <MapPin className="size-4" />내 공시지가 보기
+                                            <MapPin className="size-4" aria-hidden="true" />내 공시지가 보기
                                         </Link>
                                         <button
                                             onClick={handleLogout}
-                                            className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors rounded-b-lg flex items-center gap-2 cursor-pointer"
+                                            className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors rounded-b-lg flex items-center gap-2 cursor-pointer focus-visible:bg-gray-100 focus-visible:outline-none"
+                                            role="menuitem"
                                         >
-                                            <LogOut className="size-4" />
+                                            <LogOut className="size-4" aria-hidden="true" />
                                             로그아웃
                                         </button>
                                     </div>

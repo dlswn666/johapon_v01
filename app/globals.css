@@ -45,6 +45,7 @@
 }
 
 :root {
+    color-scheme: light only;
     --radius: 0.625rem;
     --background: #f9fafb;
 
@@ -207,6 +208,8 @@
     }
     html {
         min-height: 100%;
+        /* 300ms 터치 딜레이 제거 - 모바일 반응성 개선 */
+        touch-action: manipulation;
     }
     body {
         @apply bg-background text-foreground;
@@ -222,5 +225,137 @@
     }
     .scrollbar-hide::-webkit-scrollbar {
         display: none; /* Chrome, Safari, Opera */
+    }
+
+    /* Safe Area Padding 유틸리티 */
+    .safe-top {
+        padding-top: env(safe-area-inset-top, 0px);
+    }
+    .safe-bottom {
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    .safe-left {
+        padding-left: env(safe-area-inset-left, 0px);
+    }
+    .safe-right {
+        padding-right: env(safe-area-inset-right, 0px);
+    }
+    .safe-x {
+        padding-left: env(safe-area-inset-left, 0px);
+        padding-right: env(safe-area-inset-right, 0px);
+    }
+    .safe-y {
+        padding-top: env(safe-area-inset-top, 0px);
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    .safe-all {
+        padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+    }
+
+    /* Safe Area Margin 유틸리티 */
+    .safe-mt {
+        margin-top: env(safe-area-inset-top, 0px);
+    }
+    .safe-mb {
+        margin-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    .safe-ml {
+        margin-left: env(safe-area-inset-left, 0px);
+    }
+    .safe-mr {
+        margin-right: env(safe-area-inset-right, 0px);
+    }
+
+    /* Min Height with Safe Area */
+    .min-h-screen-safe {
+        min-height: calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    }
+
+    /* Dynamic Viewport Height (모바일 브라우저 대응) */
+    .min-h-dvh {
+        min-height: 100dvh;
+    }
+    .h-dvh {
+        height: 100dvh;
+    }
+    .min-h-svh {
+        min-height: 100svh;
+    }
+    .h-svh {
+        height: 100svh;
+    }
+
+    /* === 포커스 상태 유틸리티 클래스 === */
+
+    /* 기본 포커스 링 (Primary 색상) */
+    .focus-ring-primary {
+        @apply outline-none focus-visible:ring-2 focus-visible:ring-[#4E8C6D] focus-visible:ring-offset-2;
+    }
+
+    /* 다크 배경용 포커스 링 (흰색) */
+    .focus-ring-white {
+        @apply outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#4E8C6D];
+    }
+
+    /* 인셋 포커스 링 (컨테이너 내부) */
+    .focus-ring-inset {
+        @apply outline-none focus-visible:ring-2 focus-visible:ring-[#4E8C6D] focus-visible:ring-inset;
+    }
+
+    /* 배경 변경 방식 포커스 (드롭다운 아이템용) */
+    .focus-bg {
+        @apply outline-none focus-visible:bg-gray-100;
+    }
+
+    /* transition-all 대체용 유틸리티 */
+    .transition-interactive {
+        transition-property: background-color, border-color, color, opacity;
+        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        transition-duration: 150ms;
+    }
+
+    .transition-visual {
+        transition-property: transform, opacity;
+        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        transition-duration: 200ms;
+    }
+}
+
+/* ============================================
+   REDUCED MOTION SUPPORT
+   접근성을 위한 모션 감소 설정 지원
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+    /* 전역 애니메이션 비활성화 */
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+
+    /* tw-animate-css 라이브러리 클래스 대응 */
+    .animate-in,
+    .animate-out {
+        animation: none !important;
+        opacity: 1 !important;
+        transform: none !important;
+    }
+
+    /* 커스텀 애니메이션 클래스 */
+    .animate-spin {
+        animation: none !important;
+    }
+
+    .animate-pulse {
+        animation: none !important;
+        opacity: 1 !important;
+    }
+
+    .animate-scroll {
+        animation: none !important;
     }
 }

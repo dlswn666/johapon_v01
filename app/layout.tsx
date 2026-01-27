@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Noto_Sans_KR } from 'next/font/google';
 import './globals.css';
 import { Providers } from '@/app/_lib/shared/tanstack/QueryProvider';
@@ -10,6 +10,13 @@ const notoSansKR = Noto_Sans_KR({
     subsets: ['latin'],
     weight: ['400', '500', '700'],
 });
+
+export const viewport: Viewport = {
+    themeColor: '#f9fafb',
+    width: 'device-width',
+    initialScale: 1,
+    viewportFit: 'cover',
+};
 
 export const metadata: Metadata = {
     title: 'Create Next App',
