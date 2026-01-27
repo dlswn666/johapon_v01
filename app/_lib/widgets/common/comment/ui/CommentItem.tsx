@@ -109,8 +109,8 @@ export function CommentItem({
             {/* 댓글 헤더 */}
             <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
-                    <span className="font-medium text-sm">{isDeleted ? '(삭제됨)' : authorName}</span>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="font-medium text-sm max-w-[120px] truncate inline-block" title={isDeleted ? '삭제됨' : authorName}>{isDeleted ? '(삭제됨)' : authorName}</span>
+                    <span className="text-xs text-muted-foreground tabular-nums">
                         {formatDate(comment.created_at || '', true)}
                     </span>
                     {comment.updated_at !== comment.created_at && !isDeleted && (

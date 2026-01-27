@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useNotices } from '@/app/_lib/features/notice/api/useNoticeHook';
 import { Notice, Question, FreeBoard } from '@/app/_lib/shared/type/database.types';
@@ -69,19 +69,19 @@ export function UnionNewsSection({ unionId }: UnionNewsSectionProps) {
     });
 
     // 클릭 핸들러 - 공지사항 상세 페이지로 이동
-    const handleNoticeClick = (noticeId: number) => {
+    const handleNoticeClick = useCallback((noticeId: number) => {
         router.push(`/${slug}/news/notice/${noticeId}`);
-    };
+    }, [router, slug]);
 
     // 클릭 핸들러 - 자유 게시판 상세 페이지로 이동
-    const handleFreeBoardClick = (freeBoardId: number) => {
+    const handleFreeBoardClick = useCallback((freeBoardId: number) => {
         router.push(`/${slug}/free-board/${freeBoardId}`);
-    };
+    }, [router, slug]);
 
     // 클릭 핸들러 - 질문 상세 페이지로 이동
-    const handleQuestionClick = (questionId: number) => {
+    const handleQuestionClick = useCallback((questionId: number) => {
         router.push(`/${slug}/news/qna/${questionId}`);
-    };
+    }, [router, slug]);
 
     // 공지사항 작성자 ID 목록 추출
     const authorIds = useMemo(() => {
@@ -161,7 +161,7 @@ export function UnionNewsSection({ unionId }: UnionNewsSectionProps) {
         
         // 길이 제한 적용
         if (plainText.length <= maxLength) return plainText;
-        return plainText.substring(0, maxLength) + '...';
+        return plainText.substring(0, maxLength) + '\u2026';
     };
 
     // 공지사항 작성자 이름 가져오기
@@ -173,70 +173,82 @@ export function UnionNewsSection({ unionId }: UnionNewsSectionProps) {
         <section className="bg-gray-50 py-8 md:py-[54px] px-4">
             <div className="container mx-auto max-w-[1296px]">
                 {/* 섹션 제목 */}
-                <h2 
-                    className="font-bold text-[#4e8c6d] mb-6 md:mb-[54px]"
-                    style={{ 
-                        fontSize: 'var(--text-section-title)', 
-                        lineHeight: 'var(--leading-section-title)' 
+                <h2
+                    className="font-bold text-[#4e8c6d] mb-6 md:mb-[54px] [text-wrap:balance]"
+                    style={{
+                        fontSize: 'var(--text-section-title)',
+                        lineHeight: 'var(--leading-section-title)'
                     }}
                 >
                     조합 소식
                 </h2>
 
                 {/* 탭 메뉴 */}
-                <div className="flex gap-2 md:gap-[18px] border-b-2 border-gray-200 pb-[2px] overflow-x-auto">
+                <div className="flex gap-2 md:gap-[18px] border-b-2 border-gray-200 pb-[2px] overflow-x-auto" role="tablist" aria-label="조합 소식 카테고리">
                     <button
                         onClick={() => setActiveTab('notice')}
                         className={cn(
-                            'h-auto md:h-[52.375px] px-3 md:px-[27px] py-2 md:pb-[22px] md:pt-0 rounded-tl-[8px] md:rounded-tl-[13.5px] rounded-tr-[8px] md:rounded-tr-[13.5px] transition-colors cursor-pointer whitespace-nowrap',
+                            'h-auto md:h-[52.375px] px-3 md:px-[27px] py-2 md:pb-[22px] md:pt-0 rounded-tl-[8px] md:rounded-tl-[13.5px] rounded-tr-[8px] md:rounded-tr-[13.5px] transition-colors cursor-pointer whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-[#4E8C6D] focus-visible:ring-offset-2',
                             activeTab === 'notice'
                                 ? 'bg-[#4e8c6d] text-white font-bold'
                                 : 'text-[#4a5565] font-medium hover:text-[#4e8c6d]'
                         )}
-                        aria-label="공지사항 탭"
+                        role="tab"
+                        aria-selected={activeTab === 'notice'}
+                        aria-controls="tabpanel-notice"
+                        id="tab-notice"
                     >
                         <span style={{ fontSize: 'var(--text-tab)' }}>공지사항</span>
                     </button>
                     <button
                         onClick={() => setActiveTab('general')}
                         className={cn(
-                            'h-auto md:h-[52.375px] px-3 md:px-[27px] py-2 md:pb-[22px] md:pt-0 transition-colors cursor-pointer whitespace-nowrap',
+                            'h-auto md:h-[52.375px] px-3 md:px-[27px] py-2 md:pb-[22px] md:pt-0 transition-colors cursor-pointer whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-[#4E8C6D] focus-visible:ring-offset-2',
                             activeTab === 'general'
                                 ? 'bg-[#4e8c6d] text-white font-bold rounded-tl-[8px] md:rounded-tl-[13.5px] rounded-tr-[8px] md:rounded-tr-[13.5px]'
                                 : 'text-[#4a5565] font-medium hover:text-[#4e8c6d]'
                         )}
-                        aria-label="일반 게시물 탭"
+                        role="tab"
+                        aria-selected={activeTab === 'general'}
+                        aria-controls="tabpanel-general"
+                        id="tab-general"
                     >
                         <span style={{ fontSize: 'var(--text-tab)' }}>일반 게시물</span>
                     </button>
                     <button
                         onClick={() => setActiveTab('question')}
                         className={cn(
-                            'h-auto md:h-[52.375px] px-3 md:px-[27px] py-2 md:pb-[22px] md:pt-0 transition-colors cursor-pointer whitespace-nowrap',
+                            'h-auto md:h-[52.375px] px-3 md:px-[27px] py-2 md:pb-[22px] md:pt-0 transition-colors cursor-pointer whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-[#4E8C6D] focus-visible:ring-offset-2',
                             activeTab === 'question'
                                 ? 'bg-[#4e8c6d] text-white font-bold rounded-tl-[8px] md:rounded-tl-[13.5px] rounded-tr-[8px] md:rounded-tr-[13.5px]'
                                 : 'text-[#4a5565] font-medium hover:text-[#4e8c6d]'
                         )}
-                        aria-label="질문 탭"
+                        role="tab"
+                        aria-selected={activeTab === 'question'}
+                        aria-controls="tabpanel-question"
+                        id="tab-question"
                     >
                         <span style={{ fontSize: 'var(--text-tab)' }}>질문</span>
                     </button>
                     <button
                         onClick={() => setActiveTab('partner')}
                         className={cn(
-                            'h-auto md:h-[52.375px] px-3 md:px-[27px] py-2 md:pb-[22px] md:pt-0 transition-colors cursor-pointer whitespace-nowrap',
+                            'h-auto md:h-[52.375px] px-3 md:px-[27px] py-2 md:pb-[22px] md:pt-0 transition-colors cursor-pointer whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-[#4E8C6D] focus-visible:ring-offset-2',
                             activeTab === 'partner'
                                 ? 'bg-[#4e8c6d] text-white font-bold rounded-tl-[8px] md:rounded-tl-[13.5px] rounded-tr-[8px] md:rounded-tr-[13.5px]'
                                 : 'text-[#4a5565] font-medium hover:text-[#4e8c6d]'
                         )}
-                        aria-label="협력 업체 탭"
+                        role="tab"
+                        aria-selected={activeTab === 'partner'}
+                        aria-controls="tabpanel-partner"
+                        id="tab-partner"
                     >
                         <span style={{ fontSize: 'var(--text-tab)' }}>협력 업체</span>
                     </button>
                 </div>
 
                 {/* 콘텐츠 영역 */}
-                <div className="mt-4 md:mt-[27px] space-y-4 md:space-y-[27px]">
+                <div className="mt-4 md:mt-[27px] space-y-4 md:space-y-[27px]" role="tabpanel" id={`tabpanel-${activeTab}`} aria-labelledby={`tab-${activeTab}`}>
                     {activeTab === 'notice' && (
                         <>
                             {isLoading ? (
@@ -259,17 +271,22 @@ export function UnionNewsSection({ unionId }: UnionNewsSectionProps) {
                                 <>
                                     {/* 주요 공지 카드 */}
                                     {notices[0] && (
-                                        <div 
+                                        <article
                                             onClick={() => handleNoticeClick(notices[0].id)}
-                                            className="bg-white border-l-4 border-[#5fa37c] border-r border-t border-b rounded-[12px] md:rounded-[17.5px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] pl-4 md:pl-[40px] pr-4 md:pr-px py-5 md:py-[37px] cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-200"
+                                            onKeyDown={(e) => e.key === 'Enter' && handleNoticeClick(notices[0].id)}
+                                            role="button"
+                                            tabIndex={0}
+                                            className="bg-white border-l-4 border-[#5fa37c] border-r border-t border-b rounded-[12px] md:rounded-[17.5px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] pl-4 md:pl-[40px] pr-4 md:pr-px py-5 md:py-[37px] cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-[#4E8C6D] focus-visible:ring-offset-2"
+                                            aria-label={`공지사항: ${notices[0].title}`}
                                         >
                                             <div className="space-y-3 md:space-y-[18px]">
-                                                <h3 
-                                                    className="font-bold text-[#333333]"
-                                                    style={{ 
-                                                        fontSize: 'var(--text-card-title-lg)', 
-                                                        lineHeight: 'var(--leading-card-title-lg)' 
+                                                <h3
+                                                    className="font-bold text-[#333333] line-clamp-2"
+                                                    style={{
+                                                        fontSize: 'var(--text-card-title-lg)',
+                                                        lineHeight: 'var(--leading-card-title-lg)'
                                                     }}
+                                                    title={notices[0].title}
                                                 >
                                                     {notices[0].title}
                                                 </h3>
@@ -281,8 +298,8 @@ export function UnionNewsSection({ unionId }: UnionNewsSectionProps) {
                                                         작성자: {getAuthorName(notices[0])}
                                                     </span>
                                                     <span className="text-[#6a7282] hidden md:inline" style={{ fontSize: 'var(--text-body-md)' }}>•</span>
-                                                    <span 
-                                                        className="text-[#6a7282]"
+                                                    <span
+                                                        className="text-[#6a7282] tabular-nums"
                                                         style={{ fontSize: 'var(--text-body-md)', lineHeight: 'var(--leading-body-md)' }}
                                                     >
                                                         {formatDate(notices[0].created_at)}
@@ -295,17 +312,21 @@ export function UnionNewsSection({ unionId }: UnionNewsSectionProps) {
                                                     {truncateContent(notices[0].content)}
                                                 </p>
                                             </div>
-                                        </div>
+                                        </article>
                                     )}
 
                                     {/* 하단 3개 카드 그리드 */}
                                     {notices.length > 1 && (
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-[18px]">
                                             {notices.slice(1, 4).map((notice) => (
-                                                <div
+                                                <article
                                                     key={notice.id}
                                                     onClick={() => handleNoticeClick(notice.id)}
-                                                    className="bg-white border border-gray-200 rounded-[10px] md:rounded-[13.5px] shadow-[0px_1px_3px_0px_rgba(0,0,0,0.1),0px_1px_2px_-1px_rgba(0,0,0,0.1)] pl-4 md:pl-[28px] pr-4 md:pr-px py-4 md:py-[28px] cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-200"
+                                                    onKeyDown={(e) => e.key === 'Enter' && handleNoticeClick(notice.id)}
+                                                    role="button"
+                                                    tabIndex={0}
+                                                    className="bg-white border border-gray-200 rounded-[10px] md:rounded-[13.5px] shadow-[0px_1px_3px_0px_rgba(0,0,0,0.1),0px_1px_2px_-1px_rgba(0,0,0,0.1)] pl-4 md:pl-[28px] pr-4 md:pr-px py-4 md:py-[28px] cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-[#4E8C6D] focus-visible:ring-offset-2"
+                                                    aria-label={`공지사항: ${notice.title}`}
                                                 >
                                                     <div className="space-y-2 md:space-y-[13.5px]">
                                                         <h4 
@@ -324,15 +345,15 @@ export function UnionNewsSection({ unionId }: UnionNewsSectionProps) {
                                                             >
                                                                 작성자: {getAuthorName(notice)}
                                                             </p>
-                                                            <p 
-                                                                className="text-[#6a7282]"
+                                                            <p
+                                                                className="text-[#6a7282] tabular-nums"
                                                                 style={{ fontSize: 'var(--text-body-sm)', lineHeight: 'var(--leading-body-sm)' }}
                                                             >
                                                                 {formatDate(notice.created_at)}
                                                             </p>
                                                         </div>
                                                     </div>
-                                                </div>
+                                                </article>
                                             ))}
                                         </div>
                                     )}
@@ -372,12 +393,13 @@ export function UnionNewsSection({ unionId }: UnionNewsSectionProps) {
                                             className="bg-white border-l-4 border-[#5fa37c] border-r border-t border-b rounded-[12px] md:rounded-[17.5px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] pl-4 md:pl-[40px] pr-4 md:pr-px py-5 md:py-[37px] cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-200"
                                         >
                                             <div className="space-y-3 md:space-y-[18px]">
-                                                <h3 
-                                                    className="font-bold text-[#333333]"
-                                                    style={{ 
-                                                        fontSize: 'var(--text-card-title-lg)', 
-                                                        lineHeight: 'var(--leading-card-title-lg)' 
+                                                <h3
+                                                    className="font-bold text-[#333333] line-clamp-2"
+                                                    style={{
+                                                        fontSize: 'var(--text-card-title-lg)',
+                                                        lineHeight: 'var(--leading-card-title-lg)'
                                                     }}
+                                                    title={freeBoards[0].title}
                                                 >
                                                     {freeBoards[0].title}
                                                 </h3>
@@ -389,8 +411,8 @@ export function UnionNewsSection({ unionId }: UnionNewsSectionProps) {
                                                         작성자: {freeBoards[0].author?.name || '익명'}
                                                     </span>
                                                     <span className="text-[#6a7282] hidden md:inline" style={{ fontSize: 'var(--text-body-md)' }}>•</span>
-                                                    <span 
-                                                        className="text-[#6a7282]"
+                                                    <span
+                                                        className="text-[#6a7282] tabular-nums"
                                                         style={{ fontSize: 'var(--text-body-md)', lineHeight: 'var(--leading-body-md)' }}
                                                     >
                                                         {formatDate(freeBoards[0].created_at)}
@@ -432,8 +454,8 @@ export function UnionNewsSection({ unionId }: UnionNewsSectionProps) {
                                                             >
                                                                 작성자: {post.author?.name || '익명'}
                                                             </p>
-                                                            <p 
-                                                                className="text-[#6a7282]"
+                                                            <p
+                                                                className="text-[#6a7282] tabular-nums"
                                                                 style={{ fontSize: 'var(--text-body-sm)', lineHeight: 'var(--leading-body-sm)' }}
                                                             >
                                                                 {formatDate(post.created_at)}
@@ -481,12 +503,13 @@ export function UnionNewsSection({ unionId }: UnionNewsSectionProps) {
                                         >
                                             <div className="space-y-3 md:space-y-[18px]">
                                                 <div className="flex flex-wrap items-center gap-2 md:gap-[12px]">
-                                                    <h3 
-                                                        className="font-bold text-[#333333]"
-                                                        style={{ 
-                                                            fontSize: 'var(--text-card-title-lg)', 
-                                                            lineHeight: 'var(--leading-card-title-lg)' 
+                                                    <h3
+                                                        className="font-bold text-[#333333] line-clamp-2"
+                                                        style={{
+                                                            fontSize: 'var(--text-card-title-lg)',
+                                                            lineHeight: 'var(--leading-card-title-lg)'
                                                         }}
+                                                        title={questions[0].title}
                                                     >
                                                         {questions[0].title}
                                                     </h3>
@@ -505,8 +528,8 @@ export function UnionNewsSection({ unionId }: UnionNewsSectionProps) {
                                                         작성자: {questions[0].author?.name || '익명'}
                                                     </span>
                                                     <span className="text-[#6a7282] hidden md:inline" style={{ fontSize: 'var(--text-body-md)' }}>•</span>
-                                                    <span 
-                                                        className="text-[#6a7282]"
+                                                    <span
+                                                        className="text-[#6a7282] tabular-nums"
                                                         style={{ fontSize: 'var(--text-body-md)', lineHeight: 'var(--leading-body-md)' }}
                                                     >
                                                         {formatDate(questions[0].created_at || '')}
@@ -553,8 +576,8 @@ export function UnionNewsSection({ unionId }: UnionNewsSectionProps) {
                                                             >
                                                                 작성자: {question.author?.name || '익명'}
                                                             </p>
-                                                            <p 
-                                                                className="text-[#6a7282]"
+                                                            <p
+                                                                className="text-[#6a7282] tabular-nums"
                                                                 style={{ fontSize: 'var(--text-body-sm)', lineHeight: 'var(--leading-body-sm)' }}
                                                             >
                                                                 {formatDate(question.created_at || '')}

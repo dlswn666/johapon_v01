@@ -123,18 +123,18 @@ export function ListItem({
                     {/* 하단: 메타 정보 */}
                     <div className="flex items-center justify-between text-xs text-gray-500">
                         <div className="flex items-center space-x-4">
-                            <div className="flex items-center">
-                                <User size={14} className="mr-1" />
-                                <span>{item.author}</span>
+                            <div className="flex items-center min-w-0">
+                                <User size={14} className="mr-1 shrink-0" />
+                                <span className="max-w-[80px] truncate" title={item.author}>{item.author}</span>
                             </div>
-                            <div className="flex items-center">
+                            <div className="flex items-center tabular-nums">
                                 <Calendar size={14} className="mr-1" />
                                 <span>{item.date}</span>
                             </div>
                             {renderMeta && renderMeta(item)}
                         </div>
 
-                        <div className="flex items-center space-x-3">
+                        <div className="flex items-center space-x-3 tabular-nums">
                             <div className="flex items-center">
                                 <Eye size={14} className="mr-1" />
                                 <span>{item.views}</span>

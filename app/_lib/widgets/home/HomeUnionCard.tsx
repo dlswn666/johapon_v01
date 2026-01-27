@@ -95,7 +95,7 @@ export function HomeUnionCard() {
         <div className="bg-white border border-[#cdd1d5] rounded-[6px] md:rounded-[12px] p-[10px] md:p-[30px] overflow-hidden relative h-full">
             {/* 헤더 영역 */}
             <div className="flex items-center gap-[10px] md:gap-[20px] mb-[10px] md:mb-[20px]">
-                <h3 className="font-bold text-[16px] md:text-[32px] text-black tracking-[0.5px] md:tracking-[1px]">{union.name}</h3>
+                <h3 className="font-bold text-[16px] md:text-[32px] text-black tracking-[0.5px] md:tracking-[1px] truncate max-w-full" title={union.name}>{union.name}</h3>
                 {visitorCount !== null && (
                     <span className="font-semibold text-[10px] md:text-[14px] text-[#818181]">접속자 수 : {visitorCount}명</span>
                 )}

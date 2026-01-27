@@ -57,7 +57,7 @@ export function SelectBox({
                     // 텍스트 스타일
                     'text-[14px] text-gray-900',
                     // 포커스 스타일
-                    'focus:outline-none focus:ring-2 focus:ring-[#4E8C6D] focus:border-transparent',
+                    'outline-none focus-visible:ring-2 focus-visible:ring-[#4E8C6D] focus-visible:border-transparent',
                     // 호버 효과
                     'hover:bg-gray-50 hover:border-gray-400',
                     // 트랜지션
