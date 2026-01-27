@@ -87,14 +87,14 @@ export const useFreeBoards = (
                 console.error('Failed to fetch file counts:', filesError);
             }
 
-            // 파일 수 집계
-            const fileCountMap: Record<number, number> = {};
+            // 파일 수 집계 (Map 사용으로 성능 최적화)
+            const fileCountMap = new Map<number, number>();
             if (fileCounts) {
-                fileCounts.forEach((f) => {
+                for (const f of fileCounts) {
                     if (f.attachable_id) {
-                        fileCountMap[f.attachable_id] = (fileCountMap[f.attachable_id] || 0) + 1;
+                        fileCountMap.set(f.attachable_id, (fileCountMap.get(f.attachable_id) || 0) + 1);
                     }
-                });
+                }
             }
 
             // 댓글 수 조회
@@ -108,19 +108,19 @@ export const useFreeBoards = (
                 console.error('Failed to fetch comment counts:', commentsError);
             }
 
-            // 댓글 수 집계
-            const commentCountMap: Record<number, number> = {};
+            // 댓글 수 집계 (Map 사용으로 성능 최적화)
+            const commentCountMap = new Map<number, number>();
             if (commentCounts) {
-                commentCounts.forEach((c) => {
-                    commentCountMap[c.entity_id] = (commentCountMap[c.entity_id] || 0) + 1;
-                });
+                for (const c of commentCounts) {
+                    commentCountMap.set(c.entity_id, (commentCountMap.get(c.entity_id) || 0) + 1);
+                }
             }
 
-            // 데이터에 파일 수, 댓글 수 병합
+            // 데이터에 파일 수, 댓글 수 병합 (Map.get() O(1) 조회)
             const freeBoardsWithCounts = freeBoardsData.map((freeBoard) => ({
                 ...freeBoard,
-                file_count: fileCountMap[freeBoard.id] || 0,
-                comment_count: commentCountMap[freeBoard.id] || 0,
+                file_count: fileCountMap.get(freeBoard.id) || 0,
+                comment_count: commentCountMap.get(freeBoard.id) || 0,
             }));
 
             return {

@@ -150,7 +150,13 @@ export const useParcelDetail = (pnu: string | null, stageId: string | null) => {
                     .eq('building_id', buildingInfo.id);
 
                 if (linkedPnusData && linkedPnusData.length > 0) {
-                    allLinkedPnus = linkedPnusData.map((p) => p.pnu).filter(Boolean) as string[];
+                    // 단일 순회로 PNU 추출 (성능 최적화: O(2n) -> O(n))
+                    allLinkedPnus = [];
+                    for (const p of linkedPnusData) {
+                        if (p.pnu) {
+                            allLinkedPnus.push(p.pnu);
+                        }
+                    }
                 }
             }
 
@@ -270,10 +276,26 @@ export const useParcelDetail = (pnu: string | null, stageId: string | null) => {
                 memberConsents = consents || [];
             }
 
-            // 8. 조합원 목록 구성 (user_property_units의 dong/ho + building_units 정보 보강)
+            // 8. Map으로 동의 현황 사전 인덱싱 (성능 최적화: O(n*m) -> O(n+m))
+            // 복합 키 "userId:stageId"로 O(1) 조회
+            const consentMap = new Map<string, { status: string; consent_date: string | null }>();
+            for (const consent of memberConsents) {
+                const key = `${consent.user_id}:${consent.stage_id}`;
+                consentMap.set(key, { status: consent.status, consent_date: consent.consent_date });
+            }
+
+            // stageId별 동의 현황 Map (ownersWithConsent용)
+            const consentByUserForStage = new Map<string, typeof memberConsents[0]>();
+            for (const consent of memberConsents) {
+                if (consent.stage_id === stageId) {
+                    consentByUserForStage.set(consent.user_id, consent);
+                }
+            }
+
+            // 9. 조합원 목록 구성 (user_property_units의 dong/ho + building_units 정보 보강)
             const ownersWithConsent: Owner[] = propertyUnitsWithUsers.map((pu) => {
                 const user = pu.users;
-                const consent = memberConsents.find((c) => c.user_id === user.id && c.stage_id === stageId);
+                const consent = consentByUserForStage.get(user.id);  // O(1) 조회
 
                 // building_unit_id가 있으면 해당 정보로 보강
                 const buildingUnit = pu.building_unit_id ? buildingUnitsById.get(pu.building_unit_id) : null;
@@ -300,18 +322,19 @@ export const useParcelDetail = (pnu: string | null, stageId: string | null) => {
                 };
             });
 
-            // 9. 동의 단계별 통계 계산
+            // 10. 동의 단계별 통계 계산 (Map.get() O(1) 조회로 최적화)
             const consentStagesStatus: ConsentStageStatus[] = (allStages || []).map((stage) => {
                 let agreed = 0;
                 let disagreed = 0;
                 let pending = 0;
 
-                memberIds.forEach((memberId) => {
-                    const consent = memberConsents.find((c) => c.user_id === memberId && c.stage_id === stage.id);
+                for (const memberId of memberIds) {
+                    const key = `${memberId}:${stage.id}`;
+                    const consent = consentMap.get(key);  // O(1) 조회
                     if (consent?.status === 'AGREED') agreed++;
                     else if (consent?.status === 'DISAGREED') disagreed++;
                     else pending++;
-                });
+                }
 
                 const total = memberIds.length;
                 const rate = total > 0 ? Math.round((agreed / total) * 100) : 0;
@@ -330,7 +353,7 @@ export const useParcelDetail = (pnu: string | null, stageId: string | null) => {
                 };
             });
 
-            // 10. 호수별로 그룹화 (building_unit_id 또는 dong+ho 기준)
+            // 11. 호수별로 그룹화 (building_unit_id 또는 dong+ho 기준)
             const unitMap = new Map<string, BuildingUnit>();
             ownersWithConsent.forEach((owner) => {
                 // 그룹 키: dong+ho (빈 문자열도 허용하여 그룹화)

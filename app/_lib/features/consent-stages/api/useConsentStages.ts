@@ -279,6 +279,11 @@ export const searchMembersForConsent = async (params: SearchMembersParams): Prom
         .in('user_id', memberIds)
         .eq('stage_id', stageId);
 
+    // Map으로 동의 현황 사전 인덱싱 (성능 최적화: O(n*m) -> O(n+m))
+    const consentMap = new Map(
+        (consents || []).map((c) => [c.user_id, c])
+    );
+
     // 결과 매핑
     type PropertyUnit = {
         pnu: string | null;
@@ -290,7 +295,7 @@ export const searchMembersForConsent = async (params: SearchMembersParams): Prom
     };
 
     return members.map((member) => {
-        const consent = consents?.find((c) => c.user_id === member.id);
+        const consent = consentMap.get(member.id);  // O(1) 조회
         const propUnit = (member.user_property_units as PropertyUnit[] | null)?.[0] || null;
         return {
             id: member.id,

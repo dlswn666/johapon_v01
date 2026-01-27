@@ -88,11 +88,18 @@ export function useLandLotsInfinite({ unionId, searchQuery = '', pageSize = 50 }
                 .select('pnu, building_id')
                 .in('pnu', pnuList);
 
-            // 모든 building_id 수집
-            const allBuildingIds = buildingMappings?.map((m) => m.building_id).filter(Boolean) || [];
+            // 모든 building_id 수집 (단일 순회로 성능 최적화: O(2n) -> O(n))
+            const allBuildingIds: string[] = [];
+            if (buildingMappings) {
+                for (const mapping of buildingMappings) {
+                    if (mapping.building_id) {
+                        allBuildingIds.push(mapping.building_id);
+                    }
+                }
+            }
 
-            // 2. buildings 테이블에서 건물 유형 별도 조회
-            const buildingTypeMap: Record<string, string> = {};
+            // 2. buildings 테이블에서 건물 유형 별도 조회 (Map 사용)
+            const buildingTypeMap = new Map<string, string>();
             if (allBuildingIds.length > 0) {
                 const { data: buildingsData } = await supabase
                     .from('buildings')
@@ -100,16 +107,16 @@ export function useLandLotsInfinite({ unionId, searchQuery = '', pageSize = 50 }
                     .in('id', allBuildingIds);
 
                 if (buildingsData) {
-                    buildingsData.forEach((b) => {
+                    for (const b of buildingsData) {
                         if (b.building_type) {
-                            buildingTypeMap[b.id] = b.building_type;
+                            buildingTypeMap.set(b.id, b.building_type);
                         }
-                    });
+                    }
                 }
             }
 
-            // 3. building_units 개수 조회 (building_id별로 그룹핑)
-            const buildingUnitsCountMap: Record<string, number> = {};
+            // 3. building_units 개수 조회 (Map 사용)
+            const buildingUnitsCountMap = new Map<string, number>();
             if (allBuildingIds.length > 0) {
                 const { data: unitsData } = await supabase
                     .from('building_units')
@@ -118,33 +125,38 @@ export function useLandLotsInfinite({ unionId, searchQuery = '', pageSize = 50 }
 
                 // building_id별 unit 개수 계산
                 if (unitsData) {
-                    unitsData.forEach((unit) => {
-                        buildingUnitsCountMap[unit.building_id] = (buildingUnitsCountMap[unit.building_id] || 0) + 1;
-                    });
+                    for (const unit of unitsData) {
+                        buildingUnitsCountMap.set(unit.building_id, (buildingUnitsCountMap.get(unit.building_id) || 0) + 1);
+                    }
                 }
             }
 
-            // 4. PNU별 building_units 총 개수 및 건물 유형 계산
-            const pnuOwnerCountMap: Record<string, number> = {};
-            const pnuBuildingTypeMap: Record<string, string> = {};
-            buildingMappings?.forEach((mapping) => {
-                // 소유주 수 합산
-                const currentCount = pnuOwnerCountMap[mapping.pnu] || 0;
-                const unitsCount = buildingUnitsCountMap[mapping.building_id] || 0;
-                pnuOwnerCountMap[mapping.pnu] = currentCount + unitsCount;
+            // 4. PNU별 building_units 총 개수 및 건물 유형 계산 (Map 사용)
+            const pnuOwnerCountMap = new Map<string, number>();
+            const pnuBuildingTypeMap = new Map<string, string>();
+            if (buildingMappings) {
+                for (const mapping of buildingMappings) {
+                    // 소유주 수 합산
+                    const currentCount = pnuOwnerCountMap.get(mapping.pnu) || 0;
+                    const unitsCount = buildingUnitsCountMap.get(mapping.building_id) || 0;
+                    pnuOwnerCountMap.set(mapping.pnu, currentCount + unitsCount);
 
-                // 건물 유형 (첫 번째 매핑의 건물 유형 사용)
-                if (!pnuBuildingTypeMap[mapping.pnu] && buildingTypeMap[mapping.building_id]) {
-                    pnuBuildingTypeMap[mapping.pnu] = buildingTypeMap[mapping.building_id];
+                    // 건물 유형 (첫 번째 매핑의 건물 유형 사용)
+                    if (!pnuBuildingTypeMap.has(mapping.pnu)) {
+                        const buildingType = buildingTypeMap.get(mapping.building_id);
+                        if (buildingType) {
+                            pnuBuildingTypeMap.set(mapping.pnu, buildingType);
+                        }
+                    }
                 }
-            });
+            }
 
-            // 데이터 병합
+            // 데이터 병합 (Map.get() O(1) 조회)
             const extendedLots: ExtendedLandLot[] = lotsData.map((lot) => {
-                const buildingType = pnuBuildingTypeMap[lot.pnu] || null;
+                const buildingType = pnuBuildingTypeMap.get(lot.pnu) || null;
 
                 // 소유주 수: building_units 개수 기반으로 계산 (연결된 building이 없으면 null)
-                const ownerCount = pnuOwnerCountMap[lot.pnu] ?? null;
+                const ownerCount = pnuOwnerCountMap.has(lot.pnu) ? pnuOwnerCountMap.get(lot.pnu)! : null;
 
                 return {
                     pnu: lot.pnu,
