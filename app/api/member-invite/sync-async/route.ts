@@ -1,23 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { authenticateApiRequest } from '@/app/_lib/shared/api/auth';
 
 const PROXY_SERVER_URL = process.env.ALIMTALK_PROXY_URL || 'http://localhost:3100';
 
 /**
  * 조합원 초대 비동기 동기화 API
  * 프록시 서버의 큐를 통해 대량 데이터를 비동기로 처리
- * 
+ *
  * POST /api/member-invite/sync-async
  */
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
-        const { unionId, createdBy, expiresHours = 8760, members } = body;
+        const { unionId, expiresHours = 8760, members } = body;
+
+        // ========== SECURITY: 인증 검사 ==========
+        const auth = await authenticateApiRequest({
+            requireAdmin: true,
+            requireUnionId: true,
+            unionId: unionId,
+        });
+
+        if (!auth.authenticated) {
+            return auth.response;
+        }
+
+        // createdBy를 인증된 사용자로 강제 설정 (위조 방지)
+        const createdBy = auth.user.id;
+
+        console.log(`[Member Sync Async] User ${auth.user.id} (${auth.user.name}) starting async sync`);
+        // ==========================================
 
         // 필수 파라미터 검증
-        if (!unionId || !createdBy || !members || !Array.isArray(members)) {
-            return NextResponse.json({ 
+        if (!unionId || !members || !Array.isArray(members)) {
+            return NextResponse.json({
                 success: false,
-                error: '필수 파라미터가 누락되었습니다.' 
+                error: '필수 파라미터가 누락되었습니다.'
             }, { status: 400 });
         }
 

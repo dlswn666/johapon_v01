@@ -1,4 +1,10 @@
+// Static export
 export { DataTable } from './DataTable';
+
+// Dynamic export (recommended for pages)
+export { DataTableDynamic } from './DataTableDynamic';
+
+// Type exports
 export type {
     ColumnDef,
     DataTableProps,

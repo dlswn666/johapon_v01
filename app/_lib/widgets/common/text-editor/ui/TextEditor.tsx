@@ -7,7 +7,7 @@ import { EditorToolbar } from './EditorToolbar';
 import { useEffect } from 'react';
 import { cn } from '@/lib/utils';
 
-interface TextEditorProps {
+export interface TextEditorProps {
     content?: string;
     onChange?: (content: string) => void;
     placeholder?: string;

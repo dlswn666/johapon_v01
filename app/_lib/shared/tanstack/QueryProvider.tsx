@@ -1,10 +1,21 @@
 'use client';
 
 import { QueryClientProvider } from '@tanstack/react-query';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import dynamic from 'next/dynamic';
 import { Toaster, resolveValue } from 'react-hot-toast';
 import { Toast } from '@/app/_lib/widgets/common/toast/Toast';
 import { queryClient } from './queryClient';
+
+// Dynamically import DevTools only in development
+const ReactQueryDevtools = dynamic(
+    () =>
+        import('@tanstack/react-query-devtools').then(
+            (mod) => mod.ReactQueryDevtools
+        ),
+    {
+        ssr: false,
+    }
+);
 
 /**
  * Providers 컴포넌트
@@ -15,7 +26,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
     return (
         <QueryClientProvider client={queryClient}>
             {children}
-            {process.env.NODE_ENV === 'development' && <ReactQueryDevtools initialIsOpen={false} />}
+            {process.env.NODE_ENV === 'development' && (
+                <ReactQueryDevtools initialIsOpen={false} />
+            )}
             <Toaster
                 position="top-center"
                 toastOptions={{

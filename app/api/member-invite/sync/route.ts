@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 import { SyncMemberInvitesResult } from '@/app/_lib/shared/type/database.types';
+import { authenticateApiRequest } from '@/app/_lib/shared/api/auth';
 
 /**
  * 조합원 초대 동기화 API
@@ -12,10 +13,27 @@ import { SyncMemberInvitesResult } from '@/app/_lib/shared/type/database.types';
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
-        const { unionId, createdBy, expiresHours = 24, members } = body;
+        const { unionId, expiresHours = 24, members } = body;
+
+        // ========== SECURITY: 인증 검사 ==========
+        const auth = await authenticateApiRequest({
+            requireAdmin: true,
+            requireUnionId: true,
+            unionId: unionId,
+        });
+
+        if (!auth.authenticated) {
+            return auth.response;
+        }
+
+        // createdBy를 인증된 사용자로 강제 설정 (위조 방지)
+        const createdBy = auth.user.id;
+
+        console.log(`[Member Invite Sync] User ${auth.user.id} (${auth.user.name}) syncing member invites`);
+        // ==========================================
 
         // 필수 파라미터 검증
-        if (!unionId || !createdBy || !members || !Array.isArray(members)) {
+        if (!unionId || !members || !Array.isArray(members)) {
             return NextResponse.json({ error: '필수 파라미터가 누락되었습니다.' }, { status: 400 });
         }
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { authenticateApiRequest } from '@/app/_lib/shared/api/auth';
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 
@@ -13,6 +14,20 @@ export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
         const { unionId, stageId, memberIds, status } = body;
+
+        // ========== SECURITY: 인증 검사 ==========
+        const auth = await authenticateApiRequest({
+            requireAdmin: true,
+            requireUnionId: true,
+            unionId: unionId,
+        });
+
+        if (!auth.authenticated) {
+            return auth.response;
+        }
+
+        console.log(`[Consent Bulk Update] User ${auth.user.id} (${auth.user.name}) updating consents`);
+        // ==========================================
 
         // 유효성 검사
         if (!unionId || !stageId || !memberIds || !status) {

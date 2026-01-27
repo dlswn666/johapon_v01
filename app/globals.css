@@ -319,6 +319,37 @@
         transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
         transition-duration: 200ms;
     }
+
+    /* === Content Visibility 유틸리티 === */
+    /* 오프스크린 렌더링 비용 절감 */
+    .content-auto {
+        content-visibility: auto;
+    }
+
+    .content-hidden {
+        content-visibility: hidden;
+    }
+
+    .content-visible {
+        content-visibility: visible;
+    }
+
+    /* Contain Intrinsic Size 유틸리티 */
+    .contain-size-sm {
+        contain-intrinsic-size: 0 40px;
+    }
+
+    .contain-size-md {
+        contain-intrinsic-size: 0 80px;
+    }
+
+    .contain-size-lg {
+        contain-intrinsic-size: 0 120px;
+    }
+
+    .contain-size-xl {
+        contain-intrinsic-size: 0 200px;
+    }
 }
 
 /* ============================================

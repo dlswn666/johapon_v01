@@ -1,0 +1,166 @@
+{
+  "meta": {
+    "pageId": "361-7181",
+    "pageName": "Home Page",
+    "figmaUrl": "https://www.figma.com/design/RfYbBKSEguojpwDs7vrcWd/조합온-프로젝트?node-id=361-7181",
+    "analyzedAt": "2026-01-28",
+    "agents": ["Layout", "Hero", "BoardSection", "Partnerships", "Footer"]
+  },
+  "layout": {
+    "agentType": "Layout",
+    "pageId": "361-7181",
+    "overallStructure": {
+      "width": "984px (전체 뷰포트 기준)",
+      "columns": "3열 구조 - 좌측 광고(96px) / 중앙 콘텐츠(590px) / 우측 광고(96px)",
+      "mainLayout": "Header → Hero(슬라이더+양쪽광고) → BoardSection(게시판) → Partnerships(파트너) → Footer"
+    },
+    "gridSystem": {
+      "maxWidth": "984px",
+      "sideAds": "양쪽 각 96px, Hero 섹션에만 표시",
+      "contentArea": "590px (중앙 메인 콘텐츠)"
+    },
+    "sections": [
+      { "name": "Header", "height": "56px", "layout": "로고(좌) + 네비게이션(중앙) + 사용자 프로필(우)" },
+      { "name": "Hero", "height": "300px", "layout": "3열: 좌측광고(192px) | 슬라이더(590px) | 우측광고(192px)" },
+      { "name": "BoardSection", "height": "320px", "layout": "가로탭 + Featured카드 + 3열 미니카드" },
+      { "name": "Partnerships", "height": "120px", "layout": "헤더 + 가로 스크롤 카드 4개" },
+      { "name": "Footer", "height": "200px", "layout": "3열 정보 + 사업자정보 + 저작권" }
+    ],
+    "responsiveNotes": "모바일: 사이드광고 숨김, Hero 풀너비, 카드 1열, Footer 1열",
+    "tailwindLayout": "max-w-[984px] mx-auto | grid grid-cols-[96px_1fr_96px] | flex flex-col gap-4"
+  },
+  "sections": {
+    "hero": {
+      "sectionName": "Hero",
+      "layout": {
+        "structure": "3열: 좌측 광고 | 중앙 슬라이더 | 우측 광고",
+        "sliderWidth": "600px",
+        "adWidth": "180px",
+        "height": "300px"
+      },
+      "designTokens": {
+        "colors": ["#FFFFFF", "#1A1A1A", "#4CAF50 (PARTNERSHIP 라벨)", "#333333 (오버레이)"],
+        "typography": ["슬라이더 제목: 24px/Bold/White", "광고 라벨: 10px/Bold/Green", "광고 제목: 14px/SemiBold/White"],
+        "shadows": ["0 4px 12px rgba(0,0,0,0.15)"]
+      },
+      "components": ["HeroSlider", "LeftAdCard", "RightAdCard", "SliderNavArrows"],
+      "adCardStructure": {
+        "layout": "세로: 상단 이미지(70%) + 하단 텍스트(30%)",
+        "elements": ["배경 이미지", "PARTNERSHIP 라벨", "제목", "설명", "ADVERTISEMENT 레이블"]
+      },
+      "tailwindClasses": "flex items-stretch gap-4 h-[300px] | flex-1 relative overflow-hidden rounded-lg | w-[180px] rounded-lg bg-cover"
+    },
+    "boardSection": {
+      "sectionName": "BoardSection (조합 소식)",
+      "layout": {
+        "structure": "가로 탭 + Featured 카드 + 3개 작은 카드",
+        "width": "780px",
+        "tabLayout": "4개 탭 가로 나열, 활성 탭 pill 형태"
+      },
+      "designTokens": {
+        "colors": {
+          "activeTab": "#4A7C59 (녹색)",
+          "inactiveTab": "#6B7280 (gray-500)",
+          "cardBackground": "#FFFFFF",
+          "cardBorder": "#E5E7EB",
+          "titleText": "#111827",
+          "bodyText": "#374151",
+          "metaText": "#6B7280",
+          "sectionTitle": "#4A7C59"
+        },
+        "typography": {
+          "sectionTitle": "font-bold text-2xl text-green-700",
+          "featuredTitle": "font-semibold text-xl",
+          "smallCardTitle": "font-medium text-base",
+          "meta": "text-sm text-gray-500"
+        },
+        "spacing": {
+          "tabGap": "4px",
+          "cardGap": "16px",
+          "cardPadding": "20px"
+        }
+      },
+      "components": [
+        { "name": "TabButton", "activeStyle": "bg-green-700 text-white rounded-full px-6 py-2" },
+        { "name": "FeaturedCard", "elements": ["제목", "작성자", "날짜", "내용"], "style": "border rounded-lg p-5" },
+        { "name": "SmallCard", "elements": ["제목", "작성자", "날짜"], "style": "border rounded-lg p-4" }
+      ],
+      "tailwindClasses": {
+        "activeTab": "bg-green-700 text-white rounded-full px-6 py-2",
+        "inactiveTab": "text-gray-500 px-6 py-2",
+        "featuredCard": "border border-gray-200 rounded-lg p-5 mb-4",
+        "smallCardsContainer": "grid grid-cols-3 gap-4",
+        "smallCard": "border border-gray-200 rounded-lg p-4"
+      }
+    },
+    "partnerships": {
+      "sectionName": "Partnerships",
+      "layout": {
+        "structure": "제목 + 우측 링크 + 가로 스크롤 카드",
+        "width": "100%",
+        "scrollType": "horizontal scroll"
+      },
+      "designTokens": {
+        "colors": {
+          "background": "#FFFFFF",
+          "cardBackground": "#FFFFFF",
+          "sectionTitle": "#1F2937",
+          "cardTitle": "#111827",
+          "cardDescription": "#6B7280"
+        },
+        "typography": {
+          "sectionTitle": "font-semibold text-sm tracking-wider uppercase",
+          "cardTitle": "font-medium text-sm",
+          "cardDescription": "text-xs"
+        },
+        "spacing": {
+          "cardGap": "16px",
+          "sectionPadding": "24px",
+          "cardPadding": "12px"
+        }
+      },
+      "components": [
+        { "name": "SectionHeader", "elements": ["PARTNERSHIPS", "함께하는 협력 업체입니다"] },
+        { "name": "PartnerCard", "elements": ["썸네일(80x80)", "제목", "설명"] }
+      ],
+      "cardCount": 4,
+      "tailwindClasses": "flex overflow-x-auto gap-4 scroll-smooth snap-x snap-mandatory scrollbar-hide py-6 px-4"
+    },
+    "footer": {
+      "sectionName": "Footer",
+      "layout": {
+        "structure": "상단 3열 정보 + 하단 사업자정보 + 저작권",
+        "width": "1440px",
+        "columns": "3열 균등 분할"
+      },
+      "designTokens": {
+        "colors": ["#374151 (배경)", "#FFFFFF (제목)", "#D1D5DB (본문)", "#9CA3AF (저작권)"],
+        "typography": ["제목: font-semibold text-lg", "본문: text-sm", "저작권: text-xs text-center"],
+        "spacing": ["열간격: gap-16", "섹션간격: py-12", "저작권 간격: mt-8"]
+      },
+      "components": [
+        { "name": "InfoColumn", "title": "테스트 재개발 조합", "content": ["설명"] },
+        { "name": "ContactColumn", "title": "연락처", "content": ["전화", "이메일", "운영시간"] },
+        { "name": "LocationColumn", "title": "오시는 길", "content": ["주소"] },
+        { "name": "BusinessInfo", "content": ["상호", "대표", "사업자등록번호", "주소", "전화", "이메일"] },
+        { "name": "Copyright", "content": ["© 2026 테스트 재개발 조합. All rights reserved."] }
+      ],
+      "tailwindClasses": "bg-gray-700 py-12 px-8 lg:px-16 text-white grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-16"
+    }
+  },
+  "designVariants": {
+    "note": "361-7181이 최신 디자인, 가로 탭은 모바일 버전",
+    "current": {
+      "nodeId": "361-7181",
+      "name": "최신 디자인 (PC)",
+      "boardSection": "가로 탭 + Featured 카드 + 3개 작은 카드"
+    },
+    "mobile": {
+      "note": "모바일 버전 별도 작업 예정"
+    },
+    "deprecated": {
+      "nodeId": "868-7471",
+      "note": "이전 버전 - 무시"
+    }
+  }
+}
