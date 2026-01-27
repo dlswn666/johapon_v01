@@ -42,8 +42,9 @@ export function SideAdWidget() {
           <>
             <Image
               src={imageUrl}
-              alt={activeAd.business_name}
+              alt={`${activeAd.business_name} 광고`}
               fill
+              sizes="(max-width: 1024px) 100vw, 300px"
               className="object-cover group-hover:scale-105 transition-transform duration-700"
             />
             {/* Text Overlay */}

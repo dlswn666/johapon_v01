@@ -234,8 +234,9 @@ export function HeroSlider({ slides, autoPlayInterval = 4000, className }: HeroS
                     >
                         <Image
                             src={slide.image_url}
-                            alt={`Slide ${index + 1}`}
+                            alt={slide.link_url ? `슬라이드 ${index + 1} - 클릭하여 자세히 보기` : `슬라이드 ${index + 1}`}
                             fill
+                            sizes="100vw"
                             className="object-contain"
                             draggable={false}
                             priority={index === 0}

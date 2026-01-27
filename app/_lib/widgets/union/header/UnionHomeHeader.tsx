@@ -154,6 +154,7 @@ export default function UnionHomeHeader() {
                                         src={union.logo_url}
                                         alt={`${union.name} 로고`}
                                         fill
+                                        sizes="36px"
                                         className="rounded-full object-cover"
                                     />
                                 ) : (
@@ -183,6 +184,7 @@ export default function UnionHomeHeader() {
                                         src={union.logo_url}
                                         alt={`${union.name} 로고`}
                                         fill
+                                        sizes="54px"
                                         className="rounded-full object-cover"
                                     />
                                 ) : (

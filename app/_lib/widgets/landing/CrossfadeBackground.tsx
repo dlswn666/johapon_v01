@@ -48,6 +48,7 @@ export function CrossfadeBackground({ className, duration = 8000, delay = 1000 }
                     src="/images/landing/after.jpg"
                     alt="재개발 후 현대적 아파트 단지"
                     fill
+                    sizes="100vw"
                     className="object-cover"
                     priority
                 />
@@ -65,6 +66,7 @@ export function CrossfadeBackground({ className, duration = 8000, delay = 1000 }
                     src="/images/landing/before.jpg"
                     alt="재개발 전 노후 골목길"
                     fill
+                    sizes="100vw"
                     className="object-cover"
                     priority
                     onLoad={handleBeforeImageLoad}

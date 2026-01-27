@@ -93,8 +93,9 @@ function BannerCard({ ad, isMobile }: { ad: Advertisement; isMobile: boolean }) 
                 <>
                     <Image
                         src={imageUrl}
-                        alt={ad.business_name}
+                        alt={`${ad.business_name} 광고`}
                         fill
+                        sizes="(max-width: 768px) 50vw, 300px"
                         className="object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                     {/* 텍스트 오버레이 */}
