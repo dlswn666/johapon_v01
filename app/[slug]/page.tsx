@@ -12,7 +12,7 @@ import { LandingPage } from '@/app/_lib/widgets/landing';
 import { UserStatusModal } from '@/app/_lib/widgets/modal';
 import { SideAdWidget } from '@/app/_lib/features/advertisement/ui/SideAdWidget';
 import { HomeBannerWidget } from '@/app/_lib/features/advertisement/ui/HomeBannerWidget';
-import { HomeBoardSection, HomeCommunitySection, HomeInfoSection, HomeUnionCard } from '@/app/_lib/widgets/home';
+import { HomeBoardSection, HomeCommunitySection, HomeInfoSection, HomePartnerships, HomeUnionCard } from '@/app/_lib/widgets/home';
 
 export default function UnionHomePage() {
     const { union, isLoading: isUnionLoading } = useSlug();
@@ -81,68 +81,66 @@ export default function UnionHomePage() {
     // 로그인 상태: 새로운 홈페이지 레이아웃
     return (
         <>
-            {/* Hero Section - 슬라이드 (전체 너비) */}
+            {/* Hero Section - Figma: 풀 width 슬라이더 */}
             <section className="relative">
-                {isSlidesLoading ? (
-                    <Skeleton className="w-full h-[400px] md:h-[500px] lg:h-[600px] rounded-none" />
-                ) : (
-                    <HeroSlider slides={heroSlides || []} autoPlayInterval={4000} />
-                )}
+                <div className="w-full h-[300px] md:h-[500px] lg:h-[700px] overflow-hidden">
+                    {isSlidesLoading ? (
+                        <Skeleton className="w-full h-full" />
+                    ) : (
+                        <HeroSlider slides={heroSlides || []} autoPlayInterval={4000} />
+                    )}
+                </div>
             </section>
 
-            {/* 메인 컨텐츠 섹션: 광고 | 컨텐츠 | 광고 3열 구조 */}
-            <section className="py-[24px] md:py-[79px]">
-                <div className="flex gap-[42px] justify-center px-[16px] md:px-4">
-                    {/* 좌측 광고 - 1440px 이상에서만 표시 */}
-                    <aside className="hidden min-[1440px]:block w-[265px] shrink-0">
-                        <div className="sticky top-[100px] h-[404px] rounded-[16px] overflow-hidden">
+            {/* 메인 컨텐츠 섹션 - Figma: 3열 레이아웃 (좌측광고 | 메인컨텐츠 | 우측광고) */}
+            <section className="py-[24px] md:py-[30px]">
+                <div className="max-w-[1920px] mx-auto px-[16px] md:px-[24px]">
+                    <div className="flex gap-[24px] lg:gap-[42px] items-start justify-center">
+                        {/* 좌측 광고 - PC에서만 표시 */}
+                        <aside className="hidden lg:block w-[279px] shrink-0">
                             <SideAdWidget />
-                        </div>
-                    </aside>
+                        </aside>
 
-                    {/* 중앙 메인 컨텐츠 */}
-                    <div className="w-full max-w-[1200px] flex flex-col gap-[20px] md:gap-[47px]">
-                        {/* 게시판 섹션 */}
-                        <HomeBoardSection />
+                        {/* 중앙 메인 컨텐츠 */}
+                        <div className="flex-1 max-w-[1200px] flex flex-col gap-[20px] md:gap-[30px]">
+                            {/* 게시판 섹션 */}
+                            <HomeBoardSection />
 
-                        {/* 모바일: 배너 광고 2열 그리드 */}
-                        <div className="block md:hidden">
-                            <HomeBannerWidget />
-                        </div>
-
-                        {/* 모바일: 커뮤니티 + 조합정보 2열 그리드 */}
-                        <div className="grid grid-cols-2 md:hidden gap-[8px]">
-                            <HomeCommunitySection />
-                            <HomeUnionCard />
-                        </div>
-
-                        {/* PC: 재개발 커뮤니티 + 재개발 정보 (같은 행) */}
-                        <div className="hidden md:flex gap-[22px]">
-                            <div className="w-[282px] shrink-0">
-                                <HomeCommunitySection />
+                            {/* 모바일: 배너 광고 2열 그리드 */}
+                            <div className="block md:hidden">
+                                <HomeBannerWidget />
                             </div>
-                            <div className="flex-1">
+
+                            {/* 모바일: 커뮤니티 + 조합정보 2열 그리드 */}
+                            <div className="grid grid-cols-2 md:hidden gap-[8px]">
+                                <HomeCommunitySection />
+                                <HomeUnionCard />
+                            </div>
+
+                            {/* PC: 재개발 커뮤니티 + 재개발 정보 (같은 행) */}
+                            <div className="hidden md:flex gap-[22px]">
+                                <div className="w-[282px] shrink-0">
+                                    <HomeCommunitySection />
+                                </div>
+                                <div className="flex-1">
+                                    <HomeInfoSection />
+                                </div>
+                            </div>
+
+                            {/* 모바일: 재개발 정보 별도 행 */}
+                            <div className="block md:hidden">
                                 <HomeInfoSection />
                             </div>
+
+                            {/* 파트너십 섹션 */}
+                            <HomePartnerships />
                         </div>
 
-                        {/* 모바일: 재개발 정보 별도 행 */}
-                        <div className="block md:hidden">
-                            <HomeInfoSection />
-                        </div>
-
-                        {/* PC: 조합 정보 카드 */}
-                        <div className="hidden md:block">
-                            <HomeUnionCard />
-                        </div>
-                    </div>
-
-                    {/* 우측 광고 - 1440px 이상에서만 표시 */}
-                    <aside className="hidden min-[1440px]:block w-[265px] shrink-0">
-                        <div className="sticky top-[100px] h-[404px] rounded-[16px] overflow-hidden">
+                        {/* 우측 광고 - PC에서만 표시 */}
+                        <aside className="hidden lg:block w-[279px] shrink-0">
                             <SideAdWidget />
-                        </div>
-                    </aside>
+                        </aside>
+                    </div>
                 </div>
             </section>
 

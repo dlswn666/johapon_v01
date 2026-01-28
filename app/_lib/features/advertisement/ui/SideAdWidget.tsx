@@ -36,8 +36,11 @@ export function SideAdWidget() {
   }
 
   return (
-    <div className="flex flex-col gap-2 h-full">
-      <div className="relative w-full h-full min-h-[400px] bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden group">
+    <div className="flex flex-col gap-[8px] h-full">
+      <div
+        className="relative w-full h-full min-h-[300px] bg-white rounded-lg overflow-hidden group"
+        style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}
+      >
         {imageUrl ? (
           <>
             <Image
@@ -47,11 +50,17 @@ export function SideAdWidget() {
               sizes="(max-width: 1024px) 100vw, 300px"
               className="object-cover group-hover:scale-105 transition-transform duration-700"
             />
-            {/* Text Overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-5">
-              <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest mb-1">Partnership</span>
-              <h4 className="text-white font-bold text-sm leading-tight mb-1">{activeAd.title}</h4>
-              <p className="text-white/70 text-[10px] font-medium">{activeAd.business_name}</p>
+            {/* Text Overlay - Figma: 상단 이미지(70%) + 하단 텍스트(30%) */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent flex flex-col justify-end p-[16px]">
+              <span className="text-[10px] font-bold text-[#4CAF50] uppercase tracking-widest mb-[4px]">
+                PARTNERSHIP
+              </span>
+              <h4 className="text-white font-semibold text-[14px] leading-tight mb-[4px] line-clamp-2">
+                {activeAd.title}
+              </h4>
+              <p className="text-white/70 text-[10px] font-medium line-clamp-1">
+                {activeAd.business_name}
+              </p>
             </div>
           </>
         ) : (
@@ -63,7 +72,9 @@ export function SideAdWidget() {
             <a href={activeAd.link_url} target="_blank" rel="noopener noreferrer" className="absolute inset-0 z-10" />
         )}
       </div>
-      <p className="text-[10px] text-slate-400 text-center font-medium uppercase tracking-widest">Advertisement</p>
+      <p className="text-[10px] text-gray-400 text-center font-medium uppercase tracking-widest">
+        ADVERTISEMENT
+      </p>
     </div>
   );
 }

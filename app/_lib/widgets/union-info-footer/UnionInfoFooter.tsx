@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import Image from 'next/image';
 import { Union } from '@/app/_lib/shared/type/database.types';
 import { cn } from '@/lib/utils';
 
@@ -17,33 +16,22 @@ export function UnionInfoFooter({ union, className }: UnionInfoFooterProps) {
     const currentYear = new Date().getFullYear();
 
     return (
-        <footer className={cn('bg-[#1e2939] text-white w-full py-[37px]', className)}>
-            <div className="container mx-auto max-w-[1280px] px-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-[37px]">
+        <footer className={cn('bg-[#374151] text-white w-full py-[48px]', className)}>
+            <div className="max-w-[984px] mx-auto px-[16px] md:px-[32px] lg:px-[64px]">
+                {/* 3열 정보 섹션 */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-[32px] lg:gap-[64px] mb-[32px]">
                     {/* 조합 소개 */}
-                    <div className="flex flex-col gap-[18px]">
-                        <div className="flex items-center gap-3">
-                            {union.logo_url && (
-                                <div className="relative h-8 w-8">
-                                    <Image
-                                        src={union.logo_url}
-                                        alt={`${union.name} 로고`}
-                                        fill
-                                        className="object-contain brightness-0 invert"
-                                    />
-                                </div>
-                            )}
-                            <h3 className="text-[22.5px] font-bold leading-[33.75px]">{union.name}</h3>
-                        </div>
-                        <div className="text-[#d1d5dc] text-[18px] leading-[30.6px] whitespace-pre-wrap">
+                    <div className="flex flex-col gap-[16px]">
+                        <h3 className="text-[18px] font-semibold text-white">{union.name}</h3>
+                        <p className="text-[14px] text-[#D1D5DB] leading-[22px] whitespace-pre-wrap">
                             {union.description || placeholderText}
-                        </div>
+                        </p>
                     </div>
 
                     {/* 연락처 */}
-                    <div className="flex flex-col gap-[18px]">
-                        <h4 className="text-[20.25px] font-bold leading-[30.375px]">연락처</h4>
-                        <div className="flex flex-col gap-[9px] text-[#d1d5dc] text-[18px] leading-[27px]">
+                    <div className="flex flex-col gap-[16px]">
+                        <h4 className="text-[18px] font-semibold text-white">연락처</h4>
+                        <div className="flex flex-col gap-[8px] text-[14px] text-[#D1D5DB]">
                             <p>
                                 전화:{' '}
                                 {union.phone ? (
@@ -75,17 +63,17 @@ export function UnionInfoFooter({ union, className }: UnionInfoFooterProps) {
                     </div>
 
                     {/* 오시는 길 */}
-                    <div className="flex flex-col gap-[18px]">
-                        <h4 className="text-[20.25px] font-bold leading-[30.375px]">오시는 길</h4>
-                        <div className="text-[#d1d5dc] text-[18px] leading-[30.6px] whitespace-pre-wrap">
+                    <div className="flex flex-col gap-[16px]">
+                        <h4 className="text-[18px] font-semibold text-white">오시는 길</h4>
+                        <p className="text-[14px] text-[#D1D5DB] leading-[22px] whitespace-pre-wrap">
                             {union.office_address || placeholderText}
-                        </div>
+                        </p>
                     </div>
                 </div>
 
                 {/* 사업자 정보 */}
-                <div className="border-t border-[#364153] pt-6 mt-6">
-                    <div className="text-[#99a1af] text-sm text-center space-y-1">
+                <div className="border-t border-gray-600 pt-[24px] mt-[24px]">
+                    <div className="text-[12px] text-[#9CA3AF] text-center space-y-[4px]">
                         <p>상호: 라텔 | 대표: 정인주 | 사업자등록번호: 276-40-01354</p>
                         <p>주소: 서울특별시 강북구 인수봉로 6가길 9</p>
                         <p>
@@ -106,8 +94,8 @@ export function UnionInfoFooter({ union, className }: UnionInfoFooterProps) {
                 </div>
 
                 {/* Copyright */}
-                <div className="border-t border-[#364153] pt-6 mt-6">
-                    <p className="text-[#99a1af] text-[15.75px] text-center leading-[23.625px]" suppressHydrationWarning>
+                <div className="mt-[32px]">
+                    <p className="text-[12px] text-[#9CA3AF] text-center" suppressHydrationWarning>
                         © {currentYear} {union.name}. All rights reserved. | Powered by 조합온
                     </p>
                 </div>

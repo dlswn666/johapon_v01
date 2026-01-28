@@ -3,15 +3,14 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { format } from 'date-fns';
-import { ko } from 'date-fns/locale';
 import { ChevronRight, AlertCircle, RefreshCw } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/app/_lib/shared/supabase/client';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import { useNotices } from '@/app/_lib/features/notice/api/useNoticeHook';
-import { Notice, FreeBoard } from '@/app/_lib/shared/type/database.types';
+import { FreeBoard } from '@/app/_lib/shared/type/database.types';
+import { format } from 'date-fns';
 
 type BoardTabType = 'notice' | 'union-info' | 'free-board' | 'partner';
 
@@ -79,15 +78,6 @@ export function HomeBoardSection() {
         enabled: !!union?.id,
     });
 
-    // 날짜 포맷팅
-    const formatDate = (dateString: string) => {
-        try {
-            return format(new Date(dateString), 'yyyy-MM-dd', { locale: ko });
-        } catch {
-            return dateString;
-        }
-    };
-
     // 클릭 핸들러들
     const handleNoticeClick = (id: number) => router.push(`/${slug}/news/notice/${id}`);
     const handleUnionInfoClick = (id: number) => router.push(`/${slug}/communication/union-info/${id}`);
@@ -140,60 +130,34 @@ export function HomeBoardSection() {
 
     const { data, isLoading, error, refetch } = getCurrentTabData();
 
-    // 모바일용 날짜 포맷팅 (MM/dd)
-    const formatDateMobile = (dateString: string) => {
+    // 아이템 클릭 핸들러
+    const getItemClickHandler = (id: number) => {
+        switch (activeTab) {
+            case 'notice':
+                return () => handleNoticeClick(id);
+            case 'union-info':
+                return () => handleUnionInfoClick(id);
+            case 'free-board':
+                return () => handleFreeBoardClick(id);
+            default:
+                return () => {};
+        }
+    };
+
+    // 날짜 포맷팅
+    const formatDate = (dateString: string) => {
         try {
-            return format(new Date(dateString), 'MM/dd', { locale: ko });
+            return format(new Date(dateString), 'yyyy. MM. dd');
         } catch {
             return dateString;
         }
     };
 
-    // 게시글 아이템 렌더링
-    const renderBoardItem = (
-        item: Notice | FreeBoard | { id: number; title: string; created_at: string; views?: number },
-        index: number
-    ) => {
-        const handleClick = () => {
-            if (activeTab === 'notice') handleNoticeClick(item.id);
-            else if (activeTab === 'union-info') handleUnionInfoClick(item.id);
-            else if (activeTab === 'free-board') handleFreeBoardClick(item.id);
-        };
-
-        return (
-            <div
-                key={item.id}
-                onClick={handleClick}
-                onKeyDown={(e) => e.key === 'Enter' && handleClick()}
-                role="button"
-                tabIndex={0}
-                className={cn(
-                    'flex items-center justify-between p-[5px] md:p-[10px] cursor-pointer hover:bg-gray-50 transition-colors',
-                    'outline-none focus-visible:bg-gray-100 focus-visible:ring-2 focus-visible:ring-[#4E8C6D] focus-visible:ring-inset',
-                    index < (data?.length || 0) - 1 && 'border-b border-[#bcbcbc]'
-                )}
-            >
-                <div className="flex items-center gap-[6px] md:gap-[13px] flex-1 min-w-0">
-                    <span className="font-medium md:font-semibold text-[14px] md:text-[20px] text-black tracking-[0.5px] md:tracking-[1px] truncate">
-                        {item.title}
-                    </span>
-                </div>
-                {/* PC에서는 yyyy-MM-dd, 모바일에서는 MM/dd */}
-                <span className="hidden md:block font-semibold text-[20px] text-[#777] tracking-[1px] whitespace-nowrap ml-2 tabular-nums">
-                    {formatDate(item.created_at)}
-                </span>
-                <span className="block md:hidden font-semibold text-[10px] text-[#777] tracking-[0.5px] whitespace-nowrap ml-2 tabular-nums">
-                    {formatDateMobile(item.created_at)}
-                </span>
-            </div>
-        );
-    };
-
     return (
-        <div className="flex flex-col md:flex-row gap-[16px] md:gap-[20px] items-stretch md:items-start">
-            {/* 탭 버튼: 모바일(가로 스크롤, 중앙 정렬) / PC(세로 배치) */}
+        <section className="flex flex-col lg:flex-row gap-[16px] lg:gap-[24px]">
+            {/* 좌측: 세로 탭 버튼 - Figma: w-155px, h-294px */}
             <div
-                className="flex md:flex-col gap-[10px] md:gap-[20px] shrink-0 overflow-x-auto md:overflow-visible pb-2 md:pb-0 scrollbar-hide justify-center md:justify-start"
+                className="flex lg:flex-col gap-[8px] lg:gap-0 lg:justify-between lg:w-[155px] lg:h-[294px] overflow-x-auto lg:overflow-visible scrollbar-hide shrink-0"
                 role="tablist"
                 aria-label="게시판 카테고리"
             >
@@ -206,13 +170,13 @@ export function HomeBoardSection() {
                         aria-controls={`tabpanel-${tab.id}`}
                         id={`tab-${tab.id}`}
                         className={cn(
-                            // 모바일: 작은 버튼, PC: 큰 버튼
-                            'h-[40px] md:h-[72px] px-[10px] md:px-[21px] rounded-[18px] md:rounded-[52px] flex items-center justify-center transition-colors cursor-pointer whitespace-nowrap shrink-0',
-                            'font-bold text-[16px] md:text-[24px] tracking-[1px]',
+                            'px-[16px] lg:px-[20px] py-[12px] lg:py-[20px] rounded-[50px] transition-colors cursor-pointer whitespace-nowrap',
+                            'text-[14px] lg:text-[20px] font-semibold tracking-[1px]',
                             'outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
+                            'min-w-[100px] lg:w-full text-center',
                             activeTab === tab.id
                                 ? 'bg-[#2f7f5f] text-white focus-visible:ring-white focus-visible:ring-offset-[#2f7f5f]'
-                                : 'bg-white border border-[#6fbf8f] md:border-2 text-[#2f7f5f] hover:bg-[#f0f9f4] focus-visible:ring-[#4E8C6D]'
+                                : 'bg-white border-[2px] border-[#bfd7cd] text-[#2f7f5f] hover:bg-[#f0f7f4] focus-visible:ring-[#2f7f5f]'
                         )}
                     >
                         {tab.label}
@@ -220,61 +184,105 @@ export function HomeBoardSection() {
                 ))}
             </div>
 
-            {/* 게시글 목록 - PC: 탭 버튼 영역과 동일한 고정 높이(348px), 모바일: 게시글 5개 + 헤더가 들어가는 높이(210px) */}
+            {/* 우측: 게시글 목록 - Figma: bg-[#f4f5f6], rounded-[16px], p-[20px] */}
             <div
-                className="w-full md:flex-1 bg-[#f4f5f6] border border-[#bcbcbc] rounded-[6px] md:rounded-[12px] p-[10px] md:p-[20px] min-h-[210px] md:min-h-0 md:h-[348px] overflow-y-auto"
                 role="tabpanel"
                 id={`tabpanel-${activeTab}`}
                 aria-labelledby={`tab-${activeTab}`}
+                className="flex-1 bg-[#f4f5f6] rounded-[16px] p-[16px] lg:p-[20px]"
             >
-                {/* 전체보기 헤더 */}
-                <div className="flex items-center justify-end gap-[6px] md:gap-[13px] py-[2.5px] md:py-[5px] mb-[5px] md:mb-[10px]">
-                    <button
-                        onClick={handleViewAll}
-                        className="flex items-center gap-[4px] md:gap-[8px] cursor-pointer hover:opacity-70 transition-opacity rounded-md focus-visible:ring-2 focus-visible:ring-[#4E8C6D] focus-visible:ring-offset-2 outline-none"
-                    >
-                        <span className="font-semibold text-[10px] md:text-[20px] text-[#777] tracking-[0.5px] md:tracking-[1px]">전체보기</span>
-                        <ChevronRight className="size-[10px] md:size-[14px] text-[#777]" />
-                    </button>
-                </div>
-
-                {/* 게시글 목록 */}
+                {/* 로딩 상태 */}
                 {isLoading ? (
-                    <div className="space-y-2 md:space-y-3">
-                        {[...Array(5)].map((_, i) => (
-                            <Skeleton key={i} className="h-[32px] md:h-[44px] w-full" />
-                        ))}
+                    <div className="flex flex-col gap-[20px]">
+                        <div className="flex justify-end">
+                            <Skeleton className="h-[24px] w-[80px]" />
+                        </div>
+                        <div className="flex flex-col gap-[10px]">
+                            {[...Array(5)].map((_, i) => (
+                                <div key={i}>
+                                    <Skeleton className="h-[24px] w-full" />
+                                    {i < 4 && <div className="border-b border-gray-200 mt-[10px]" />}
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 ) : error ? (
-                    <div className="flex flex-col items-center justify-center py-6 md:py-10 space-y-2 md:space-y-3">
-                        <AlertCircle className="w-8 h-8 md:w-10 md:h-10 text-red-500" />
-                        <p className="text-gray-600 text-sm md:text-base">데이터를 불러오는 중 오류가 발생했습니다.</p>
+                    /* 에러 상태 */
+                    <div className="flex flex-col items-center justify-center py-10 space-y-3">
+                        <AlertCircle className="w-10 h-10 text-red-500" />
+                        <p className="text-gray-600">데이터를 불러오는 중 오류가 발생했습니다.</p>
                         <button
                             onClick={() => refetch()}
-                            className="flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 bg-[#4e8c6d] text-white rounded-lg hover:bg-[#3d7a5c] transition-colors text-sm md:text-base focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#4e8c6d] outline-none"
+                            className="flex items-center gap-2 px-4 py-2 bg-[#2f7f5f] text-white rounded-lg hover:bg-[#267a52] transition-colors focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#2f7f5f] outline-none"
                         >
-                            <RefreshCw className="w-3 h-3 md:w-4 md:h-4" />
+                            <RefreshCw className="w-4 h-4" />
                             다시 시도
                         </button>
                     </div>
                 ) : activeTab === 'partner' ? (
-                    <div className="flex flex-col items-center justify-center py-6 md:py-10">
-                        <p className="text-gray-500 mb-3 md:mb-4 text-sm md:text-base">제휴업체 목록을 확인하세요.</p>
+                    /* 제휴업체 탭 */
+                    <div className="flex flex-col items-center justify-center py-10">
+                        <p className="text-gray-500 mb-4">제휴업체 목록을 확인하세요.</p>
                         <button
                             onClick={handlePartnerClick}
-                            className="px-4 py-2 md:px-6 md:py-3 bg-[#4e8c6d] text-white rounded-lg hover:bg-[#3d7a5c] transition-colors font-semibold text-sm md:text-base focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#4e8c6d] outline-none"
+                            className="px-6 py-3 bg-[#2f7f5f] text-white rounded-lg hover:bg-[#267a52] transition-colors font-semibold focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#2f7f5f] outline-none"
                         >
                             제휴업체 보기
                         </button>
                     </div>
-                ) : data && data.length > 0 ? (
-                    <div>{data.slice(0, 5).map((item, index) => renderBoardItem(item as Notice, index))}</div>
                 ) : (
-                    <div className="flex items-center justify-center py-6 md:py-10">
-                        <p className="text-gray-500 text-sm md:text-base">등록된 게시물이 없습니다.</p>
+                    <div className="flex flex-col gap-[20px] lg:gap-[30px]">
+                        {/* 전체보기 - Figma: text-[#8a949e] 18px */}
+                        <div className="flex items-center justify-end">
+                            <button
+                                onClick={handleViewAll}
+                                className="flex items-center gap-[2px] text-[#8a949e] hover:text-[#6d7882] transition-colors rounded-md focus-visible:ring-2 focus-visible:ring-[#2f7f5f] focus-visible:ring-offset-2 outline-none"
+                            >
+                                <span className="text-[14px] lg:text-[18px] font-medium tracking-[1px]">전체보기</span>
+                                <ChevronRight className="w-[20px] h-[20px] lg:w-[24px] lg:h-[24px]" />
+                            </button>
+                        </div>
+
+                        {/* 게시글 목록 */}
+                        {data && data.length > 0 ? (
+                            <div className="flex flex-col gap-[10px]">
+                                {data.slice(0, 5).map((item, index) => (
+                                    <div key={(item as Record<string, unknown>).id as number}>
+                                        <button
+                                            onClick={getItemClickHandler((item as Record<string, unknown>).id as number)}
+                                            className="w-full flex items-center justify-between py-[4px] hover:bg-white/50 rounded-md transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[#2f7f5f] focus-visible:ring-offset-2"
+                                        >
+                                            {/* 제목 + 댓글수 */}
+                                            <div className="flex items-center gap-[10px] flex-1 min-w-0">
+                                                <span className="text-[14px] lg:text-[18px] font-semibold text-[#33363d] tracking-[1px] truncate">
+                                                    {(item as Record<string, unknown>).title as string}
+                                                </span>
+                                                {/* 댓글 수 (임시로 0 표시, 실제 데이터 연동 필요) */}
+                                                <span className="text-[12px] font-light text-[#6d7882] shrink-0">
+                                                    [0]
+                                                </span>
+                                            </div>
+                                            {/* 날짜 */}
+                                            <span className="text-[12px] font-light text-[#6d7882] shrink-0 ml-[16px]">
+                                                {formatDate((item as Record<string, unknown>).created_at as string)}
+                                            </span>
+                                        </button>
+                                        {/* 구분선 */}
+                                        {index < Math.min(data.length, 5) - 1 && (
+                                            <div className="border-b border-[#cdd1d5] mt-[10px]" />
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            /* 데이터 없음 상태 */
+                            <div className="flex items-center justify-center py-10">
+                                <p className="text-gray-500">등록된 게시물이 없습니다.</p>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
-        </div>
+        </section>
     );
 }
