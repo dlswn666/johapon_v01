@@ -51,7 +51,26 @@ export function HomeBoardSection() {
                 .order('created_at', { ascending: false })
                 .limit(5);
             if (error) throw error;
-            return data;
+            if (!data || data.length === 0) return [];
+
+            const ids = data.map((item) => item.id);
+            const { data: commentCounts } = await supabase
+                .from('comments')
+                .select('entity_id')
+                .eq('entity_type', 'union_info')
+                .in('entity_id', ids);
+
+            const commentCountMap = new Map<number, number>();
+            if (commentCounts) {
+                for (const c of commentCounts) {
+                    commentCountMap.set(c.entity_id, (commentCountMap.get(c.entity_id) || 0) + 1);
+                }
+            }
+
+            return data.map((item) => ({
+                ...item,
+                comment_count: commentCountMap.get(item.id) || 0,
+            }));
         },
         enabled: !!union?.id,
     });
@@ -73,7 +92,26 @@ export function HomeBoardSection() {
                 .order('created_at', { ascending: false })
                 .limit(5);
             if (error) throw error;
-            return data as (FreeBoard & { author: { id: string; name: string } | null })[];
+            if (!data || data.length === 0) return [] as (FreeBoard & { author: { id: string; name: string } | null; comment_count: number })[];
+
+            const ids = data.map((item) => item.id);
+            const { data: commentCounts } = await supabase
+                .from('comments')
+                .select('entity_id')
+                .eq('entity_type', 'free_board')
+                .in('entity_id', ids);
+
+            const commentCountMap = new Map<number, number>();
+            if (commentCounts) {
+                for (const c of commentCounts) {
+                    commentCountMap.set(c.entity_id, (commentCountMap.get(c.entity_id) || 0) + 1);
+                }
+            }
+
+            return data.map((item) => ({
+                ...item,
+                comment_count: commentCountMap.get(item.id) || 0,
+            })) as (FreeBoard & { author: { id: string; name: string } | null; comment_count: number })[];
         },
         enabled: !!union?.id,
     });
@@ -257,9 +295,9 @@ export function HomeBoardSection() {
                                                 <span className="text-[14px] lg:text-[18px] font-semibold text-[#33363d] tracking-[1px] truncate">
                                                     {(item as Record<string, unknown>).title as string}
                                                 </span>
-                                                {/* 댓글 수 (임시로 0 표시, 실제 데이터 연동 필요) */}
+                                                {/* 댓글 수 */}
                                                 <span className="text-[12px] font-light text-[#6d7882] shrink-0">
-                                                    [0]
+                                                    [{(item as Record<string, unknown>).comment_count as number ?? 0}]
                                                 </span>
                                             </div>
                                             {/* 날짜 */}
