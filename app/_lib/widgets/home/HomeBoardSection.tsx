@@ -192,10 +192,10 @@ export function HomeBoardSection() {
     };
 
     return (
-        <section className="flex flex-col lg:flex-row gap-[16px] lg:gap-[24px]">
+        <section className="flex flex-col lg:flex-row gap-[16px] lg:gap-[24px] lg:h-[294px]">
             {/* 좌측: 세로 탭 버튼 - Figma: w-155px, h-294px */}
             <div
-                className="flex lg:flex-col gap-[8px] lg:gap-0 lg:justify-between lg:w-[155px] lg:h-[294px] overflow-x-auto lg:overflow-visible scrollbar-hide shrink-0"
+                className="flex lg:flex-col gap-[8px] lg:gap-0 lg:justify-between lg:w-[155px] h-full overflow-x-auto lg:overflow-visible scrollbar-hide shrink-0"
                 role="tablist"
                 aria-label="게시판 카테고리"
             >
@@ -227,7 +227,7 @@ export function HomeBoardSection() {
                 role="tabpanel"
                 id={`tabpanel-${activeTab}`}
                 aria-labelledby={`tab-${activeTab}`}
-                className="flex-1 bg-[#f4f5f6] rounded-[16px] p-[16px] lg:p-[20px]"
+                className="flex-1 bg-[#f4f5f6] rounded-[16px] p-[16px] lg:p-[20px] h-full overflow-hidden"
             >
                 {/* 로딩 상태 */}
                 {isLoading ? (
