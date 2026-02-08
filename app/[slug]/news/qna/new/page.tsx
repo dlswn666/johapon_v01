@@ -18,8 +18,8 @@ import useQuestionStore from '@/app/_lib/features/question/model/useQuestionStor
 import { ActionButton } from '@/app/_lib/widgets/common/button';
 
 const formSchema = z.object({
-    title: z.string().min(1, '제목을 입력해주세요.'),
-    content: z.string().min(1, '내용을 입력해주세요.'),
+    title: z.string().min(1, '제목을 입력해주세요.').max(200, '제목은 200자 이내로 입력해주세요.'),
+    content: z.string().min(1, '내용을 입력해주세요.').max(50000, '내용이 너무 깁니다.'),
     is_secret: z.boolean(),
 });
 
@@ -50,8 +50,18 @@ const NewQuestionPage = () => {
         },
     });
 
+    useEffect(() => {
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            if (form.formState.isDirty) {
+                e.preventDefault();
+            }
+        };
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    });
+
     function onSubmit(values: z.infer<typeof formSchema>) {
-        if (!union || !user) return;
+        if (!union || !user || isPending) return;
 
         addQuestion({
             ...values,
@@ -75,7 +85,7 @@ const NewQuestionPage = () => {
                                     <FormItem>
                                         <FormLabel className="text-[16px] font-bold text-[#5FA37C]">제목</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="제목을 입력해주세요" {...field} className="h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]" />
+                                            <Input placeholder="제목을 입력해주세요" {...field} maxLength={200} className="h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]" />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -130,9 +140,17 @@ const NewQuestionPage = () => {
                             </div>
 
                             <div className="flex justify-end gap-3 pt-6 border-t border-[#CCCCCC]">
-                                <ActionButton 
-                                    buttonType="cancel" 
-                                    onClick={() => router.push(`/${slug}/news/qna`)}
+                                <ActionButton
+                                    buttonType="cancel"
+                                    onClick={() => {
+                                        if (form.formState.isDirty) {
+                                            if (window.confirm('작성 중인 내용이 있습니다. 나가시겠습니까?')) {
+                                                router.push(`/${slug}/news/qna`);
+                                            }
+                                        } else {
+                                            router.push(`/${slug}/news/qna`);
+                                        }
+                                    }}
                                 >
                                     취소
                                 </ActionButton>

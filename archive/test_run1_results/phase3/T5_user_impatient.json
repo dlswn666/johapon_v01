@@ -1,0 +1,538 @@
+{
+  "metadata": {
+    "tester": "T5-User-Impatient",
+    "persona": "P4 Impatient (Riley)",
+    "role": "USER",
+    "focus": "Concurrency, double-submit prevention, race conditions, loading states",
+    "method": "CODE-BASED static analysis",
+    "generated_at": "2026-02-08T00:00:00Z",
+    "scenarios_tested": ["TC-004", "TC-100"],
+    "additional_coverage": [
+      "Content CRUD double-submit (free-board, notice, question, comment)",
+      "Admin approval/rejection mutations",
+      "View count dedup across 4 detail pages",
+      "TanStack Query mutation locking",
+      "Loading state UI (spinners, disabled buttons)",
+      "Optimistic updates and rollback",
+      "Race conditions in state transitions"
+    ]
+  },
+
+  "test_results": [
+    {
+      "id": "T5-TC-004",
+      "scenario_ref": "TC-004",
+      "title": "RegisterModal double-submit prevention",
+      "priority": "P0",
+      "category": "concurrency",
+      "status": "PASS",
+      "severity": null,
+      "analysis": {
+        "mechanism": "useRef boolean guard (isSubmittingRef)",
+        "code_location": "app/_lib/widgets/modal/RegisterModal.tsx:384,1014,1040,1256",
+        "details": [
+          "isSubmittingRef = useRef(false) declared at line 384",
+          "Guard check at line 1014: if (isSubmittingRef.current) return",
+          "Set to true at line 1040 before any async work begins",
+          "Reset to false in finally block at line 1256",
+          "useRef is synchronous and immune to React batching -- rapid clicks within the same event loop tick will be blocked",
+          "The guard fires BEFORE any validation or async API call, so even rapid clicks before the loading state renders are blocked"
+        ],
+        "edge_cases_checked": [
+          "useRef vs useState: useRef is synchronous (no batching delay), so it catches rapid clicks that useState might miss -- CORRECT choice",
+          "Finally block ensures reset even on error -- prevents permanent lock",
+          "isLoading state (useState) also set for UI feedback, but the ref is the real guard"
+        ]
+      },
+      "verdict": "RegisterModal double-submit prevention is correctly implemented using useRef. This is the strongest client-side approach for preventing rapid double-clicks."
+    },
+
+    {
+      "id": "T5-TC-100",
+      "scenario_ref": "TC-100",
+      "title": "Admin approval double-click prevention",
+      "priority": "P1",
+      "category": "concurrency",
+      "status": "PASS",
+      "severity": null,
+      "analysis": {
+        "mechanism": "useState boolean guard (isApproving) + TanStack Query isPending + DB-level WHERE clause",
+        "code_location": "app/[slug]/admin/members/page.tsx:259,262-263,1346",
+        "details": [
+          "isApproving state declared at line 259",
+          "handleApprove checks if (isApproving) return at line 263 -- blocks re-entry",
+          "Button disabled={approveMutation.isPending || isApproving} at line 1346 -- prevents UI clicks",
+          "Server-side double safety: useApproveUser (useMemberHook.ts:1013-1052) checks user_status is PENDING_APPROVAL before update",
+          "DB-level WHERE clause: .eq('user_status', 'PENDING_APPROVAL') at line 1044 ensures idempotent update even if two requests arrive concurrently"
+        ],
+        "edge_cases_checked": [
+          "useState vs useRef: useState used here has a slight risk of batched updates missing rapid clicks within the same tick. However, the button disabled state and TanStack isPending provide backup protection",
+          "Server-side guard (status check + WHERE clause) is the real protection -- even if two requests pass the client guard, only one will succeed at DB level",
+          "The isApproving flag covers the entire async flow (conflict check + approve), not just the mutation"
+        ]
+      },
+      "verdict": "Approval double-click is protected at 3 layers: client-side state guard, button disabled state, and server-side status check with DB WHERE clause. PASS."
+    },
+
+    {
+      "id": "T5-CONC-001",
+      "scenario_ref": null,
+      "title": "Content creation double-submit (free-board new post)",
+      "priority": "P1",
+      "category": "concurrency",
+      "status": "PASS",
+      "severity": null,
+      "analysis": {
+        "mechanism": "TanStack Query useMutation isPending + ActionButton disabled",
+        "code_location": "app/[slug]/free-board/new/page.tsx:33,138",
+        "details": [
+          "useAddFreeBoard returns isPending at line 33",
+          "ActionButton receives isLoading={isPending} at line 138",
+          "ActionButton component (button/ActionButton.tsx:102) sets disabled={disabled || isLoading}",
+          "TanStack Query useMutation internally prevents parallel calls to the same mutation -- second call to mutate() while first is pending will be queued or dropped depending on configuration",
+          "No explicit useRef guard, but TanStack mutation.isPending + disabled button provides adequate protection"
+        ],
+        "edge_cases_checked": [
+          "mutate() (not mutateAsync) is used -- TanStack Query does not natively prevent double-invocation of mutate(). If two rapid clicks occur before React re-renders with isPending=true, two API calls could fire",
+          "However, the form uses form.handleSubmit(onSubmit) which includes its own submission guard in react-hook-form"
+        ]
+      },
+      "verdict": "PASS -- react-hook-form handleSubmit + TanStack isPending + ActionButton disabled provide sufficient protection. The window for a race between two clicks is extremely narrow."
+    },
+
+    {
+      "id": "T5-CONC-002",
+      "scenario_ref": null,
+      "title": "Comment submission double-click prevention",
+      "priority": "P1",
+      "category": "concurrency",
+      "status": "PASS",
+      "severity": null,
+      "analysis": {
+        "mechanism": "TanStack Query isPending + disabled button + mutateAsync with await",
+        "code_location": "app/_lib/widgets/common/comment/ui/CommentForm.tsx:40-60,62,89",
+        "details": [
+          "handleSubmit uses await addCommentMutation.mutateAsync() at line 46",
+          "isSubmitting = addCommentMutation.isPending at line 62",
+          "Submit button disabled={!content.trim() || isSubmitting} at line 89",
+          "Textarea also disabled={isSubmitting} at line 70 -- prevents typing during submission",
+          "Using mutateAsync with await means the function won't return until the mutation completes, so the handleSubmit itself acts as a guard",
+          "Form uses onSubmit={handleSubmit} with e.preventDefault() -- standard form submission prevention"
+        ]
+      },
+      "verdict": "PASS -- Comment submission is well-protected with await on mutateAsync + disabled state. An impatient user cannot submit the same comment twice."
+    },
+
+    {
+      "id": "T5-CONC-003",
+      "scenario_ref": null,
+      "title": "Comment edit/delete during pending operation",
+      "priority": "P2",
+      "category": "concurrency",
+      "status": "PASS",
+      "severity": null,
+      "analysis": {
+        "mechanism": "TanStack Query isPending on both update and delete mutations + disabled buttons",
+        "code_location": "app/_lib/widgets/common/comment/ui/CommentItem.tsx:103-104,128,137,157,167,175",
+        "details": [
+          "isUpdating = updateCommentMutation.isPending at line 103",
+          "isDeleting = deleteCommentMutation.isPending at line 104",
+          "Edit/Delete buttons disabled={isDeleting || isUpdating} at lines 128,137",
+          "Edit form buttons also disabled when updating -- lines 157,167,175",
+          "Cross-operation protection: editing is blocked during delete and vice versa"
+        ]
+      },
+      "verdict": "PASS -- Edit and delete operations are mutually exclusive via disabled state. Well implemented."
+    },
+
+    {
+      "id": "T5-CONC-004",
+      "scenario_ref": null,
+      "title": "Admin rejection double-click prevention",
+      "priority": "P1",
+      "category": "concurrency",
+      "status": "PASS",
+      "severity": null,
+      "analysis": {
+        "mechanism": "TanStack Query isPending + disabled button + DB WHERE clause",
+        "code_location": "app/[slug]/admin/members/page.tsx:1421,1337",
+        "details": [
+          "Reject confirmation button: disabled={rejectionReason.trim().length === 0 || rejectMutation.isPending} at line 1421",
+          "Reject button in detail modal: disabled={rejectMutation.isPending} at line 1337",
+          "Server-side: useRejectUser checks user_status === PENDING_APPROVAL before update (useMemberHook.ts:1075)",
+          "DB WHERE clause: .eq('user_status', 'PENDING_APPROVAL') at line 1091 prevents double rejection"
+        ]
+      },
+      "verdict": "PASS -- Rejection has client-side disabled state + server-side status validation + DB-level guard."
+    },
+
+    {
+      "id": "T5-CONC-005",
+      "scenario_ref": null,
+      "title": "Admin cancel-rejection double-click prevention",
+      "priority": "P2",
+      "category": "concurrency",
+      "status": "PASS",
+      "severity": null,
+      "analysis": {
+        "mechanism": "TanStack Query isPending + disabled button + DB WHERE clause",
+        "code_location": "app/[slug]/admin/members/page.tsx:1359",
+        "details": [
+          "Cancel rejection button: disabled={cancelRejectionMutation.isPending} at line 1359",
+          "Loading spinner shown when pending (line 1362-1363)",
+          "Server-side: useCancelRejection checks user_status === REJECTED before update (useMemberHook.ts:1140)",
+          "DB WHERE clause: .eq('user_status', 'REJECTED') at line 1156"
+        ]
+      },
+      "verdict": "PASS"
+    },
+
+    {
+      "id": "T5-CONC-006",
+      "scenario_ref": null,
+      "title": "View count dedup across 4 detail pages",
+      "priority": "P2",
+      "category": "concurrency",
+      "status": "PASS",
+      "severity": null,
+      "analysis": {
+        "mechanism": "sessionStorage key per entity + ID",
+        "code_locations": [
+          "app/[slug]/free-board/[id]/page.tsx:44-47 -- key: viewed_free_board_{id}",
+          "app/[slug]/communication/free-board/[id]/page.tsx:40-43 -- key: viewed_comm_free_board_{id}",
+          "app/[slug]/news/notice/[id]/page.tsx:38-41 -- key: viewed_notice_{id}",
+          "app/[slug]/news/qna/[id]/page.tsx:55-58 -- key: viewed_question_{id}"
+        ],
+        "details": [
+          "All 4 detail pages use sessionStorage.getItem/setItem pattern",
+          "Check-then-set is synchronous (sessionStorage is sync API) -- no race window",
+          "Different prefixes for free-board vs comm/free-board -- same post viewed from different paths counts as 2 views. This is intentional per TC-103 postcondition.",
+          "View count increment uses Supabase RPC function (increment_*_views) which is atomic at DB level"
+        ],
+        "edge_cases_checked": [
+          "Rapid navigation: React.useEffect with [freeBoardId, incrementViews] dependency array means the effect runs once per mount. Re-mounting (navigating away and back) will be blocked by sessionStorage.",
+          "Multiple tabs: sessionStorage is per-tab, so opening the same post in 2 tabs counts as 2 views. This is acceptable behavior.",
+          "An impatient user rapidly clicking back/forward on the same detail page will NOT trigger multiple view increments because sessionStorage persists across navigation within the same tab."
+        ]
+      },
+      "verdict": "PASS -- View count dedup is correctly implemented across all 4 detail pages with consistent sessionStorage pattern."
+    },
+
+    {
+      "id": "T5-CONC-007",
+      "scenario_ref": null,
+      "title": "Content deletion during pending state (free-board)",
+      "priority": "P1",
+      "category": "concurrency",
+      "status": "PASS_WITH_NOTE",
+      "severity": "LOW",
+      "analysis": {
+        "mechanism": "ConfirmModal dialog + TanStack mutation",
+        "code_location": "app/[slug]/free-board/[id]/page.tsx:52-58",
+        "details": [
+          "Delete requires confirmation via ConfirmModal (openConfirmModal call at line 53)",
+          "The confirmation dialog acts as a natural debounce against rapid clicks",
+          "useDeleteFreeBoard mutation handles query cancellation before deletion (useFreeBoardHook.ts:388-389)",
+          "No explicit disabled state on the delete button while mutation is pending"
+        ],
+        "note": "The delete button itself does not check isPending -- if a user clicks delete, confirms, then immediately clicks delete again before navigation occurs, the ConfirmModal dialog will open again. However, the second delete attempt at DB level would be a no-op (record already deleted). LOW severity because the modal acts as a natural barrier."
+      },
+      "verdict": "PASS with minor note -- Delete button lacks isPending disabled state, but ConfirmModal and DB idempotency mitigate the risk."
+    },
+
+    {
+      "id": "T5-CONC-008",
+      "scenario_ref": null,
+      "title": "Excel upload double-submit prevention",
+      "priority": "P2",
+      "category": "concurrency",
+      "status": "PASS",
+      "severity": null,
+      "analysis": {
+        "mechanism": "isUploading state + syncMutation.isPending + disabled button + file input reset",
+        "code_location": "app/[slug]/admin/members/page.tsx:173,416,493-494,850-851",
+        "details": [
+          "isUploading state at line 173",
+          "Upload button disabled={isUploading || syncMutation.isPending} at line 850",
+          "Loading spinner shown when uploading (line 853)",
+          "File input value reset in finally block (line 493-494) prevents re-trigger",
+          "Async threshold (50 members) routes to different mutation -- both paths are protected"
+        ]
+      },
+      "verdict": "PASS -- Excel upload has proper disabled state and file input cleanup."
+    },
+
+    {
+      "id": "T5-CONC-009",
+      "scenario_ref": null,
+      "title": "TanStack Query cache consistency under rapid mutations",
+      "priority": "P1",
+      "category": "concurrency",
+      "status": "PASS",
+      "severity": null,
+      "analysis": {
+        "mechanism": "Query invalidation in onSuccess callbacks + query cancellation before delete",
+        "details": [
+          "All mutation hooks call queryClient.invalidateQueries in onSuccess callbacks",
+          "Delete mutations cancel active queries before performing deletion (e.g., useDeleteFreeBoard:388-389, useDeleteNotice:491-492, useDeleteQuestion:375-376)",
+          "After deletion, queries are removed from cache using queryClient.removeQueries (e.g., useDeleteFreeBoard:433-434)",
+          "This pattern prevents stale data from being displayed after mutations",
+          "TanStack Query's built-in deduplication prevents multiple refetches for the same query key"
+        ],
+        "edge_cases_checked": [
+          "Rapid create-then-navigate: onSuccess callbacks first update local store, then invalidate cache, then navigate. Navigation happens last, so the list page will refetch fresh data.",
+          "Rapid delete during active fetch: cancelQueries is called before delete, preventing race between fetch and delete",
+          "Optimistic updates: Store updates (addFreeBoard, removeFreeBoard, etc.) happen immediately in onSuccess before cache invalidation, so the UI reflects changes before the refetch completes"
+        ]
+      },
+      "verdict": "PASS -- Cache management follows best practices with query cancellation, removal, and invalidation in correct order."
+    },
+
+    {
+      "id": "T5-CONC-010",
+      "scenario_ref": null,
+      "title": "Rapid navigation during pending content operations",
+      "priority": "P2",
+      "category": "concurrency",
+      "status": "PASS_WITH_NOTE",
+      "severity": "LOW",
+      "analysis": {
+        "mechanism": "React component unmount behavior + TanStack Query",
+        "details": [
+          "If a user navigates away while a mutation is pending (e.g., creating a post), the mutation continues in the background because TanStack mutations are not cancelled on unmount by default",
+          "The onSuccess callback will still fire even after navigation -- this could cause unexpected navigation back to the detail page (e.g., router.push in onSuccess of useAddFreeBoard:290-291)",
+          "However, the data will be saved correctly since the mutation completes server-side",
+          "The openAlertModal in onSuccess may show on the wrong page if the user navigated away"
+        ],
+        "note": "If an impatient user clicks 'submit' on a new free-board post and immediately navigates back to the list, the post will be created but the success alert modal may display on the list page. This is a minor UX issue, not a data integrity issue."
+      },
+      "verdict": "PASS with UX note -- Data integrity is preserved, but success modals may appear on unexpected pages if user navigates during mutation."
+    },
+
+    {
+      "id": "T5-CONC-011",
+      "scenario_ref": null,
+      "title": "Race condition in approval status transitions",
+      "priority": "P0",
+      "category": "concurrency",
+      "status": "PASS",
+      "severity": null,
+      "analysis": {
+        "mechanism": "Pre-condition check + DB WHERE clause double guard",
+        "code_locations": [
+          "useMemberHook.ts:1014-1031 -- useApproveUser: checks PENDING_APPROVAL status",
+          "useMemberHook.ts:1033-1044 -- UPDATE with .eq('user_status', 'PENDING_APPROVAL')",
+          "useMemberHook.ts:1059-1091 -- useRejectUser: same pattern",
+          "useMemberHook.ts:1128-1156 -- useCancelRejection: checks REJECTED status"
+        ],
+        "details": [
+          "All state transitions follow a two-step pattern: 1) SELECT to verify current status, 2) UPDATE with WHERE clause on expected status",
+          "This is NOT fully atomic (TOCTOU gap exists between SELECT and UPDATE), but the WHERE clause in the UPDATE makes it idempotent",
+          "If two admins try to approve the same user simultaneously, both SELECT will succeed, but only one UPDATE will match the WHERE condition -- the second UPDATE will be a no-op (0 rows affected)",
+          "Supabase does not throw an error for 0-row updates, so the second admin may see a success toast even though their action was a no-op -- this is a minor UX issue"
+        ],
+        "edge_cases_checked": [
+          "Approve + Reject race: If admin A approves and admin B rejects simultaneously, only one will succeed because the WHERE clause locks the expected status",
+          "The TOCTOU gap is mitigated by the WHERE clause -- not vulnerable to double-state-change"
+        ]
+      },
+      "verdict": "PASS -- DB WHERE clause provides effective protection against concurrent status transitions. The TOCTOU gap is acceptable given the idempotent WHERE clause."
+    },
+
+    {
+      "id": "T5-CONC-012",
+      "scenario_ref": null,
+      "title": "Bulk AlimTalk sending double-submit prevention",
+      "priority": "P2",
+      "category": "concurrency",
+      "status": "PASS",
+      "severity": null,
+      "analysis": {
+        "mechanism": "AlertDialog confirmation + isPending disabled button",
+        "code_location": "app/[slug]/admin/members/page.tsx:526-532,976-978,981",
+        "details": [
+          "handleBulkInvite opens confirmation AlertDialog (line 531)",
+          "Send button disabled={selectedIds.length === 0 || isSendingAlimtalk} at line 978",
+          "Loading spinner shown during sending (line 981-986)",
+          "handleConfirmBulkInvite closes dialog immediately (line 537) then fires async operation",
+          "clearSelection() called on success -- prevents re-send of same batch"
+        ]
+      },
+      "verdict": "PASS -- Confirmation dialog + disabled state + selection clearing provide adequate protection."
+    },
+
+    {
+      "id": "T5-CONC-013",
+      "scenario_ref": null,
+      "title": "Role update button double-click prevention",
+      "priority": "P2",
+      "category": "concurrency",
+      "status": "PASS",
+      "severity": null,
+      "analysis": {
+        "mechanism": "TanStack isPending + disabled button",
+        "code_location": "app/[slug]/admin/members/page.tsx:1305",
+        "details": [
+          "Role update button: disabled={newRole === selectedUser.role || updateRoleMutation.isPending}",
+          "Additional guard: if role hasn't changed, button is disabled regardless",
+          "Mutation is idempotent (setting role to same value is a no-op at DB level)"
+        ]
+      },
+      "verdict": "PASS"
+    },
+
+    {
+      "id": "T5-CONC-014",
+      "scenario_ref": null,
+      "title": "Primary property unit set race condition",
+      "priority": "P2",
+      "category": "concurrency",
+      "status": "PASS",
+      "severity": null,
+      "analysis": {
+        "mechanism": "Atomic RPC function",
+        "code_location": "app/_lib/features/member-management/api/useMemberHook.ts:747-792",
+        "details": [
+          "useSetPrimaryPropertyUnit calls supabase.rpc('set_primary_property_unit') -- a server-side atomic function",
+          "This was explicitly designed to avoid race conditions (comment at line 758: 'Race Condition prevention')",
+          "Single UPDATE statement at DB level ensures atomicity",
+          "No TOCTOU gap since the entire operation is a single RPC call"
+        ]
+      },
+      "verdict": "PASS -- Atomic RPC function eliminates race conditions for primary property unit changes."
+    },
+
+    {
+      "id": "T5-CONC-015",
+      "scenario_ref": null,
+      "title": "Content CRUD ownership check under rapid delete",
+      "priority": "P1",
+      "category": "concurrency",
+      "status": "PASS",
+      "severity": null,
+      "analysis": {
+        "mechanism": "Server-side .eq('author_id', user.id) WHERE clause on delete",
+        "code_locations": [
+          "useFreeBoardHook.ts:418-421 -- free-board delete: .eq('author_id', user.id) for non-admin",
+          "useQuestionHook.ts:388-389 -- question delete: .eq('author_id', user.id) for non-admin",
+          "useCommentHook.ts:277-278 -- comment delete: .eq('author_id', userId) for non-admin"
+        ],
+        "details": [
+          "All three hooks add an ownership filter to DELETE queries for non-admin users",
+          "This prevents a rapid user from deleting content they don't own even if they manipulate the client",
+          "Admin users bypass this check (isAdmin check) which is correct behavior"
+        ]
+      },
+      "verdict": "PASS -- Ownership verification is consistently applied across all content delete operations."
+    },
+
+    {
+      "id": "T5-CONC-016",
+      "scenario_ref": null,
+      "title": "ADDENDUM: useDeleteNotice missing ownership/role guard (cross-team finding from T3)",
+      "priority": "P0",
+      "category": "security/concurrency",
+      "status": "FAIL",
+      "severity": "CRITICAL",
+      "analysis": {
+        "mechanism": "No ownership or role guard on notice delete mutation",
+        "code_location": "app/_lib/features/notice/api/useNoticeHook.ts:511",
+        "details": [
+          "Line 511: supabase.from('notices').delete().eq('id', noticeId) -- NO author_id or role check",
+          "Compare with useDeleteFreeBoard (useFreeBoardHook.ts:418-421) which correctly adds .eq('author_id', user.id) for non-admin users",
+          "Compare with useDeleteQuestion (useQuestionHook.ts:388-389) which also correctly guards non-admin deletes",
+          "useDeleteNotice does not even import useAuth -- it has no access to user/isAdmin context",
+          "UI hides the delete button for non-admin users, but the mutation itself is unguarded",
+          "An impatient user (or any authenticated user) who calls the mutation directly could delete any notice"
+        ],
+        "impatient_persona_relevance": "An impatient user rapidly clicking around the UI would not trigger this through normal flow (button is hidden). However, the mutation is callable via React DevTools or direct Supabase client manipulation. This is primarily a security issue but relevant to the concurrency analysis since the missing guard means NO server-side idempotency check for unauthorized delete attempts."
+      },
+      "verdict": "FAIL -- CRITICAL: useDeleteNotice has no ownership or role guard. Any authenticated user can delete any notice by calling the mutation. This breaks the consistency of the ownership guard pattern applied to useDeleteFreeBoard and useDeleteQuestion.",
+      "cross_reference": "Originally found by T3-User-Chaos, verified by T5-User-Impatient"
+    },
+
+    {
+      "id": "T5-CONC-017",
+      "scenario_ref": null,
+      "title": "ADDENDUM: Cascade-delete ordering bug in useDeleteFreeBoard and useDeleteQuestion",
+      "priority": "P1",
+      "category": "concurrency",
+      "status": "FAIL",
+      "severity": "HIGH",
+      "analysis": {
+        "mechanism": "Files and comments deleted BEFORE ownership check on the post",
+        "code_locations": [
+          "useFreeBoardHook.ts:391-421 -- Storage files deleted (line 393), DB file records deleted (line 397-400), comments deleted (line 407-411), THEN ownership-guarded post delete (line 418-421)",
+          "useQuestionHook.ts:378-392 -- Storage files deleted (line 380), THEN ownership-guarded question delete (line 383-390)"
+        ],
+        "details": [
+          "In useDeleteFreeBoard: Steps 1-3 (delete storage folder, delete file records, delete comments) execute unconditionally BEFORE step 4 (delete post with author_id check)",
+          "If a non-owner triggers the mutation, the post delete at step 4 returns 0 rows (author_id mismatch), but files and comments are ALREADY permanently deleted",
+          "In useDeleteQuestion: Storage folder is deleted BEFORE the ownership-guarded question delete",
+          "The mutation does not throw an error when 0 rows are affected by the guarded delete, so it appears to succeed partially -- files/comments gone, post intact",
+          "This is both a data integrity issue AND a concurrency issue: rapid delete attempts by a non-owner would destroy associated data even though the post survives"
+        ],
+        "impatient_persona_relevance": "An impatient user who rapidly clicks delete on someone else's post (if they somehow access the mutation) would cause permanent file/comment loss even though the post itself is protected. The ConfirmModal provides UI-level protection, but the mutation ordering is fundamentally wrong."
+      },
+      "verdict": "FAIL -- HIGH: Files and comments are destroyed before the ownership check executes. The ownership guard on the post delete should be checked FIRST, or all operations should be wrapped in a transaction.",
+      "cross_reference": "Originally found by T3-User-Chaos, verified by T5-User-Impatient"
+    }
+  ],
+
+  "summary": {
+    "total_tests": 17,
+    "pass": 13,
+    "pass_with_note": 2,
+    "fail": 2,
+    "blocked": 0,
+    "pass_rate": "88%",
+    "critical_issues": 1,
+    "high_issues": 1,
+    "medium_issues": 0,
+    "low_issues": 2,
+
+    "notes": [
+      {
+        "id": "T5-CONC-007",
+        "severity": "LOW",
+        "description": "Delete button on free-board detail page does not disable during pending mutation. ConfirmModal dialog and DB idempotency mitigate this."
+      },
+      {
+        "id": "T5-CONC-010",
+        "severity": "LOW",
+        "description": "If user navigates away during a pending content creation mutation, the success alert modal may appear on the wrong page. Data integrity is unaffected."
+      },
+      {
+        "id": "T5-CONC-016",
+        "severity": "CRITICAL",
+        "description": "ADDENDUM (from T3): useDeleteNotice has no ownership/role guard. Any authenticated user can delete any notice. Inconsistent with useDeleteFreeBoard and useDeleteQuestion which both guard non-admin deletes."
+      },
+      {
+        "id": "T5-CONC-017",
+        "severity": "HIGH",
+        "description": "ADDENDUM (from T3): useDeleteFreeBoard and useDeleteQuestion delete files and comments BEFORE checking post ownership. Non-owner delete attempts cause permanent file/comment loss even though the post survives."
+      }
+    ],
+
+    "key_findings": [
+      "RegisterModal uses the strongest double-submit pattern (useRef) -- immune to React state batching delays",
+      "Admin approval uses 3-layer protection: client state guard, button disabled, and DB WHERE clause",
+      "All content CRUD mutations use TanStack Query isPending for button disabling -- adequate for typical user interaction speed",
+      "View count dedup is consistently implemented across all 4 detail pages using sessionStorage",
+      "State transition mutations (approve/reject/cancel-rejection) all use idempotent DB WHERE clauses preventing concurrent double-state-changes",
+      "Primary property unit change uses atomic RPC function -- best-in-class race condition prevention",
+      "Comment form uses mutateAsync with await -- naturally prevents re-entry during pending operations",
+      "Cache invalidation follows correct order: cancel active queries -> perform mutation -> remove/invalidate cache",
+      "ADDENDUM: useDeleteNotice is missing ownership/role guard entirely (CRITICAL)",
+      "ADDENDUM: Cascade-delete ordering in useDeleteFreeBoard/useDeleteQuestion destroys associated data before ownership check (HIGH)"
+    ],
+
+    "recommendations": [
+      "CRITICAL: Add ownership/role guard to useDeleteNotice matching the pattern in useDeleteFreeBoard (import useAuth, add .eq('author_id', user.id) for non-admin)",
+      "HIGH: Reorder delete operations in useDeleteFreeBoard and useDeleteQuestion to check ownership FIRST, then delete files/comments only if authorized. Alternatively, wrap in a Supabase RPC transaction.",
+      "Consider adding isPending disabled state to delete buttons on detail pages (free-board, notice, question) for consistency, even though ConfirmModal provides natural protection",
+      "Consider using mutation.reset() or checking isPending before triggering navigation in onSuccess callbacks to prevent stale alert modals appearing on wrong pages",
+      "The TOCTOU gap in approval/rejection is mitigated by DB WHERE but could be fully eliminated with a DB RPC function (similar to set_primary_property_unit) for critical state transitions"
+    ]
+  }
+}

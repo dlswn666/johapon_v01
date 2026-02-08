@@ -1,0 +1,912 @@
+{
+  "data_flows": [
+    {
+      "entity": "notice",
+      "table": "notices",
+      "operations": {
+        "create": [
+          {
+            "hook": "useAddNotice",
+            "file": "app/_lib/features/notice/api/useNoticeHook.ts",
+            "flow": "Client form -> useMutation -> supabase.insert('notices') -> processEditorImages -> supabase.update(content) -> confirmFiles(temp->permanent) -> optional sendAlimTalk/scheduled_alimtalks insert",
+            "side_effects": [
+              "addNotice (zustand store)",
+              "invalidateQueries(['notices', unionId])",
+              "clearTempFiles()",
+              "clearEditorImages()",
+              "openAlertModal('success')",
+              "router.push to detail page"
+            ],
+            "tables_touched": ["notices", "files", "scheduled_alimtalks", "users"],
+            "storage_touched": ["files bucket: unions/{slug}/notices/{noticeId}/"],
+            "external_services": ["AlimTalk proxy server (sendAlimTalk server action)"]
+          }
+        ],
+        "read": [
+          {
+            "hook": "useNotices",
+            "file": "app/_lib/features/notice/api/useNoticeHook.ts",
+            "queryKey": ["notices", "unionId", "searchQuery"],
+            "flow": "supabase.select('notices') with author join -> supabase.select('files') for file counts -> supabase.select('comments') for comment counts -> merge with Map O(1)",
+            "tables_touched": ["notices", "files", "comments", "users"],
+            "filters": ["union_id", "title.ilike", "content.ilike", "client-side author name filter"],
+            "search_escape": "escapeLikeWildcards applied",
+            "zustand_sync": "setNotices()"
+          },
+          {
+            "hook": "useRecentNotices",
+            "file": "app/_lib/features/notice/api/useNoticeHook.ts",
+            "queryKey": ["notices", "unionId", "recent", "excludeId", "limit"],
+            "flow": "supabase.select('notices') lightweight (id,title,created_at,author) -> limit 5",
+            "tables_touched": ["notices", "users"],
+            "staleTime": "default"
+          },
+          {
+            "hook": "useNotice",
+            "file": "app/_lib/features/notice/api/useNoticeHook.ts",
+            "queryKey": ["notices", "unionId", "noticeId"],
+            "flow": "supabase.select('notices').single() with author join, filtered by union_id",
+            "tables_touched": ["notices", "users"],
+            "zustand_sync": "setSelectedNotice()"
+          },
+          {
+            "hook": "usePopupNotices",
+            "file": "app/_lib/features/notice/api/useNoticeHook.ts",
+            "queryKey": ["notices", "unionId", "popup"],
+            "flow": "supabase.select('notices') where is_popup=true and date range active",
+            "tables_touched": ["notices"],
+            "staleTime": 300000
+          }
+        ],
+        "update": [
+          {
+            "hook": "useUpdateNotice",
+            "file": "app/_lib/features/notice/api/useNoticeHook.ts",
+            "flow": "processEditorImages -> supabase.update('notices') -> confirmFiles",
+            "side_effects": [
+              "updateNotice (zustand store)",
+              "invalidateQueries(['notices', unionId])",
+              "invalidateQueries(['notices', unionId, noticeId])",
+              "clearTempFiles()",
+              "clearEditorImages()",
+              "router.push to detail page"
+            ],
+            "tables_touched": ["notices", "files"],
+            "storage_touched": ["files bucket"]
+          },
+          {
+            "hook": "useIncrementNoticeViews",
+            "file": "app/_lib/features/notice/api/useNoticeHook.ts",
+            "flow": "supabase.rpc('increment_notice_views') -> optimistic store update",
+            "side_effects": [
+              "incrementViews (zustand store)",
+              "invalidateQueries(['notices', unionId])",
+              "invalidateQueries(['notices', unionId, noticeId])"
+            ],
+            "tables_touched": ["notices (via RPC)"],
+            "dedup": "sessionStorage key 'viewed_notice_{id}'"
+          }
+        ],
+        "delete": [
+          {
+            "hook": "useDeleteNotice",
+            "file": "app/_lib/features/notice/api/useNoticeHook.ts",
+            "flow": "cancelQueries -> fileApi.deleteFolder(storage) -> supabase.delete('files') -> supabase.delete('notices')",
+            "side_effects": [
+              "removeNotice (zustand store)",
+              "removeQueries(['notices', unionId, noticeId])",
+              "removeQueries(['notices', unionId])",
+              "router.push to list",
+              "openAlertModal('success')"
+            ],
+            "tables_touched": ["notices", "files"],
+            "storage_touched": ["files bucket: unions/{slug}/notices/{noticeId}/"],
+            "note": "Manual cascade: files deleted before notices. No DB-level CASCADE constraint."
+          }
+        ]
+      }
+    },
+    {
+      "entity": "question",
+      "table": "questions",
+      "operations": {
+        "create": [
+          {
+            "hook": "useAddQuestion",
+            "file": "app/_lib/features/question/api/useQuestionHook.ts",
+            "flow": "Client form -> supabase.insert('questions') -> processEditorImages -> supabase.update(content) -> sendAlimTalk to admins",
+            "side_effects": [
+              "addQuestion (zustand store)",
+              "invalidateQueries(['questions', unionId])",
+              "clearEditorImages()",
+              "router.push to list"
+            ],
+            "tables_touched": ["questions", "users"],
+            "storage_touched": ["files bucket: unions/{slug}/question_{id}/"],
+            "external_services": ["AlimTalk proxy server (template UE_3236)"]
+          },
+          {
+            "hook": "useAnswerQuestion",
+            "file": "app/_lib/features/question/api/useQuestionHook.ts",
+            "flow": "processEditorImages -> supabase.update('questions') (answer_content, answer_author_id, answered_at) -> sendAlimTalk to question author",
+            "side_effects": [
+              "updateQuestion (zustand store)",
+              "invalidateQueries(['questions', unionId])",
+              "invalidateQueries(['questions', unionId, questionId])",
+              "clearAnswerEditorImages()"
+            ],
+            "tables_touched": ["questions", "users"],
+            "external_services": ["AlimTalk proxy server (template UE_3000)"]
+          }
+        ],
+        "read": [
+          {
+            "hook": "useQuestions",
+            "file": "app/_lib/features/question/api/useQuestionHook.ts",
+            "queryKey": ["questions", "unionId", "searchQuery"],
+            "flow": "supabase.select('questions') with author+answer_author joins -> server-side secret filter (non-admin: is_secret=false OR author_id=user) -> client-side author name search -> client-side 'my posts first' sort",
+            "tables_touched": ["questions", "users"],
+            "filters": ["union_id", "is_secret filter", "title.ilike", "content.ilike"],
+            "search_escape": "escapeLikeWildcards applied",
+            "zustand_sync": "setQuestions()",
+            "security_note": "Server-side secret filtering applied for non-admin users"
+          },
+          {
+            "hook": "useQuestion",
+            "file": "app/_lib/features/question/api/useQuestionHook.ts",
+            "queryKey": ["questions", "unionId", "questionId"],
+            "flow": "supabase.select('questions').single() -> client-side secret access check (isAdmin || author_id === user.id)",
+            "tables_touched": ["questions", "users"],
+            "zustand_sync": "setSelectedQuestion()",
+            "security_note": "Access check throws error for unauthorized secret access"
+          }
+        ],
+        "update": [
+          {
+            "hook": "useUpdateQuestion",
+            "file": "app/_lib/features/question/api/useQuestionHook.ts",
+            "flow": "processEditorImages -> supabase.update('questions')",
+            "side_effects": [
+              "updateQuestion (zustand store)",
+              "invalidateQueries(['questions', unionId])",
+              "invalidateQueries(['questions', unionId, questionId])",
+              "clearEditorImages()",
+              "router.push to detail"
+            ],
+            "tables_touched": ["questions"]
+          },
+          {
+            "hook": "useIncrementQuestionViews",
+            "file": "app/_lib/features/question/api/useQuestionHook.ts",
+            "flow": "supabase.rpc('increment_question_views')",
+            "side_effects": [
+              "incrementViews (zustand store)",
+              "invalidateQueries(['questions', unionId])",
+              "invalidateQueries(['questions', unionId, questionId])"
+            ],
+            "dedup": "sessionStorage key 'viewed_question_{id}'"
+          }
+        ],
+        "delete": [
+          {
+            "hook": "useDeleteQuestion",
+            "file": "app/_lib/features/question/api/useQuestionHook.ts",
+            "flow": "cancelQueries -> fileApi.deleteFolder(storage) -> supabase.delete('questions') with ownership check (.eq('author_id', user.id) for non-admin)",
+            "side_effects": [
+              "removeQuestion (zustand store)",
+              "removeQueries(['questions', unionId, questionId])",
+              "removeQueries(['questions', unionId])",
+              "router.push to list"
+            ],
+            "tables_touched": ["questions"],
+            "storage_touched": ["files bucket: unions/{slug}/questions/{id}/"],
+            "security_note": "Non-admin users can only delete own questions (author_id check)"
+          },
+          {
+            "hook": "useDeleteAnswer",
+            "file": "app/_lib/features/question/api/useQuestionHook.ts",
+            "flow": "supabase.update('questions') set answer fields to null",
+            "side_effects": [
+              "updateQuestion (zustand store)",
+              "invalidateQueries(['questions', unionId])",
+              "invalidateQueries(['questions', unionId, questionId])"
+            ],
+            "tables_touched": ["questions"]
+          }
+        ]
+      }
+    },
+    {
+      "entity": "free_board",
+      "table": "free_boards",
+      "operations": {
+        "create": [
+          {
+            "hook": "useAddFreeBoard",
+            "file": "app/_lib/features/free-board/api/useFreeBoardHook.ts",
+            "flow": "supabase.insert('free_boards') -> processEditorImages -> supabase.update(content) -> confirmFiles(temp->permanent)",
+            "side_effects": [
+              "addFreeBoard (zustand store)",
+              "invalidateQueries(['freeBoards', unionId])",
+              "clearTempFiles()",
+              "clearEditorImages()",
+              "router.push to list"
+            ],
+            "tables_touched": ["free_boards", "files"],
+            "storage_touched": ["files bucket: unions/{slug}/free-boards/{id}/"]
+          }
+        ],
+        "read": [
+          {
+            "hook": "useFreeBoards",
+            "file": "app/_lib/features/free-board/api/useFreeBoardHook.ts",
+            "queryKey": ["freeBoards", "unionId", "searchQuery", "page", "limit"],
+            "flow": "supabase.select('free_boards') with pagination + author search (separate users query for author name matching) -> file counts -> comment counts -> merge",
+            "tables_touched": ["free_boards", "users", "files", "comments"],
+            "filters": ["union_id", "title.ilike", "content.ilike", "author_id.in()"],
+            "search_escape": "escapeLikeWildcards applied",
+            "pagination": "server-side via .range(offset, offset+limit-1) + count:'exact'",
+            "zustand_sync": "setFreeBoards(), setTotalCount()"
+          },
+          {
+            "hook": "useFreeBoard",
+            "file": "app/_lib/features/free-board/api/useFreeBoardHook.ts",
+            "queryKey": ["freeBoards", "unionId", "freeBoardId"],
+            "flow": "supabase.select('free_boards').single() with author join, filtered by union_id",
+            "tables_touched": ["free_boards", "users"],
+            "zustand_sync": "setSelectedFreeBoard()"
+          }
+        ],
+        "update": [
+          {
+            "hook": "useUpdateFreeBoard",
+            "file": "app/_lib/features/free-board/api/useFreeBoardHook.ts",
+            "flow": "processEditorImages -> supabase.update('free_boards') -> confirmFiles",
+            "side_effects": [
+              "updateFreeBoard (zustand store)",
+              "invalidateQueries(['freeBoards', unionId])",
+              "invalidateQueries(['freeBoards', unionId, freeBoardId])",
+              "clearTempFiles()",
+              "clearEditorImages()",
+              "router.push to detail"
+            ],
+            "tables_touched": ["free_boards", "files"]
+          },
+          {
+            "hook": "useIncrementFreeBoardViews",
+            "file": "app/_lib/features/free-board/api/useFreeBoardHook.ts",
+            "flow": "supabase.rpc('increment_free_board_views')",
+            "side_effects": [
+              "incrementViews (zustand store)",
+              "invalidateQueries(['freeBoards', unionId])",
+              "invalidateQueries(['freeBoards', unionId, freeBoardId])"
+            ],
+            "dedup": "sessionStorage key 'viewed_free_board_{id}' or 'viewed_comm_free_board_{id}'"
+          }
+        ],
+        "delete": [
+          {
+            "hook": "useDeleteFreeBoard",
+            "file": "app/_lib/features/free-board/api/useFreeBoardHook.ts",
+            "flow": "cancelQueries -> fileApi.deleteFolder(storage) -> supabase.delete('files') -> supabase.delete('comments') -> supabase.delete('free_boards') with ownership check",
+            "side_effects": [
+              "removeFreeBoard (zustand store)",
+              "removeQueries(['freeBoards', unionId, freeBoardId])",
+              "removeQueries(['freeBoards', unionId])",
+              "router.push to list"
+            ],
+            "tables_touched": ["free_boards", "files", "comments"],
+            "storage_touched": ["files bucket: unions/{slug}/free-boards/{id}/"],
+            "security_note": "Non-admin users can only delete own posts (author_id check). Manual cascade: comments+files deleted manually before post.",
+            "cascade_note": "No DB-level CASCADE — app handles files, comments deletion manually"
+          }
+        ]
+      }
+    },
+    {
+      "entity": "union_info",
+      "table": "union_info",
+      "operations": {
+        "create": [
+          {
+            "hook": "useAddUnionInfo",
+            "file": "app/_lib/features/union-info/api/useUnionInfoHook.ts",
+            "flow": "supabase.insert('union_info') -> processEditorImages -> confirmFiles -> supabase.update(content)",
+            "side_effects": [
+              "addPost (zustand store)",
+              "invalidateQueries(['union-info', 'list', unionId])",
+              "clearEditorImages()",
+              "clearTempFiles()",
+              "router.push to list"
+            ],
+            "tables_touched": ["union_info", "files"],
+            "storage_touched": ["files bucket: unions/{slug}/union_info/{id}/"]
+          }
+        ],
+        "read": [
+          {
+            "hook": "useUnionInfos",
+            "file": "app/_lib/features/union-info/api/useUnionInfoHook.ts",
+            "queryKey": ["union-info", "list", "unionId", "search", "page", "pageSize"],
+            "flow": "supabase.select('union_info') with author join + pagination -> file counts -> comment counts -> client-side author name filter",
+            "tables_touched": ["union_info", "users", "files", "comments"],
+            "filters": ["union_id", "title.ilike", "content.ilike", "client-side author name"],
+            "search_escape": "NOT applied (potential issue)",
+            "pagination": "server-side via .range()",
+            "zustand_sync": "setPosts(), setTotalCount()"
+          },
+          {
+            "hook": "useUnionInfo",
+            "file": "app/_lib/features/union-info/api/useUnionInfoHook.ts",
+            "queryKey": ["union-info", "detail", "postId"],
+            "flow": "supabase.select('union_info').single() with author join -> supabase.select('files') for attachments",
+            "tables_touched": ["union_info", "users", "files"],
+            "zustand_sync": "setSelectedPost()"
+          }
+        ],
+        "update": [
+          {
+            "hook": "useUpdateUnionInfo",
+            "file": "app/_lib/features/union-info/api/useUnionInfoHook.ts",
+            "flow": "processEditorImages -> confirmFiles -> supabase.update('union_info')",
+            "side_effects": [
+              "updatePost (zustand store)",
+              "invalidateQueries(['union-info', 'list', unionId])",
+              "invalidateQueries(['union-info', 'detail', postId])",
+              "clearEditorImages()",
+              "clearTempFiles()",
+              "router.push to detail"
+            ],
+            "tables_touched": ["union_info", "files"]
+          },
+          {
+            "hook": "useIncrementUnionInfoViews",
+            "file": "app/_lib/features/union-info/api/useUnionInfoHook.ts",
+            "flow": "supabase.rpc('increment_union_info_views')",
+            "side_effects": [
+              "incrementViews (zustand store)",
+              "invalidateQueries(['union-info', 'list', unionId])",
+              "invalidateQueries(['union-info', 'detail', postId])"
+            ],
+            "dedup": "NOT applied for union-info detail page (always increments on mount)"
+          }
+        ],
+        "delete": [
+          {
+            "hook": "useDeleteUnionInfo",
+            "file": "app/_lib/features/union-info/api/useUnionInfoHook.ts",
+            "flow": "cancelQueries -> supabase.select('files') -> fileApi.deleteFile each -> fileApi.deleteFolder(storage) -> supabase.delete('union_info')",
+            "side_effects": [
+              "removePost (zustand store)",
+              "removeQueries(['union-info', 'detail', postId])",
+              "removeQueries(['union-info', 'list', unionId])",
+              "router.push to list"
+            ],
+            "tables_touched": ["union_info", "files"],
+            "storage_touched": ["files bucket: unions/{slug}/union_info/{id}/"],
+            "note": "Deletes files individually (DB+storage per file), then folder cleanup"
+          },
+          {
+            "hook": "useDeleteUnionInfoFile",
+            "file": "app/_lib/features/union-info/api/useUnionInfoHook.ts",
+            "flow": "fileApi.deleteFile -> check remaining file count -> update has_attachments flag",
+            "tables_touched": ["files", "union_info"],
+            "storage_touched": ["files bucket"]
+          }
+        ]
+      }
+    },
+    {
+      "entity": "comment",
+      "table": "comments",
+      "operations": {
+        "create": [
+          {
+            "hook": "useAddComment",
+            "file": "app/_lib/features/comment/api/useCommentHook.ts",
+            "flow": "Validate parent_id (no nested replies) -> supabase.insert('comments') with author join -> return",
+            "side_effects": [
+              "addComment (zustand store)",
+              "invalidateQueries(['comments', entityType, entityId])",
+              "invalidateQueries(['comments', 'count', entityType, entityId])"
+            ],
+            "tables_touched": ["comments", "users"],
+            "polymorphic": true,
+            "entity_types": ["notice", "free_board", "union_info", "board"],
+            "validation": "1-level reply depth enforcement (parent_id.parent_id must be null)"
+          }
+        ],
+        "read": [
+          {
+            "hook": "useComments",
+            "file": "app/_lib/features/comment/api/useCommentHook.ts",
+            "queryKey": ["comments", "entityType", "entityId", "unionId"],
+            "flow": "supabase.select('comments') with author join -> build tree structure (parent + replies)",
+            "tables_touched": ["comments", "users"],
+            "zustand_sync": "setComments (flat array)"
+          },
+          {
+            "hook": "useCommentCount",
+            "file": "app/_lib/features/comment/api/useCommentHook.ts",
+            "queryKey": ["comments", "count", "entityType", "entityId"],
+            "flow": "supabase.select('comments') count only (head:true)",
+            "tables_touched": ["comments"]
+          }
+        ],
+        "update": [
+          {
+            "hook": "useUpdateComment",
+            "file": "app/_lib/features/comment/api/useCommentHook.ts",
+            "flow": "supabase.update('comments') with updated_at -> return with author join",
+            "side_effects": [
+              "updateComment (zustand store)",
+              "invalidateQueries(['comments', entityType, entityId])"
+            ],
+            "tables_touched": ["comments", "users"],
+            "note": "No ownership check in mutation — caller must provide entityType/entityId for cache invalidation"
+          }
+        ],
+        "delete": [
+          {
+            "hook": "useDeleteComment",
+            "file": "app/_lib/features/comment/api/useCommentHook.ts",
+            "flow": "supabase.delete('comments') with ownership check (.eq('author_id', userId) for non-admin)",
+            "side_effects": [
+              "removeComment (zustand store)",
+              "invalidateQueries(['comments', entityType, entityId])",
+              "invalidateQueries(['comments', 'count', entityType, entityId])"
+            ],
+            "tables_touched": ["comments"],
+            "security_note": "Non-admin users can only delete own comments (author_id check)"
+          }
+        ]
+      }
+    },
+    {
+      "entity": "member",
+      "table": "users",
+      "operations": {
+        "create": [
+          {
+            "source": "server_action: savePreRegisteredMembers",
+            "file": "app/_lib/features/gis/actions/memberMatching.ts",
+            "flow": "Excel data -> checkDuplicatePnu -> supabase.insert('users') PRE_REGISTERED -> supabase.insert('user_property_units') -> merge_users_keep_new RPC",
+            "tables_touched": ["users", "user_property_units"],
+            "rpcs": ["find_duplicate_users_by_name_residence", "merge_users_keep_new"],
+            "uses_service_role": true
+          }
+        ],
+        "read": [
+          {
+            "hook": "useApprovedMembers",
+            "file": "app/_lib/features/member-management/api/useMemberHook.ts",
+            "queryKey": ["approved-members", "unionId", "searchQuery", "blockedFilter", "page", "pageSize"],
+            "flow": "supabase.select('users') -> supabase.select('land_lots') for PNU set -> supabase.select('user_property_units') with building_units+buildings join -> merge",
+            "tables_touched": ["users", "land_lots", "user_property_units", "building_units", "buildings"],
+            "filters": ["union_id", "user_status IN (PRE_REGISTERED, APPROVED)", "is_blocked filter", "name.ilike", "property_address.ilike"],
+            "search_escape": "escapeLikeWildcards applied",
+            "pagination": "server-side via .range()",
+            "zustand_sync": "setMembers(), setTotalCount()"
+          },
+          {
+            "hook": "useApprovedMembersInfinite",
+            "file": "app/_lib/features/member-management/api/useMemberHook.ts",
+            "queryKey": ["approved-members-infinite", "unionId", "searchQuery", "blockedFilter", "pageSize"],
+            "flow": "supabase.rpc('get_grouped_members') -> land_lots PNU lookup -> user_property_units join -> build MemberWithLandInfo",
+            "tables_touched": ["users (via RPC)", "land_lots", "user_property_units", "building_units", "buildings"],
+            "rpcs": ["get_grouped_members"],
+            "pagination": "infinite scroll via useInfiniteQuery"
+          },
+          {
+            "hook": "useMemberDetail",
+            "file": "app/_lib/features/member-management/api/useMemberHook.ts",
+            "queryKey": ["member-detail", "memberId"],
+            "flow": "supabase.select('users').single()",
+            "tables_touched": ["users"]
+          },
+          {
+            "hook": "useMemberPropertyUnits",
+            "file": "app/_lib/features/member-management/api/useMemberHook.ts",
+            "queryKey": ["member-property-units", "memberId"],
+            "flow": "supabase.select('user_property_units') with building_units+buildings+land_lots deep join",
+            "tables_touched": ["user_property_units", "building_units", "buildings", "land_lots"]
+          },
+          {
+            "hook": "useUnionLandLots",
+            "file": "app/_lib/features/member-management/api/useMemberHook.ts",
+            "queryKey": ["land-lots-for-matching", "unionId"],
+            "flow": "supabase.select('land_lots') for PNU matching dropdown",
+            "tables_touched": ["land_lots"]
+          },
+          {
+            "hook": "useCoOwners",
+            "file": "app/_lib/features/member-management/api/useMemberHook.ts",
+            "queryKey": ["co-owners", "memberId"],
+            "flow": "user_property_units(building_unit_ids) -> co-owners with same building_unit_id -> users details -> property_units details",
+            "tables_touched": ["user_property_units", "users", "building_units", "buildings"]
+          },
+          {
+            "hook": "useMemberConsentStatus",
+            "file": "app/_lib/features/member-management/api/useMemberHook.ts",
+            "queryKey": ["member-consent-status", "memberId", "businessType"],
+            "flow": "supabase.select('consent_stages') -> supabase.select('user_consents') -> map status per stage",
+            "tables_touched": ["consent_stages", "user_consents"]
+          },
+          {
+            "hook": "useAdminUsers",
+            "file": "app/_lib/features/member-management/api/useMemberHook.ts",
+            "queryKey": ["admin-users", "unionId", "statusFilter", "roleFilter", "searchQuery", "page"],
+            "flow": "supabase.select('users') with status/role/search filters and pagination",
+            "tables_touched": ["users"],
+            "search_escape": "NOT applied (potential issue in useAdminUsers)"
+          }
+        ],
+        "update": [
+          {
+            "hook": "useUpdateMember",
+            "file": "app/_lib/features/member-management/api/useMemberHook.ts",
+            "flow": "supabase.update('users') for personal info fields",
+            "invalidates": ["approved-members", "member-detail"],
+            "tables_touched": ["users"]
+          },
+          {
+            "hook": "useBlockMember",
+            "file": "app/_lib/features/member-management/api/useMemberHook.ts",
+            "flow": "supabase.update('users') set is_blocked=true, blocked_at, blocked_reason",
+            "invalidates": ["approved-members", "member-detail"],
+            "tables_touched": ["users"]
+          },
+          {
+            "hook": "useUnblockMember",
+            "file": "app/_lib/features/member-management/api/useMemberHook.ts",
+            "flow": "supabase.update('users') set is_blocked=false, clear blocked fields",
+            "invalidates": ["approved-members", "member-detail"],
+            "tables_touched": ["users"]
+          },
+          {
+            "hook": "useUpdateMemberPnu",
+            "file": "app/_lib/features/member-management/api/useMemberHook.ts",
+            "flow": "Validate PNU format (19 digits) -> supabase.update('users') set property_pnu",
+            "invalidates": ["approved-members", "member-detail"],
+            "tables_touched": ["users"]
+          },
+          {
+            "hook": "useApproveUser",
+            "file": "app/_lib/features/member-management/api/useMemberHook.ts",
+            "flow": "Pre-check user_status=PENDING_APPROVAL -> supabase.update('users') set APPROVED + role USER",
+            "invalidates": ["admin-users"],
+            "tables_touched": ["users"],
+            "security_note": "Double safety: .eq('user_status', 'PENDING_APPROVAL') in both SELECT and UPDATE"
+          },
+          {
+            "hook": "useRejectUser",
+            "file": "app/_lib/features/member-management/api/useMemberHook.ts",
+            "flow": "Validate reason + pre-check status -> supabase.update('users') set REJECTED + reason",
+            "invalidates": ["admin-users"],
+            "tables_touched": ["users"]
+          },
+          {
+            "hook": "useCancelRejection",
+            "file": "app/_lib/features/member-management/api/useMemberHook.ts",
+            "flow": "Pre-check REJECTED -> supabase.update('users') set PENDING_APPROVAL",
+            "invalidates": ["admin-users"],
+            "tables_touched": ["users"]
+          },
+          {
+            "hook": "useUpdateUserRole",
+            "file": "app/_lib/features/member-management/api/useMemberHook.ts",
+            "flow": "supabase.update('users') set role",
+            "invalidates": ["admin-users"],
+            "tables_touched": ["users"]
+          },
+          {
+            "hook": "useUpdateOwnershipType",
+            "file": "app/_lib/features/member-management/api/useMemberHook.ts",
+            "flow": "supabase.update('user_property_units') set ownership_type",
+            "invalidates": ["approved-members", "member-property-units", "member-detail"],
+            "tables_touched": ["user_property_units"]
+          },
+          {
+            "hook": "useSetPrimaryPropertyUnit",
+            "file": "app/_lib/features/member-management/api/useMemberHook.ts",
+            "flow": "supabase.rpc('set_primary_property_unit') atomic operation",
+            "invalidates": ["approved-members", "member-property-units", "member-detail"],
+            "tables_touched": ["user_property_units (via RPC)"],
+            "rpcs": ["set_primary_property_unit"]
+          },
+          {
+            "hook": "useUpdateExecutiveStatus / useUpdateExecutiveTitle / useUpdateExecutiveSortOrder",
+            "file": "app/_lib/features/member-management/api/useMemberHook.ts",
+            "flow": "supabase.update('users') set executive fields",
+            "invalidates": ["admin-users"],
+            "tables_touched": ["users"]
+          }
+        ],
+        "delete": [
+          {
+            "hook": "useDeletePropertyUnit",
+            "file": "app/_lib/features/member-management/api/useMemberHook.ts",
+            "flow": "Pre-check not primary -> supabase.delete('user_property_units') where is_primary=false",
+            "invalidates": ["member-property-units", "approved-members", "member-detail"],
+            "tables_touched": ["user_property_units"],
+            "validation": "Cannot delete primary property unit"
+          },
+          {
+            "source": "server_action: deletePreRegisteredMember",
+            "file": "app/_lib/features/gis/actions/memberMatching.ts",
+            "flow": "Check PRE_REGISTERED status -> supabase.delete('users')",
+            "tables_touched": ["users"],
+            "uses_service_role": true
+          },
+          {
+            "source": "server_action: deleteAllPreRegisteredMembers",
+            "file": "app/_lib/features/gis/actions/memberMatching.ts",
+            "flow": "supabase.select(ids) -> supabase.delete('user_property_units') in ids -> supabase.delete('users') where PRE_REGISTERED",
+            "tables_touched": ["users", "user_property_units"],
+            "uses_service_role": true
+          }
+        ]
+      }
+    }
+  ],
+  "cache_patterns": [
+    {
+      "pattern": "invalidateQueries",
+      "description": "Used after mutations to refetch stale data. Triggers background refetch for all matching query keys.",
+      "examples": [
+        "invalidateQueries({ queryKey: ['notices', unionId] }) — invalidates list",
+        "invalidateQueries({ queryKey: ['notices', unionId, noticeId] }) — invalidates detail",
+        "invalidateQueries({ queryKey: ['comments', entityType, entityId] }) — invalidates comments for entity"
+      ]
+    },
+    {
+      "pattern": "removeQueries",
+      "description": "Used after delete mutations to fully remove cache entries (prevents refetch attempts on deleted items).",
+      "examples": [
+        "removeQueries({ queryKey: ['notices', unionId, noticeId] }) — removes detail cache after delete",
+        "removeQueries({ queryKey: ['freeBoards', unionId] }) — removes list cache after delete"
+      ]
+    },
+    {
+      "pattern": "cancelQueries",
+      "description": "Used before delete mutations to cancel any in-flight queries that might conflict.",
+      "examples": [
+        "cancelQueries({ queryKey: ['notices', unionId, noticeId] }) — cancel before delete"
+      ]
+    },
+    {
+      "pattern": "zustand_store_sync",
+      "description": "Query results are synced to Zustand stores via useEffect for global state access outside React Query hooks.",
+      "stores": [
+        "useNoticeStore (notices, selectedNotice, views)",
+        "useQuestionStore (questions, selectedQuestion, editorImages, answerEditorImages, views)",
+        "useFreeBoardStore (freeBoards, selectedFreeBoard, totalCount, views)",
+        "useUnionInfoStore (posts, selectedPost, totalCount, filters, editorImages, views)",
+        "useCommentStore (comments)",
+        "useMemberStore (members, totalCount)"
+      ]
+    },
+    {
+      "pattern": "staleTime",
+      "description": "Custom staleTime settings on specific queries.",
+      "examples": [
+        "usePopupNotices: staleTime=300000 (5 minutes)",
+        "All other queries: default staleTime (0 — always refetch on mount)"
+      ]
+    },
+    {
+      "pattern": "retry_false",
+      "description": "Detail page queries disable retry to avoid refetching deleted items.",
+      "examples": [
+        "useNotice: retry=false, skipErrorToast=true",
+        "useQuestion: retry=false, skipErrorToast=true",
+        "useFreeBoard: retry=false, skipErrorToast=true",
+        "useUnionInfo: retry=false, skipErrorToast=true"
+      ]
+    }
+  ],
+  "events": [
+    {
+      "type": "alimtalk_notification",
+      "trigger": "notice_create",
+      "flow": "useAddNotice -> sendAlimTalk server action -> proxy server -> Aligo API",
+      "template": "UE_2827",
+      "recipients": "All APPROVED USER role members in union",
+      "scheduling": "Supports immediate or scheduled (scheduled_alimtalks table)"
+    },
+    {
+      "type": "alimtalk_notification",
+      "trigger": "question_create",
+      "flow": "useAddQuestion -> sendAlimTalk server action -> proxy server -> Aligo API",
+      "template": "UE_3236",
+      "recipients": "SUPER_ADMIN, ADMIN, SYSTEM_ADMIN users in union"
+    },
+    {
+      "type": "alimtalk_notification",
+      "trigger": "question_answer",
+      "flow": "useAnswerQuestion -> sendAlimTalk server action -> proxy server -> Aligo API",
+      "template": "UE_3000",
+      "recipients": "Question author only"
+    },
+    {
+      "type": "view_count_increment",
+      "trigger": "detail_page_mount",
+      "mechanism": "sessionStorage dedup key (per entity type + id)",
+      "implementations": [
+        { "page": "notice detail", "key": "viewed_notice_{id}", "rpc": "increment_notice_views" },
+        { "page": "question detail", "key": "viewed_question_{id}", "rpc": "increment_question_views" },
+        { "page": "free-board detail ([slug]/free-board/[id])", "key": "viewed_free_board_{id}", "rpc": "increment_free_board_views" },
+        { "page": "free-board detail (communication)", "key": "viewed_comm_free_board_{id}", "rpc": "increment_free_board_views" },
+        { "page": "union-info detail", "key": "NO DEDUP (always increments)", "rpc": "increment_union_info_views", "issue": "Missing sessionStorage dedup — view count inflated on page refresh" }
+      ]
+    },
+    {
+      "type": "realtime_subscriptions",
+      "count": 0,
+      "note": "No Supabase Realtime subscriptions found. All data updates are via TanStack Query cache invalidation + manual refetch."
+    }
+  ],
+  "file_operations": [
+    {
+      "operation": "temp_upload",
+      "function": "fileApi.uploadTempFile",
+      "file": "app/_lib/shared/hooks/file/fileApi.ts",
+      "flow": "Upload to files bucket: temp/{tempId}/{safeFileName}",
+      "filename_strategy": "Generate safe filename (timestamp_random.ext) to avoid encoding issues",
+      "returns": "path, original name, size, type, storageName"
+    },
+    {
+      "operation": "confirm_files",
+      "function": "fileApi.confirmFiles",
+      "file": "app/_lib/shared/hooks/file/fileApi.ts",
+      "flow": "Move from temp/{tempId}/ to unions/{slug}/{type}/{id}/ -> Insert into files table (polymorphic: attachable_type + attachable_id)",
+      "target_types": ["NOTICE", "UNION", "UNION_INFO", "FREE_BOARD"],
+      "db_record": "files table with attachable_type (lowercase) + attachable_id"
+    },
+    {
+      "operation": "editor_image_upload",
+      "function": "fileApi.uploadImage",
+      "file": "app/_lib/shared/hooks/file/fileApi.ts",
+      "flow": "Upload directly to unions/{slug}/notices/{id}/{safeFileName} -> return publicUrl",
+      "note": "No DB record created for editor images — only stored in Supabase Storage"
+    },
+    {
+      "operation": "process_editor_images",
+      "description": "Replace blob URLs with public URLs in content HTML",
+      "flow": "For each blob URL in editorImages store -> upload via fileApi.uploadImage -> regex replace blobUrl with publicUrl in content string",
+      "used_by": ["useAddNotice", "useUpdateNotice", "useAddQuestion", "useUpdateQuestion", "useAnswerQuestion", "useAddFreeBoard", "useUpdateFreeBoard", "useAddUnionInfo", "useUpdateUnionInfo"]
+    },
+    {
+      "operation": "delete_folder",
+      "function": "fileApi.deleteFolder",
+      "file": "app/_lib/shared/hooks/file/fileApi.ts",
+      "flow": "List files in folder -> remove all files in batch"
+    },
+    {
+      "operation": "delete_file",
+      "function": "fileApi.deleteFile",
+      "file": "app/_lib/shared/hooks/file/fileApi.ts",
+      "flow": "Remove from Storage -> Delete from files table"
+    },
+    {
+      "operation": "get_download_url",
+      "function": "fileApi.getDownloadUrl",
+      "file": "app/_lib/shared/hooks/file/fileApi.ts",
+      "flow": "Create signed URL (1hr expiry) with optional original filename for download"
+    }
+  ],
+  "server_actions": [
+    {
+      "name": "memberMatching (multiple exports)",
+      "file": "app/_lib/features/gis/actions/memberMatching.ts",
+      "uses_service_role": true,
+      "functions": [
+        {
+          "name": "matchAddressToPnu",
+          "flow": "Normalize address -> search land_lots (full match, then partial jibun match)",
+          "tables": ["land_lots"]
+        },
+        {
+          "name": "matchMembersWithGis",
+          "flow": "Iterate excel rows -> matchAddressToPnu each",
+          "tables": ["land_lots"]
+        },
+        {
+          "name": "checkDuplicatePnu",
+          "flow": "Query user_property_units by PNU+dong+ho -> check for existing users in same union",
+          "tables": ["user_property_units", "users"]
+        },
+        {
+          "name": "savePreRegisteredMembers",
+          "flow": "For each matched row: checkDuplicate -> insert user PRE_REGISTERED -> insert user_property_units -> merge duplicates via RPC",
+          "tables": ["users", "user_property_units"],
+          "rpcs": ["find_duplicate_users_by_name_residence", "merge_users_keep_new"]
+        },
+        {
+          "name": "manualMatchUser",
+          "flow": "matchAddressToPnu -> checkDuplicate -> update users.property_address -> upsert user_property_units",
+          "tables": ["users", "user_property_units", "land_lots"]
+        },
+        {
+          "name": "getPreRegisteredMembers",
+          "flow": "Query users PRE_REGISTERED with user_property_units join -> client-side match filter + pagination",
+          "tables": ["users", "user_property_units"]
+        },
+        {
+          "name": "deletePreRegisteredMember",
+          "flow": "Check PRE_REGISTERED -> delete user",
+          "tables": ["users"]
+        },
+        {
+          "name": "deleteAllPreRegisteredMembers",
+          "flow": "Get all PRE_REGISTERED ids -> delete user_property_units -> delete users",
+          "tables": ["users", "user_property_units"]
+        },
+        {
+          "name": "updateUnmatchedMember",
+          "flow": "matchAddressToPnu -> checkDuplicate -> update users + upsert user_property_units",
+          "tables": ["users", "user_property_units", "land_lots"]
+        }
+      ]
+    },
+    {
+      "name": "sendAlimTalk",
+      "file": "app/_lib/features/alimtalk/actions/sendAlimTalk.ts",
+      "uses_service_role": false,
+      "flow": "Verify auth -> generate JWT -> POST to proxy server -> return result",
+      "external_services": ["AlimTalk proxy server (ALIMTALK_PROXY_URL)"],
+      "auth": "Uses server-side Supabase client (cookie-based), generates JWT with jose for proxy"
+    },
+    {
+      "name": "syncAlimtalkTemplates",
+      "file": "app/_lib/features/alimtalk/actions/sendAlimTalk.ts",
+      "uses_service_role": false,
+      "flow": "Verify auth -> generate system JWT -> POST to proxy /sync-templates",
+      "external_services": ["AlimTalk proxy server"]
+    }
+  ],
+  "data_flow_issues": [
+    {
+      "id": "DFI-001",
+      "severity": "medium",
+      "issue": "union-info detail page missing sessionStorage view count dedup",
+      "location": "app/[slug]/communication/union-info/[id]/page.tsx:35-39",
+      "description": "Unlike notice, question, and free-board detail pages which use sessionStorage to deduplicate view count increments, the union-info detail page calls incrementViews on every mount without dedup. This inflates view counts on page refresh.",
+      "affected_hook": "useIncrementUnionInfoViews"
+    },
+    {
+      "id": "DFI-002",
+      "severity": "low",
+      "issue": "useAdminUsers search query not escaped for LIKE wildcards",
+      "location": "app/_lib/features/member-management/api/useMemberHook.ts:989-991",
+      "description": "useAdminUsers passes searchQuery directly into .or() ILIKE pattern without escapeLikeWildcards(). Special characters (%, _) could match unintended rows."
+    },
+    {
+      "id": "DFI-003",
+      "severity": "low",
+      "issue": "useUnionInfos search query not escaped for LIKE wildcards",
+      "location": "app/_lib/features/union-info/api/useUnionInfoHook.ts:43-44",
+      "description": "useUnionInfos passes search term directly into ILIKE pattern without escapeLikeWildcards()."
+    },
+    {
+      "id": "DFI-004",
+      "severity": "medium",
+      "issue": "free_boards delete has no DB CASCADE for comments",
+      "location": "app/_lib/features/free-board/api/useFreeBoardHook.ts:406-415",
+      "description": "Comments are manually deleted before the free_board post. If the post delete fails after comments are deleted, orphaned state occurs. A DB-level FK CASCADE would be safer."
+    },
+    {
+      "id": "DFI-005",
+      "severity": "low",
+      "issue": "notice delete does not delete associated comments",
+      "location": "app/_lib/features/notice/api/useNoticeHook.ts:488-516",
+      "description": "useDeleteNotice deletes files and the notice itself but does not explicitly delete comments. These may become orphaned if no DB CASCADE exists."
+    },
+    {
+      "id": "DFI-006",
+      "severity": "info",
+      "issue": "No realtime subscriptions — all updates are polling-based",
+      "description": "The app has zero Supabase Realtime subscriptions. All data freshness relies on TanStack Query cache invalidation and refetch-on-mount. Multi-user concurrent edits will not be visible until page refresh or navigation."
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useFocusTrap } from '@/app/_lib/shared/hooks/useFocusTrap';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { X, Shield, FileText, Check, ExternalLink, UserCheck } from 'lucide-react';
@@ -22,6 +23,8 @@ export function TermsConsentModal({ isOpen, onClose, onAgree }: TermsConsentModa
 
     const allAgreed = termsAgreed && privacyAgreed && ageAgreed;
 
+    const focusTrapRef = useFocusTrap(isOpen);
+
     const handleAgreeAll = () => {
         setTermsAgreed(true);
         setPrivacyAgreed(true);
@@ -38,19 +41,32 @@ export function TermsConsentModal({ isOpen, onClose, onAgree }: TermsConsentModa
         }
     };
 
-    const handleClose = () => {
+    const handleClose = useCallback(() => {
         // 상태 초기화
         setTermsAgreed(false);
         setPrivacyAgreed(false);
         setAgeAgreed(false);
         onClose();
-    };
+    }, [onClose]);
+
+    useEffect(() => {
+        if (!isOpen) return;
+        const handleEsc = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') handleClose();
+        };
+        document.addEventListener('keydown', handleEsc);
+        return () => document.removeEventListener('keydown', handleEsc);
+    }, [isOpen, handleClose]);
 
     if (!isOpen) return null;
 
     return (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[70] p-4">
             <div
+                ref={focusTrapRef}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="terms-consent-title"
                 className={cn(
                     'bg-white flex flex-col',
                     'w-full max-w-md rounded-2xl shadow-2xl',
@@ -63,7 +79,7 @@ export function TermsConsentModal({ isOpen, onClose, onAgree }: TermsConsentModa
                         <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
                             <Shield className="w-5 h-5 text-blue-600" />
                         </div>
-                        <h2 className="text-lg font-bold text-gray-900">약관 동의</h2>
+                        <h2 id="terms-consent-title" className="text-lg font-bold text-gray-900">약관 동의</h2>
                     </div>
                     <button
                         onClick={handleClose}
@@ -83,6 +99,8 @@ export function TermsConsentModal({ isOpen, onClose, onAgree }: TermsConsentModa
                     {/* 전체 동의 */}
                     <button
                         onClick={handleAgreeAll}
+                        role="checkbox"
+                        aria-checked={allAgreed}
                         className={cn(
                             'w-full p-4 rounded-xl border-2 mb-4 transition-all',
                             'flex items-center gap-3',
@@ -115,6 +133,8 @@ export function TermsConsentModal({ isOpen, onClose, onAgree }: TermsConsentModa
                             <div className="flex items-center justify-between">
                                 <button
                                     onClick={() => setTermsAgreed(!termsAgreed)}
+                                    role="checkbox"
+                                    aria-checked={termsAgreed}
                                     className="flex items-center gap-3 flex-1"
                                 >
                                     <div
@@ -153,6 +173,8 @@ export function TermsConsentModal({ isOpen, onClose, onAgree }: TermsConsentModa
                             <div className="flex items-center justify-between">
                                 <button
                                     onClick={() => setPrivacyAgreed(!privacyAgreed)}
+                                    role="checkbox"
+                                    aria-checked={privacyAgreed}
                                     className="flex items-center gap-3 flex-1"
                                 >
                                     <div
@@ -190,6 +212,8 @@ export function TermsConsentModal({ isOpen, onClose, onAgree }: TermsConsentModa
                         >
                             <button
                                 onClick={() => setAgeAgreed(!ageAgreed)}
+                                role="checkbox"
+                                aria-checked={ageAgreed}
                                 className="flex items-center gap-3 w-full"
                             >
                                 <div

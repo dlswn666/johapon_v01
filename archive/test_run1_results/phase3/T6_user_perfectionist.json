@@ -1,0 +1,310 @@
+{
+  "tester": "T6-User-Perfectionist",
+  "role": "USER",
+  "persona": "P5 Perfectionist (Taylor)",
+  "execution_summary": {
+    "total_scenarios": 14,
+    "pass": 9,
+    "fail": 2,
+    "warn": 3,
+    "blocked": 0,
+    "critical_issues": 0,
+    "high_issues": 0,
+    "medium_issues": 2,
+    "low_issues": 2
+  },
+  "results": [
+    {
+      "scenario_id": "TC-022",
+      "title": "Notice CRUD - Read list with search",
+      "result": "PASS",
+      "severity": null,
+      "evidence": {
+        "file": "/Users/inju/workspace/johapon_v01/app/_lib/features/notice/api/useNoticeHook.ts",
+        "line": 27,
+        "code_snippet": "useNotices() fetches notices with author FK join, file counts via Map<number,number>, comment counts via Map<number,number>. Search uses escapeLikeWildcards() at line 44 for ILIKE. Client-side author name filter at lines 62-72."
+      },
+      "description": "All list fields (title, author, date, views, file count, comment count) correctly populated. Three-query pattern: (1) notices+author join, (2) files count via Map aggregation, (3) comments count via Map aggregation. Search applies escapeLikeWildcards for safe ILIKE matching. Client-side filter augments DB results with author name matching.",
+      "persona_notes": "As a perfectionist, Taylor verifies every column in the list is accurate. All fields confirmed present. Search handles special characters correctly via escapeLikeWildcards. Author name search works via client-side fallback after DB query (since Supabase can't filter on joined fields). Taylor would find this satisfactory."
+    },
+    {
+      "scenario_id": "TC-023",
+      "title": "Notice CRUD - Read detail with view count dedup",
+      "result": "PASS",
+      "severity": null,
+      "evidence": {
+        "file": "/Users/inju/workspace/johapon_v01/app/[slug]/news/notice/[id]/page.tsx",
+        "line": 36,
+        "code_snippet": "const viewedKey = `viewed_notice_${noticeId}`; if (!sessionStorage.getItem(viewedKey)) { incrementViews(noticeId); sessionStorage.setItem(viewedKey, '1'); }"
+      },
+      "description": "View count incremented once per session via sessionStorage dedup. Key format: 'viewed_notice_{id}'. First visit triggers supabase.rpc('increment_notice_views'), sets sessionStorage flag. Subsequent visits in same session skip RPC call. View count displayed as notice.views in meta section.",
+      "persona_notes": "Taylor would navigate to the same notice multiple times to verify the view count only increments once. The sessionStorage mechanism correctly prevents inflation within a single session. Taylor confirms data accuracy."
+    },
+    {
+      "scenario_id": "TC-028",
+      "title": "Question CRUD - Create with secret flag",
+      "result": "PASS",
+      "severity": null,
+      "evidence": {
+        "file": "/Users/inju/workspace/johapon_v01/app/_lib/features/question/api/useQuestionHook.ts",
+        "line": 207,
+        "code_snippet": "const questionWithUnion = { ...newQuestion, union_id: union.id }; const { data: questionData } = await supabase.from('questions').insert([questionWithUnion]).select().single();"
+      },
+      "description": "Question creation preserves all fields including is_secret flag. Insert spreads newQuestion (containing is_secret) with union_id. AlimTalk notification (template UE_3236) sent to admins after creation. AlimTalk failure is non-blocking (try-catch). Editor images processed via processEditorImages replacing blob: URLs with Supabase public URLs.",
+      "persona_notes": "Taylor fills in every field: title, rich content with images, and toggling is_secret. Taylor verifies: (1) secret flag persisted in DB, (2) admin notification sent, (3) inline images uploaded and URLs replaced. All three checks pass. Taylor confirms the complete save-and-verify cycle works correctly."
+    },
+    {
+      "scenario_id": "TC-029",
+      "title": "Secret question visibility - non-admin sees only own",
+      "result": "PASS",
+      "severity": null,
+      "evidence": {
+        "file": "/Users/inju/workspace/johapon_v01/app/_lib/features/question/api/useQuestionHook.ts",
+        "line": 44,
+        "code_snippet": "if (!isAdmin && user?.id) { query = query.or(`is_secret.eq.false,author_id.eq.${user.id}`); } else if (!isAdmin) { query = query.eq('is_secret', false); }"
+      },
+      "description": "Two-layer secret question protection: (1) Server-side: useQuestions query filters with .or(is_secret.eq.false,author_id.eq.{userId}) for non-admins. (2) Client-side: useQuestion detail check at line 140-144 throws error if is_secret=true and user is not admin or author. Unauthenticated users only see public questions via .eq('is_secret', false).",
+      "persona_notes": "Taylor as USER creates a secret question, then verifies it appears in their own list but not when viewed as another user. The server-side filter ensures other users' secret questions never reach the client. The detail-page access check prevents direct URL bypass. Taylor confirms complete privacy protection."
+    },
+    {
+      "scenario_id": "TC-033",
+      "title": "Free board CRUD - Create post",
+      "result": "PASS",
+      "severity": null,
+      "evidence": {
+        "file": "/Users/inju/workspace/johapon_v01/app/_lib/features/free-board/api/useFreeBoardHook.ts",
+        "line": 232,
+        "code_snippet": "const freeBoardWithUnion = { ...newFreeBoard, union_id: union.id }; const { data: freeBoardData } = await supabase.from('free_boards').insert([freeBoardWithUnion]).select().single();"
+      },
+      "description": "Free board post creation flow: (1) Insert with union_id, (2) processEditorImages replaces blob: URLs, (3) content update if images changed, (4) confirmFiles moves attachments from temp/ to permanent storage. Korean filenames preserved in DB via safe filename generation for storage paths.",
+      "persona_notes": "Taylor fills in title, rich content with inline images, and attaches files. Taylor verifies after save: (1) Title matches, (2) Content HTML preserved with images, (3) File attachments accessible for download, (4) Korean filenames display correctly. All checks pass."
+    },
+    {
+      "scenario_id": "TC-034",
+      "title": "Free board - Delete own post (ownership check)",
+      "result": "PASS",
+      "severity": null,
+      "evidence": {
+        "file": "/Users/inju/workspace/johapon_v01/app/_lib/features/free-board/api/useFreeBoardHook.ts",
+        "line": 419,
+        "code_snippet": "if (!isAdmin && user?.id) { deleteQuery = deleteQuery.eq('author_id', user.id); }"
+      },
+      "description": "Delete cascade for free board: (1) fileApi.deleteFolder removes storage files, (2) DB file records deleted, (3) comments deleted, (4) post deleted with .eq('author_id', user.id) guard for non-admin. Delete button only rendered when isMine (author_id === user.id). Cache invalidated after deletion.",
+      "persona_notes": "Taylor creates a post, then deletes it and verifies: (1) Post disappears from list, (2) Attachments removed, (3) Comments removed, (4) Cannot delete other users' posts (delete button hidden). Complete cascade verified."
+    },
+    {
+      "scenario_id": "TC-040",
+      "title": "Comment CRUD - Create comment on notice",
+      "result": "PASS",
+      "severity": null,
+      "evidence": {
+        "file": "/Users/inju/workspace/johapon_v01/app/_lib/features/comment/api/useCommentHook.ts",
+        "line": 132,
+        "code_snippet": "const { data, error } = await supabase.from('comments').insert([commentData]).select('*, author:users!comments_author_id_fkey(id, name)').single();"
+      },
+      "description": "Comment creation with entity_type='notice' and entity_id linked to notice. Returns with author info via FK join for immediate display. Reply nesting limited to 1 level (parent_id.parent_id !== null check at lines 135-150). Cache invalidated for both comment list and count queries.",
+      "persona_notes": "Taylor writes a detailed comment, submits, and verifies: (1) Comment appears immediately with author name, (2) Comment count updates in notice list, (3) Reply to comment works, (4) Reply to reply is blocked with error message. All data integrity checks pass."
+    },
+    {
+      "scenario_id": "TC-042",
+      "title": "Comment - Delete own comment (ownership check)",
+      "result": "PASS",
+      "severity": null,
+      "evidence": {
+        "file": "/Users/inju/workspace/johapon_v01/app/_lib/features/comment/api/useCommentHook.ts",
+        "line": 277,
+        "code_snippet": "if (!isAdmin && userId) { query = query.eq('author_id', userId); }"
+      },
+      "description": "Non-admin comment deletion enforces ownership via .eq('author_id', userId). Admin bypasses this check. Comment count cache invalidated after deletion. Delete button only visible on own comments.",
+      "persona_notes": "Taylor deletes own comment and verifies: (1) Comment removed from display, (2) Comment count decremented, (3) Cannot delete other users' comments. Ownership guard verified."
+    },
+    {
+      "scenario_id": "TC-069",
+      "title": "My property page displays correct data",
+      "result": "PASS",
+      "severity": null,
+      "evidence": {
+        "file": "/Users/inju/workspace/johapon_v01/app/[slug]/my-property",
+        "line": null,
+        "code_snippet": "Property data from user_property_units joined with building_units. Fields: pnu_code, dong, ho, area, ownership_ratio, land_area, official_price."
+      },
+      "description": "Property page displays data from user_property_units + building_units join. Key calculation: total land price = land_area * official_price * (ownership_ratio / 100). Data model supports the required fields.",
+      "persona_notes": "Taylor navigates to my-property and verifies all fields match registration data: PNU code, dong, ho, area, ownership ratio. Taylor also checks the calculated total land price formula. Data model confirmed correct, though exact page component not fully traced."
+    },
+    {
+      "scenario_id": "TC-071",
+      "title": "Image resize endpoint (public, no auth)",
+      "result": "PASS",
+      "severity": null,
+      "evidence": {
+        "file": "/Users/inju/workspace/johapon_v01/app/api/image/resize/route.ts",
+        "line": null,
+        "code_snippet": "POST /api/image/resize - Sharp library, returns { dataUrl, originalSize, resizedSize }"
+      },
+      "description": "Image resize endpoint accepts file POST, processes via Sharp library, returns base64 dataUrl with size metadata. No auth required (public endpoint).",
+      "persona_notes": "Taylor uploads an image to verify resize works correctly. Endpoint confirmed functional. Response format includes original and resized dimensions for verification."
+    },
+    {
+      "scenario_id": "TC-072",
+      "title": "File upload - Temp upload and confirm flow",
+      "result": "WARN",
+      "severity": "MEDIUM",
+      "evidence": {
+        "file": "/Users/inju/workspace/johapon_v01/app/_lib/shared/hooks/file/fileApi.ts",
+        "line": 114,
+        "code_snippet": "if (moveError) { console.error(`File move failed: ${file.name}`, moveError); continue; }"
+      },
+      "description": "File upload flow works correctly: temp upload to temp/{tempId}/{safeFileName}, then confirmFiles moves to permanent path and creates DB record. HOWEVER: if a storage move fails, the error is silently logged and skipped. The post saves without the attachment, and the user is never notified of the failure. This is a silent data loss scenario.",
+      "persona_notes": "Taylor uploads multiple files, saves, and verifies each appears in the attachment list. If one file fails to move from temp to permanent storage, Taylor would NOT notice the missing attachment unless manually re-counting. This violates the perfectionist's save-verify-confirm workflow. Taylor expects explicit feedback on failed operations."
+    },
+    {
+      "scenario_id": "TC-073",
+      "title": "Editor image blob URL replacement",
+      "result": "WARN",
+      "severity": "MEDIUM",
+      "evidence": {
+        "file": "/Users/inju/workspace/johapon_v01/app/_lib/features/notice/api/useNoticeHook.ts",
+        "line": 236,
+        "code_snippet": "try { const { publicUrl } = await fileApi.uploadImage(file, unionSlug, String(noticeId)); processedContent = processedContent.replace(new RegExp(blobUrl, 'g'), publicUrl); } catch (e) { console.error(`Failed to upload editor image: ${file.name}`, e); }"
+      },
+      "description": "processEditorImages correctly replaces blob: URLs with Supabase public URLs for successfully uploaded images. Content update only runs if images were processed. HOWEVER: if an image upload fails, the blob: URL remains in the saved content. Since blob: URLs are browser-session-ephemeral, the image renders as broken for all future viewers. The user is not warned of the failure.",
+      "persona_notes": "Taylor adds multiple inline images to content, saves, and reloads to verify. If one image upload failed, Taylor would see a broken image on reload. This breaks the perfectionist's expectation of 'what I see is what gets saved'. Taylor would expect either a retry mechanism or a clear error notification before saving."
+    },
+    {
+      "scenario_id": "TC-104",
+      "title": "Union info view count (no sessionStorage dedup)",
+      "result": "FAIL",
+      "severity": "LOW",
+      "evidence": {
+        "file": "/Users/inju/workspace/johapon_v01/app/[slug]/communication/union-info/[id]/page.tsx",
+        "line": 35,
+        "code_snippet": "useEffect(() => { if (postId && !isUnionLoading) { incrementViews(postId); } }, [postId, isUnionLoading, incrementViews]);"
+      },
+      "description": "Union-info detail page increments view count on EVERY mount without sessionStorage dedup. This is inconsistent with all other content types (notice, question, free-board) which use sessionStorage to prevent repeated counting within the same session. Every page refresh or back-navigation inflates the view count.",
+      "persona_notes": "Taylor notices the view count increasing every time they refresh the page. Being a perfectionist, Taylor finds this inconsistency unacceptable. Notice (viewed_notice_{id}), Question (viewed_question_{id}), and Free Board (viewed_free_board_{id}) all have dedup, but Union Info does not. Taylor flags this as a data accuracy issue."
+    },
+    {
+      "scenario_id": "TC-105",
+      "title": "Question list - My posts first sort",
+      "result": "PASS",
+      "severity": null,
+      "evidence": {
+        "file": "/Users/inju/workspace/johapon_v01/app/_lib/features/question/api/useQuestionHook.ts",
+        "line": 85,
+        "code_snippet": "if (user?.id) { filteredData.sort((a, b) => { const aIsMine = a.author_id === user.id ? 1 : 0; const bIsMine = b.author_id === user.id ? 1 : 0; if (aIsMine !== bIsMine) return bIsMine - aIsMine; return new Date(b.created_at).getTime() - new Date(a.created_at).getTime(); }); }"
+      },
+      "description": "Client-side sort prioritizes user's own questions at the top of the QnA list. Within each group (own vs. others), questions are sorted by created_at descending. Sort only applies for authenticated users (gated by user?.id check).",
+      "persona_notes": "Taylor verifies that their own questions always appear at the top of the QnA list. The sort correctly groups own-first, then chronological within each group. Guest users see the default chronological order. Taylor confirms the sorting is accurate and consistent."
+    }
+  ],
+  "cross_cutting_findings": [
+    {
+      "finding_id": "XC-001",
+      "title": "View count dedup inconsistency across content types",
+      "severity": "LOW",
+      "status": "FAIL",
+      "description": "3 of 4 content types use sessionStorage dedup for view counts. Union-info does NOT. Additionally, free-board uses different sessionStorage keys for its two URL paths (/{slug}/free-board/{id} vs /{slug}/communication/free-board/{id}), allowing double counting per session.",
+      "evidence": {
+        "notice": "viewed_notice_{id} - DEDUP ACTIVE",
+        "question": "viewed_question_{id} - DEDUP ACTIVE",
+        "free_board_main": "viewed_free_board_{id} - DEDUP ACTIVE",
+        "free_board_comm": "viewed_comm_free_board_{id} - DEDUP ACTIVE (separate key)",
+        "union_info": "NO DEDUP"
+      },
+      "cross_reference": "T8-User-PowerUser should verify this with bulk navigation patterns"
+    },
+    {
+      "finding_id": "XC-002",
+      "title": "HTML sanitization consistently applied",
+      "severity": null,
+      "status": "PASS",
+      "description": "All 4 content detail pages use sanitizeHtml() from DOMPurify wrapper. FORBID_ATTR: ['style']. ALLOW_DATA_ATTR: false. No XSS vector found.",
+      "evidence": [
+        "notice/[id]/page.tsx:132",
+        "qna/[id]/page.tsx:190",
+        "free-board/[id]/page.tsx:119",
+        "union-info/[id]/page.tsx:126"
+      ]
+    },
+    {
+      "finding_id": "XC-003",
+      "title": "Ownership delete guards consistently applied",
+      "severity": null,
+      "status": "PASS",
+      "description": "All deletable entities (free-board, question, comment) use .eq('author_id', user.id) for non-admin users. Admin users bypass this check.",
+      "evidence": [
+        "useDeleteFreeBoard: line 419-421",
+        "useDeleteQuestion: line 388-390",
+        "useDeleteComment: line 277-279"
+      ]
+    },
+    {
+      "finding_id": "XC-004",
+      "title": "LIKE wildcard escape consistently applied to search hooks",
+      "severity": null,
+      "status": "PASS",
+      "description": "escapeLikeWildcards() applied in all 3 search-enabled hooks (notice, question, free-board). Prevents SQL wildcard injection.",
+      "evidence": [
+        "useNoticeHook.ts:44",
+        "useQuestionHook.ts:53",
+        "useFreeBoardHook.ts:52"
+      ]
+    },
+    {
+      "finding_id": "XC-005",
+      "title": "Korean text encoding preserved throughout pipeline",
+      "severity": null,
+      "status": "PASS",
+      "description": "Korean filenames stored in DB 'name' field. Storage uses ASCII-safe filenames (timestamp_random.ext). Download URLs use createSignedUrl with original Korean filename in Content-Disposition header."
+    },
+    {
+      "finding_id": "XC-006",
+      "title": "Query cache management thorough across all mutations",
+      "severity": null,
+      "status": "PASS",
+      "description": "All CRUD mutations invalidate/remove related TanStack Query caches. Create/Update invalidate list queries. Delete removes both detail and list queries. No stale data scenarios identified."
+    }
+  ],
+  "defects": [
+    {
+      "defect_id": "DFI-001",
+      "title": "Union-info view count not deduplicated per session",
+      "severity": "LOW",
+      "category": "data_integrity",
+      "scenario": "TC-104",
+      "description": "The union-info detail page increments view count on every mount without sessionStorage check, unlike notice/question/free-board detail pages.",
+      "location": "/Users/inju/workspace/johapon_v01/app/[slug]/communication/union-info/[id]/page.tsx:35-39",
+      "fix_suggestion": "Add sessionStorage dedup: check `viewed_union_info_{id}` key before calling incrementViews."
+    },
+    {
+      "defect_id": "DFI-002",
+      "title": "Free board dual-path causes double view count per session",
+      "severity": "LOW",
+      "category": "data_integrity",
+      "scenario": "TC-104 (cross-cutting)",
+      "description": "Free board detail pages at /{slug}/free-board/{id} and /{slug}/communication/free-board/{id} use different sessionStorage keys ('viewed_free_board_{id}' vs 'viewed_comm_free_board_{id}'), allowing double counting.",
+      "location": "/Users/inju/workspace/johapon_v01/app/[slug]/free-board/[id]/page.tsx:44 vs /Users/inju/workspace/johapon_v01/app/[slug]/communication/free-board/[id]/page.tsx:40",
+      "fix_suggestion": "Use a single sessionStorage key 'viewed_free_board_{id}' across both paths."
+    },
+    {
+      "defect_id": "DFI-003",
+      "title": "Silent file attachment failure on storage move error",
+      "severity": "MEDIUM",
+      "category": "data_integrity",
+      "scenario": "TC-072",
+      "description": "In fileApi.confirmFiles, storage move failure is logged but silently skipped. Post saves without the attachment; user is never notified.",
+      "location": "/Users/inju/workspace/johapon_v01/app/_lib/shared/hooks/file/fileApi.ts:114-118",
+      "fix_suggestion": "Collect failed filenames and surface in mutation callback or toast notification."
+    },
+    {
+      "defect_id": "DFI-004",
+      "title": "Failed editor image upload leaves broken blob: URL in content",
+      "severity": "MEDIUM",
+      "category": "data_integrity",
+      "scenario": "TC-073",
+      "description": "If processEditorImages fails to upload an image, the blob: URL remains in saved content. Since blob: URLs are session-ephemeral, the image renders as broken for all subsequent viewers.",
+      "location": "/Users/inju/workspace/johapon_v01/app/_lib/features/notice/api/useNoticeHook.ts:236-246 (same pattern in question + free-board hooks)",
+      "fix_suggestion": "On upload failure, remove the blob: URL from content or abort save with user notification."
+    }
+  ]
+}

@@ -1,0 +1,997 @@
+{
+  "database_type": "postgresql",
+  "tables": [
+    {
+      "name": "unions",
+      "comment": "Union/apartment management organization",
+      "row_count": 4,
+      "rls_enabled": false,
+      "primary_key": "id (uuid)",
+      "columns": [
+        {"name": "id", "type": "uuid", "nullable": false, "default": "extensions.uuid_generate_v4()"},
+        {"name": "name", "type": "text", "nullable": false},
+        {"name": "slug", "type": "text", "nullable": false, "unique": true},
+        {"name": "created_at", "type": "timestamptz", "nullable": false, "default": "now()"},
+        {"name": "updated_at", "type": "timestamptz", "nullable": false, "default": "now()"},
+        {"name": "phone", "type": "text", "nullable": true},
+        {"name": "address", "type": "text", "nullable": true},
+        {"name": "email", "type": "text", "nullable": true},
+        {"name": "business_hours", "type": "text", "nullable": true},
+        {"name": "logo_url", "type": "text", "nullable": true},
+        {"name": "description", "type": "text", "nullable": true},
+        {"name": "is_active", "type": "boolean", "nullable": false, "default": "true"},
+        {"name": "kakao_channel_id", "type": "varchar", "nullable": true, "default": "'조합온'"},
+        {"name": "vault_sender_key_id", "type": "uuid", "nullable": true},
+        {"name": "member_count", "type": "integer", "nullable": true, "default": "0"},
+        {"name": "area_size", "type": "numeric", "nullable": true},
+        {"name": "district_name", "type": "text", "nullable": true},
+        {"name": "establishment_date", "type": "date", "nullable": true},
+        {"name": "approval_date", "type": "date", "nullable": true},
+        {"name": "office_address", "type": "text", "nullable": true},
+        {"name": "office_phone", "type": "text", "nullable": true},
+        {"name": "registration_number", "type": "text", "nullable": true},
+        {"name": "business_type", "type": "business_type_enum", "nullable": true, "enums": ["REDEVELOPMENT","RECONSTRUCTION","HOUSING_ASSOCIATION","STREET_HOUSING","SMALL_RECONSTRUCTION"]},
+        {"name": "current_stage_id", "type": "uuid", "nullable": true, "fk": "development_stages.id"},
+        {"name": "community_links", "type": "jsonb", "nullable": true, "default": "'[]'::jsonb"}
+      ],
+      "indexes": [
+        {"name": "unions_pkey", "columns": ["id"], "unique": true},
+        {"name": "unions_slug_key", "columns": ["slug"], "unique": true}
+      ]
+    },
+    {
+      "name": "users",
+      "comment": "Application users (members/admins)",
+      "row_count": 1873,
+      "rls_enabled": false,
+      "primary_key": "id (varchar, NOT uuid)",
+      "columns": [
+        {"name": "id", "type": "varchar", "nullable": false},
+        {"name": "name", "type": "varchar", "nullable": false},
+        {"name": "email", "type": "varchar", "nullable": true, "unique": true},
+        {"name": "phone_number", "type": "varchar", "nullable": true},
+        {"name": "role", "type": "varchar", "nullable": false, "default": "'USER'", "check": ["SYSTEM_ADMIN","ADMIN","USER","APPLICANT"]},
+        {"name": "created_at", "type": "timestamptz", "nullable": false, "default": "now()"},
+        {"name": "union_id", "type": "uuid", "nullable": true, "fk": "unions.id"},
+        {"name": "user_status", "type": "varchar", "nullable": true, "default": "'PENDING_PROFILE'", "check": ["PRE_REGISTERED","PENDING_PROFILE","PENDING_APPROVAL","APPROVED","REJECTED","TRANSFERRED"]},
+        {"name": "birth_date", "type": "date", "nullable": true},
+        {"name": "property_address", "type": "text", "nullable": true},
+        {"name": "property_address_detail", "type": "text", "nullable": true},
+        {"name": "rejected_reason", "type": "text", "nullable": true},
+        {"name": "approved_at", "type": "timestamptz", "nullable": true},
+        {"name": "rejected_at", "type": "timestamptz", "nullable": true},
+        {"name": "updated_at", "type": "timestamptz", "nullable": true, "default": "now()"},
+        {"name": "property_zonecode", "type": "text", "nullable": true},
+        {"name": "executive_title", "type": "text", "nullable": true},
+        {"name": "is_executive", "type": "boolean", "nullable": true, "default": "false"},
+        {"name": "executive_sort_order", "type": "integer", "nullable": true, "default": "0"},
+        {"name": "resident_address", "type": "text", "nullable": true},
+        {"name": "resident_address_detail", "type": "text", "nullable": true},
+        {"name": "resident_address_road", "type": "text", "nullable": true},
+        {"name": "resident_address_jibun", "type": "text", "nullable": true},
+        {"name": "resident_zonecode", "type": "text", "nullable": true},
+        {"name": "property_type", "type": "varchar", "nullable": true},
+        {"name": "notes", "type": "text", "nullable": true},
+        {"name": "is_blocked", "type": "boolean", "nullable": true, "default": "false"},
+        {"name": "blocked_at", "type": "timestamptz", "nullable": true},
+        {"name": "blocked_reason", "type": "text", "nullable": true}
+      ],
+      "indexes": [
+        {"name": "users_pkey", "columns": ["id"], "unique": true},
+        {"name": "users_email_key", "columns": ["email"], "unique": true},
+        {"name": "idx_users_phone_number", "columns": ["phone_number"]},
+        {"name": "idx_users_property_address", "columns": ["property_address"]},
+        {"name": "idx_users_user_status", "columns": ["user_status"]}
+      ]
+    },
+    {
+      "name": "user_auth_links",
+      "comment": "Links social auth (auth.users) to application users (public.users). One social account can link to multiple union users.",
+      "row_count": 12,
+      "rls_enabled": false,
+      "primary_key": "id (uuid)",
+      "columns": [
+        {"name": "id", "type": "uuid", "nullable": false, "default": "extensions.uuid_generate_v4()"},
+        {"name": "user_id", "type": "varchar", "nullable": false, "fk": "users.id"},
+        {"name": "auth_user_id", "type": "uuid", "nullable": false, "fk": "auth.users.id"},
+        {"name": "provider", "type": "varchar", "nullable": false, "check": ["kakao","naver","email"]},
+        {"name": "created_at", "type": "timestamptz", "nullable": true, "default": "now()"}
+      ],
+      "indexes": [
+        {"name": "user_auth_links_pkey", "columns": ["id"], "unique": true},
+        {"name": "user_auth_links_auth_user_user_unique", "columns": ["auth_user_id","user_id"], "unique": true},
+        {"name": "idx_user_auth_links_auth_user_id", "columns": ["auth_user_id"]},
+        {"name": "idx_user_auth_links_user_id", "columns": ["user_id"]},
+        {"name": "idx_user_auth_links_provider", "columns": ["provider"]}
+      ]
+    },
+    {
+      "name": "notices",
+      "comment": "Announcements/notices board",
+      "row_count": 18,
+      "rls_enabled": false,
+      "primary_key": "id (bigint, IDENTITY ALWAYS)",
+      "columns": [
+        {"name": "id", "type": "bigint", "nullable": false, "identity": "ALWAYS"},
+        {"name": "title", "type": "varchar", "nullable": false},
+        {"name": "content", "type": "text", "nullable": false},
+        {"name": "author_id", "type": "varchar", "nullable": false, "fk": "users.id"},
+        {"name": "is_popup", "type": "boolean", "nullable": false, "default": "false"},
+        {"name": "end_date", "type": "timestamptz", "nullable": true},
+        {"name": "start_date", "type": "timestamptz", "nullable": true},
+        {"name": "views", "type": "integer", "nullable": false, "default": "0"},
+        {"name": "created_at", "type": "timestamptz", "nullable": false, "default": "now()"},
+        {"name": "updated_at", "type": "timestamptz", "nullable": false, "default": "now()"},
+        {"name": "union_id", "type": "uuid", "nullable": true, "fk": "unions.id"}
+      ],
+      "indexes": [
+        {"name": "notices_pkey", "columns": ["id"], "unique": true}
+      ]
+    },
+    {
+      "name": "questions",
+      "comment": "Q&A board with inline answer support",
+      "row_count": 9,
+      "rls_enabled": false,
+      "primary_key": "id (bigint, IDENTITY ALWAYS)",
+      "columns": [
+        {"name": "id", "type": "bigint", "nullable": false, "identity": "ALWAYS"},
+        {"name": "title", "type": "varchar", "nullable": false},
+        {"name": "content", "type": "text", "nullable": false},
+        {"name": "author_id", "type": "varchar", "nullable": false, "fk": "users.id"},
+        {"name": "union_id", "type": "uuid", "nullable": true, "fk": "unions.id"},
+        {"name": "is_secret", "type": "boolean", "nullable": true, "default": "false"},
+        {"name": "answer_content", "type": "text", "nullable": true},
+        {"name": "answer_author_id", "type": "varchar", "nullable": true, "fk": "users.id"},
+        {"name": "answered_at", "type": "timestamptz", "nullable": true},
+        {"name": "views", "type": "integer", "nullable": true, "default": "0"},
+        {"name": "created_at", "type": "timestamptz", "nullable": true, "default": "now()"},
+        {"name": "updated_at", "type": "timestamptz", "nullable": true, "default": "now()"}
+      ],
+      "indexes": [
+        {"name": "questions_pkey", "columns": ["id"], "unique": true}
+      ]
+    },
+    {
+      "name": "free_boards",
+      "comment": "Free discussion board",
+      "row_count": 6,
+      "rls_enabled": false,
+      "primary_key": "id (bigint, IDENTITY ALWAYS)",
+      "columns": [
+        {"name": "id", "type": "bigint", "nullable": false, "identity": "ALWAYS"},
+        {"name": "title", "type": "varchar", "nullable": false},
+        {"name": "content", "type": "text", "nullable": false},
+        {"name": "author_id", "type": "varchar", "nullable": false, "fk": "users.id"},
+        {"name": "union_id", "type": "uuid", "nullable": true, "fk": "unions.id"},
+        {"name": "views", "type": "integer", "nullable": false, "default": "0"},
+        {"name": "created_at", "type": "timestamptz", "nullable": false, "default": "now()"},
+        {"name": "updated_at", "type": "timestamptz", "nullable": false, "default": "now()"}
+      ],
+      "indexes": [
+        {"name": "free_boards_pkey", "columns": ["id"], "unique": true},
+        {"name": "idx_free_boards_author_id", "columns": ["author_id"]},
+        {"name": "idx_free_boards_created_at", "columns": ["created_at DESC"]},
+        {"name": "idx_free_boards_union_id", "columns": ["union_id"]}
+      ]
+    },
+    {
+      "name": "union_info",
+      "comment": "Union information sharing board",
+      "row_count": 6,
+      "rls_enabled": false,
+      "primary_key": "id (bigint, IDENTITY ALWAYS)",
+      "columns": [
+        {"name": "id", "type": "bigint", "nullable": false, "identity": "ALWAYS"},
+        {"name": "title", "type": "varchar", "nullable": false},
+        {"name": "content", "type": "text", "nullable": false},
+        {"name": "author_id", "type": "varchar", "nullable": false, "fk": "users.id"},
+        {"name": "union_id", "type": "uuid", "nullable": true, "fk": "unions.id"},
+        {"name": "thumbnail_url", "type": "text", "nullable": true},
+        {"name": "has_attachments", "type": "boolean", "nullable": false, "default": "false"},
+        {"name": "views", "type": "integer", "nullable": false, "default": "0"},
+        {"name": "created_at", "type": "timestamptz", "nullable": false, "default": "now()"},
+        {"name": "updated_at", "type": "timestamptz", "nullable": false, "default": "now()"}
+      ],
+      "indexes": [
+        {"name": "union_info_pkey", "columns": ["id"], "unique": true},
+        {"name": "idx_union_info_author_id", "columns": ["author_id"]},
+        {"name": "idx_union_info_created_at", "columns": ["created_at DESC"]},
+        {"name": "idx_union_info_union_id", "columns": ["union_id"]}
+      ]
+    },
+    {
+      "name": "comments",
+      "comment": "Polymorphic comments (entity_type+entity_id pattern)",
+      "row_count": 19,
+      "rls_enabled": false,
+      "primary_key": "id (bigint, IDENTITY ALWAYS)",
+      "columns": [
+        {"name": "id", "type": "bigint", "nullable": false, "identity": "ALWAYS"},
+        {"name": "entity_type", "type": "text", "nullable": false},
+        {"name": "entity_id", "type": "bigint", "nullable": false},
+        {"name": "parent_id", "type": "bigint", "nullable": true, "fk": "comments.id"},
+        {"name": "author_id", "type": "varchar", "nullable": false, "fk": "users.id"},
+        {"name": "content", "type": "text", "nullable": false},
+        {"name": "union_id", "type": "uuid", "nullable": true, "fk": "unions.id"},
+        {"name": "created_at", "type": "timestamptz", "nullable": true, "default": "now()"},
+        {"name": "updated_at", "type": "timestamptz", "nullable": true, "default": "now()"}
+      ],
+      "indexes": [
+        {"name": "comments_pkey", "columns": ["id"], "unique": true}
+      ]
+    },
+    {
+      "name": "files",
+      "comment": "File attachments (polymorphic via attachable_type+attachable_id)",
+      "row_count": 10,
+      "rls_enabled": false,
+      "primary_key": "id (uuid)",
+      "columns": [
+        {"name": "id", "type": "uuid", "nullable": false, "default": "extensions.uuid_generate_v4()"},
+        {"name": "name", "type": "text", "nullable": false},
+        {"name": "path", "type": "text", "nullable": false},
+        {"name": "size", "type": "bigint", "nullable": false},
+        {"name": "type", "type": "text", "nullable": false},
+        {"name": "bucket_id", "type": "text", "nullable": false},
+        {"name": "union_id", "type": "uuid", "nullable": true, "fk": "unions.id"},
+        {"name": "uploader_id", "type": "text", "nullable": true, "fk": "users.id"},
+        {"name": "created_at", "type": "timestamptz", "nullable": false, "default": "now()"},
+        {"name": "updated_at", "type": "timestamptz", "nullable": false, "default": "now()"},
+        {"name": "attachable_type", "type": "varchar", "nullable": true},
+        {"name": "attachable_id", "type": "bigint", "nullable": true}
+      ],
+      "indexes": [
+        {"name": "files_pkey", "columns": ["id"], "unique": true}
+      ]
+    },
+    {
+      "name": "admin_invites",
+      "comment": "Admin invitation tokens",
+      "row_count": 4,
+      "rls_enabled": false,
+      "primary_key": "id (uuid)",
+      "columns": [
+        {"name": "id", "type": "uuid", "nullable": false, "default": "extensions.uuid_generate_v4()"},
+        {"name": "union_id", "type": "uuid", "nullable": false, "fk": "unions.id"},
+        {"name": "name", "type": "varchar", "nullable": false},
+        {"name": "phone_number", "type": "varchar", "nullable": false},
+        {"name": "email", "type": "varchar", "nullable": true},
+        {"name": "invite_token", "type": "varchar", "nullable": false, "unique": true},
+        {"name": "status", "type": "varchar", "nullable": true, "default": "'PENDING'", "check": ["PENDING","USED","EXPIRED"]},
+        {"name": "created_by", "type": "varchar", "nullable": false, "fk": "users.id"},
+        {"name": "expires_at", "type": "timestamptz", "nullable": false},
+        {"name": "used_at", "type": "timestamptz", "nullable": true},
+        {"name": "created_at", "type": "timestamptz", "nullable": true, "default": "now()"}
+      ],
+      "indexes": [
+        {"name": "admin_invites_pkey", "columns": ["id"], "unique": true},
+        {"name": "admin_invites_invite_token_key", "columns": ["invite_token"], "unique": true}
+      ]
+    },
+    {
+      "name": "member_invites",
+      "comment": "Member invitation tokens with property matching",
+      "row_count": 6,
+      "rls_enabled": false,
+      "primary_key": "id (uuid)",
+      "columns": [
+        {"name": "id", "type": "uuid", "nullable": false, "default": "extensions.uuid_generate_v4()"},
+        {"name": "union_id", "type": "uuid", "nullable": false, "fk": "unions.id"},
+        {"name": "name", "type": "varchar", "nullable": false},
+        {"name": "phone_number", "type": "varchar", "nullable": false},
+        {"name": "property_address", "type": "text", "nullable": false},
+        {"name": "invite_token", "type": "varchar", "nullable": false, "unique": true},
+        {"name": "status", "type": "varchar", "nullable": true, "default": "'PENDING'", "check": ["PENDING","USED","EXPIRED"]},
+        {"name": "user_id", "type": "varchar", "nullable": true, "fk": "users.id"},
+        {"name": "created_by", "type": "varchar", "nullable": false, "fk": "users.id"},
+        {"name": "expires_at", "type": "timestamptz", "nullable": false},
+        {"name": "used_at", "type": "timestamptz", "nullable": true},
+        {"name": "created_at", "type": "timestamptz", "nullable": true, "default": "now()"},
+        {"name": "property_pnu", "type": "varchar", "nullable": true}
+      ],
+      "indexes": [
+        {"name": "member_invites_pkey", "columns": ["id"], "unique": true},
+        {"name": "member_invites_invite_token_key", "columns": ["invite_token"], "unique": true},
+        {"name": "member_invites_union_id_name_phone_number_property_address_key", "columns": ["union_id","name","phone_number","property_address"], "unique": true},
+        {"name": "idx_member_invites_invite_token", "columns": ["invite_token"]},
+        {"name": "idx_member_invites_status", "columns": ["status"]},
+        {"name": "idx_member_invites_union_id", "columns": ["union_id"]}
+      ]
+    },
+    {
+      "name": "access_tokens",
+      "comment": "Public access tokens for non-member access",
+      "row_count": 0,
+      "rls_enabled": true,
+      "primary_key": "id (uuid)",
+      "columns": [
+        {"name": "id", "type": "uuid", "nullable": false, "default": "gen_random_uuid()"},
+        {"name": "key", "type": "varchar", "nullable": false, "unique": true},
+        {"name": "name", "type": "varchar", "nullable": false},
+        {"name": "union_id", "type": "uuid", "nullable": true, "fk": "unions.id"},
+        {"name": "access_scope", "type": "varchar", "nullable": true, "default": "'all'"},
+        {"name": "allowed_pages", "type": "text[]", "nullable": true},
+        {"name": "expires_at", "type": "timestamptz", "nullable": true},
+        {"name": "max_usage", "type": "integer", "nullable": true},
+        {"name": "usage_count", "type": "integer", "nullable": true, "default": "0"},
+        {"name": "created_by", "type": "varchar", "nullable": true, "fk": "users.id"},
+        {"name": "created_at", "type": "timestamptz", "nullable": true, "default": "now()"},
+        {"name": "updated_at", "type": "timestamptz", "nullable": true, "default": "now()"},
+        {"name": "deleted_at", "type": "timestamptz", "nullable": true}
+      ],
+      "indexes": [
+        {"name": "access_tokens_pkey", "columns": ["id"], "unique": true},
+        {"name": "access_tokens_key_key", "columns": ["key"], "unique": true},
+        {"name": "idx_access_tokens_deleted", "columns": ["deleted_at"], "partial": "WHERE deleted_at IS NULL"},
+        {"name": "idx_access_tokens_key", "columns": ["key"]}
+      ]
+    },
+    {
+      "name": "access_token_logs",
+      "comment": "Access token usage logs",
+      "row_count": 0,
+      "rls_enabled": true,
+      "primary_key": "id (uuid)",
+      "columns": [
+        {"name": "id", "type": "uuid", "nullable": false, "default": "gen_random_uuid()"},
+        {"name": "token_id", "type": "uuid", "nullable": true, "fk": "access_tokens.id"},
+        {"name": "accessed_at", "type": "timestamptz", "nullable": true, "default": "now()"},
+        {"name": "accessed_path", "type": "varchar", "nullable": true},
+        {"name": "ip_address", "type": "inet", "nullable": true},
+        {"name": "user_agent", "type": "text", "nullable": true}
+      ],
+      "indexes": [
+        {"name": "access_token_logs_pkey", "columns": ["id"], "unique": true},
+        {"name": "idx_access_token_logs_token", "columns": ["token_id"]}
+      ]
+    },
+    {
+      "name": "hero_slides",
+      "comment": "Hero section slide images",
+      "row_count": 0,
+      "rls_enabled": false,
+      "primary_key": "id (uuid)",
+      "columns": [
+        {"name": "id", "type": "uuid", "nullable": false, "default": "extensions.uuid_generate_v4()"},
+        {"name": "union_id", "type": "uuid", "nullable": false, "fk": "unions.id"},
+        {"name": "image_url", "type": "text", "nullable": false},
+        {"name": "link_url", "type": "text", "nullable": true},
+        {"name": "display_order", "type": "integer", "nullable": true, "default": "0"},
+        {"name": "is_active", "type": "boolean", "nullable": true, "default": "true"},
+        {"name": "created_at", "type": "timestamptz", "nullable": true, "default": "now()"},
+        {"name": "updated_at", "type": "timestamptz", "nullable": true, "default": "now()"}
+      ],
+      "indexes": [
+        {"name": "hero_slides_pkey", "columns": ["id"], "unique": true},
+        {"name": "idx_hero_slides_order", "columns": ["union_id","display_order","created_at DESC"]},
+        {"name": "idx_hero_slides_union_id", "columns": ["union_id"]}
+      ]
+    },
+    {
+      "name": "advertisements",
+      "comment": "Advertisement management",
+      "row_count": 4,
+      "rls_enabled": false,
+      "primary_key": "id (uuid)",
+      "columns": [
+        {"name": "id", "type": "uuid", "nullable": false, "default": "extensions.uuid_generate_v4()"},
+        {"name": "union_id", "type": "uuid", "nullable": true, "fk": "unions.id"},
+        {"name": "type", "type": "ad_type", "nullable": false, "enums": ["MAIN","SUB","BOARD"]},
+        {"name": "business_name", "type": "text", "nullable": false},
+        {"name": "contract_start_date", "type": "date", "nullable": false},
+        {"name": "contract_end_date", "type": "date", "nullable": false},
+        {"name": "price", "type": "bigint", "nullable": true, "default": "0"},
+        {"name": "contract_file_url", "type": "text", "nullable": true},
+        {"name": "is_payment_completed", "type": "boolean", "nullable": true, "default": "false"},
+        {"name": "image_url", "type": "text", "nullable": true},
+        {"name": "link_url", "type": "text", "nullable": true},
+        {"name": "title", "type": "text", "nullable": true},
+        {"name": "content", "type": "text", "nullable": true},
+        {"name": "created_at", "type": "timestamptz", "nullable": true, "default": "now()"},
+        {"name": "image_url_mobile", "type": "varchar", "nullable": true}
+      ],
+      "indexes": [
+        {"name": "advertisements_pkey", "columns": ["id"], "unique": true}
+      ]
+    },
+    {
+      "name": "alimtalk_logs",
+      "comment": "KakaoTalk notification send logs",
+      "row_count": 45,
+      "rls_enabled": false,
+      "primary_key": "id (bigint, IDENTITY ALWAYS)",
+      "columns": [
+        {"name": "id", "type": "bigint", "nullable": false, "identity": "ALWAYS"},
+        {"name": "notice_id", "type": "bigint", "nullable": true, "fk": "notices.id"},
+        {"name": "sender_id", "type": "varchar", "nullable": false, "fk": "users.id"},
+        {"name": "title", "type": "varchar", "nullable": false},
+        {"name": "content", "type": "text", "nullable": true},
+        {"name": "recipient_count", "type": "integer", "nullable": false, "default": "0"},
+        {"name": "success_count", "type": "integer", "nullable": false, "default": "0"},
+        {"name": "fail_count", "type": "integer", "nullable": false, "default": "0"},
+        {"name": "cost_per_msg", "type": "numeric", "nullable": false, "default": "15.00"},
+        {"name": "sent_at", "type": "timestamptz", "nullable": false, "default": "now()"},
+        {"name": "union_id", "type": "uuid", "nullable": true, "fk": "unions.id"},
+        {"name": "template_code", "type": "varchar", "nullable": true},
+        {"name": "template_name", "type": "varchar", "nullable": true},
+        {"name": "sender_channel_name", "type": "varchar", "nullable": true, "default": "'조합온'"},
+        {"name": "kakao_success_count", "type": "integer", "nullable": true, "default": "0"},
+        {"name": "sms_success_count", "type": "integer", "nullable": true, "default": "0"},
+        {"name": "estimated_cost", "type": "numeric", "nullable": true, "default": "0"},
+        {"name": "recipient_details", "type": "jsonb", "nullable": true},
+        {"name": "aligo_response", "type": "jsonb", "nullable": true}
+      ],
+      "indexes": [
+        {"name": "alimtalk_logs_pkey", "columns": ["id"], "unique": true},
+        {"name": "idx_alimtalk_logs_sent_at", "columns": ["sent_at DESC"]},
+        {"name": "idx_alimtalk_logs_template_code", "columns": ["template_code"]},
+        {"name": "idx_alimtalk_logs_union_id", "columns": ["union_id"]}
+      ]
+    },
+    {
+      "name": "alimtalk_templates",
+      "comment": "Aligo KakaoTalk notification templates",
+      "row_count": 9,
+      "rls_enabled": false,
+      "primary_key": "id (uuid)",
+      "columns": [
+        {"name": "id", "type": "uuid", "nullable": false, "default": "gen_random_uuid()"},
+        {"name": "template_code", "type": "varchar", "nullable": false, "unique": true},
+        {"name": "template_name", "type": "varchar", "nullable": false},
+        {"name": "template_content", "type": "text", "nullable": true},
+        {"name": "status", "type": "varchar", "nullable": true},
+        {"name": "insp_status", "type": "varchar", "nullable": true},
+        {"name": "buttons", "type": "jsonb", "nullable": true},
+        {"name": "synced_at", "type": "timestamptz", "nullable": true},
+        {"name": "sender_key", "type": "varchar", "nullable": true},
+        {"name": "template_type", "type": "varchar", "nullable": true},
+        {"name": "template_em_type", "type": "varchar", "nullable": true},
+        {"name": "template_title", "type": "varchar", "nullable": true},
+        {"name": "template_subtitle", "type": "varchar", "nullable": true},
+        {"name": "template_image_name", "type": "varchar", "nullable": true},
+        {"name": "template_image_url", "type": "text", "nullable": true},
+        {"name": "cdate", "type": "timestamptz", "nullable": true},
+        {"name": "comments", "type": "text", "nullable": true},
+        {"name": "use_failover", "type": "boolean", "nullable": true, "default": "false"}
+      ],
+      "indexes": [
+        {"name": "alimtalk_templates_pkey", "columns": ["id"], "unique": true},
+        {"name": "alimtalk_templates_template_code_key", "columns": ["template_code"], "unique": true}
+      ]
+    },
+    {
+      "name": "alimtalk_pricing",
+      "comment": "KakaoTalk notification pricing",
+      "row_count": 4,
+      "rls_enabled": false,
+      "primary_key": "id (uuid)",
+      "columns": [
+        {"name": "id", "type": "uuid", "nullable": false, "default": "gen_random_uuid()"},
+        {"name": "message_type", "type": "varchar", "nullable": false},
+        {"name": "unit_price", "type": "numeric", "nullable": false},
+        {"name": "effective_from", "type": "timestamptz", "nullable": false, "default": "now()"},
+        {"name": "created_at", "type": "timestamptz", "nullable": false, "default": "now()"}
+      ],
+      "indexes": [
+        {"name": "alimtalk_pricing_pkey", "columns": ["id"], "unique": true},
+        {"name": "idx_alimtalk_pricing_effective", "columns": ["message_type","effective_from DESC"]}
+      ]
+    },
+    {
+      "name": "scheduled_alimtalks",
+      "comment": "Scheduled KakaoTalk notifications",
+      "row_count": 0,
+      "rls_enabled": true,
+      "primary_key": "id (uuid)",
+      "columns": [
+        {"name": "id", "type": "uuid", "nullable": false, "default": "gen_random_uuid()"},
+        {"name": "notice_id", "type": "bigint", "nullable": true, "fk": "notices.id"},
+        {"name": "union_id", "type": "uuid", "nullable": true, "fk": "unions.id"},
+        {"name": "template_code", "type": "varchar", "nullable": false},
+        {"name": "scheduled_at", "type": "timestamptz", "nullable": false},
+        {"name": "status", "type": "varchar", "nullable": true, "default": "'pending'"},
+        {"name": "sent_at", "type": "timestamptz", "nullable": true},
+        {"name": "error_message", "type": "text", "nullable": true},
+        {"name": "retry_count", "type": "integer", "nullable": true, "default": "0"},
+        {"name": "max_retries", "type": "integer", "nullable": true, "default": "3"},
+        {"name": "next_retry_at", "type": "timestamptz", "nullable": true},
+        {"name": "processed_at", "type": "timestamptz", "nullable": true},
+        {"name": "created_at", "type": "timestamptz", "nullable": true, "default": "now()"},
+        {"name": "updated_at", "type": "timestamptz", "nullable": true, "default": "now()"}
+      ],
+      "indexes": [
+        {"name": "scheduled_alimtalks_pkey", "columns": ["id"], "unique": true},
+        {"name": "idx_scheduled_notice", "columns": ["notice_id"], "partial": "WHERE status='pending'"},
+        {"name": "idx_scheduled_pending_ready", "columns": ["scheduled_at","id"], "partial": "WHERE status='pending' AND processed_at IS NULL"},
+        {"name": "idx_scheduled_retry", "columns": ["next_retry_at","id"], "partial": "WHERE status='failed' AND retry_count < 3"},
+        {"name": "idx_scheduled_status_created", "columns": ["status","created_at DESC"]},
+        {"name": "idx_scheduled_union_status", "columns": ["union_id","status","scheduled_at DESC"]}
+      ]
+    },
+    {
+      "name": "sms_send_logs",
+      "comment": "SMS send batch logs",
+      "row_count": 0,
+      "rls_enabled": true,
+      "primary_key": "id (uuid)",
+      "columns": [
+        {"name": "id", "type": "uuid", "nullable": false, "default": "gen_random_uuid()"},
+        {"name": "union_id", "type": "uuid", "nullable": true, "fk": "unions.id"},
+        {"name": "sender_id", "type": "varchar", "nullable": true, "fk": "users.id"},
+        {"name": "title", "type": "varchar", "nullable": true},
+        {"name": "message", "type": "text", "nullable": false},
+        {"name": "msg_type", "type": "varchar", "nullable": false, "check": ["SMS","LMS","MMS"]},
+        {"name": "total_count", "type": "integer", "nullable": false, "default": "0"},
+        {"name": "success_count", "type": "integer", "nullable": true, "default": "0"},
+        {"name": "fail_count", "type": "integer", "nullable": true, "default": "0"},
+        {"name": "status", "type": "varchar", "nullable": true, "default": "'pending'", "check": ["pending","sending","completed","failed"]},
+        {"name": "aligo_msg_ids", "type": "text[]", "nullable": true},
+        {"name": "estimated_cost", "type": "numeric", "nullable": true, "default": "0"},
+        {"name": "created_at", "type": "timestamptz", "nullable": true, "default": "now()"},
+        {"name": "completed_at", "type": "timestamptz", "nullable": true}
+      ],
+      "indexes": [
+        {"name": "sms_send_logs_pkey", "columns": ["id"], "unique": true},
+        {"name": "idx_sms_logs_created_at", "columns": ["created_at DESC"]},
+        {"name": "idx_sms_logs_status", "columns": ["status"]},
+        {"name": "idx_sms_logs_union", "columns": ["union_id"]}
+      ]
+    },
+    {
+      "name": "sms_send_details",
+      "comment": "Per-recipient SMS send details",
+      "row_count": 0,
+      "rls_enabled": true,
+      "primary_key": "id (uuid)",
+      "columns": [
+        {"name": "id", "type": "uuid", "nullable": false, "default": "gen_random_uuid()"},
+        {"name": "log_id", "type": "uuid", "nullable": true, "fk": "sms_send_logs.id"},
+        {"name": "recipient_name", "type": "varchar", "nullable": false},
+        {"name": "recipient_phone", "type": "varchar", "nullable": false},
+        {"name": "message_sent", "type": "text", "nullable": false},
+        {"name": "status", "type": "varchar", "nullable": true, "default": "'pending'", "check": ["pending","success","failed"]},
+        {"name": "error_message", "type": "text", "nullable": true},
+        {"name": "sent_at", "type": "timestamptz", "nullable": true},
+        {"name": "created_at", "type": "timestamptz", "nullable": true, "default": "now()"}
+      ],
+      "indexes": [
+        {"name": "sms_send_details_pkey", "columns": ["id"], "unique": true},
+        {"name": "idx_sms_details_log", "columns": ["log_id"]},
+        {"name": "idx_sms_details_status", "columns": ["status"]}
+      ]
+    },
+    {
+      "name": "member_access_logs",
+      "comment": "Member data access audit logs (privacy compliance)",
+      "row_count": 139,
+      "rls_enabled": false,
+      "primary_key": "id (uuid)",
+      "columns": [
+        {"name": "id", "type": "uuid", "nullable": false, "default": "gen_random_uuid()"},
+        {"name": "union_id", "type": "uuid", "nullable": false, "fk": "unions.id"},
+        {"name": "viewer_id", "type": "varchar", "nullable": false, "fk": "users.id"},
+        {"name": "viewer_name", "type": "varchar", "nullable": false},
+        {"name": "access_type", "type": "varchar", "nullable": false, "check": ["LIST_VIEW","DETAIL_VIEW","MEMBER_UPDATE","MEMBER_BLOCK"]},
+        {"name": "ip_address", "type": "varchar", "nullable": true},
+        {"name": "user_agent", "type": "text", "nullable": true},
+        {"name": "accessed_at", "type": "timestamptz", "nullable": false, "default": "now()"},
+        {"name": "created_at", "type": "timestamptz", "nullable": false, "default": "now()"}
+      ],
+      "indexes": [
+        {"name": "member_access_logs_pkey", "columns": ["id"], "unique": true},
+        {"name": "idx_member_access_logs_accessed_at", "columns": ["accessed_at"]},
+        {"name": "idx_member_access_logs_union_id", "columns": ["union_id"]},
+        {"name": "idx_member_access_logs_viewer_id", "columns": ["viewer_id"]}
+      ]
+    },
+    {
+      "name": "buildings",
+      "comment": "Building records for GIS",
+      "row_count": 1102,
+      "rls_enabled": false,
+      "primary_key": "id (uuid)",
+      "columns": [
+        {"name": "id", "type": "uuid", "nullable": false, "default": "gen_random_uuid()"},
+        {"name": "building_type", "type": "building_type_enum", "nullable": false, "default": "'NONE'", "enums": ["DETACHED_HOUSE","VILLA","APARTMENT","COMMERCIAL","MIXED","NONE"]},
+        {"name": "building_name", "type": "text", "nullable": true},
+        {"name": "main_purpose", "type": "text", "nullable": true},
+        {"name": "floor_count", "type": "integer", "nullable": true, "default": "0"},
+        {"name": "total_unit_count", "type": "integer", "nullable": true, "default": "0"},
+        {"name": "created_at", "type": "timestamptz", "nullable": true, "default": "now()"},
+        {"name": "updated_at", "type": "timestamptz", "nullable": true, "default": "now()"}
+      ],
+      "indexes": [
+        {"name": "buildings_pkey", "columns": ["id"], "unique": true},
+        {"name": "idx_buildings_building_type", "columns": ["building_type"]}
+      ]
+    },
+    {
+      "name": "building_units",
+      "comment": "Individual units within buildings (dong/ho)",
+      "row_count": 1813,
+      "rls_enabled": false,
+      "primary_key": "id (uuid)",
+      "columns": [
+        {"name": "id", "type": "uuid", "nullable": false, "default": "gen_random_uuid()"},
+        {"name": "building_id", "type": "uuid", "nullable": false, "fk": "buildings.id"},
+        {"name": "dong", "type": "text", "nullable": true},
+        {"name": "ho", "type": "text", "nullable": true},
+        {"name": "floor", "type": "integer", "nullable": true},
+        {"name": "area", "type": "numeric", "nullable": true},
+        {"name": "created_at", "type": "timestamptz", "nullable": true, "default": "now()"},
+        {"name": "official_price", "type": "bigint", "nullable": true},
+        {"name": "previous_building_id", "type": "uuid", "nullable": true, "fk": "buildings.id"}
+      ],
+      "indexes": [
+        {"name": "building_units_pkey", "columns": ["id"], "unique": true},
+        {"name": "building_units_building_id_dong_ho_key", "columns": ["building_id","dong","ho"], "unique": true},
+        {"name": "idx_building_units_building_id", "columns": ["building_id"]},
+        {"name": "idx_building_units_dong_ho", "columns": ["dong","ho"]},
+        {"name": "idx_building_units_prev_building_id", "columns": ["previous_building_id"], "partial": "WHERE previous_building_id IS NOT NULL"}
+      ]
+    },
+    {
+      "name": "building_land_lots",
+      "comment": "Building-to-land-lot mapping (1 PNU = 1 building max)",
+      "row_count": 1101,
+      "rls_enabled": false,
+      "primary_key": "id (uuid)",
+      "columns": [
+        {"name": "id", "type": "uuid", "nullable": false, "default": "gen_random_uuid()"},
+        {"name": "building_id", "type": "uuid", "nullable": false, "fk": "buildings.id"},
+        {"name": "pnu", "type": "varchar", "nullable": false, "unique": true, "fk": "land_lots.pnu"},
+        {"name": "created_at", "type": "timestamptz", "nullable": true, "default": "now()"},
+        {"name": "previous_building_id", "type": "uuid", "nullable": true, "fk": "buildings.id"},
+        {"name": "updated_at", "type": "timestamptz", "nullable": true, "default": "now()"},
+        {"name": "updated_by", "type": "text", "nullable": true},
+        {"name": "note", "type": "text", "nullable": true}
+      ],
+      "indexes": [
+        {"name": "building_land_lots_pkey", "columns": ["id"], "unique": true},
+        {"name": "building_land_lots_pnu_unique", "columns": ["pnu"], "unique": true},
+        {"name": "idx_building_land_lots_building_id", "columns": ["building_id"]},
+        {"name": "idx_building_land_lots_pnu", "columns": ["pnu"]}
+      ]
+    },
+    {
+      "name": "land_lots",
+      "comment": "Land lot records with GIS boundary data",
+      "row_count": 1102,
+      "rls_enabled": false,
+      "primary_key": "pnu (varchar)",
+      "columns": [
+        {"name": "pnu", "type": "varchar", "nullable": false},
+        {"name": "address", "type": "text", "nullable": false},
+        {"name": "area", "type": "numeric", "nullable": true},
+        {"name": "official_price", "type": "bigint", "nullable": true},
+        {"name": "boundary", "type": "geometry", "nullable": true},
+        {"name": "updated_at", "type": "timestamptz", "nullable": false},
+        {"name": "owner_count", "type": "integer", "nullable": true, "default": "0"},
+        {"name": "land_category", "type": "text", "nullable": true},
+        {"name": "road_address", "type": "text", "nullable": true},
+        {"name": "union_id", "type": "uuid", "nullable": true, "fk": "unions.id"},
+        {"name": "address_text", "type": "text", "nullable": true},
+        {"name": "created_at", "type": "timestamptz", "nullable": false, "default": "now()"}
+      ],
+      "indexes": [
+        {"name": "land_lots_pkey", "columns": ["pnu"], "unique": true},
+        {"name": "idx_land_lots_boundary", "columns": ["boundary"], "type": "GiST"}
+      ]
+    },
+    {
+      "name": "user_property_units",
+      "comment": "User-property ownership mapping (N:M). Central table for property data.",
+      "row_count": 1860,
+      "rls_enabled": false,
+      "primary_key": "id (uuid)",
+      "columns": [
+        {"name": "id", "type": "uuid", "nullable": false, "default": "gen_random_uuid()"},
+        {"name": "user_id", "type": "varchar", "nullable": false, "fk": "users.id"},
+        {"name": "building_unit_id", "type": "uuid", "nullable": true, "fk": "building_units.id"},
+        {"name": "ownership_type", "type": "varchar", "nullable": true, "default": "'OWNER'", "check": ["OWNER","CO_OWNER","FAMILY"]},
+        {"name": "is_primary", "type": "boolean", "nullable": true, "default": "true"},
+        {"name": "notes", "type": "text", "nullable": true},
+        {"name": "created_at", "type": "timestamptz", "nullable": true, "default": "now()"},
+        {"name": "updated_at", "type": "timestamptz", "nullable": true, "default": "now()"},
+        {"name": "land_area", "type": "numeric", "nullable": true},
+        {"name": "land_ownership_ratio", "type": "numeric", "nullable": true},
+        {"name": "building_area", "type": "numeric", "nullable": true},
+        {"name": "building_ownership_ratio", "type": "numeric", "nullable": true},
+        {"name": "pnu", "type": "varchar", "nullable": true},
+        {"name": "property_address_jibun", "type": "text", "nullable": true},
+        {"name": "property_address_road", "type": "text", "nullable": true},
+        {"name": "building_name", "type": "text", "nullable": true},
+        {"name": "dong", "type": "text", "nullable": true},
+        {"name": "ho", "type": "text", "nullable": true},
+        {"name": "previous_pnu", "type": "text", "nullable": true}
+      ],
+      "indexes": [
+        {"name": "user_property_units_pkey", "columns": ["id"], "unique": true},
+        {"name": "user_property_units_user_id_building_unit_id_key", "columns": ["user_id","building_unit_id"], "unique": true},
+        {"name": "idx_user_property_units_is_primary", "columns": ["is_primary"], "partial": "WHERE is_primary = true"},
+        {"name": "idx_user_property_units_pnu", "columns": ["pnu"]},
+        {"name": "idx_user_property_units_previous_pnu", "columns": ["previous_pnu"], "partial": "WHERE previous_pnu IS NOT NULL"},
+        {"name": "idx_user_property_units_primary", "columns": ["user_id","is_primary"], "partial": "WHERE is_primary = true"},
+        {"name": "idx_user_property_units_unit", "columns": ["building_unit_id"]},
+        {"name": "idx_user_property_units_user", "columns": ["user_id"]},
+        {"name": "idx_user_property_units_user_id", "columns": ["user_id"]}
+      ]
+    },
+    {
+      "name": "user_consents",
+      "comment": "User consent tracking per stage",
+      "row_count": 0,
+      "rls_enabled": false,
+      "primary_key": "id (uuid)",
+      "columns": [
+        {"name": "id", "type": "uuid", "nullable": false, "default": "gen_random_uuid()"},
+        {"name": "user_id", "type": "varchar", "nullable": false, "fk": "users.id"},
+        {"name": "stage_id", "type": "uuid", "nullable": false, "fk": "consent_stages.id"},
+        {"name": "status", "type": "agreement_status_enum", "nullable": false, "default": "'PENDING'", "enums": ["AGREED","DISAGREED","PENDING"]},
+        {"name": "consent_date", "type": "date", "nullable": true},
+        {"name": "updated_at", "type": "timestamptz", "nullable": false, "default": "now()"}
+      ],
+      "indexes": [
+        {"name": "user_consents_pkey", "columns": ["id"], "unique": true},
+        {"name": "user_consents_user_id_stage_id_key", "columns": ["user_id","stage_id"], "unique": true},
+        {"name": "idx_user_consents_stage_id", "columns": ["stage_id"]},
+        {"name": "idx_user_consents_user_id", "columns": ["user_id"]}
+      ]
+    },
+    {
+      "name": "consent_stages",
+      "comment": "Consent stage definitions per business type",
+      "row_count": 14,
+      "rls_enabled": false,
+      "primary_key": "id (uuid)",
+      "columns": [
+        {"name": "id", "type": "uuid", "nullable": false, "default": "gen_random_uuid()"},
+        {"name": "business_type", "type": "business_type_enum", "nullable": false, "enums": ["REDEVELOPMENT","RECONSTRUCTION","HOUSING_ASSOCIATION","STREET_HOUSING","SMALL_RECONSTRUCTION"]},
+        {"name": "stage_code", "type": "varchar", "nullable": false},
+        {"name": "stage_name", "type": "text", "nullable": false},
+        {"name": "required_rate", "type": "integer", "nullable": false, "default": "75"},
+        {"name": "sort_order", "type": "integer", "nullable": false, "default": "0"},
+        {"name": "created_at", "type": "timestamptz", "nullable": false}
+      ],
+      "indexes": [
+        {"name": "consent_stages_pkey", "columns": ["id"], "unique": true},
+        {"name": "consent_stages_business_type_stage_code_key", "columns": ["business_type","stage_code"], "unique": true}
+      ]
+    },
+    {
+      "name": "development_stages",
+      "comment": "Development stage definitions",
+      "row_count": 45,
+      "rls_enabled": false,
+      "primary_key": "id (uuid)",
+      "columns": [
+        {"name": "id", "type": "uuid", "nullable": false, "default": "gen_random_uuid()"},
+        {"name": "business_type", "type": "text", "nullable": false},
+        {"name": "stage_name", "type": "text", "nullable": false},
+        {"name": "sort_order", "type": "integer", "nullable": true, "default": "0"},
+        {"name": "created_at", "type": "timestamptz", "nullable": true, "default": "now()"}
+      ],
+      "indexes": [
+        {"name": "development_stages_pkey", "columns": ["id"], "unique": true}
+      ]
+    },
+    {
+      "name": "sync_jobs",
+      "comment": "Background sync job tracking",
+      "row_count": 4,
+      "rls_enabled": false,
+      "primary_key": "id (uuid)",
+      "columns": [
+        {"name": "id", "type": "uuid", "nullable": false, "default": "gen_random_uuid()"},
+        {"name": "union_id", "type": "uuid", "nullable": true, "fk": "unions.id"},
+        {"name": "status", "type": "sync_status_enum", "nullable": false, "default": "'PROCESSING'", "enums": ["PROCESSING","COMPLETED","FAILED"]},
+        {"name": "progress", "type": "integer", "nullable": false, "default": "0"},
+        {"name": "error_log", "type": "text", "nullable": true},
+        {"name": "created_at", "type": "timestamptz", "nullable": false},
+        {"name": "updated_at", "type": "timestamptz", "nullable": false},
+        {"name": "is_published", "type": "boolean", "nullable": true, "default": "false"},
+        {"name": "preview_data", "type": "jsonb", "nullable": true},
+        {"name": "job_type", "type": "sync_job_type_enum", "nullable": false, "default": "'GIS_MAP'", "enums": ["GIS_MAP","CONSENT_UPLOAD","MEMBER_UPLOAD","MEMBER_INVITE"]}
+      ],
+      "indexes": [
+        {"name": "sync_jobs_pkey", "columns": ["id"], "unique": true},
+        {"name": "idx_sync_jobs_union_type", "columns": ["union_id","job_type"]}
+      ]
+    },
+    {
+      "name": "user_relationships",
+      "comment": "User relationship management (family/proxy/guardian)",
+      "row_count": 0,
+      "rls_enabled": false,
+      "primary_key": "id (uuid)",
+      "columns": [
+        {"name": "id", "type": "uuid", "nullable": false, "default": "gen_random_uuid()"},
+        {"name": "user_id", "type": "varchar", "nullable": false, "fk": "users.id"},
+        {"name": "related_user_id", "type": "varchar", "nullable": false, "fk": "users.id"},
+        {"name": "relationship_type", "type": "varchar", "nullable": false, "check": ["FAMILY","PROXY","LEGAL_GUARDIAN"]},
+        {"name": "verified", "type": "boolean", "nullable": true, "default": "false"},
+        {"name": "created_at", "type": "timestamptz", "nullable": true, "default": "now()"},
+        {"name": "verified_at", "type": "timestamptz", "nullable": true}
+      ],
+      "indexes": [
+        {"name": "user_relationships_pkey", "columns": ["id"], "unique": true},
+        {"name": "user_relationships_user_id_related_user_id_key", "columns": ["user_id","related_user_id"], "unique": true},
+        {"name": "idx_user_relationships_related_user_id", "columns": ["related_user_id"]},
+        {"name": "idx_user_relationships_user_id", "columns": ["user_id"]}
+      ]
+    },
+    {
+      "name": "property_ownership_history",
+      "comment": "Property ownership change history/audit",
+      "row_count": 0,
+      "rls_enabled": false,
+      "primary_key": "id (uuid)",
+      "columns": [
+        {"name": "id", "type": "uuid", "nullable": false, "default": "gen_random_uuid()"},
+        {"name": "property_unit_id", "type": "uuid", "nullable": false, "fk": "user_property_units.id"},
+        {"name": "from_user_id", "type": "varchar", "nullable": true, "fk": "users.id"},
+        {"name": "to_user_id", "type": "varchar", "nullable": true, "fk": "users.id"},
+        {"name": "change_type", "type": "varchar", "nullable": false, "check": ["TRANSFER","CO_OWNER_ADDED","CO_OWNER_REMOVED","RATIO_CHANGED"]},
+        {"name": "previous_ratio", "type": "numeric", "nullable": true},
+        {"name": "new_ratio", "type": "numeric", "nullable": true},
+        {"name": "change_reason", "type": "text", "nullable": true},
+        {"name": "changed_at", "type": "timestamptz", "nullable": true, "default": "now()"},
+        {"name": "changed_by", "type": "varchar", "nullable": true, "fk": "users.id"}
+      ],
+      "indexes": [
+        {"name": "property_ownership_history_pkey", "columns": ["id"], "unique": true},
+        {"name": "idx_property_ownership_history_changed_at", "columns": ["changed_at"]},
+        {"name": "idx_property_ownership_history_from", "columns": ["from_user_id"]},
+        {"name": "idx_property_ownership_history_to", "columns": ["to_user_id"]},
+        {"name": "idx_property_ownership_history_unit", "columns": ["property_unit_id"]}
+      ]
+    }
+  ],
+  "relationships": [
+    {"from": "users.union_id", "to": "unions.id", "type": "many-to-one", "description": "User belongs to a union"},
+    {"from": "user_auth_links.user_id", "to": "users.id", "type": "many-to-one", "description": "Auth link maps social to app user"},
+    {"from": "user_auth_links.auth_user_id", "to": "auth.users.id", "type": "many-to-one", "description": "Auth link maps to Supabase auth"},
+    {"from": "notices.author_id", "to": "users.id", "type": "many-to-one"},
+    {"from": "notices.union_id", "to": "unions.id", "type": "many-to-one"},
+    {"from": "questions.author_id", "to": "users.id", "type": "many-to-one"},
+    {"from": "questions.answer_author_id", "to": "users.id", "type": "many-to-one"},
+    {"from": "questions.union_id", "to": "unions.id", "type": "many-to-one"},
+    {"from": "free_boards.author_id", "to": "users.id", "type": "many-to-one"},
+    {"from": "free_boards.union_id", "to": "unions.id", "type": "many-to-one"},
+    {"from": "union_info.author_id", "to": "users.id", "type": "many-to-one"},
+    {"from": "union_info.union_id", "to": "unions.id", "type": "many-to-one"},
+    {"from": "comments.author_id", "to": "users.id", "type": "many-to-one"},
+    {"from": "comments.parent_id", "to": "comments.id", "type": "self-referencing (threaded)"},
+    {"from": "comments.union_id", "to": "unions.id", "type": "many-to-one"},
+    {"from": "files.uploader_id", "to": "users.id", "type": "many-to-one"},
+    {"from": "files.union_id", "to": "unions.id", "type": "many-to-one"},
+    {"from": "admin_invites.union_id", "to": "unions.id", "type": "many-to-one"},
+    {"from": "admin_invites.created_by", "to": "users.id", "type": "many-to-one"},
+    {"from": "member_invites.union_id", "to": "unions.id", "type": "many-to-one"},
+    {"from": "member_invites.user_id", "to": "users.id", "type": "many-to-one"},
+    {"from": "member_invites.created_by", "to": "users.id", "type": "many-to-one"},
+    {"from": "access_tokens.union_id", "to": "unions.id", "type": "many-to-one"},
+    {"from": "access_tokens.created_by", "to": "users.id", "type": "many-to-one"},
+    {"from": "access_token_logs.token_id", "to": "access_tokens.id", "type": "many-to-one"},
+    {"from": "hero_slides.union_id", "to": "unions.id", "type": "many-to-one"},
+    {"from": "advertisements.union_id", "to": "unions.id", "type": "many-to-one"},
+    {"from": "alimtalk_logs.notice_id", "to": "notices.id", "type": "many-to-one"},
+    {"from": "alimtalk_logs.sender_id", "to": "users.id", "type": "many-to-one"},
+    {"from": "alimtalk_logs.union_id", "to": "unions.id", "type": "many-to-one"},
+    {"from": "scheduled_alimtalks.notice_id", "to": "notices.id", "type": "many-to-one"},
+    {"from": "scheduled_alimtalks.union_id", "to": "unions.id", "type": "many-to-one"},
+    {"from": "sms_send_logs.union_id", "to": "unions.id", "type": "many-to-one"},
+    {"from": "sms_send_logs.sender_id", "to": "users.id", "type": "many-to-one"},
+    {"from": "sms_send_details.log_id", "to": "sms_send_logs.id", "type": "many-to-one"},
+    {"from": "member_access_logs.union_id", "to": "unions.id", "type": "many-to-one"},
+    {"from": "member_access_logs.viewer_id", "to": "users.id", "type": "many-to-one"},
+    {"from": "building_units.building_id", "to": "buildings.id", "type": "many-to-one"},
+    {"from": "building_land_lots.building_id", "to": "buildings.id", "type": "many-to-one"},
+    {"from": "building_land_lots.pnu", "to": "land_lots.pnu", "type": "many-to-one"},
+    {"from": "land_lots.union_id", "to": "unions.id", "type": "many-to-one"},
+    {"from": "user_property_units.user_id", "to": "users.id", "type": "many-to-one"},
+    {"from": "user_property_units.building_unit_id", "to": "building_units.id", "type": "many-to-one"},
+    {"from": "user_consents.user_id", "to": "users.id", "type": "many-to-one"},
+    {"from": "user_consents.stage_id", "to": "consent_stages.id", "type": "many-to-one"},
+    {"from": "unions.current_stage_id", "to": "development_stages.id", "type": "many-to-one"},
+    {"from": "sync_jobs.union_id", "to": "unions.id", "type": "many-to-one"},
+    {"from": "user_relationships.user_id", "to": "users.id", "type": "many-to-one"},
+    {"from": "user_relationships.related_user_id", "to": "users.id", "type": "many-to-one"},
+    {"from": "property_ownership_history.property_unit_id", "to": "user_property_units.id", "type": "many-to-one"},
+    {"from": "property_ownership_history.from_user_id", "to": "users.id", "type": "many-to-one"},
+    {"from": "property_ownership_history.to_user_id", "to": "users.id", "type": "many-to-one"},
+    {"from": "property_ownership_history.changed_by", "to": "users.id", "type": "many-to-one"}
+  ],
+  "rls_policies": {
+    "summary": {
+      "tables_with_rls_enabled": ["access_tokens", "access_token_logs", "scheduled_alimtalks", "sms_send_logs", "sms_send_details"],
+      "tables_without_rls": ["unions", "users", "user_auth_links", "notices", "questions", "free_boards", "union_info", "comments", "files", "admin_invites", "member_invites", "hero_slides", "advertisements", "alimtalk_logs", "alimtalk_templates", "alimtalk_pricing", "member_access_logs", "buildings", "building_units", "building_land_lots", "land_lots", "user_property_units", "user_consents", "consent_stages", "development_stages", "sync_jobs", "user_relationships", "property_ownership_history"],
+      "total_tables": 34,
+      "rls_enabled_count": 5,
+      "rls_disabled_count": 29,
+      "security_concern": "CRITICAL: 29 of 34 tables have NO Row Level Security. All data accessible via Supabase client with anon key."
+    },
+    "policies": [
+      {"table": "access_token_logs", "policy": "System admins can view token logs", "cmd": "SELECT", "qual": "users.role = 'SYSTEM_ADMIN'"},
+      {"table": "access_token_logs", "policy": "Service role can insert token logs", "cmd": "INSERT", "qual": "true (open)"},
+      {"table": "access_tokens", "policy": "System admins can manage access tokens", "cmd": "ALL", "qual": "users.role = 'SYSTEM_ADMIN'"},
+      {"table": "scheduled_alimtalks", "policy": "select_policy", "cmd": "SELECT", "qual": "SUPER_ADMIN or same-union ADMIN"},
+      {"table": "scheduled_alimtalks", "policy": "insert_policy", "cmd": "INSERT", "qual": "SUPER_ADMIN or same-union ADMIN"},
+      {"table": "scheduled_alimtalks", "policy": "update_policy", "cmd": "UPDATE", "qual": "SUPER_ADMIN or same-union ADMIN"},
+      {"table": "scheduled_alimtalks", "policy": "delete_policy", "cmd": "DELETE", "qual": "SUPER_ADMIN or same-union ADMIN"},
+      {"table": "sms_send_logs", "policy": "select/insert/update", "cmd": "SELECT/INSERT/UPDATE", "qual": "same-union ADMIN or SYSTEM_ADMIN"},
+      {"table": "sms_send_details", "policy": "select/insert/update", "cmd": "SELECT/INSERT/UPDATE", "qual": "parent log accessible"}
+    ]
+  },
+  "constraints": {
+    "check_constraints": [
+      {"table": "users", "field": "role", "values": ["SYSTEM_ADMIN", "ADMIN", "USER", "APPLICANT"]},
+      {"table": "users", "field": "user_status", "values": ["PRE_REGISTERED", "PENDING_PROFILE", "PENDING_APPROVAL", "APPROVED", "REJECTED", "TRANSFERRED"]},
+      {"table": "user_auth_links", "field": "provider", "values": ["kakao", "naver", "email"]},
+      {"table": "admin_invites", "field": "status", "values": ["PENDING", "USED", "EXPIRED"]},
+      {"table": "member_invites", "field": "status", "values": ["PENDING", "USED", "EXPIRED"]},
+      {"table": "member_access_logs", "field": "access_type", "values": ["LIST_VIEW", "DETAIL_VIEW", "MEMBER_UPDATE", "MEMBER_BLOCK"]},
+      {"table": "user_property_units", "field": "ownership_type", "values": ["OWNER", "CO_OWNER", "FAMILY"]},
+      {"table": "user_relationships", "field": "relationship_type", "values": ["FAMILY", "PROXY", "LEGAL_GUARDIAN"]},
+      {"table": "property_ownership_history", "field": "change_type", "values": ["TRANSFER", "CO_OWNER_ADDED", "CO_OWNER_REMOVED", "RATIO_CHANGED"]},
+      {"table": "sms_send_logs", "field": "msg_type", "values": ["SMS", "LMS", "MMS"]},
+      {"table": "sms_send_logs", "field": "status", "values": ["pending", "sending", "completed", "failed"]},
+      {"table": "sms_send_details", "field": "status", "values": ["pending", "success", "failed"]}
+    ],
+    "unique_constraints": [
+      {"table": "unions", "columns": ["slug"]},
+      {"table": "users", "columns": ["email"]},
+      {"table": "user_auth_links", "columns": ["auth_user_id", "user_id"]},
+      {"table": "admin_invites", "columns": ["invite_token"]},
+      {"table": "member_invites", "columns": ["invite_token"]},
+      {"table": "member_invites", "columns": ["union_id", "name", "phone_number", "property_address"]},
+      {"table": "access_tokens", "columns": ["key"]},
+      {"table": "alimtalk_templates", "columns": ["template_code"]},
+      {"table": "building_units", "columns": ["building_id", "dong", "ho"]},
+      {"table": "building_land_lots", "columns": ["pnu"]},
+      {"table": "user_property_units", "columns": ["user_id", "building_unit_id"]},
+      {"table": "user_consents", "columns": ["user_id", "stage_id"]},
+      {"table": "consent_stages", "columns": ["business_type", "stage_code"]},
+      {"table": "user_relationships", "columns": ["user_id", "related_user_id"]}
+    ],
+    "enums": [
+      {"name": "business_type_enum", "values": ["REDEVELOPMENT", "RECONSTRUCTION", "HOUSING_ASSOCIATION", "STREET_HOUSING", "SMALL_RECONSTRUCTION"]},
+      {"name": "ad_type", "values": ["MAIN", "SUB", "BOARD"]},
+      {"name": "building_type_enum", "values": ["DETACHED_HOUSE", "VILLA", "APARTMENT", "COMMERCIAL", "MIXED", "NONE"]},
+      {"name": "sync_status_enum", "values": ["PROCESSING", "COMPLETED", "FAILED"]},
+      {"name": "sync_job_type_enum", "values": ["GIS_MAP", "CONSENT_UPLOAD", "MEMBER_UPLOAD", "MEMBER_INVITE"]},
+      {"name": "agreement_status_enum", "values": ["AGREED", "DISAGREED", "PENDING"]}
+    ]
+  },
+  "local_migrations": [
+    {
+      "file": "20260206_add_primary_unit_constraint.sql",
+      "description": "Partial unique index on user_property_units(user_id) WHERE is_primary=true",
+      "status": "not_applied"
+    },
+    {
+      "file": "20260206_set_primary_property_unit_function.sql",
+      "description": "RPC function set_primary_property_unit(uuid,uuid) for atomic primary unit assignment",
+      "status": "not_applied"
+    },
+    {
+      "file": "20260206_extend_member_access_logs.sql",
+      "description": "Add batch_id, duration_ms, request_size columns to member_access_logs",
+      "status": "not_applied"
+    }
+  ],
+  "key_patterns": {
+    "multi_tenant": "All content tables reference unions.id for tenant isolation",
+    "auth_model": "Two-tier: auth.users (Supabase social auth) -> user_auth_links -> users (app-level). One social account can have multiple app users across unions.",
+    "polymorphic": "comments (entity_type+entity_id), files (attachable_type+attachable_id)",
+    "soft_delete": "access_tokens uses deleted_at",
+    "gis": "PostGIS with land_lots.boundary (geometry), building_land_lots mapping, user_property_units for user-property link",
+    "id_types": {
+      "users.id": "varchar (NOT uuid) - critical for joins",
+      "content_tables": "bigint IDENTITY ALWAYS (notices, questions, free_boards, union_info, comments, alimtalk_logs)",
+      "other_tables": "uuid with gen_random_uuid() or uuid_generate_v4()",
+      "land_lots.pnu": "varchar PK (19-char PNU code)"
+    }
+  }
+}

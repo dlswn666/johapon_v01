@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/app/_lib/shared/supabase/client';
@@ -36,18 +36,78 @@ import {
     extractHoNumber,
 } from '@/app/_lib/shared/utils/dong-ho-utils';
 import { checkAndMergeDuplicateUsers } from '@/app/_lib/features/user-dedup/actions/mergeUsers';
+import { FloorIndicator } from '@/components/ui/FloorIndicator';
+import { useFocusTrap } from '@/app/_lib/shared/hooks/useFocusTrap';
 
 // 거주 유형 타입 정의
 type PropertyType = 'DETACHED_HOUSE' | 'MULTI_FAMILY' | 'VILLA' | 'APARTMENT' | 'COMMERCIAL' | 'MIXED';
 
 // 거주 유형 옵션
-const PROPERTY_TYPE_OPTIONS: { value: PropertyType; label: string; icon: string; description: string }[] = [
-    { value: 'DETACHED_HOUSE', label: '단독주택', icon: '🏠', description: '동/호수 입력 불필요' },
-    { value: 'MULTI_FAMILY', label: '다가구 주택', icon: '🏘️', description: '동/호수 입력 불필요' },
-    { value: 'VILLA', label: '빌라/다세대', icon: '🏢', description: '호수 입력 필요' },
-    { value: 'APARTMENT', label: '아파트', icon: '🏬', description: '동/호수 입력 필요' },
-    { value: 'COMMERCIAL', label: '상업용', icon: '🏪', description: '동/호수 선택 입력' },
-    { value: 'MIXED', label: '주상복합', icon: '🏙️', description: '동/호수 입력 필요' },
+interface PropertyTypeOption {
+    value: PropertyType;
+    label: string;
+    icon: string;
+    description: string;
+    example: string;
+    requiresDong: boolean;
+    requiresHo: boolean;
+}
+
+const PROPERTY_TYPE_OPTIONS: PropertyTypeOption[] = [
+    {
+        value: 'APARTMENT',
+        label: '아파트',
+        icon: '🏬',
+        description: '다층 건물, 복도/공용 시설 공유',
+        example: '강남 아파트 1206호',
+        requiresDong: true,
+        requiresHo: true,
+    },
+    {
+        value: 'VILLA',
+        label: '빌라/다세대',
+        icon: '🏘️',
+        description: '2~5층 규모의 소규모 주택',
+        example: '강남 빌라 3층',
+        requiresDong: false,
+        requiresHo: true,
+    },
+    {
+        value: 'MIXED',
+        label: '주상복합',
+        icon: '🏗️',
+        description: '상가와 주거가 함께 있는 건물',
+        example: '강남 주상복합 5층',
+        requiresDong: true,
+        requiresHo: true,
+    },
+    {
+        value: 'MULTI_FAMILY',
+        label: '다가구 주택',
+        icon: '🏠',
+        description: '2~4가구의 소규모 주택',
+        example: '강남 다가구 주택 3층',
+        requiresDong: false,
+        requiresHo: true,
+    },
+    {
+        value: 'DETACHED_HOUSE',
+        label: '단독주택',
+        icon: '🏡',
+        description: '1가구 1건물 형태',
+        example: '강남 단독주택',
+        requiresDong: false,
+        requiresHo: false,
+    },
+    {
+        value: 'COMMERCIAL',
+        label: '상업용',
+        icon: '🏢',
+        description: '상업 시설 및 사무실',
+        example: '강남 빌딩 5층',
+        requiresDong: false,
+        requiresHo: false,
+    },
 ];
 
 // 최대 물건지 개수
@@ -321,11 +381,33 @@ export function RegisterModal({
     // 로딩/에러 상태
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
+    const isSubmittingRef = useRef(false);
 
     // 중복 사용자 모달
     const [showDuplicateModal, setShowDuplicateModal] = useState(false);
     const [existingUser, setExistingUser] = useState<User | null>(null);
     const [existingProvider, setExistingProvider] = useState<string>('');
+
+    // ARIA: Focus Trap
+    const focusTrapRef = useFocusTrap(isOpen);
+
+    // ESC 키 핸들러
+    useEffect(() => {
+        if (!isOpen) return;
+        const handleEsc = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                if (currentStep > 0) {
+                    if (window.confirm('입력한 정보가 모두 사라집니다. 닫으시겠습니까?')) {
+                        onClose();
+                    }
+                } else {
+                    onClose();
+                }
+            }
+        };
+        document.addEventListener('keydown', handleEsc);
+        return () => document.removeEventListener('keydown', handleEsc);
+    }, [isOpen, onClose, currentStep]);
 
     // prefill 여부 확인
     const hasPrefillData = !!(inviteData?.name || inviteData?.phone_number || inviteData?.property_address);
@@ -562,7 +644,6 @@ export function RegisterModal({
                     const result = await searchAddress(addressData.jibunAddress);
                     if (result.success && result.data?.pnu) {
                         pnu = result.data.pnu;
-                        console.log(`[RegisterModal] PNU from API: ${pnu}`);
                     }
                 } catch (error) {
                     console.warn('[RegisterModal] PNU API 호출 실패, 클라이언트 생성 시도', error);
@@ -577,7 +658,6 @@ export function RegisterModal({
                     sub_address_no: addressData.sub_address_no,
                     mountain_yn: addressData.mountain_yn,
                 });
-                console.log(`[RegisterModal] PNU from client fallback: ${pnu}`);
             }
 
             // PNU 업데이트
@@ -937,6 +1017,7 @@ export function RegisterModal({
 
     // 최종 제출
     const handleSubmit = async () => {
+        if (isSubmittingRef.current) return;
         setError('');
 
         // 필수 필드 검증
@@ -962,6 +1043,7 @@ export function RegisterModal({
             return;
         }
 
+        isSubmittingRef.current = true;
         setIsLoading(true);
 
         try {
@@ -1077,25 +1159,17 @@ export function RegisterModal({
             if (propertyUnitError) {
                 console.error('user_property_units insert error:', propertyUnitError);
                 // 실패해도 계속 진행 (critical하지 않음)
-            } else {
-                console.log(`[회원가입] 물건지 ${formData.properties.length}개 저장 완료`);
             }
 
             // 이름 + 거주지 지번 기준으로 중복 사용자 검사 및 병합 (새 사용자가 keeper)
             if (unionId && formData.resident_address_jibun) {
                 try {
-                    const mergeResult = await checkAndMergeDuplicateUsers(
+                    await checkAndMergeDuplicateUsers(
                         newUserId,
                         unionId,
                         formData.name,
                         formData.resident_address_jibun
                     );
-                    if (mergeResult.merged_count && mergeResult.merged_count > 0) {
-                        console.log(
-                            `[회원가입] 중복 사용자 ${mergeResult.merged_count}명 병합 완료:`,
-                            mergeResult.affected
-                        );
-                    }
                 } catch (mergeError) {
                     // 병합 실패는 치명적이지 않으므로 로깅만 수행
                     console.error('[회원가입] 중복 사용자 병합 실패:', mergeError);
@@ -1110,6 +1184,7 @@ export function RegisterModal({
             });
 
             if (linkError) {
+                await supabase.from('user_property_units').delete().eq('user_id', newUserId);
                 await supabase.from('users').delete().eq('id', newUserId);
                 throw linkError;
             }
@@ -1160,7 +1235,6 @@ export function RegisterModal({
                                 },
                             })),
                         });
-                        console.log(`[승인 요청 알림톡] 관리자 ${admins.length}명에게 발송 요청 완료`);
                     }
                 } catch (alimTalkError) {
                     console.error('관리자 알림톡 발송 실패:', alimTalkError);
@@ -1177,6 +1251,7 @@ export function RegisterModal({
             setError('회원가입 중 오류가 발생했습니다. 다시 시도해주세요.');
         } finally {
             setIsLoading(false);
+            isSubmittingRef.current = false;
         }
     };
 
@@ -1188,7 +1263,7 @@ export function RegisterModal({
     return (
         <>
             {/* 메인 모달 */}
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div ref={focusTrapRef} role="dialog" aria-modal="true" aria-labelledby="register-modal-title" className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
                 <div
                     className={cn(
                         'bg-white flex flex-col',
@@ -1202,11 +1277,11 @@ export function RegisterModal({
                     <div className="flex-shrink-0 border-b border-gray-200 px-4 md:px-6 py-4 flex items-center justify-between">
                         <div className="flex items-center gap-3">
                             <Building2 className="w-6 h-6 text-[#4E8C6D]" />
-                            <h2 className="text-lg md:text-xl font-bold text-gray-900">조합원 등록</h2>
+                            <h2 id="register-modal-title" className="text-lg md:text-xl font-bold text-gray-900">조합원 등록</h2>
                         </div>
                         <button
                             onClick={onClose}
-                            className="p-2 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
+                            className="p-3 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
                             aria-label="닫기"
                         >
                             <X className="w-5 h-5 text-gray-500" />
@@ -1228,7 +1303,7 @@ export function RegisterModal({
                         </div>
                         <p className="text-center text-sm text-gray-500 mt-2">
                             {currentStep + 1} / {totalSteps}
-                            {isConfirmStep && ' 최종 확인'}
+                            {isConfirmStep ? ' 최종 확인' : getCurrentStepConfig()?.label ? ` ${getCurrentStepConfig()!.label}` : ''}
                         </p>
                     </div>
 
@@ -1260,7 +1335,7 @@ export function RegisterModal({
                                         </div>
                                         <p className="text-base md:text-lg text-gray-900">
                                             {formData.birth_date || (
-                                                <span className="text-gray-400">입력하지 않음</span>
+                                                <span className="text-gray-500">입력하지 않음</span>
                                             )}
                                         </p>
                                     </div>
@@ -1348,7 +1423,7 @@ export function RegisterModal({
                                                             </span>
                                                             <p className="text-base text-gray-900 mt-1">
                                                                 {property.property_dong || (
-                                                                    <span className="text-gray-400">입력하지 않음</span>
+                                                                    <span className="text-gray-500">입력하지 않음</span>
                                                                 )}
                                                             </p>
                                                         </div>
@@ -1360,11 +1435,12 @@ export function RegisterModal({
                                                             <span className="text-sm font-medium text-gray-600">
                                                                 층 구분
                                                             </span>
-                                                            <p className="text-base text-gray-900 mt-1">
-                                                                {property.property_is_basement
-                                                                    ? '🅱️ 지하층'
-                                                                    : '🏢 지상층'}
-                                                            </p>
+                                                            <div className="mt-1">
+                                                                <FloorIndicator
+                                                                  isBasement={property.property_is_basement}
+                                                                  size="md"
+                                                                />
+                                                            </div>
                                                         </div>
                                                     )}
 
@@ -1381,7 +1457,7 @@ export function RegisterModal({
                                                             </span>
                                                             <p className="text-base text-gray-900 mt-1">
                                                                 {property.property_ho || (
-                                                                    <span className="text-gray-400">입력하지 않음</span>
+                                                                    <span className="text-gray-500">입력하지 않음</span>
                                                                 )}
                                                             </p>
                                                         </div>
@@ -1421,7 +1497,7 @@ export function RegisterModal({
                                         </div>
                                         <p className="text-base md:text-lg text-gray-900">
                                             {formData.resident_address_detail || (
-                                                <span className="text-gray-400">입력하지 않음</span>
+                                                <span className="text-gray-500">입력하지 않음</span>
                                             )}
                                         </p>
                                     </div>
@@ -1467,7 +1543,7 @@ export function RegisterModal({
 
                                 {/* 에러 메시지 */}
                                 {error && (
-                                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                                    <div role="alert" className="p-3 bg-red-50 border border-red-200 rounded-lg">
                                         <p className="text-sm text-red-600">{error}</p>
                                     </div>
                                 )}
@@ -1482,7 +1558,7 @@ export function RegisterModal({
                                     </div>
 
                                     {/* 라벨 */}
-                                    <h3 className="text-lg md:text-xl font-semibold text-gray-900 mb-2 text-center">
+                                    <h3 id="register-step-label" className="text-lg md:text-xl font-semibold text-gray-900 mb-2 text-center">
                                         {stepConfig.label}
                                         {isFieldRequired(stepConfig.key as StepKey) && (
                                             <span className="text-red-500 ml-1">*</span>
@@ -1514,41 +1590,71 @@ export function RegisterModal({
                                             />
                                         ) : stepConfig.key === 'property_type' ? (
                                             // 거주 유형 선택: 카드형 UI
-                                            <div className="space-y-3">
-                                                {PROPERTY_TYPE_OPTIONS.map((option) => (
-                                                    <button
-                                                        key={option.value}
-                                                        onClick={() => {
-                                                            // 단독주택/다가구 주택 선택 시 동/호 초기화
-                                                            const shouldClearDongHo =
-                                                                option.value === 'DETACHED_HOUSE' ||
-                                                                option.value === 'MULTI_FAMILY';
-                                                            updateCurrentProperty({
-                                                                property_type: option.value,
-                                                                ...(shouldClearDongHo
-                                                                    ? { property_dong: '', property_ho: '' }
-                                                                    : {}),
-                                                            });
-                                                        }}
-                                                        className={cn(
-                                                            'w-full p-4 rounded-xl border-2 text-left transition-all flex items-center gap-4 cursor-pointer',
-                                                            getCurrentProperty().property_type === option.value
-                                                                ? 'border-[#4E8C6D] bg-[#4E8C6D]/5'
-                                                                : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                                                        )}
-                                                    >
-                                                        <span className="text-2xl">{option.icon}</span>
-                                                        <div className="flex-1">
-                                                            <p className="font-medium text-gray-900">{option.label}</p>
-                                                            <p className="text-sm text-gray-500">
-                                                                {option.description}
-                                                            </p>
-                                                        </div>
-                                                        {getCurrentProperty().property_type === option.value && (
-                                                            <Check className="w-5 h-5 text-[#4E8C6D]" />
-                                                        )}
-                                                    </button>
-                                                ))}
+                                            <div className="space-y-4">
+                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                                    {PROPERTY_TYPE_OPTIONS.map((option) => (
+                                                        <button
+                                                            key={option.value}
+                                                            onClick={() => {
+                                                                // 단독주택/다가구 주택 선택 시 동/호 초기화
+                                                                const shouldClearDongHo =
+                                                                    option.value === 'DETACHED_HOUSE' ||
+                                                                    option.value === 'MULTI_FAMILY';
+                                                                updateCurrentProperty({
+                                                                    property_type: option.value,
+                                                                    ...(shouldClearDongHo
+                                                                        ? { property_dong: '', property_ho: '' }
+                                                                        : {}),
+                                                                });
+                                                            }}
+                                                            className={cn(
+                                                                'p-4 border-2 rounded-lg text-left transition-all hover:shadow-md active:scale-95',
+                                                                getCurrentProperty().property_type === option.value
+                                                                    ? 'border-blue-500 bg-blue-50 shadow-md'
+                                                                    : 'border-gray-200 bg-white hover:border-gray-300'
+                                                            )}
+                                                        >
+                                                            {/* 아이콘 */}
+                                                            <div className="text-3xl mb-2">{option.icon}</div>
+
+                                                            {/* 레이블 */}
+                                                            <h3 className="font-bold text-gray-900 mb-1">{option.label}</h3>
+
+                                                            {/* 설명 */}
+                                                            <p className="text-sm text-gray-600 mb-2">{option.description}</p>
+
+                                                            {/* 예시 */}
+                                                            <p className="text-xs text-gray-500">예: {option.example}</p>
+                                                        </button>
+                                                    ))}
+                                                </div>
+
+                                                {/* 선택 후 추가 정보 - 조건부 렌더링 */}
+                                                {getCurrentProperty().property_type && (
+                                                    <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                                        <p className="text-sm font-medium text-blue-900 mb-2">
+                                                            ✅ {
+                                                                PROPERTY_TYPE_OPTIONS.find((o) => o.value === getCurrentProperty().property_type)
+                                                                    ?.label
+                                                            }
+                                                            을 선택하셨습니다
+                                                        </p>
+                                                        <p className="text-xs text-blue-700">
+                                                            {(() => {
+                                                                const selected = PROPERTY_TYPE_OPTIONS.find(
+                                                                    (o) => o.value === getCurrentProperty().property_type
+                                                                );
+                                                                if (selected?.requiresDong && selected?.requiresHo) {
+                                                                    return '동/호수 입력이 필요합니다 (예: 103동 1206호)';
+                                                                } else if (selected?.requiresHo) {
+                                                                    return '호수 입력이 필요합니다 (예: 3층 또는 101호)';
+                                                                } else {
+                                                                    return '동/호수 입력이 불필요합니다';
+                                                                }
+                                                            })()}
+                                                        </p>
+                                                    </div>
+                                                )}
                                             </div>
                                         ) : stepConfig.key === 'property_floor_type' ? (
                                             // 지상/지하 선택: 라디오 버튼 UI
@@ -1564,7 +1670,13 @@ export function RegisterModal({
                                                             : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                                                     )}
                                                 >
-                                                    <span className="text-2xl">🏢</span>
+                                                    <span
+                                                        className={cn(
+                                                            'bg-blue-500 text-white rounded px-2 py-1 text-sm font-bold w-7 h-7 flex items-center justify-center'
+                                                        )}
+                                                    >
+                                                        ↑
+                                                    </span>
                                                     <div className="flex-1">
                                                         <p className="font-medium text-gray-900">지상층</p>
                                                         <p className="text-sm text-gray-500">
@@ -1586,7 +1698,13 @@ export function RegisterModal({
                                                             : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                                                     )}
                                                 >
-                                                    <span className="text-2xl">🅱️</span>
+                                                    <span
+                                                        className={cn(
+                                                            'bg-gray-800 text-white rounded px-2 py-1 text-sm font-bold'
+                                                        )}
+                                                    >
+                                                        B
+                                                    </span>
                                                     <div className="flex-1">
                                                         <p className="font-medium text-gray-900">지하층</p>
                                                         <p className="text-sm text-gray-500">
@@ -1684,6 +1802,7 @@ export function RegisterModal({
                                                 value={getCurrentValue()}
                                                 onChange={(e) => handleValueChange(e.target.value)}
                                                 placeholder={stepConfig.placeholder}
+                                                aria-labelledby="register-step-label"
                                                 className={cn(
                                                     'w-full h-14 md:h-16 px-5 rounded-xl border-2 border-gray-200',
                                                     'text-lg md:text-xl text-center',
@@ -1700,7 +1819,7 @@ export function RegisterModal({
                                     <div className="mt-6 text-center">
                                         <p className="text-base md:text-lg text-gray-600">{stepConfig.description}</p>
                                         {stepConfig.subDescription && (
-                                            <p className="text-sm md:text-base text-gray-400 mt-1">
+                                            <p className="text-sm md:text-base text-gray-500 mt-1">
                                                 {stepConfig.subDescription}
                                             </p>
                                         )}
@@ -1721,7 +1840,7 @@ export function RegisterModal({
 
                                     {/* 에러 메시지 */}
                                     {error && (
-                                        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg w-full max-w-sm">
+                                        <div role="alert" className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg w-full max-w-sm">
                                             <p className="text-sm text-red-600 text-center">{error}</p>
                                         </div>
                                     )}

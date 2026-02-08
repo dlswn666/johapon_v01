@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { authenticateApiRequest } from '@/app/_lib/shared/api/auth';
 
 const PROXY_SERVER_URL = process.env.ALIMTALK_PROXY_URL || 'http://localhost:3100';
 
@@ -12,6 +13,20 @@ export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
         const { unionId, members } = body;
+
+        // ========== SECURITY: 인증 검사 ==========
+        const auth = await authenticateApiRequest({
+            requireAdmin: true,
+            requireUnionId: true,
+            unionId: unionId,
+        });
+
+        if (!auth.authenticated) {
+            return auth.response;
+        }
+
+        console.log(`[Pre-Register] User ${auth.user.id} (${auth.user.name}) pre-registering ${members?.length} members`);
+        // ==========================================
 
         // 필수 파라미터 검증
         if (!unionId || !members || !Array.isArray(members)) {

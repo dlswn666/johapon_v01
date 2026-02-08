@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { nanoid } from 'nanoid';
 import { createClient } from '@/app/_lib/shared/supabase/server';
 import { CreateAccessTokenRequest, AccessTokenListItem } from '@/app/_lib/shared/type/accessToken.types';
+import { authenticateApiRequest } from '@/app/_lib/shared/api/auth';
 
 /**
  * 접근 토큰 목록 조회
@@ -9,24 +10,16 @@ import { CreateAccessTokenRequest, AccessTokenListItem } from '@/app/_lib/shared
  */
 export async function GET() {
   try {
-    const supabase = await createClient();
+    // authenticateApiRequest correctly resolves via user_auth_links
+    const auth = await authenticateApiRequest({ requireAdmin: true });
+    if (!auth.authenticated) return auth.response;
 
-    // 현재 사용자 확인
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // System Admin 권한 확인
-    const { data: userData } = await supabase
-      .from('users')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-
-    if (userData?.role !== 'SYSTEM_ADMIN') {
+    // Check SYSTEM_ADMIN specifically
+    if (auth.user.role !== 'SYSTEM_ADMIN') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
+
+    const supabase = await createClient();
 
     // 토큰 목록 조회 (삭제되지 않은 것만)
     const { data: tokens, error } = await supabase
@@ -96,24 +89,16 @@ export async function GET() {
  */
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    // authenticateApiRequest correctly resolves via user_auth_links
+    const auth = await authenticateApiRequest({ requireAdmin: true });
+    if (!auth.authenticated) return auth.response;
 
-    // 현재 사용자 확인
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // System Admin 권한 확인
-    const { data: userData } = await supabase
-      .from('users')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-
-    if (userData?.role !== 'SYSTEM_ADMIN') {
+    // Check SYSTEM_ADMIN specifically
+    if (auth.user.role !== 'SYSTEM_ADMIN') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
+
+    const supabase = await createClient();
 
     const body: CreateAccessTokenRequest = await request.json();
 
@@ -144,7 +129,7 @@ export async function POST(request: NextRequest) {
         allowed_pages: body.allowed_pages || null,
         expires_at: expiresAt,
         max_usage: body.max_usage || null,
-        created_by: user.id,
+        created_by: auth.user.id,
       })
       .select()
       .single();

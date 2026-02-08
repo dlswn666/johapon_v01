@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import {
     Upload,
     Download,
@@ -122,9 +122,17 @@ interface ExcelMember {
 
 export default function MemberManagementPage() {
     const searchParams = useSearchParams();
-    const { user, isAdmin, isSystemAdmin } = useAuth();
+    const { user, isAdmin, isSystemAdmin, isLoading: isAuthLoading } = useAuth();
     const { union, isLoading: unionLoading } = useSlug();
+    const router = useRouter();
     const unionId = union?.id;
+
+    // Admin role guard: redirect non-admin users
+    useEffect(() => {
+        if (!isAuthLoading && !isAdmin) {
+            router.push(`/${union?.slug || ''}`);
+        }
+    }, [isAuthLoading, isAdmin, router, union?.slug]);
 
     // 탭 상태 (URL 파라미터로부터 초기화)
     const initialTab = (searchParams.get('tab') as TabType) || 'members';
@@ -247,8 +255,13 @@ export default function MemberManagementPage() {
     // 충돌 해결 mutation (Hook 사용)
     const resolveConflictMutation = useResolveConflict();
 
+    // 승인 처리 중 상태 (conflict check + approve를 모두 커버)
+    const [isApproving, setIsApproving] = useState(false);
+
     // 승인 처리 핸들러 (충돌 검사 포함)
     const handleApprove = async (userId: string) => {
+        if (isApproving) return;
+        setIsApproving(true);
         try {
             // 1. 충돌 검사 수행
             const conflictCheckResponse = await fetch(`/api/members/check-conflict?userId=${userId}`);
@@ -274,7 +287,7 @@ export default function MemberManagementPage() {
             }
 
             // 2. 충돌이 없으면 바로 승인
-            await approveMutation.mutateAsync(userId);
+            await approveMutation.mutateAsync({ userId, unionId: unionId! });
             toast.success('사용자가 승인되었습니다.');
             setShowDetailModal(false);
             setSelectedUser(null);
@@ -296,13 +309,15 @@ export default function MemberManagementPage() {
             }
         } catch {
             toast.error('승인 처리 중 오류가 발생했습니다.');
+        } finally {
+            setIsApproving(false);
         }
     };
 
     // 반려 처리 핸들러
     const handleReject = async (userId: string, reason: string) => {
         try {
-            await rejectMutation.mutateAsync({ userId, reason });
+            await rejectMutation.mutateAsync({ userId, unionId: unionId!, reason });
             toast.success('사용자가 반려되었습니다.');
             setShowDetailModal(false);
             setSelectedUser(null);
@@ -332,7 +347,7 @@ export default function MemberManagementPage() {
     // 역할 변경 핸들러
     const handleUpdateRole = async (userId: string, role: string) => {
         try {
-            await updateRoleMutation.mutateAsync({ userId, role });
+            await updateRoleMutation.mutateAsync({ userId, role, unionId: unionId! });
             toast.success('역할이 변경되었습니다.');
         } catch {
             toast.error('역할 변경 중 오류가 발생했습니다.');
@@ -342,7 +357,7 @@ export default function MemberManagementPage() {
     // 반려 취소 핸들러
     const handleCancelRejection = async (userId: string) => {
         try {
-            await cancelRejectionMutation.mutateAsync(userId);
+            await cancelRejectionMutation.mutateAsync({ userId, unionId: unionId! });
             toast.success('반려가 취소되었습니다. 다시 승인 대기 상태입니다.');
             setShowDetailModal(false);
             setSelectedUser(null);
@@ -735,11 +750,11 @@ export default function MemberManagementPage() {
                 {/* 탭 네비게이션 */}
                 <div className="bg-white rounded-xl shadow-sm">
                     <div className="border-b border-gray-200">
-                        <nav className="flex -mb-px">
+                        <nav className="flex -mb-px overflow-x-auto">
                             <button
                                 onClick={() => setActiveTab('members')}
                                 className={cn(
-                                    'flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors cursor-pointer',
+                                    'flex items-center gap-2 px-3 md:px-6 py-4 text-sm font-medium border-b-2 transition-colors cursor-pointer whitespace-nowrap',
                                     activeTab === 'members'
                                         ? 'border-[#4E8C6D] text-[#4E8C6D]'
                                         : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -751,7 +766,7 @@ export default function MemberManagementPage() {
                             <button
                                 onClick={() => setActiveTab('consent')}
                                 className={cn(
-                                    'flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors cursor-pointer',
+                                    'flex items-center gap-2 px-3 md:px-6 py-4 text-sm font-medium border-b-2 transition-colors cursor-pointer whitespace-nowrap',
                                     activeTab === 'consent'
                                         ? 'border-[#4E8C6D] text-[#4E8C6D]'
                                         : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -763,7 +778,7 @@ export default function MemberManagementPage() {
                             <button
                                 onClick={() => setActiveTab('invite')}
                                 className={cn(
-                                    'flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors cursor-pointer',
+                                    'flex items-center gap-2 px-3 md:px-6 py-4 text-sm font-medium border-b-2 transition-colors cursor-pointer whitespace-nowrap',
                                     activeTab === 'invite'
                                         ? 'border-[#4E8C6D] text-[#4E8C6D]'
                                         : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -775,7 +790,7 @@ export default function MemberManagementPage() {
                             <button
                                 onClick={() => setActiveTab('approval')}
                                 className={cn(
-                                    'flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors cursor-pointer',
+                                    'flex items-center gap-2 px-3 md:px-6 py-4 text-sm font-medium border-b-2 transition-colors cursor-pointer whitespace-nowrap',
                                     activeTab === 'approval'
                                         ? 'border-[#4E8C6D] text-[#4E8C6D]'
                                         : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -1064,7 +1079,7 @@ export default function MemberManagementPage() {
                                     pageSize,
                                     onPageChange: setPage,
                                 }}
-                                minWidth="900px"
+                                minWidth="600px"
                             />
                         </div>
                     </>
@@ -1247,7 +1262,7 @@ export default function MemberManagementPage() {
                                             <Switch
                                                 checked={selectedUser.is_executive ?? false}
                                                 onCheckedChange={(checked: boolean) => {
-                                                    updateExecutiveStatusMutation.mutate({ userId: selectedUser.id, isExecutive: checked });
+                                                    updateExecutiveStatusMutation.mutate({ userId: selectedUser.id, isExecutive: checked, unionId: unionId! });
                                                 }}
                                             />
                                             <span className="ml-2 text-sm text-gray-600">홈페이지 노출</span>
@@ -1265,7 +1280,7 @@ export default function MemberManagementPage() {
                                                 // 로컬 상태 업데이트 로직 필요 시 추가
                                             }}
                                             onBlur={(e: React.FocusEvent<HTMLInputElement>) => {
-                                                updateExecutiveTitleMutation.mutate({ userId: selectedUser.id, title: e.target.value });
+                                                updateExecutiveTitleMutation.mutate({ userId: selectedUser.id, title: e.target.value, unionId: unionId! });
                                             }}
                                             className="h-12"
                                         />
@@ -1277,7 +1292,7 @@ export default function MemberManagementPage() {
                                             value={selectedUser.executive_sort_order || 0}
                                             onChange={() => {}}
                                             onBlur={(e: React.FocusEvent<HTMLInputElement>) => {
-                                                updateExecutiveSortOrderMutation.mutate({ userId: selectedUser.id, sortOrder: parseInt(e.target.value) });
+                                                updateExecutiveSortOrderMutation.mutate({ userId: selectedUser.id, sortOrder: parseInt(e.target.value), unionId: unionId! });
                                             }}
                                             className="h-12"
                                         />
@@ -1328,7 +1343,7 @@ export default function MemberManagementPage() {
                                         {selectedUser.user_status === 'PENDING_APPROVAL' && (
                                             <button
                                                 onClick={() => handleApprove(selectedUser.id)}
-                                                disabled={approveMutation.isPending}
+                                                disabled={approveMutation.isPending || isApproving}
                                                 className="flex-1 h-12 rounded-xl bg-[#4E8C6D] text-white hover:bg-[#3d7058] transition-colors disabled:opacity-50 flex items-center justify-center gap-2 text-[14px] font-medium cursor-pointer"
                                             >
                                                 <CheckCircle className="w-5 h-5" />

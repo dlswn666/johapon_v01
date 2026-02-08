@@ -1,8 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
-import { User } from 'lucide-react';
+import { User, Menu, X as XIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface LandingHeaderProps {
@@ -26,10 +26,12 @@ export function LandingHeader({ unionName, className }: LandingHeaderProps) {
         { label: '커뮤니티', href: '#community' },
     ];
 
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
     return (
         <header 
             className={cn(
-                'w-full h-[70px] md:h-[120px]',
+                'w-full h-auto min-h-[70px] md:min-h-[120px]',
                 'bg-white',
                 'border-b border-[#CDD1D5]',
                 'sticky top-0 z-50',
@@ -102,29 +104,52 @@ export function LandingHeader({ unionName, className }: LandingHeaderProps) {
                     </div>
 
                     {/* User Menu - 피그마: 907:746 */}
-                    <Link 
-                        href="#login"
-                        className={cn(
-                            'flex items-center gap-2',
-                            'text-[#333641] font-semibold',
-                            'text-sm md:text-base',
-                            'hover:text-[#2F7F5F]',
-                            'transition-colors'
-                        )}
-                    >
-                        <div 
+                    <div className="flex items-center gap-2">
+                        <Link
+                            href="#login"
                             className={cn(
-                                'w-8 h-8 md:w-9 md:h-9',
-                                'bg-[#2F7F5F]/10',
-                                'rounded-full',
-                                'flex items-center justify-center'
+                                'flex items-center gap-2',
+                                'text-[#333641] font-semibold',
+                                'text-sm md:text-base',
+                                'hover:text-[#2F7F5F]',
+                                'transition-colors'
                             )}
                         >
-                            <User className="w-4 h-4 md:w-5 md:h-5 text-[#2F7F5F]" />
-                        </div>
-                        <span className="hidden sm:inline">내정보</span>
-                    </Link>
+                            <div
+                                className={cn(
+                                    'w-8 h-8 md:w-9 md:h-9',
+                                    'bg-[#2F7F5F]/10',
+                                    'rounded-full',
+                                    'flex items-center justify-center'
+                                )}
+                            >
+                                <User className="w-4 h-4 md:w-5 md:h-5 text-[#2F7F5F]" />
+                            </div>
+                            <span className="hidden sm:inline">내정보</span>
+                        </Link>
+                        <button
+                            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                            className="md:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                            aria-label="메뉴"
+                        >
+                            {isMobileMenuOpen ? <XIcon className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+                        </button>
+                    </div>
                 </nav>
+                {isMobileMenuOpen && (
+                    <div className="md:hidden border-t border-gray-200 bg-white px-4 py-2">
+                        {navItems.map((item) => (
+                            <Link
+                                key={item.label}
+                                href={item.href}
+                                className="block py-3 text-[#333641] font-semibold hover:text-[#2F7F5F] transition-colors"
+                                onClick={() => setIsMobileMenuOpen(false)}
+                            >
+                                {item.label}
+                            </Link>
+                        ))}
+                    </div>
+                )}
             </div>
         </header>
     );

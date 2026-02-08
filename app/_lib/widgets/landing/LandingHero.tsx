@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -59,6 +59,8 @@ export function LandingHero({
 }: LandingHeroProps) {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isHovered, setIsHovered] = useState(false);
+    const touchStartX = useRef(0);
+    const touchEndX = useRef(0);
 
     const goToSlide = useCallback((index: number) => {
         setCurrentIndex(index);
@@ -71,6 +73,25 @@ export function LandingHero({
     const goToNext = useCallback(() => {
         setCurrentIndex((prev) => (prev === slides.length - 1 ? 0 : prev + 1));
     }, [slides.length]);
+
+    const handleTouchStart = useCallback((e: React.TouchEvent) => {
+        touchStartX.current = e.touches[0].clientX;
+    }, []);
+
+    const handleTouchMove = useCallback((e: React.TouchEvent) => {
+        touchEndX.current = e.touches[0].clientX;
+    }, []);
+
+    const handleTouchEnd = useCallback(() => {
+        const delta = touchStartX.current - touchEndX.current;
+        if (Math.abs(delta) > 50) {
+            if (delta > 0) {
+                goToNext();
+            } else {
+                goToPrevious();
+            }
+        }
+    }, [goToNext, goToPrevious]);
 
     // 자동 재생
     useEffect(() => {
@@ -92,6 +113,9 @@ export function LandingHero({
             )}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
         >
             {/* Background Image with Gradient Overlay - 피그마: 868:7460 */}
             {slides.map((slide, index) => (

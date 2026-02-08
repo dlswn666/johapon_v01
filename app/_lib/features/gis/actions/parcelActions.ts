@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@supabase/supabase-js';
+import { escapeLikeWildcards } from '@/app/_lib/shared/utils/escapeLike';
 
 // Supabase Admin 클라이언트 생성
 function getSupabaseAdmin() {
@@ -465,11 +466,13 @@ export async function searchLinkedParcels(unionId: string, query: string, exclud
 
     // 1단계: land_lots에서 직접 검색
     // 하이픈 포함/미포함 모두 검색하기 위해 두 가지 쿼리 조합
-    let orCondition = `address_text.ilike.%${query}%,pnu.ilike.%${query}%,address.ilike.%${query}%`;
+    const escaped = escapeLikeWildcards(query);
+    let orCondition = `address_text.ilike.%${escaped}%,pnu.ilike.%${escaped}%,address.ilike.%${escaped}%`;
 
     // 하이픈이 있었다면 제거된 버전으로도 검색
     if (query !== queryNormalized) {
-        orCondition += `,address_text.ilike.%${queryNormalized}%,pnu.ilike.%${queryNormalized}%,address.ilike.%${queryNormalized}%`;
+        const escapedNormalized = escapeLikeWildcards(queryNormalized);
+        orCondition += `,address_text.ilike.%${escapedNormalized}%,pnu.ilike.%${escapedNormalized}%,address.ilike.%${escapedNormalized}%`;
     }
 
     const { data: landLots, error } = await supabase

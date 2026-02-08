@@ -13,6 +13,8 @@ import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import { getUnionPath } from '@/app/_lib/shared/lib/utils/slug';
 import { fileApi } from '@/app/_lib/shared/hooks/file/fileApi';
 import { sendAlimTalk } from '@/app/_lib/features/alimtalk/actions/sendAlimTalk';
+import { escapeLikeWildcards } from '@/app/_lib/shared/utils/escapeLike';
+import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 
 // ============================================
 // Query Hooks (조회)
@@ -40,7 +42,7 @@ export const useNotices = (enabled: boolean = true, searchQuery?: string) => {
 
             // 검색 조건 적용 (제목, 내용)
             if (searchQuery && searchQuery.trim()) {
-                const search = `%${searchQuery.trim()}%`;
+                const search = `%${escapeLikeWildcards(searchQuery.trim())}%`;
                 query = query.or(`title.ilike.${search},content.ilike.${search}`);
             }
 
@@ -143,6 +145,40 @@ export const useNotices = (enabled: boolean = true, searchQuery?: string) => {
 };
 
 /**
+ * 최근 공지사항 조회 (사이드바/하단 목록용, 경량)
+ */
+export const useRecentNotices = (
+    excludeId?: number,
+    limit: number = 5,
+    enabled: boolean = true
+) => {
+    const { union } = useSlug();
+
+    return useQuery({
+        queryKey: ['notices', union?.id, 'recent', excludeId, limit],
+        queryFn: async () => {
+            if (!union?.id) return [];
+
+            let query = supabase
+                .from('notices')
+                .select('id, title, created_at, author:users!notices_author_id_fkey(id, name)')
+                .eq('union_id', union.id)
+                .order('created_at', { ascending: false })
+                .range(0, limit);
+
+            if (excludeId) {
+                query = query.neq('id', excludeId);
+            }
+
+            const { data, error } = await query;
+            if (error) throw error;
+            return data || [];
+        },
+        enabled: enabled && !!union?.id,
+    });
+};
+
+/**
  * 특정 공지사항 상세 조회
  */
 export const useNotice = (noticeId: number | undefined, enabled: boolean = true) => {
@@ -206,6 +242,11 @@ const processEditorImages = async (
                 processedContent = processedContent.replace(new RegExp(blobUrl, 'g'), publicUrl);
             } catch (e) {
                 console.error(`Failed to upload editor image: ${file.name}`, e);
+                // Remove the broken blob URL from content
+                processedContent = processedContent.replace(
+                    new RegExp(`<img[^>]*src=["']${blobUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["'][^>]*\\/?>`, 'g'),
+                    ''
+                );
             }
         }
     }
@@ -384,7 +425,7 @@ export const useUpdateNotice = () => {
     const { union, slug } = useSlug();
 
     return useMutation({
-        mutationFn: async ({ id, updates }: { id: number; updates: UpdateNotice & { send_alimtalk?: boolean } }) => {
+        mutationFn: async ({ id, updates, updatedAt }: { id: number; updates: UpdateNotice & { send_alimtalk?: boolean }; updatedAt?: string }) => {
             const { send_alimtalk, ...noticeUpdates } = updates;
             const finalUpdates = { ...noticeUpdates };
 
@@ -394,8 +435,17 @@ export const useUpdateNotice = () => {
             }
 
             // 2. 공지사항 업데이트
-            const { data, error } = await supabase.from('notices').update(finalUpdates).eq('id', id).select().single();
+            let query = supabase.from('notices').update(finalUpdates).eq('id', id).eq('union_id', union!.id);
 
+            if (updatedAt) {
+                query = query.eq('updated_at', updatedAt);
+            }
+
+            const { data, error } = await query.select().single();
+
+            if (error?.code === 'PGRST116') {
+                throw new Error('CONFLICT: 다른 사용자가 이 공지사항을 수정했습니다. 페이지를 새로고침하여 최신 내용을 확인해주세요.');
+            }
             if (error) throw error;
 
             // 3. 신규 첨부 파일이 있다면 이관
@@ -425,7 +475,7 @@ export const useUpdateNotice = () => {
                 message: '공지사항이 성공적으로 수정되었습니다.',
                 type: 'success',
                 onOk: () => {
-                    const path = getUnionPath(slug, `/notice/${data.id}`);
+                    const path = getUnionPath(slug, `/news/notice/${data.id}`);
                     router.push(path);
                 },
             });
@@ -449,6 +499,7 @@ export const useDeleteNotice = () => {
     const removeNotice = useNoticeStore((state) => state.removeNotice);
     const openAlertModal = useModalStore((state) => state.openAlertModal);
     const { union, slug } = useSlug();
+    const { user, isAdmin } = useAuth();
 
     return useMutation({
         mutationFn: async (noticeId: number) => {
@@ -456,11 +507,22 @@ export const useDeleteNotice = () => {
             await queryClient.cancelQueries({ queryKey: ['notices', union?.id, noticeId] });
             await queryClient.cancelQueries({ queryKey: ['notices', union?.id] });
 
-            // 1. 폴더 및 하위 파일 전체 삭제 (Storage)
+            // 1. 게시물 삭제 (비관리자는 본인 글만 삭제 가능) -- 먼저 수행
+            let deleteQuery = supabase.from('notices').delete().eq('id', noticeId);
+            if (!isAdmin && user?.id) {
+                deleteQuery = deleteQuery.eq('author_id', user.id);
+            }
+            const { error } = await deleteQuery;
+
+            if (error) {
+                throw error;
+            }
+
+            // 2. 폴더 및 하위 파일 전체 삭제 (Storage) -- 삭제 성공 후
             const folderPath = `unions/${slug}/notices/${noticeId}`;
             await fileApi.deleteFolder(folderPath);
 
-            // 2. DB 파일 레코드 삭제 (다형성 연관 관계)
+            // 3. DB 파일 레코드 삭제 (다형성 연관 관계)
             const { error: fileError } = await supabase
                 .from('files')
                 .delete()
@@ -469,14 +531,6 @@ export const useDeleteNotice = () => {
 
             if (fileError) {
                 console.error('Failed to delete file records', fileError);
-                // 진행은 계속함 (게시물 삭제 시도)
-            }
-
-            // 3. 게시물 삭제
-            const { error } = await supabase.from('notices').delete().eq('id', noticeId);
-
-            if (error) {
-                throw error;
             }
 
             return noticeId;
@@ -491,7 +545,7 @@ export const useDeleteNotice = () => {
             queryClient.removeQueries({ queryKey: ['notices', union?.id] });
 
             // 목록으로 먼저 이동
-            const path = getUnionPath(slug, '/notice');
+            const path = getUnionPath(slug, '/news/notice');
             router.push(path);
 
             openAlertModal({

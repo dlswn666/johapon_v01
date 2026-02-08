@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 import React from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useParams, useRouter } from 'next/navigation';
-import { useNotice, useIncrementNoticeViews, useDeleteNotice, useNotices } from '@/app/_lib/features/notice/api/useNoticeHook';
+import { useNotice, useIncrementNoticeViews, useDeleteNotice, useRecentNotices } from '@/app/_lib/features/notice/api/useNoticeHook';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import ConfirmModal from '@/app/_lib/widgets/modal/ConfirmModal';
@@ -14,7 +14,8 @@ import useModalStore from '@/app/_lib/shared/stores/modal/useModalStore';
 import { FileUploader } from '@/app/_lib/widgets/common/file-uploader/FileUploader';
 import { BoardComment } from '@/app/_lib/widgets/common/comment';
 import { formatDate, formatAuthorName, formatDateRange } from '@/app/_lib/shared/utils/commonUtil';
-import { Paperclip, MessageCircle } from 'lucide-react';
+
+import { sanitizeHtml } from '@/app/_lib/shared/utils/sanitize';
 
 const NoticeDetailPage = () => {
     const router = useRouter();
@@ -22,27 +23,24 @@ const NoticeDetailPage = () => {
     const slug = params.slug as string;
     const id = params.id as string;
     const noticeId = parseInt(id);
+    const isInvalidId = isNaN(noticeId);
     const { isLoading: isUnionLoading } = useSlug();
     const { isAdmin, isSystemAdmin } = useAuth();
     
     const { data: notice, isLoading, error } = useNotice(noticeId);
-    const { data: allNotices } = useNotices(!isUnionLoading);
+    const { data: recentNotices = [] } = useRecentNotices(noticeId, 5, !isUnionLoading);
     const { mutate: incrementViews } = useIncrementNoticeViews();
     const { mutate: deleteNotice } = useDeleteNotice();
     const openConfirmModal = useModalStore((state) => state.openConfirmModal);
 
-    // 현재 공지 제외한 최근 공지사항 5개
-    const recentNotices = React.useMemo(() => {
-        if (!allNotices) return [];
-        return allNotices
-            .filter((n) => n.id !== noticeId)
-            .slice(0, 5);
-    }, [allNotices, noticeId]);
-
-    // 조회수 증가 (컴포넌트 마운트 시 1회)
+    // 조회수 증가 (세션당 1회)
     React.useEffect(() => {
         if (noticeId) {
-            incrementViews(noticeId);
+            const viewedKey = `viewed_notice_${noticeId}`;
+            if (!sessionStorage.getItem(viewedKey)) {
+                incrementViews(noticeId);
+                sessionStorage.setItem(viewedKey, '1');
+            }
         }
     }, [noticeId, incrementViews]);
 
@@ -62,11 +60,17 @@ const NoticeDetailPage = () => {
         );
     }
 
-    if (error || !notice) {
+    if (isInvalidId || error || !notice) {
         return (
             <div className={cn('container mx-auto max-w-[1042px] px-4 py-8')}>
-                <div className="flex justify-center items-center h-64">
+                <div className="flex flex-col justify-center items-center h-64 gap-4">
                     <p className="text-[18px] text-[#D9534F]">공지사항을 찾을 수 없습니다.</p>
+                    <button
+                        onClick={() => router.push(`/${slug}/news/notice`)}
+                        className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
+                    >
+                        목록으로
+                    </button>
                 </div>
             </div>
         );
@@ -132,7 +136,7 @@ const NoticeDetailPage = () => {
                     {/* 본문 영역 */}
                     <div 
                         className="min-h-[200px] whitespace-pre-wrap prose prose-lg max-w-none text-[16px] leading-[1.8] text-gray-800" 
-                        dangerouslySetInnerHTML={{ __html: notice.content }} 
+                        dangerouslySetInnerHTML={{ __html: sanitizeHtml(notice.content) }} 
                     />
 
                     {/* 첨부파일 영역 */}
@@ -156,9 +160,9 @@ const NoticeDetailPage = () => {
                     {/* 하단 게시판 목록 - 피그마 디자인 반영 */}
                     {recentNotices.length > 0 && (
                         <div className="border-t border-[#CDD1D5] pt-8">
-                            <h3 className="text-[18px] font-semibold text-black mb-4">
-                                "공지사항" 게시판 글
-                            </h3>
+                            <h2 className="text-[18px] font-semibold text-black mb-4">
+                                &ldquo;공지사항&rdquo; 게시판 글
+                            </h2>
                             <div className="divide-y divide-[#E8E8E8]">
                                 {recentNotices.map((item) => (
                                     <div 
@@ -166,24 +170,14 @@ const NoticeDetailPage = () => {
                                         className="py-3 flex items-center justify-between cursor-pointer hover:bg-gray-50 transition-colors"
                                         onClick={() => router.push(`/${slug}/news/notice/${item.id}`)}
                                     >
-                                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                                            <span className="text-[15px] text-gray-900 truncate">
-                                                {item.title}
-                                            </span>
-                                            <div className="flex items-center gap-2 shrink-0">
-                                                {item.file_count > 0 && (
-                                                    <Paperclip className="w-4 h-4 text-[#717171]" />
-                                                )}
-                                                {item.comment_count > 0 && (
-                                                    <div className="flex items-center gap-1 text-[#717171]">
-                                                        <MessageCircle className="w-4 h-4" />
-                                                        <span className="text-[12px]">{item.comment_count}</span>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
+                                        <span className="text-[15px] text-gray-900 truncate flex-1 min-w-0">
+                                            {item.title}
+                                        </span>
                                         <div className="flex items-center gap-4 text-[13px] text-[#717171] shrink-0 ml-4">
-                                            <span>{formatAuthorName(item.author?.name)}</span>
+                                            <span>{formatAuthorName(
+                                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                                Array.isArray(item.author) ? (item.author as any)[0]?.name : (item.author as any)?.name
+                                            )}</span>
                                             <span>{formatDate(item.created_at)}</span>
                                         </div>
                                     </div>

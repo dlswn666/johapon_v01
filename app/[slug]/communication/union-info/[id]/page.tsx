@@ -15,6 +15,7 @@ import { User, Eye, Calendar } from 'lucide-react';
 import { FileUploader } from '@/app/_lib/widgets/common/file-uploader/FileUploader';
 import { BoardComment } from '@/app/_lib/widgets/common/comment';
 import { formatDate, formatAuthorName } from '@/app/_lib/shared/utils/commonUtil';
+import { sanitizeHtml } from '@/app/_lib/shared/utils/sanitize';
 
 const UnionInfoDetailPage = () => {
     const router = useRouter();
@@ -22,6 +23,7 @@ const UnionInfoDetailPage = () => {
     const slug = params.slug as string;
     const id = params.id as string;
     const postId = parseInt(id);
+    const isInvalidId = isNaN(postId);
     const { isLoading: isUnionLoading } = useSlug();
     const { user, isAdmin } = useAuth();
     
@@ -30,10 +32,14 @@ const UnionInfoDetailPage = () => {
     const { mutate: deletePost } = useDeleteUnionInfo();
     const { openConfirmModal } = useModalStore();
 
-    // 조회수 증가 (컴포넌트 마운트 시 1회, union 로드 완료 후)
+    // 조회수 증가 (세션당 1회)
     useEffect(() => {
         if (postId && !isUnionLoading) {
-            incrementViews(postId);
+            const viewedKey = `viewed_union_info_${postId}`;
+            if (!sessionStorage.getItem(viewedKey)) {
+                incrementViews(postId);
+                sessionStorage.setItem(viewedKey, '1');
+            }
         }
     }, [postId, isUnionLoading, incrementViews]);
 
@@ -56,13 +62,19 @@ const UnionInfoDetailPage = () => {
         );
     }
 
-    if (error || !post) {
+    if (isInvalidId || error || !post) {
         return (
             <div className={cn('container mx-auto max-w-[1280px] px-4 py-8')}>
-                <div className="flex justify-center items-center h-64">
+                <div className="flex flex-col justify-center items-center h-64 gap-4">
                     <p className="text-[18px] text-[#D9534F]">
                         {error?.message || '게시글을 찾을 수 없습니다.'}
                     </p>
+                    <button
+                        onClick={() => router.push(`/${slug}/communication/union-info`)}
+                        className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
+                    >
+                        목록으로
+                    </button>
                 </div>
             </div>
         );
@@ -76,7 +88,7 @@ const UnionInfoDetailPage = () => {
                 <div className="space-y-8">
                     {/* 제목 영역 */}
                     <div className="flex justify-between items-start border-b border-[#CCCCCC] pb-6">
-                        <h2 className="text-[32px] font-bold text-[#5FA37C] flex-1 pr-4">{post.title}</h2>
+                        <h2 className="text-[24px] md:text-[32px] font-bold text-[#5FA37C] flex-1 pr-4">{post.title}</h2>
                         <div className="flex gap-2 shrink-0">
                             {canEdit && (
                                 <>
@@ -122,7 +134,7 @@ const UnionInfoDetailPage = () => {
                     {/* 본문 */}
                     <div 
                         className="min-h-[200px] whitespace-pre-wrap py-4 prose prose-lg max-w-none text-[18px] leading-relaxed text-gray-800 bg-white rounded-[12px] border border-[#CCCCCC] p-6" 
-                        dangerouslySetInnerHTML={{ __html: post.content }} 
+                        dangerouslySetInnerHTML={{ __html: sanitizeHtml(post.content) }} 
                     />
 
                     {/* 첨부파일 영역 */}

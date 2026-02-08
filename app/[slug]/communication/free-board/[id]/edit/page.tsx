@@ -71,6 +71,7 @@ const EditFreeBoardPage = () => {
         updateFreeBoard({
             id: freeBoardId,
             updates: values,
+            updatedAt: freeBoard?.updated_at ?? undefined,
         });
     }
 

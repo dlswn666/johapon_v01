@@ -1,0 +1,574 @@
+{
+  "project_type": "web_app",
+  "language": "typescript",
+  "framework": "nextjs",
+  "framework_version": "15.5.7+",
+  "react_version": "19.2.3+",
+  "runtime": "node",
+  "build_tool": "next_webpack",
+  "test_frameworks": {
+    "unit": "vitest",
+    "e2e": "playwright"
+  },
+  "path_alias": { "@/*": "./*" },
+  "typescript_config": {
+    "target": "ES2017",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "jsx": "preserve"
+  },
+
+  "entry_points": [
+    {
+      "file": "app/layout.tsx",
+      "type": "root_layout",
+      "description": "Root layout with QueryProvider, ConfirmModal, AlertModal. Korean lang, Noto Sans KR font.",
+      "providers": ["Providers (QueryClientProvider + Toaster)", "ConfirmModal", "AlertModal"]
+    },
+    {
+      "file": "middleware.ts",
+      "type": "middleware",
+      "description": "All-route middleware delegating to updateSession() for auth, CSRF, token validation, role guards.",
+      "matcher": "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"
+    }
+  ],
+
+  "layout_hierarchy": [
+    {
+      "path": "app/layout.tsx",
+      "type": "root",
+      "rendering": "server",
+      "wraps": ["Providers (TanStack Query)", "ConfirmModal", "AlertModal"]
+    },
+    {
+      "path": "app/(marketing)/layout.tsx",
+      "type": "route_group",
+      "rendering": "client",
+      "wraps": ["AuthProvider", "MarketingHeader", "MarketingFooter"],
+      "pages": ["/", "/contact", "/privacy", "/privacy/en", "/terms", "/terms/en"]
+    },
+    {
+      "path": "app/(errors)/layout.tsx",
+      "type": "route_group",
+      "rendering": "server",
+      "wraps": [],
+      "pages": ["/forbidden", "/not-found"]
+    },
+    {
+      "path": "app/[slug]/layout.tsx",
+      "type": "dynamic_segment",
+      "rendering": "server",
+      "wraps": ["AuthProvider", "SlugProvider", "UnionLayoutContent"],
+      "description": "Union-scoped layout. Extracts slug param, provides union context."
+    },
+    {
+      "path": "app/admin/layout.tsx",
+      "type": "system_admin",
+      "rendering": "client",
+      "wraps": ["AuthProvider", "AdminHeader"],
+      "guard": "isSystemAdmin (client-side redirect)",
+      "pages": ["/admin/access-tokens", "/admin/unions", "/admin/unions/[id]", "/admin/unions/[id]/edit", "/admin/unions/new"]
+    },
+    {
+      "path": "app/systemAdmin/layout.tsx",
+      "type": "system_admin",
+      "rendering": "client",
+      "wraps": ["AuthProvider", "SystemAdminHeader"],
+      "guard": "isSystemAdmin (client-side) + test mode bypass",
+      "pages": ["/systemAdmin", "/systemAdmin/login", "/systemAdmin/unions", "/systemAdmin/unions/[id]", "/systemAdmin/unions/new", "/systemAdmin/unions/[id]/admins", "/systemAdmin/gis", "/systemAdmin/gis/members", "/systemAdmin/alimtalk", "/systemAdmin/alimtalk/templates", "/systemAdmin/alimtalk/pricing", "/systemAdmin/sms", "/systemAdmin/stages", "/systemAdmin/access-logs"]
+    }
+  ],
+
+  "route_structure": {
+    "pages": [
+      { "path": "/", "file": "app/(marketing)/page.tsx", "auth": "public" },
+      { "path": "/contact", "file": "app/(marketing)/contact/page.tsx", "auth": "public" },
+      { "path": "/privacy", "file": "app/(marketing)/privacy/page.tsx", "auth": "public" },
+      { "path": "/privacy/en", "file": "app/(marketing)/privacy/en/page.tsx", "auth": "public" },
+      { "path": "/terms", "file": "app/(marketing)/terms/page.tsx", "auth": "public" },
+      { "path": "/terms/en", "file": "app/(marketing)/terms/en/page.tsx", "auth": "public" },
+      { "path": "/forbidden", "file": "app/(errors)/forbidden/page.tsx", "auth": "public" },
+      { "path": "/not-found", "file": "app/(errors)/not-found/page.tsx", "auth": "public" },
+      { "path": "/auth/error", "file": "app/auth/error/page.tsx", "auth": "public" },
+      { "path": "/invalid-token", "file": "app/invalid-token/page.tsx", "auth": "public" },
+      { "path": "/invite/admin", "file": "app/invite/admin/page.tsx", "auth": "public" },
+      { "path": "/swagger", "file": "app/swagger/page.tsx", "auth": "public" },
+
+      { "path": "/admin/access-tokens", "file": "app/admin/access-tokens/page.tsx", "auth": "system_admin" },
+      { "path": "/admin/unions", "file": "app/admin/unions/page.tsx", "auth": "system_admin" },
+      { "path": "/admin/unions/new", "file": "app/admin/unions/new/page.tsx", "auth": "system_admin" },
+      { "path": "/admin/unions/[id]", "file": "app/admin/unions/[id]/page.tsx", "auth": "system_admin" },
+      { "path": "/admin/unions/[id]/edit", "file": "app/admin/unions/[id]/edit/page.tsx", "auth": "system_admin" },
+
+      { "path": "/systemAdmin", "file": "app/systemAdmin/page.tsx", "auth": "system_admin" },
+      { "path": "/systemAdmin/login", "file": "app/systemAdmin/login/page.tsx", "auth": "public" },
+      { "path": "/systemAdmin/unions", "file": "app/systemAdmin/unions/page.tsx", "auth": "system_admin" },
+      { "path": "/systemAdmin/unions/new", "file": "app/systemAdmin/unions/new/page.tsx", "auth": "system_admin" },
+      { "path": "/systemAdmin/unions/[id]", "file": "app/systemAdmin/unions/[id]/page.tsx", "auth": "system_admin" },
+      { "path": "/systemAdmin/unions/[id]/admins", "file": "app/systemAdmin/unions/[id]/admins/page.tsx", "auth": "system_admin" },
+      { "path": "/systemAdmin/gis", "file": "app/systemAdmin/gis/page.tsx", "auth": "system_admin" },
+      { "path": "/systemAdmin/gis/members", "file": "app/systemAdmin/gis/members/page.tsx", "auth": "system_admin" },
+      { "path": "/systemAdmin/alimtalk", "file": "app/systemAdmin/alimtalk/page.tsx", "auth": "system_admin" },
+      { "path": "/systemAdmin/alimtalk/templates", "file": "app/systemAdmin/alimtalk/templates/page.tsx", "auth": "system_admin" },
+      { "path": "/systemAdmin/alimtalk/pricing", "file": "app/systemAdmin/alimtalk/pricing/page.tsx", "auth": "system_admin" },
+      { "path": "/systemAdmin/sms", "file": "app/systemAdmin/sms/page.tsx", "auth": "system_admin" },
+      { "path": "/systemAdmin/stages", "file": "app/systemAdmin/stages/page.tsx", "auth": "system_admin" },
+      { "path": "/systemAdmin/access-logs", "file": "app/systemAdmin/access-logs/page.tsx", "auth": "system_admin" },
+
+      { "path": "/[slug]", "file": "app/[slug]/page.tsx", "auth": "union_public", "description": "Union landing / login page" },
+      { "path": "/[slug]/register", "file": "app/[slug]/register/page.tsx", "auth": "union_public" },
+      { "path": "/[slug]/dashboard", "file": "app/[slug]/dashboard/page.tsx", "auth": "union_auth" },
+      { "path": "/[slug]/my-property", "file": "app/[slug]/my-property/page.tsx", "auth": "union_auth" },
+      { "path": "/[slug]/invite/member", "file": "app/[slug]/invite/member/page.tsx", "auth": "union_auth" },
+
+      { "path": "/[slug]/admin/members", "file": "app/[slug]/admin/members/page.tsx", "auth": "union_admin" },
+      { "path": "/[slug]/admin/settings", "file": "app/[slug]/admin/settings/page.tsx", "auth": "union_admin" },
+      { "path": "/[slug]/admin/land-lots", "file": "app/[slug]/admin/land-lots/page.tsx", "auth": "union_admin" },
+      { "path": "/[slug]/admin/alimtalk", "file": "app/[slug]/admin/alimtalk/page.tsx", "auth": "union_admin" },
+      { "path": "/[slug]/admin/users", "file": "app/[slug]/admin/users/page.tsx", "auth": "union_admin" },
+      { "path": "/[slug]/admin/slides", "file": "app/[slug]/admin/slides/page.tsx", "auth": "union_admin" },
+      { "path": "/[slug]/admin/slides/new", "file": "app/[slug]/admin/slides/new/page.tsx", "auth": "union_admin" },
+      { "path": "/[slug]/admin/slides/[id]", "file": "app/[slug]/admin/slides/[id]/page.tsx", "auth": "union_admin" },
+      { "path": "/[slug]/admin/slides/[id]/edit", "file": "app/[slug]/admin/slides/[id]/edit/page.tsx", "auth": "union_admin" },
+
+      { "path": "/[slug]/news/notice", "file": "app/[slug]/news/notice/page.tsx", "auth": "union_auth" },
+      { "path": "/[slug]/news/notice/new", "file": "app/[slug]/news/notice/new/page.tsx", "auth": "union_auth" },
+      { "path": "/[slug]/news/notice/[id]", "file": "app/[slug]/news/notice/[id]/page.tsx", "auth": "union_auth" },
+      { "path": "/[slug]/news/notice/[id]/edit", "file": "app/[slug]/news/notice/[id]/edit/page.tsx", "auth": "union_auth" },
+      { "path": "/[slug]/news/qna", "file": "app/[slug]/news/qna/page.tsx", "auth": "union_auth" },
+      { "path": "/[slug]/news/qna/new", "file": "app/[slug]/news/qna/new/page.tsx", "auth": "union_auth" },
+      { "path": "/[slug]/news/qna/[id]", "file": "app/[slug]/news/qna/[id]/page.tsx", "auth": "union_auth" },
+      { "path": "/[slug]/news/qna/[id]/edit", "file": "app/[slug]/news/qna/[id]/edit/page.tsx", "auth": "union_auth" },
+
+      { "path": "/[slug]/free-board", "file": "app/[slug]/free-board/page.tsx", "auth": "union_auth" },
+      { "path": "/[slug]/free-board/new", "file": "app/[slug]/free-board/new/page.tsx", "auth": "union_auth" },
+      { "path": "/[slug]/free-board/[id]", "file": "app/[slug]/free-board/[id]/page.tsx", "auth": "union_auth" },
+      { "path": "/[slug]/free-board/[id]/edit", "file": "app/[slug]/free-board/[id]/edit/page.tsx", "auth": "union_auth" },
+
+      { "path": "/[slug]/communication/free-board", "file": "app/[slug]/communication/free-board/page.tsx", "auth": "union_auth" },
+      { "path": "/[slug]/communication/free-board/new", "file": "app/[slug]/communication/free-board/new/page.tsx", "auth": "union_auth" },
+      { "path": "/[slug]/communication/free-board/[id]", "file": "app/[slug]/communication/free-board/[id]/page.tsx", "auth": "union_auth" },
+      { "path": "/[slug]/communication/free-board/[id]/edit", "file": "app/[slug]/communication/free-board/[id]/edit/page.tsx", "auth": "union_auth" },
+      { "path": "/[slug]/communication/union-info", "file": "app/[slug]/communication/union-info/page.tsx", "auth": "union_auth" },
+      { "path": "/[slug]/communication/union-info/new", "file": "app/[slug]/communication/union-info/new/page.tsx", "auth": "union_auth" },
+      { "path": "/[slug]/communication/union-info/[id]", "file": "app/[slug]/communication/union-info/[id]/page.tsx", "auth": "union_auth" },
+      { "path": "/[slug]/communication/union-info/[id]/edit", "file": "app/[slug]/communication/union-info/[id]/edit/page.tsx", "auth": "union_auth" },
+      { "path": "/[slug]/communication/partner", "file": "app/[slug]/communication/partner/page.tsx", "auth": "union_auth" },
+      { "path": "/[slug]/communication/partner/[id]", "file": "app/[slug]/communication/partner/[id]/page.tsx", "auth": "union_auth" }
+    ],
+
+    "api_routes": [
+      { "path": "/api/admin/access-tokens", "file": "app/api/admin/access-tokens/route.ts", "methods": ["GET", "POST"], "auth": "authenticateApiRequest" },
+      { "path": "/api/admin/access-tokens/[id]", "file": "app/api/admin/access-tokens/[id]/route.ts", "methods": ["PATCH", "DELETE"], "auth": "authenticateApiRequest" },
+      { "path": "/api/auth/naver", "file": "app/api/auth/naver/route.ts", "methods": ["GET"], "auth": "public" },
+      { "path": "/api/auth/naver/callback", "file": "app/api/auth/naver/callback/route.ts", "methods": ["GET"], "auth": "public" },
+      { "path": "/api/auth/verify-token", "file": "app/api/auth/verify-token/route.ts", "methods": ["POST"], "auth": "unknown" },
+      { "path": "/api/consent/bulk-update", "file": "app/api/consent/bulk-update/route.ts", "methods": ["POST"], "auth": "unknown" },
+      { "path": "/api/consent/bulk-upload", "file": "app/api/consent/bulk-upload/route.ts", "methods": ["POST"], "auth": "unknown" },
+      { "path": "/api/docs", "file": "app/api/docs/route.ts", "methods": ["GET"], "auth": "public" },
+      { "path": "/api/image/resize", "file": "app/api/image/resize/route.ts", "methods": ["POST"], "auth": "unknown" },
+      { "path": "/api/member-invite/job/[jobId]", "file": "app/api/member-invite/job/[jobId]/route.ts", "methods": ["GET"], "auth": "authenticateApiRequest" },
+      { "path": "/api/member-invite/pre-register", "file": "app/api/member-invite/pre-register/route.ts", "methods": ["POST"], "auth": "authenticateApiRequest" },
+      { "path": "/api/member-invite/sync", "file": "app/api/member-invite/sync/route.ts", "methods": ["POST"], "auth": "authenticateApiRequest" },
+      { "path": "/api/member-invite/sync-async", "file": "app/api/member-invite/sync-async/route.ts", "methods": ["POST"], "auth": "unknown" },
+      { "path": "/api/member-invite/sync-properties", "file": "app/api/member-invite/sync-properties/route.ts", "methods": ["POST"], "auth": "unknown" },
+      { "path": "/api/members/approve", "file": "app/api/members/approve/route.ts", "methods": ["POST"], "auth": "authenticateApiRequest" },
+      { "path": "/api/members/check-conflict", "file": "app/api/members/check-conflict/route.ts", "methods": ["POST"], "auth": "authenticateApiRequest" },
+      { "path": "/api/sms/send", "file": "app/api/sms/send/route.ts", "methods": ["POST"], "auth": "authenticateApiRequest" },
+      { "path": "/api/sms/template", "file": "app/api/sms/template/route.ts", "methods": ["GET"], "auth": "unknown" },
+      { "path": "/auth/callback", "file": "app/auth/callback/route.ts", "methods": ["GET"], "auth": "oauth_callback", "description": "Kakao OAuth callback handler with PKCE, invite token, member invite token support" }
+    ]
+  },
+
+  "modules": {
+    "app_layer": {
+      "providers": [
+        {
+          "file": "app/_lib/app/providers/AuthProvider.tsx",
+          "exports": ["AuthProvider (default)", "useAuth"],
+          "description": "Global auth context. Handles Kakao/Naver OAuth, session management, user profile resolution, blocked user modal, dev-mode localhost bypass.",
+          "key_state": ["user (User)", "authUser (SupabaseUser)", "session", "isLoading", "isUserFetching", "userStatus", "isAuthenticated", "isSystemAdmin", "isAdmin", "isBlocked"],
+          "key_methods": ["login(provider, slug)", "loginWithEmail(email, password)", "logout()", "refreshUser()"]
+        },
+        {
+          "file": "app/_lib/app/providers/SlugProvider.tsx",
+          "exports": ["SlugProvider (default)", "useSlug"],
+          "description": "Provides union context for /[slug]/ routes. Fetches union by slug, redirects to /not-found on failure.",
+          "key_state": ["slug", "union (Union)", "isLoading"]
+        }
+      ]
+    },
+
+    "entities_layer": {
+      "description": "Domain entities with API hooks and stores",
+      "modules": [
+        {
+          "name": "union",
+          "files": [
+            "app/_lib/entities/union/api/useUnionHook.ts",
+            "app/_lib/entities/union/model/useUnionStore.ts"
+          ]
+        },
+        {
+          "name": "user",
+          "files": [
+            "app/_lib/entities/user/api/useUserHook.ts",
+            "app/_lib/entities/user/model/useUserStore.ts",
+            "app/_lib/entities/user/api/index.ts",
+            "app/_lib/entities/user/model/index.ts",
+            "app/_lib/entities/user/index.ts"
+          ]
+        }
+      ]
+    },
+
+    "features_layer": {
+      "description": "Feature modules following api/model/ui/actions pattern",
+      "modules": [
+        {
+          "name": "advertisement",
+          "api": ["useAdvertisement.ts"],
+          "ui": ["AdDashboard.tsx", "AdForm.tsx", "BoardAdWidget.tsx", "HomeBannerWidget.tsx", "MainBannerWidget.tsx", "SideAdWidget.tsx", "SubSliderWidget.tsx"]
+        },
+        {
+          "name": "admin-invite",
+          "api": ["useAdminInviteHook.ts"]
+        },
+        {
+          "name": "alimtalk",
+          "api": ["useAlimtalkLogHook.ts", "useAlimtalkPricingHook.ts", "useAlimtalkTemplateHook.ts"],
+          "model": ["useAlimtalkLogStore.ts", "useAlimtalkPricingStore.ts", "useAlimtalkTemplateStore.ts"],
+          "actions": ["sendAlimTalk.ts"]
+        },
+        {
+          "name": "comment",
+          "api": ["useCommentHook.ts"],
+          "model": ["useCommentStore.ts"]
+        },
+        {
+          "name": "comments",
+          "api": ["useComments.ts"],
+          "description": "Possibly duplicate or alternate comment module"
+        },
+        {
+          "name": "consent-stages",
+          "api": ["useConsentStages.ts"]
+        },
+        {
+          "name": "development-stages",
+          "api": ["useDevelopmentStages.ts"]
+        },
+        {
+          "name": "free-board",
+          "api": ["useFreeBoardHook.ts"],
+          "model": ["useFreeBoardStore.ts"]
+        },
+        {
+          "name": "gis",
+          "api": ["useBuildingMatch.ts", "useLandLotsInfinite.ts", "useParcelDetail.ts"],
+          "hooks": ["useConsentMap.ts", "useRegistrationMap.ts", "useUnionMembers.ts"],
+          "actions": ["manualAddAddress.ts", "parcelActions.ts", "resetGisData.ts", "syncGis.ts", "memberMatching.ts", "sendConsentReminderAlimtalk.ts"],
+          "components": ["ConsentStatusBar.tsx", "EChartsMapDynamic.tsx", "GisMapContainer.tsx", "GisMapContainerDynamic.tsx", "ParcelDetailModal.tsx"]
+        },
+        {
+          "name": "hero-slides",
+          "api": ["useHeroSlidesHook.ts"],
+          "model": ["useHeroSlidesStore.ts"],
+          "ui": ["HeroSlideForm.tsx", "HeroSlideList.tsx", "index.ts"]
+        },
+        {
+          "name": "member-invite",
+          "api": ["useMemberInviteHook.ts"],
+          "model": ["useMemberInviteStore.ts"]
+        },
+        {
+          "name": "member-management",
+          "api": ["useMemberHook.ts", "useAccessLogHook.ts", "useConflictResolutionHook.ts"],
+          "model": ["useMemberStore.ts"]
+        },
+        {
+          "name": "my-property",
+          "api": ["useMyPropertyHook.ts"],
+          "model": ["useMyPropertyStore.ts"]
+        },
+        {
+          "name": "notice",
+          "api": ["useNoticeHook.ts"],
+          "model": ["useNoticeStore.ts"]
+        },
+        {
+          "name": "question",
+          "api": ["useQuestionHook.ts"],
+          "model": ["useQuestionStore.ts"]
+        },
+        {
+          "name": "sms",
+          "model": ["useSmsStore.ts"],
+          "ui": ["RecipientUploader.tsx", "SmsComposer.tsx", "SmsPreview.tsx", "SmsProgress.tsx", "SmsResult.tsx"]
+        },
+        {
+          "name": "union-info",
+          "api": ["useUnionInfoHook.ts"],
+          "model": ["useUnionInfoStore.ts"]
+        },
+        {
+          "name": "union-management",
+          "api": ["useUnionManagementHook.ts"],
+          "model": ["useUnionManagementStore.ts"],
+          "ui": ["UnionDashboard.tsx", "UnionDeleteModal.tsx", "UnionEditConfirmModal.tsx", "UnionForm.tsx", "UnionList.tsx", "index.ts"]
+        },
+        {
+          "name": "user-dedup",
+          "actions": ["mergeUsers.ts"]
+        }
+      ]
+    },
+
+    "shared_layer": {
+      "supabase": {
+        "client": "app/_lib/shared/supabase/client.ts (browser client, singleton, createBrowserClient)",
+        "server": "app/_lib/shared/supabase/server.ts (server client, async createClient, cookies-based)",
+        "middleware": "app/_lib/shared/supabase/middleware.ts (updateSession, CSRF, auth guards, token validation)"
+      },
+      "api": {
+        "auth": "app/_lib/shared/api/auth.ts (authenticateApiRequest, authenticateServiceRequest)"
+      },
+      "hooks": [
+        "app/_lib/shared/hooks/useFocusTrap.ts",
+        "app/_lib/shared/hooks/useIsClient.ts",
+        "app/_lib/shared/hooks/useMediaQuery.ts",
+        "app/_lib/shared/hooks/file/fileApi.ts",
+        "app/_lib/shared/hooks/image/useImageUpload.ts"
+      ],
+      "utils": [
+        "app/_lib/shared/utils/address-utils.ts",
+        "app/_lib/shared/utils/commonUtil.ts",
+        "app/_lib/shared/utils/dong-ho-utils.ts",
+        "app/_lib/shared/utils/escapeLike.ts",
+        "app/_lib/shared/utils/isLocalhost.ts",
+        "app/_lib/shared/utils/pnu-utils.ts",
+        "app/_lib/shared/utils/sanitize.ts"
+      ],
+      "stores": [
+        "app/_lib/shared/stores/file/useFileStore.ts",
+        "app/_lib/shared/stores/modal/useModalStore.ts"
+      ],
+      "types": [
+        "app/_lib/shared/type/accessToken.types.ts",
+        "app/_lib/shared/type/auth.types.ts",
+        "app/_lib/shared/type/conflict.types.ts",
+        "app/_lib/shared/type/database.types.ts",
+        "app/_lib/shared/type/sms.types.ts"
+      ],
+      "constants": [
+        "app/_lib/shared/constants/imageConfig.ts",
+        "app/_lib/shared/constants/kakaoServiceTerms.ts"
+      ],
+      "tanstack": {
+        "queryClient": "app/_lib/shared/tanstack/queryClient.ts",
+        "QueryProvider": "app/_lib/shared/tanstack/QueryProvider.tsx"
+      },
+      "lib": [
+        "app/_lib/shared/lib/utils/slug.ts"
+      ],
+      "ui": [
+        "app/_lib/shared/ui/ImageUploader.tsx"
+      ]
+    },
+
+    "widgets_layer": {
+      "description": "Reusable UI widgets organized by domain",
+      "categories": {
+        "modal": {
+          "files": ["AlertModal.tsx", "ConfirmModal.tsx", "RegisterModal.tsx", "ApprovalPendingModal.tsx", "ApprovalRejectedModal.tsx", "UserStatusModal.tsx", "TermsConsentModal.tsx", "TermsModal.tsx"],
+          "index": "app/_lib/widgets/modal/index.ts",
+          "patterns": {
+            "radix_dialog": ["ConfirmModal", "AlertModal"],
+            "raw_div_modal": ["RegisterModal", "ApprovalPendingModal", "ApprovalRejectedModal", "BlockedUserModal"]
+          }
+        },
+        "common": {
+          "files": ["ClientDate.tsx", "ClientOnly.tsx", "BlockedUserModal.tsx"],
+          "submodules": {
+            "address": ["KakaoAddressSearch.tsx"],
+            "button": ["ActionButton.tsx"],
+            "comment": ["BoardComment.tsx", "CommentForm.tsx", "CommentItem.tsx", "CommentList.tsx", "CommentSection.tsx"],
+            "data-table": ["DataTable.tsx", "DataTableDynamic.tsx"],
+            "date-picker": ["BirthDatePicker.tsx", "DatePicker.tsx", "StartEndPicker.tsx"],
+            "file-uploader": ["FileUploader.tsx"],
+            "form": ["FormCheckboxField.tsx", "FormInputField.tsx", "FormSelectField.tsx"],
+            "list-card": ["BoardListCard.tsx", "ListCard.tsx"],
+            "select-box": ["SelectBox.tsx"],
+            "skeleton": ["FormSkeleton.tsx"],
+            "text-editor": ["TextEditorDynamic.tsx", "EditorToolbar.tsx", "TextEditor.tsx"],
+            "toast": ["Toast.tsx"]
+          }
+        },
+        "landing": ["LandingPage.tsx", "LandingPageNew.tsx", "LandingHeader.tsx", "LandingHero.tsx", "LandingContentGrid.tsx", "LandingFooter.tsx", "LoginForm.tsx", "CrossfadeBackground.tsx"],
+        "union": {
+          "header": ["UnionHeader.tsx", "UnionHomeHeader.tsx", "UnionMobileSidebar.tsx"],
+          "breadcrumb": ["UnionBreadcrumb.tsx"],
+          "navigation": ["Navigation.tsx"]
+        },
+        "home": ["HomeBoardSection.tsx", "HomeCommunitySection.tsx", "HomeFeaturedCard.tsx", "HomeInfoSection.tsx", "HomePartnerships.tsx", "HomePostCard.tsx", "HomeUnionCard.tsx"],
+        "hero-slider": ["HeroSlider.tsx", "HeroSliderDynamic.tsx"],
+        "skeleton": ["CardSkeleton.tsx", "FormSkeleton.tsx", "ListSkeleton.tsx", "MapSkeleton.tsx", "TableSkeleton.tsx"],
+        "admin-header": ["AdminHeader.tsx"],
+        "marketing": ["MarketingFooter.tsx"],
+        "notice-popup": ["NoticePopup.tsx"],
+        "union-info-footer": ["UnionInfoFooter.tsx"],
+        "union-news-section": ["UnionNewsSection.tsx"]
+      }
+    }
+  },
+
+  "component_tree": {
+    "shared": {
+      "ui_primitives": [
+        "components/ui/alert-dialog.tsx",
+        "components/ui/badge.tsx",
+        "components/ui/button.tsx",
+        "components/ui/calendar.tsx",
+        "components/ui/card.tsx",
+        "components/ui/checkbox.tsx",
+        "components/ui/collapsible.tsx",
+        "components/ui/dialog.tsx",
+        "components/ui/form.tsx",
+        "components/ui/input.tsx",
+        "components/ui/label.tsx",
+        "components/ui/navigation-menu.tsx",
+        "components/ui/popover.tsx",
+        "components/ui/radio-group.tsx",
+        "components/ui/select.tsx",
+        "components/ui/separator.tsx",
+        "components/ui/sheet.tsx",
+        "components/ui/sidebar.tsx",
+        "components/ui/skeleton.tsx",
+        "components/ui/spinner.tsx",
+        "components/ui/switch.tsx",
+        "components/ui/table.tsx",
+        "components/ui/tabs.tsx",
+        "components/ui/textarea.tsx",
+        "components/ui/tooltip.tsx",
+        "components/ui/FloorIndicator.tsx"
+      ],
+      "other": [
+        "components/BannerAd.tsx",
+        "components/map/EChartsMap.tsx"
+      ]
+    },
+    "widgets": "See modules.widgets_layer above",
+    "features": "See modules.features_layer above"
+  },
+
+  "dependencies": {
+    "runtime": {
+      "core": ["next@^15.5.7", "react@^19.2.3", "react-dom@^19.2.3"],
+      "supabase": ["@supabase/ssr@^0.8.0", "@supabase/supabase-js@^2.81.1"],
+      "state_management": ["zustand@^5.0.8", "@tanstack/react-query@^5.90.10", "@tanstack/react-query-devtools@^5.90.2"],
+      "forms": ["react-hook-form@^7.66.1", "@hookform/resolvers@^5.2.2", "zod@^4.1.12"],
+      "ui_components": [
+        "@radix-ui/react-alert-dialog@^1.1.15", "@radix-ui/react-checkbox@^1.3.3",
+        "@radix-ui/react-collapsible@^1.1.12", "@radix-ui/react-dialog@^1.1.15",
+        "@radix-ui/react-label@^2.1.8", "@radix-ui/react-navigation-menu@^1.2.14",
+        "@radix-ui/react-popover@^1.1.15", "@radix-ui/react-radio-group@^1.3.8",
+        "@radix-ui/react-select@^2.2.6", "@radix-ui/react-separator@^1.1.8",
+        "@radix-ui/react-slot@^1.2.4", "@radix-ui/react-switch@^1.2.6",
+        "@radix-ui/react-tabs@^1.1.13", "@radix-ui/react-tooltip@^1.2.8"
+      ],
+      "styling": ["tailwind-merge@^3.4.0", "class-variance-authority@^0.7.1", "clsx@^2.1.1", "@tailwindcss/typography@^0.5.19"],
+      "rich_text": ["@tiptap/react@^3.11.1", "@tiptap/starter-kit@^3.11.1", "@tiptap/extension-image@^3.11.1", "@tiptap/extension-placeholder@^3.11.1", "@tiptap/extension-text-align@^3.11.1"],
+      "charts": ["echarts@^6.0.0"],
+      "icons": ["lucide-react@^0.553.0"],
+      "date": ["date-fns@^4.1.0", "react-day-picker@^9.11.1"],
+      "http": ["axios@^1.13.2"],
+      "auth_crypto": ["jose@^6.1.3"],
+      "security": ["dompurify@^3.3.1"],
+      "image": ["sharp@^0.34.5"],
+      "notifications": ["react-hot-toast@^2.6.0"],
+      "intersection": ["react-intersection-observer@^10.0.0"],
+      "spreadsheet": ["xlsx@^0.18.5"],
+      "uuid": ["uuid@^13.0.0"]
+    },
+    "dev": {
+      "testing": ["@playwright/test@^1.57.0", "vitest@^4.0.17", "@testing-library/jest-dom@^6.9.1", "@testing-library/react@^16.3.1", "happy-dom@^20.3.0", "jsdom@^27.0.1"],
+      "build": ["@tailwindcss/postcss@^4", "tailwindcss@^4", "tw-animate-css@^1.4.0", "@vitejs/plugin-react@^4.7.0", "typescript@^5"],
+      "types": ["@types/dompurify@^3.0.5", "@types/geojson@^7946.0.16", "@types/node@^20", "@types/react@^19", "@types/react-dom@^19", "@types/sharp@^0.31.1", "@types/swagger-jsdoc@^6.0.4", "@types/swagger-ui-react@^5.18.0", "@types/uuid@^10.0.0"],
+      "linting": ["eslint@^9", "eslint-config-next@16.0.3"],
+      "docs": ["swagger-jsdoc@^6.2.8", "swagger-ui-react@^5.30.2"]
+    }
+  },
+
+  "auth_architecture": {
+    "providers": ["kakao (OAuth via Supabase)", "naver (custom OAuth via /api/auth/naver)", "email/password (systemAdmin login)"],
+    "flow": {
+      "1_login": "User clicks login -> AuthProvider.login(provider, slug) -> Supabase OAuth / Naver custom",
+      "2_callback": "OAuth redirects to /auth/callback -> exchanges code for session (PKCE) -> checks user_auth_links -> resolves redirect",
+      "3_session": "Middleware updateSession() runs on every request -> refreshes tokens -> enforces auth guards",
+      "4_profile": "AuthProvider.resolveUserProfile() -> queries user_auth_links -> finds matching User by union_id"
+    },
+    "middleware_guards": [
+      "PUBLIC_PATHS: /, /contact, /privacy, /terms, /auth, /invite, /member-invite, /swagger",
+      "SYSTEM_ADMIN_PUBLIC: /systemAdmin/login",
+      "Union landing (/[slug]) and register (/[slug]/register): public",
+      "Union admin paths: requires ADMIN/SUPER_ADMIN/SYSTEM_ADMIN role via user_auth_links -> users.role",
+      "CSRF: Origin+Host validation on POST/PUT/PATCH/DELETE (skipped on localhost)",
+      "Token-based access: tokenKey query param -> validates access_tokens table -> guest_access cookie"
+    ],
+    "dev_bypass": "localhost requests skip all auth checks in middleware + AuthProvider uses DEV_SYSTEM_ADMIN_USER mock"
+  },
+
+  "state_management": {
+    "server_state": "TanStack React Query (QueryProvider wraps entire app)",
+    "client_state": "Zustand stores per feature domain",
+    "stores": [
+      "useUnionStore", "useUserStore", "useModalStore", "useFileStore",
+      "useFreeBoardStore", "useNoticeStore", "useQuestionStore", "useCommentStore",
+      "useMemberStore", "useMemberInviteStore", "useMyPropertyStore",
+      "useUnionInfoStore", "useUnionManagementStore", "useHeroSlidesStore",
+      "useAlimtalkLogStore", "useAlimtalkPricingStore", "useAlimtalkTemplateStore",
+      "useSmsStore"
+    ]
+  },
+
+  "security_features": {
+    "csp": "Content-Security-Policy header in next.config.ts",
+    "xss_prevention": "DOMPurify wrapper at app/_lib/shared/utils/sanitize.ts with FORBID_ATTR: ['style']",
+    "csrf": "Origin+Host header validation in middleware for state-changing methods",
+    "headers": ["X-Frame-Options: DENY", "X-Content-Type-Options: nosniff", "Strict-Transport-Security", "Permissions-Policy"],
+    "sql_injection_prevention": "escapeLikeWildcards() utility for LIKE queries",
+    "focus_trap": "useFocusTrap hook for modal accessibility",
+    "auth_api_guard": "authenticateApiRequest() for API route protection"
+  },
+
+  "union_layout_variants": {
+    "landing": "Non-authenticated homepage: SkipNavLink + MainBanner + children + Footer + UserStatusModal",
+    "home_authenticated": "Authenticated homepage: full-width, no side ads",
+    "admin": "Admin pages: full-width, no side ads, with breadcrumb",
+    "general": "Other pages: 3-column layout (20% SideAd | 60% content | 20% SideAd), ads hidden on mobile",
+    "inactive_union": "Blocked display when union.is_active === false"
+  },
+
+  "key_patterns": {
+    "data_fetching": "TanStack Query hooks (useXxxHook.ts) in features/*/api/",
+    "state": "Zustand stores (useXxxStore.ts) in features/*/model/",
+    "server_actions": "Next.js server actions in features/*/actions/",
+    "dynamic_imports": "next/dynamic for heavy components (EChartsMap, TextEditor, DataTable, HeroSlider)",
+    "form_validation": "react-hook-form + zod resolvers",
+    "rich_text": "TipTap editor",
+    "charts": "ECharts for GIS/map visualization",
+    "file_upload": "Custom FileUploader + ImageUploader with Supabase Storage",
+    "toast_notifications": "react-hot-toast with custom Toast component"
+  },
+
+  "file_counts": {
+    "pages": 65,
+    "api_routes": 19,
+    "layouts": 6,
+    "feature_modules": 17,
+    "zustand_stores": 17,
+    "ui_primitives": 28,
+    "widget_files": 65
+  }
+}

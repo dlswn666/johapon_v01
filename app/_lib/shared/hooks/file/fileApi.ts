@@ -5,6 +5,7 @@ export type FileRecord = Database['public']['Tables']['files']['Row'];
 export type NewFileRecord = Database['public']['Tables']['files']['Insert'];
 
 const BUCKET_NAME = 'files';
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 
 /**
  * 파일 확장자 추출
@@ -46,6 +47,10 @@ export const fileApi = {
         file: File,
         tempId: string
     ): Promise<{ path: string; name: string; size: number; type: string; storageName: string }> => {
+        if (file.size > MAX_FILE_SIZE) {
+            throw new Error('파일 크기가 50MB를 초과합니다. 더 작은 파일을 선택해주세요.');
+        }
+
         // 안전한 파일명 생성 (영문/숫자만 사용)
         const safeFileName = generateSafeFileName(file.name);
 

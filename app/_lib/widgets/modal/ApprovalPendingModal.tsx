@@ -1,9 +1,10 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Clock, Home } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useFocusTrap } from '@/app/_lib/shared/hooks/useFocusTrap';
 
 interface ApprovalPendingModalProps {
     isOpen: boolean;
@@ -17,6 +18,17 @@ interface ApprovalPendingModalProps {
  */
 export function ApprovalPendingModal({ isOpen, onClose, userName }: ApprovalPendingModalProps) {
     const router = useRouter();
+    const focusTrapRef = useFocusTrap(isOpen);
+
+    // ESC 키 핸들러
+    useEffect(() => {
+        if (!isOpen) return;
+        const handleEsc = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') onClose();
+        };
+        document.addEventListener('keydown', handleEsc);
+        return () => document.removeEventListener('keydown', handleEsc);
+    }, [isOpen, onClose]);
 
     // 조합온 마케팅 페이지로 이동
     const handleGoToMarketing = () => {
@@ -27,14 +39,14 @@ export function ApprovalPendingModal({ isOpen, onClose, userName }: ApprovalPend
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div ref={focusTrapRef} role="dialog" aria-modal="true" aria-labelledby="pending-modal-title" className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-xl shadow-xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in duration-200">
                 {/* 헤더 */}
                 <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-6 text-center">
                     <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
                         <Clock className="w-8 h-8 text-white" />
                     </div>
-                    <h2 className="text-xl font-bold text-white">
+                    <h2 id="pending-modal-title" className="text-xl font-bold text-white">
                         승인 대기 중입니다
                     </h2>
                 </div>
@@ -75,7 +87,7 @@ export function ApprovalPendingModal({ isOpen, onClose, userName }: ApprovalPend
                         )}
                     >
                         <Home className="w-5 h-5" />
-                        확인
+                        메인 페이지로 이동
                     </button>
                 </div>
             </div>

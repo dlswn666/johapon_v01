@@ -1,0 +1,486 @@
+{
+  "metadata": {
+    "tester": "T8-User-PowerUser",
+    "persona": "P8 Power User (Casey)",
+    "role": "USER",
+    "focus": "Performance, advanced features, large datasets, caching, query efficiency",
+    "method": "Code-based analysis",
+    "executed_at": "2026-02-08T00:00:00Z",
+    "test_cases_assigned": ["TC-008", "TC-037", "TC-041", "TC-077", "TC-103", "TC-111", "TC-119"],
+    "total_results": 7,
+    "summary": {
+      "pass": 4,
+      "fail": 1,
+      "warn": 2,
+      "cross_cutting_critical": 1,
+      "cross_cutting_high": 1
+    },
+    "updated_at": "2026-02-08T00:30:00Z",
+    "update_reason": "Added cross-cutting CRITICAL and HIGH findings from T3/test-lead alert (notice delete missing ownership guard, cascade-delete ordering bug)"
+  },
+  "results": [
+    {
+      "tc_id": "TC-008",
+      "title": "Admin role guard on /[slug]/admin/* pages",
+      "priority": "P0",
+      "category": "security",
+      "verdict": "PASS",
+      "confidence": "HIGH",
+      "analysis": {
+        "code_locations": [
+          "app/_lib/shared/supabase/middleware.ts:395-420"
+        ],
+        "findings": [
+          "Middleware correctly checks if pathname includes `/{slug}/admin/` or equals `/{slug}/admin`",
+          "Two-step lookup: user_auth_links (auth_user_id -> user_id) then users table (role check)",
+          "Role whitelist: ADMIN, SUPER_ADMIN, SYSTEM_ADMIN - USER role is correctly excluded",
+          "Non-admin users are redirected to `/{slug}` landing page",
+          "Missing user_auth_link also triggers redirect (no link = no role = denied)"
+        ],
+        "power_user_perspective": "A power user cannot escalate to admin pages even by manipulating URLs. The middleware check is server-side and not bypassable from the client."
+      },
+      "steps_verified": [
+        {
+          "step": "Navigate directly to /{slug}/admin/members as USER role",
+          "expected": "Middleware checks user_auth_links -> users.role",
+          "actual": "Middleware performs DB lookup: user_auth_links(auth_user_id) -> users(role). If role not in [ADMIN, SUPER_ADMIN, SYSTEM_ADMIN], redirect to /{slug}.",
+          "pass": true
+        },
+        {
+          "step": "Verify access denied for USER role",
+          "expected": "Redirect to union home",
+          "actual": "NextResponse.redirect to `/${slug}` (line 413-414)",
+          "pass": true
+        }
+      ],
+      "performance_notes": "Two sequential DB queries per admin page request in middleware. Could be optimized with a single join query, but latency is acceptable for security-critical path.",
+      "bugs_found": []
+    },
+    {
+      "tc_id": "TC-037",
+      "title": "Free board search with LIKE wildcard escape",
+      "priority": "P1",
+      "category": "content",
+      "verdict": "WARN",
+      "confidence": "HIGH",
+      "analysis": {
+        "code_locations": [
+          "app/_lib/shared/utils/escapeLike.ts:1-7",
+          "app/_lib/features/free-board/api/useFreeBoardHook.ts:51-67",
+          "app/_lib/features/notice/api/useNoticeHook.ts:43-46",
+          "app/_lib/features/question/api/useQuestionHook.ts:52-55",
+          "app/_lib/features/member-management/api/useMemberHook.ts:79-82"
+        ],
+        "findings": [
+          "escapeLikeWildcards() correctly escapes %, _, and \\ characters using regex /[%_\\\\]/g -> '\\\\$&'",
+          "Applied in 4 high-traffic hooks: useFreeBoards, useNotices, useQuestions, useMembers",
+          "Free board search has an ADDITIONAL performance concern: it issues a separate users query to search by author name (line 54-57), which is not escaped. The .ilike('name', `%${escaped}%`) on the users table IS correctly escaped.",
+          "HOWEVER: ~20+ other ilike locations throughout the codebase are NOT escaped (consent-stages, alimtalk, union-management, gis, userHook line 70, memberHook line 991). These are lower-traffic admin paths but still a potential SQL wildcard injection risk."
+        ],
+        "power_user_perspective": "A power user performing complex searches (e.g., searching for '%' or '_') in the main content areas (notices, free board, QnA, member list) will get correct results thanks to escapeLikeWildcards. However, searching in consent management, alimtalk logs, or union management (admin features) could still match unintended rows if wildcards are used."
+      },
+      "steps_verified": [
+        {
+          "step": "Search for normal text term",
+          "expected": "Results filtered by title/content ILIKE match",
+          "actual": "escapeLikeWildcards applied, normal text passes through correctly",
+          "pass": true
+        },
+        {
+          "step": "Search for '%' character",
+          "expected": "Escaped via escapeLikeWildcards, does not match all posts",
+          "actual": "escapeLikeWildcards('%') returns '\\%', which is correctly escaped for ILIKE",
+          "pass": true
+        },
+        {
+          "step": "Search for '_' character",
+          "expected": "Escaped, does not match single-char wildcard",
+          "actual": "escapeLikeWildcards('_') returns '\\_', correct",
+          "pass": true
+        }
+      ],
+      "performance_notes": "Free board search issues 3 sequential queries per search: (1) users by name, (2) free_boards with filter, (3) file counts, (4) comment counts. For large datasets (500+ posts), this N+2 pattern could degrade. Consider server-side COUNT aggregation or materialized views.",
+      "bugs_found": [
+        {
+          "id": "PERF-001",
+          "severity": "LOW",
+          "title": "Free board search N+2 query pattern",
+          "description": "useFreeBoards search performs 3-4 sequential Supabase queries (author lookup, main query, file counts, comment counts). With 500+ posts and frequent searches, this creates noticeable latency. File count and comment count queries fetch ALL matching rows just to count them rather than using Supabase count aggregation.",
+          "location": "app/_lib/features/free-board/api/useFreeBoardHook.ts:54-120",
+          "recommendation": "Use Supabase .select('attachable_id', { count: 'exact', head: true }).groupBy() or a DB view/function for counts."
+        },
+        {
+          "id": "SEC-001",
+          "severity": "MEDIUM",
+          "title": "~20 unescaped ILIKE locations remain",
+          "description": "escapeLikeWildcards is applied to 4 high-traffic hooks but not to: useConsentStages (3 locations), useAlimtalkLogHook (2), useUnionManagementHook (1), useMemberHook line 991, useUserHook (1), gis actions (5+), consent bulk-upload (2), parcelActions (2). These paths are primarily admin-facing but could still allow wildcard injection.",
+          "location": "Various (see ilike grep results)",
+          "recommendation": "Apply escapeLikeWildcards consistently to all user-input-driven ILIKE queries."
+        }
+      ]
+    },
+    {
+      "tc_id": "TC-041",
+      "title": "Comment - Reply with max 1 level nesting",
+      "priority": "P1",
+      "category": "content",
+      "verdict": "PASS",
+      "confidence": "HIGH",
+      "analysis": {
+        "code_locations": [
+          "app/_lib/features/comment/api/useCommentHook.ts:133-150"
+        ],
+        "findings": [
+          "useAddComment mutation checks if newComment.parent_id exists",
+          "If parent_id is set, it queries the parent comment's parent_id",
+          "If parentComment.parent_id !== null (i.e., parent is already a reply), throws error '답글에는 답글을 달 수 없습니다.'",
+          "This effectively enforces max 1 level of nesting",
+          "The check is server-side (Supabase query) so it cannot be bypassed from the client",
+          "Comment hierarchy is built in useComments: parentComments (parent_id=null) + replies (parent_id!=null), forming a 2-level tree"
+        ],
+        "power_user_perspective": "A power user actively creating many replies will correctly see only 1 level of nesting enforced. The server-side DB check prevents bypassing this via API manipulation."
+      },
+      "steps_verified": [
+        {
+          "step": "Click reply on an existing comment",
+          "expected": "Reply form appears",
+          "actual": "UI renders reply form (component-level, not analyzed in detail but hook supports it)",
+          "pass": true
+        },
+        {
+          "step": "Submit reply",
+          "expected": "Reply created with parent_id set to original comment ID",
+          "actual": "useAddComment inserts with parent_id, and queries parent's parent_id to verify it's null. If null -> allowed.",
+          "pass": true
+        },
+        {
+          "step": "Try to reply to the reply",
+          "expected": "Blocked: parent_id.parent_id is not null, max 1 level enforced",
+          "actual": "useAddComment detects parentComment.parent_id !== null and throws '답글에는 답글을 달 수 없습니다.'",
+          "pass": true
+        }
+      ],
+      "performance_notes": "Each reply submission requires an extra DB roundtrip to check the parent's parent_id. This is a minor overhead but acceptable for data integrity. The comment list query fetches ALL comments for an entity and builds the tree client-side, which could be slow for posts with 100+ comments.",
+      "bugs_found": [
+        {
+          "id": "PERF-002",
+          "severity": "LOW",
+          "title": "Comments fetch all rows without pagination",
+          "description": "useComments fetches ALL comments for an entity with no limit/pagination. For viral posts with hundreds of comments, this will transfer excessive data and slow rendering. Client-side tree-building (filter + map) also scales linearly.",
+          "location": "app/_lib/features/comment/api/useCommentHook.ts:47-72",
+          "recommendation": "Add server-side pagination for comments or at minimum a LIMIT of e.g. 100 with a 'load more' mechanism."
+        }
+      ]
+    },
+    {
+      "tc_id": "TC-077",
+      "title": "Multi-union membership - Same social account",
+      "priority": "P1",
+      "category": "auth",
+      "verdict": "PASS",
+      "confidence": "HIGH",
+      "analysis": {
+        "code_locations": [
+          "app/auth/callback/route.ts:110-164",
+          "app/auth/callback/route.ts:183-201"
+        ],
+        "findings": [
+          "Auth callback correctly handles multi-union membership via union_id-scoped lookup",
+          "Step 1: Extract currentUnionId from slug via unions table query",
+          "Step 2: Query user_auth_links by auth_user_id to get all linked user_ids",
+          "Step 3: Filter users by union_id = currentUnionId (.eq('union_id', currentUnionId))",
+          "Step 4: If no match for current union -> existingUser = null -> show RegisterModal",
+          "Step 5: If user has links to OTHER unions, this is logged but registration for current union proceeds normally",
+          "Each union membership creates a separate row in users table with independent user_auth_links entry",
+          "This design correctly supports one social account -> multiple union memberships"
+        ],
+        "power_user_perspective": "A power user managing properties in multiple unions can use the same Kakao/Naver account to register separately in each union. The system correctly isolates union memberships."
+      },
+      "steps_verified": [
+        {
+          "step": "Register in Union A via Kakao OAuth",
+          "expected": "User created in Union A, user_auth_links entry created",
+          "actual": "Normal registration flow: insert into users(union_id=A) + user_auth_links(auth_user_id, user_id)",
+          "pass": true
+        },
+        {
+          "step": "Navigate to Union B and login with same Kakao",
+          "expected": "Auth callback checks user_auth_links for Union B",
+          "actual": "Callback queries user_auth_links(auth_user_id) -> gets user_ids -> filters by union_id=B -> no match",
+          "pass": true
+        },
+        {
+          "step": "No existing membership in Union B",
+          "expected": "RegisterModal shown for Union B registration",
+          "actual": "existingUser=null -> redirect to /{slug} landing (RegisterModal auto-opens for authenticated users without membership)",
+          "pass": true
+        },
+        {
+          "step": "Complete registration in Union B",
+          "expected": "Second users row created with union_id=B",
+          "actual": "RegisterModal submission creates new users row (union_id=B) + new user_auth_links row",
+          "pass": true
+        }
+      ],
+      "performance_notes": "Auth callback performs 3-5 sequential DB queries (session exchange, union lookup, auth_links, users filter, optional other-links check). This adds ~200-500ms to login flow but is a one-time cost per session. Excessive debug console.log statements (40+ lines) should be removed for production performance.",
+      "bugs_found": [
+        {
+          "id": "PERF-003",
+          "severity": "LOW",
+          "title": "Auth callback has excessive console.log debug statements",
+          "description": "app/auth/callback/route.ts contains 40+ console.log statements with '[DEBUG]' prefix including sensitive data (auth user IDs, session details). These slow down the callback and leak information in production logs.",
+          "location": "app/auth/callback/route.ts:23-37, 86-98, 111, 154-163, etc.",
+          "recommendation": "Remove or gate behind NODE_ENV=development check. Use structured logging for production."
+        }
+      ]
+    },
+    {
+      "tc_id": "TC-103",
+      "title": "Communication free-board (duplicate path) - View count dedup",
+      "priority": "P2",
+      "category": "content",
+      "verdict": "FAIL",
+      "confidence": "HIGH",
+      "analysis": {
+        "code_locations": [
+          "app/[slug]/free-board/[id]/page.tsx:42-50",
+          "app/[slug]/communication/free-board/[id]/page.tsx:38-46"
+        ],
+        "findings": [
+          "Two separate pages render the SAME free board data from the same free_boards table",
+          "Path 1 (/{slug}/free-board/{id}): uses sessionStorage key `viewed_free_board_{id}`",
+          "Path 2 (/{slug}/communication/free-board/{id}): uses sessionStorage key `viewed_comm_free_board_{id}`",
+          "DIFFERENT sessionStorage keys mean the SAME post viewed via both paths will have its view count incremented TWICE in the same session",
+          "This is a view count inflation bug for power users who access content via both navigation paths",
+          "Both paths share the same underlying data (same useFreeBoard hook, same incrementViews RPC)",
+          "The increment RPC (increment_free_board_views) has no server-side dedup"
+        ],
+        "power_user_perspective": "A power user who navigates to the same free board post via both the main free-board path and the communication path will inflate the view count by 2x per session. This undermines view count accuracy."
+      },
+      "steps_verified": [
+        {
+          "step": "Navigate to /{slug}/communication/free-board",
+          "expected": "Free board list renders (same data as /{slug}/free-board)",
+          "actual": "Both paths use the same useFreeBoards hook, same data source. CONFIRMED.",
+          "pass": true
+        },
+        {
+          "step": "Create post from communication path",
+          "expected": "Post created in same free_boards table",
+          "actual": "Same useAddFreeBoard hook -> same table. CONFIRMED.",
+          "pass": true
+        },
+        {
+          "step": "View post detail from communication path",
+          "expected": "Detail page renders with view count dedup key 'viewed_comm_free_board_{id}'",
+          "actual": "Key is 'viewed_comm_free_board_{id}' (line 40), DIFFERENT from 'viewed_free_board_{id}' in the main path. This means visiting via both paths increments views TWICE.",
+          "pass": false
+        }
+      ],
+      "performance_notes": "The duplicate path architecture means TanStack Query caches the data under the same queryKey (['freeBoards', union.id, freeBoardId]) for both paths, which is correct for caching. But the view count dedup is broken.",
+      "bugs_found": [
+        {
+          "id": "BUG-001",
+          "severity": "MEDIUM",
+          "title": "Duplicate view count increment via two free-board paths",
+          "description": "Free board posts accessible via both /{slug}/free-board/{id} and /{slug}/communication/free-board/{id} use DIFFERENT sessionStorage dedup keys ('viewed_free_board_{id}' vs 'viewed_comm_free_board_{id}'). A user visiting the same post via both paths will increment the view count twice per session, inflating analytics.",
+          "location": "app/[slug]/free-board/[id]/page.tsx:44 vs app/[slug]/communication/free-board/[id]/page.tsx:40",
+          "recommendation": "Use the same sessionStorage key (e.g., 'viewed_free_board_{id}') regardless of which URL path was used to access the post."
+        }
+      ]
+    },
+    {
+      "tc_id": "TC-111",
+      "title": "Swagger API documentation accessible",
+      "priority": "P3",
+      "category": "navigation",
+      "verdict": "PASS",
+      "confidence": "HIGH",
+      "analysis": {
+        "code_locations": [
+          "app/swagger/page.tsx:1-57",
+          "app/api/docs/route.ts:1-113",
+          "app/_lib/shared/supabase/middleware.ts:28 (PUBLIC_PATHS includes '/swagger')"
+        ],
+        "findings": [
+          "Swagger page is in PUBLIC_PATHS array -> accessible without authentication",
+          "SwaggerPage component dynamically imports swagger-ui-react with SSR disabled",
+          "Fetches spec from /api/docs endpoint, which generates OpenAPI 3.0 JSON via swagger-jsdoc",
+          "swagger-jsdoc scans './app/api/**/*.ts' and './app/api/**/*.tsx' for JSDoc annotations",
+          "Error handling: shows loading spinner while fetching, error message on failure",
+          "No authentication check on GET /api/docs endpoint (intentional - documentation is public)"
+        ],
+        "power_user_perspective": "A power user can access /swagger to explore the API. The dynamic import prevents SSR issues with swagger-ui-react. The endpoint is properly listed in PUBLIC_PATHS."
+      },
+      "steps_verified": [
+        {
+          "step": "Navigate to /swagger",
+          "expected": "Swagger UI page loads",
+          "actual": "SwaggerPage renders with dynamic SwaggerUI component. Loading state shown while fetching spec.",
+          "pass": true
+        },
+        {
+          "step": "GET /api/docs",
+          "expected": "OpenAPI 3.0 JSON spec returned",
+          "actual": "Route handler returns NextResponse.json(swaggerSpec) where swaggerSpec is generated by swagger-jsdoc",
+          "pass": true
+        }
+      ],
+      "performance_notes": "swagger-jsdoc spec generation runs on every /api/docs request (no caching). For a power user repeatedly accessing the docs, this could be optimized with a cached result. swagger-ui-react bundle is large (~1MB) but loaded via dynamic import only when needed.",
+      "bugs_found": []
+    },
+    {
+      "tc_id": "TC-119",
+      "title": "TanStack Query cache behavior",
+      "priority": "P3",
+      "category": "content",
+      "verdict": "WARN",
+      "confidence": "HIGH",
+      "analysis": {
+        "code_locations": [
+          "app/_lib/shared/tanstack/queryClient.ts:95-112",
+          "app/_lib/features/notice/api/useNoticeHook.ts:27-135 (useNotices, staleTime default)",
+          "app/_lib/features/notice/api/useNoticeHook.ts:587-612 (usePopupNotices, staleTime=300000)",
+          "app/_lib/features/free-board/api/useFreeBoardHook.ts:154-191 (useFreeBoard, retry=false)"
+        ],
+        "findings": [
+          "Global QueryClient defaults: staleTime=5min, gcTime=10min, refetchOnWindowFocus=false, refetchOnMount=true, networkMode=offlineFirst",
+          "TC-119 expected staleTime=0 for list queries, but ACTUAL staleTime is 5 minutes (from global default). Individual hooks do NOT override staleTime.",
+          "This means: after navigating to detail and back, the list will NOT refetch for 5 minutes (data stays 'fresh'). The scenario expected immediate refetch (staleTime=0), which is INCORRECT per actual code.",
+          "usePopupNotices: staleTime=5min (300000ms) -> MATCHES scenario expectation",
+          "Detail queries (useFreeBoard, useNotice, useQuestion): retry=false -> MATCHES scenario expectation. Deleted items gracefully handled via skipErrorToast meta.",
+          "refetchOnWindowFocus=false is intentional to prevent loading spinners on tab switch",
+          "Retry logic: max 2 retries, no retry for 4xx or PGRST116 (not found), exponential backoff up to 30s",
+          "Mutations: retry=false (correct - mutations should not auto-retry)"
+        ],
+        "power_user_perspective": "A power user navigating between list and detail pages will see cached data for up to 5 minutes. If another admin creates a notice, the power user won't see it until cache expires or a manual refresh. The offlineFirst networkMode is beneficial for users with unstable connections. The 10-minute gcTime means unused queries are cleaned up promptly, preventing memory bloat."
+      },
+      "steps_verified": [
+        {
+          "step": "Load notice list",
+          "expected": "Data fetched and cached (staleTime=0, refetch on mount)",
+          "actual": "Data fetched and cached with staleTime=5min (NOT 0). refetchOnMount=true but only triggers refetch if data is stale. On FIRST mount, data is fetched fresh. On subsequent mounts within 5min window, cached data is used without refetch.",
+          "pass": false,
+          "note": "Scenario expected staleTime=0 but actual global default is 5 minutes. This is a SPEC MISMATCH, not a code bug - the 5-minute staleTime is intentional per queryClient.ts comments."
+        },
+        {
+          "step": "Navigate to detail and back",
+          "expected": "List refetched on return (staleTime=0)",
+          "actual": "List NOT refetched if within 5-minute stale window. Only refetched if staleTime has elapsed. This is the correct behavior per the global config but does NOT match the scenario expectation.",
+          "pass": false,
+          "note": "Spec mismatch. 5-min staleTime is the intended behavior."
+        },
+        {
+          "step": "Load popup notices",
+          "expected": "Cached for 5 minutes (staleTime=300000)",
+          "actual": "usePopupNotices has explicit staleTime=300000 (5 minutes). MATCHES.",
+          "pass": true
+        },
+        {
+          "step": "Detail page with retry=false",
+          "expected": "No retry on error (deleted items gracefully handled)",
+          "actual": "useFreeBoard, useNotice, useQuestion all have retry:false and meta.skipErrorToast:true. Deleted items return PGRST116 -> no retry, no toast, graceful error UI.",
+          "pass": true
+        }
+      ],
+      "performance_notes": "The 5-minute staleTime is a reasonable trade-off for this application (union management data changes infrequently). However, the global staleTime applies to ALL queries including those that should be fresher (e.g., notice list after creating a new notice). Mutation onSuccess handlers call queryClient.invalidateQueries() which correctly forces refetch after mutations, so post-mutation staleness is handled. The warn verdict is because the scenario spec is slightly inaccurate about staleTime=0, but the actual caching behavior is sound for the use case.",
+      "bugs_found": [
+        {
+          "id": "PERF-004",
+          "severity": "LOW",
+          "title": "Notice list fetches ALL rows without server-side pagination",
+          "description": "useNotices fetches ALL notices for a union with no .range() pagination. For unions with 500+ notices (common for active unions), this transfers excessive data. useFreeBoards correctly implements pagination (page, limit, range), but useNotices and useQuestions do not.",
+          "location": "app/_lib/features/notice/api/useNoticeHook.ts:27-135",
+          "recommendation": "Add pagination parameters (page, limit) to useNotices and useQuestions similar to useFreeBoards pattern."
+        },
+        {
+          "id": "PERF-005",
+          "severity": "LOW",
+          "title": "Notice search applies client-side author name filter after server query",
+          "description": "useNotices fetches all matching notices from DB, then applies a SECOND client-side filter for author name matching (lines 61-72). This means the server returns more rows than needed, and the client discards some. For large datasets this wastes bandwidth and processing.",
+          "location": "app/_lib/features/notice/api/useNoticeHook.ts:60-72",
+          "recommendation": "Either use a Supabase join-based filter or implement the same approach as useFreeBoards (separate users query for author name matching)."
+        }
+      ]
+    }
+  ],
+  "cross_cutting_critical_findings": [
+    {
+      "id": "XCUT-CRIT-001",
+      "severity": "CRITICAL",
+      "title": "useDeleteNotice has NO ownership or role guard — any authenticated user can delete any notice",
+      "description": "useDeleteNotice (useNoticeHook.ts:511) runs `.from('notices').delete().eq('id', noticeId)` with NO .eq('author_id', user.id) guard for non-admins. Compare with useDeleteFreeBoard (useFreeBoardHook.ts:418-421) and useDeleteQuestion (useQuestionHook.ts:383-390) which both correctly add .eq('author_id', user.id) when !isAdmin. The UI hides the delete button for non-admins, but the mutation itself is unguarded — any authenticated USER can call this hook directly (or via React DevTools / component manipulation) to delete ANY notice in the union. Without RLS on the notices table, this is a data destruction vector.",
+      "location": "app/_lib/features/notice/api/useNoticeHook.ts:511",
+      "comparison": "useFreeBoardHook.ts:418-421 and useQuestionHook.ts:383-390 both correctly guard with: if (!isAdmin && user?.id) { query = query.eq('author_id', user.id); }",
+      "power_user_impact": "A power user (role=USER) who discovers this can delete all notices in the union by invoking the mutation with arbitrary noticeId values. This is especially dangerous because notices are admin-published content critical to union operations.",
+      "source": "Cross-team finding from T3-User-Chaos, verified by test-lead and T8",
+      "recommendation": "Add the same ownership/role guard pattern used in useDeleteFreeBoard: `if (!isAdmin && user?.id) { deleteQuery = deleteQuery.eq('author_id', user.id); }`. Additionally, enable RLS on the notices table as defense-in-depth."
+    },
+    {
+      "id": "XCUT-HIGH-001",
+      "severity": "HIGH",
+      "title": "Cascade-delete ordering bug: files and comments deleted before ownership check",
+      "description": "In useDeleteFreeBoard (useFreeBoardHook.ts:391-422) and useDeleteQuestion (useQuestionHook.ts:378-392), the mutation first deletes Storage files (fileApi.deleteFolder), then DB file records, then comments, and FINALLY checks ownership on the post delete (.eq('author_id', user.id)). If a non-owner triggers this mutation, steps 1-3 permanently destroy files and comments even though step 4 (the post delete) will silently fail (0 rows affected, no error thrown). The post survives but its attachments and comments are gone.",
+      "location": "app/_lib/features/free-board/api/useFreeBoardHook.ts:391-422, app/_lib/features/question/api/useQuestionHook.ts:378-392",
+      "power_user_impact": "A power user cannot easily trigger this from the UI (delete button is hidden for non-owners), but it is exploitable via direct mutation invocation. The result is orphaned posts with missing files and comments — a data integrity issue.",
+      "source": "Cross-team finding from T3-User-Chaos, verified by test-lead and T8",
+      "recommendation": "Move the ownership check BEFORE file/comment deletion. First verify the user can delete the post (query with author_id filter, check rowCount > 0), then proceed with cascade cleanup. Alternatively, use a DB transaction or RPC to make the entire operation atomic."
+    }
+  ],
+  "cross_cutting_performance_findings": [
+    {
+      "id": "PERF-006",
+      "severity": "MEDIUM",
+      "title": "Union info detail page has NO view count dedup",
+      "description": "Unlike notice, question, and free-board detail pages which use sessionStorage-based view count dedup, the union-info detail page (app/[slug]/communication/union-info/[id]/page.tsx:35-39) calls incrementViews unconditionally on every mount. This means every page visit, refresh, or re-render increments the view count. Scenario TC-104 documents this as a known issue (DFI-001).",
+      "location": "app/[slug]/communication/union-info/[id]/page.tsx:35-39",
+      "recommendation": "Add sessionStorage dedup matching the pattern used in other detail pages."
+    },
+    {
+      "id": "PERF-007",
+      "severity": "LOW",
+      "title": "Questions list has no server-side pagination",
+      "description": "useQuestions fetches ALL questions for a union with no pagination. Additionally, it performs client-side sorting (my posts first) which requires all data in memory. For unions with 200+ questions, this degrades both network transfer and rendering performance.",
+      "location": "app/_lib/features/question/api/useQuestionHook.ts:26-112",
+      "recommendation": "Implement server-side pagination and sorting via Supabase query parameters."
+    },
+    {
+      "id": "PERF-008",
+      "severity": "LOW",
+      "title": "Zustand stores sync with TanStack Query on every data update",
+      "description": "All content hooks (useNotices, useFreeBoards, useQuestions) have useEffect handlers that sync TanStack Query data into Zustand stores (e.g., setNotices, setFreeBoards). This creates dual state management: data exists in both TanStack Query cache AND Zustand. Mutations update both caches (optimistic update in Zustand + invalidation in TanStack Query). This pattern works but doubles memory usage for large datasets and creates potential sync bugs.",
+      "location": "All content hooks (useNoticeHook.ts:137-141, useFreeBoardHook.ts:141-146, useQuestionHook.ts:105-109)",
+      "recommendation": "Consider using TanStack Query as the single source of truth and removing Zustand stores for server state. Keep Zustand only for true client state (UI state, form state)."
+    },
+    {
+      "id": "PERF-009",
+      "severity": "LOW",
+      "title": "File count queries fetch all file rows to count client-side",
+      "description": "useFreeBoards and useNotices fetch ALL file rows matching the entity IDs just to count them (select('attachable_id') with no aggregation). For posts with many attachments, this transfers unnecessary data. Same pattern for comment counts.",
+      "location": "app/_lib/features/free-board/api/useFreeBoardHook.ts:83-101, app/_lib/features/notice/api/useNoticeHook.ts:81-99",
+      "recommendation": "Use Supabase RPC or a DB view that returns pre-aggregated counts, or use .select('attachable_id', { count: 'exact', head: true }) with group-by logic."
+    },
+    {
+      "id": "PERF-010",
+      "severity": "MEDIUM",
+      "title": "Middleware performs 2 DB queries per admin page request for auth",
+      "description": "For every request to /{slug}/admin/* paths, middleware does: (1) query user_auth_links by auth_user_id, (2) query users by user_id for role. Combined with supabase.auth.getUser() which hits the Auth server, each admin page request makes 3 external calls before reaching the page. This adds ~300-600ms latency per navigation.",
+      "location": "app/_lib/shared/supabase/middleware.ts:395-420",
+      "recommendation": "Cache user role in a short-lived cookie or JWT custom claim to avoid repeated DB lookups. Or combine the two queries into one with a join."
+    },
+    {
+      "id": "PERF-011",
+      "severity": "LOW",
+      "title": "Access token TOCTOU race in middleware",
+      "description": "Token validation (read usage_count) and usage recording (update usage_count + 1) are not atomic. Two concurrent requests with the same token could both pass the max_usage check before either increments the counter, allowing one extra use beyond max_usage. Documented as known tech debt.",
+      "location": "app/_lib/shared/supabase/middleware.ts:116-191",
+      "recommendation": "Use a DB RPC with atomic increment (e.g., UPDATE ... SET usage_count = usage_count + 1 WHERE usage_count < max_usage RETURNING *)."
+    }
+  ],
+  "overall_assessment": {
+    "security": "CRITICAL GAP FOUND - Admin role guard on pages is correct, BUT useDeleteNotice has NO ownership guard (XCUT-CRIT-001). Any authenticated USER can delete any notice. Also, cascade-delete ordering in useDeleteFreeBoard and useDeleteQuestion deletes files/comments before checking ownership (XCUT-HIGH-001). LIKE wildcard escape covers high-traffic paths. CSRF and redirectTo validation in middleware are solid.",
+    "performance": "MODERATE - Several N+1/N+2 query patterns, no pagination on notices/questions, dual state management (TanStack + Zustand), and middleware DB round-trips add up for power users with large datasets. Free board pagination is implemented correctly and should be the model for other content types.",
+    "correctness": "GOOD overall with one notable FAIL: duplicate view count increment via two free-board paths (BUG-001). Union info view count has no dedup at all (known issue). TanStack Query cache behavior is well-configured but scenario spec had incorrect staleTime assumption.",
+    "scalability": "CONCERNING for unions with 500+ posts/members - useNotices and useQuestions fetch all rows without pagination. Comment lists also unbounded. File/comment counts use inefficient client-side aggregation."
+  }
+}

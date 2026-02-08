@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import sharp from 'sharp';
 import { IMAGE_CONFIGS, ImageType } from '@/app/_lib/shared/constants/imageConfig';
+import { authenticateApiRequest } from '@/app/_lib/shared/api/auth';
 
 /**
  * 이미지 리사이징 API
@@ -12,6 +13,9 @@ import { IMAGE_CONFIGS, ImageType } from '@/app/_lib/shared/constants/imageConfi
 
 export async function POST(request: NextRequest) {
     try {
+        const auth = await authenticateApiRequest();
+        if (!auth.authenticated) return auth.response;
+
         const formData = await request.formData();
         const file = formData.get('file') as File | null;
         const imageType = formData.get('imageType') as ImageType | null;

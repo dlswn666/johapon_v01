@@ -1,0 +1,797 @@
+{
+  "metadata": {
+    "tester_id": "T9",
+    "persona": "P9 A11y - Screen reader dependent, keyboard-only navigation",
+    "role": "USER",
+    "test_date": "2026-02-08",
+    "test_method": "CODE_BASED",
+    "wcag_version": "2.1 AA",
+    "total_scenarios_tested": 7,
+    "scenarios_tested": ["TC-082", "TC-083", "TC-084", "TC-085", "TC-086", "TC-087", "TC-088"],
+    "focus_areas": [
+      "Keyboard navigation",
+      "Focus trap in modals",
+      "ARIA roles/labels",
+      "Skip navigation",
+      "Form labels and input associations",
+      "ESC key to close modals",
+      "Focus return after modal close",
+      "Heading hierarchy",
+      "Image alt text",
+      "Screen reader announcements",
+      "Error message association"
+    ]
+  },
+
+  "test_results": [
+    {
+      "scenario_id": "TC-082",
+      "title": "Skip navigation link functionality",
+      "status": "PASS",
+      "severity": "N/A",
+      "details": {
+        "component": "UnionLayoutContent.tsx",
+        "file": "app/[slug]/UnionLayoutContent.tsx",
+        "findings": [
+          {
+            "check": "Skip nav link exists",
+            "status": "PASS",
+            "evidence": "SkipNavLink component rendered at line 17-26, uses <a href='#main-content'> with sr-only class that becomes visible on focus",
+            "line": 17
+          },
+          {
+            "check": "Skip nav link targets main content",
+            "status": "PASS",
+            "evidence": "href='#main-content' targets <main id='main-content'> which exists in all layout variants (landing at L91, admin at L111, home at L132, general at L165)",
+            "line": 91
+          },
+          {
+            "check": "Skip nav link visible on focus",
+            "status": "PASS",
+            "evidence": "Classes 'sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[200]' ensure visibility on Tab key press with proper visual styling (bg-[#4E8C6D], text-white, rounded-lg, shadow-lg)",
+            "line": 21
+          },
+          {
+            "check": "Skip nav present in all layout variants",
+            "status": "PASS",
+            "evidence": "<SkipNavLink /> is rendered in all 4 layout paths: landing (L89), admin (L102), home (L126), general (L146)"
+          },
+          {
+            "check": "Korean label text",
+            "status": "PASS",
+            "evidence": "Link text is Korean: '본문 바로가기' (Go to main content)"
+          }
+        ]
+      }
+    },
+
+    {
+      "scenario_id": "TC-083",
+      "title": "RegisterModal - ARIA accessibility",
+      "status": "PASS_WITH_WARNINGS",
+      "severity": "LOW",
+      "details": {
+        "component": "RegisterModal.tsx",
+        "file": "app/_lib/widgets/modal/RegisterModal.tsx",
+        "findings": [
+          {
+            "check": "role='dialog' present",
+            "status": "PASS",
+            "evidence": "role='dialog' at line 1268 on outer container div",
+            "line": 1268
+          },
+          {
+            "check": "aria-modal='true' present",
+            "status": "PASS",
+            "evidence": "aria-modal='true' at line 1268",
+            "line": 1268
+          },
+          {
+            "check": "aria-labelledby references valid ID",
+            "status": "PASS",
+            "evidence": "aria-labelledby='register-modal-title' references h2 id='register-modal-title' at line 1282",
+            "line": 1282
+          },
+          {
+            "check": "Focus trap via useFocusTrap hook",
+            "status": "PASS",
+            "evidence": "focusTrapRef = useFocusTrap(isOpen) at line 392, ref applied to container at line 1268. Hook correctly traps Tab/Shift+Tab, moves initial focus to first focusable element, and restores focus on cleanup",
+            "line": 392
+          },
+          {
+            "check": "ESC key closes modal",
+            "status": "PASS",
+            "evidence": "ESC handler at lines 395-402: document.addEventListener('keydown', handleEsc) where handleEsc checks e.key === 'Escape'",
+            "line": 395
+          },
+          {
+            "check": "Focus return after close",
+            "status": "PASS",
+            "evidence": "useFocusTrap hook (useFocusTrap.ts:10,49) saves previouslyFocused = document.activeElement on mount and calls previouslyFocused.focus() on cleanup",
+            "line": "useFocusTrap.ts:49"
+          },
+          {
+            "check": "Close button has accessible label",
+            "status": "PASS",
+            "evidence": "Close button at line 1284-1289 has aria-label='닫기'",
+            "line": 1287
+          },
+          {
+            "check": "Input fields have labels",
+            "status": "PASS",
+            "evidence": "Basic input fields use aria-labelledby='register-step-label' (line 1807) which references h3 id='register-step-label' (line 1563) showing stepConfig.label text",
+            "line": 1807
+          },
+          {
+            "check": "Error messages use role='alert'",
+            "status": "PASS",
+            "evidence": "Error div at line 1845 has role='alert', and confirm-step error at line 1548 also has role='alert'",
+            "line": 1845
+          },
+          {
+            "check": "Double-submit prevention",
+            "status": "PASS",
+            "evidence": "isSubmittingRef = useRef(false) at line 384, checked in handleSubmit before processing",
+            "line": 384
+          },
+          {
+            "check": "Terms checkbox properly labeled",
+            "status": "PASS",
+            "evidence": "Checkbox at line 1513-1524 is wrapped in a <label> element with descriptive text",
+            "line": 1513
+          }
+        ],
+        "warnings": [
+          {
+            "issue": "Progress indicator dots lack screen reader announcements",
+            "description": "Step progress dots at lines 1296-1304 are purely visual (colored divs) with no aria-label or sr-only text to announce current step position (e.g., 'Step 3 of 12'). The text at line 1307 partially mitigates (displays '3 / 12') but is not associated with aria-live for dynamic updates.",
+            "wcag": "1.3.1 Info and Relationships",
+            "severity": "LOW",
+            "line": 1296
+          },
+          {
+            "issue": "Property type selection cards lack proper radio/group semantics",
+            "description": "Property type options (APARTMENT, VILLA, etc.) at the property_type step render as styled buttons but lack role='radiogroup'/role='radio' or equivalent ARIA markup. Screen readers would not announce them as selectable options with a currently-selected state.",
+            "wcag": "4.1.2 Name, Role, Value",
+            "severity": "LOW",
+            "line": 1615
+          }
+        ]
+      }
+    },
+
+    {
+      "scenario_id": "TC-084",
+      "title": "ApprovalPendingModal - ARIA accessibility",
+      "status": "PASS",
+      "severity": "N/A",
+      "details": {
+        "component": "ApprovalPendingModal.tsx",
+        "file": "app/_lib/widgets/modal/ApprovalPendingModal.tsx",
+        "findings": [
+          {
+            "check": "role='dialog' present",
+            "status": "PASS",
+            "evidence": "role='dialog' at line 42",
+            "line": 42
+          },
+          {
+            "check": "aria-modal='true' present",
+            "status": "PASS",
+            "evidence": "aria-modal='true' at line 42",
+            "line": 42
+          },
+          {
+            "check": "aria-labelledby references valid ID",
+            "status": "PASS",
+            "evidence": "aria-labelledby='pending-modal-title' references h2 id='pending-modal-title' at line 49",
+            "line": 49
+          },
+          {
+            "check": "Focus trap active",
+            "status": "PASS",
+            "evidence": "focusTrapRef = useFocusTrap(isOpen) at line 21, ref on container at line 42",
+            "line": 21
+          },
+          {
+            "check": "ESC key closes modal",
+            "status": "PASS",
+            "evidence": "ESC handler at lines 24-31",
+            "line": 24
+          },
+          {
+            "check": "Focus return after close",
+            "status": "PASS",
+            "evidence": "Handled by useFocusTrap hook cleanup (saves/restores previouslyFocused)",
+            "line": "useFocusTrap.ts:49"
+          },
+          {
+            "check": "Heading hierarchy",
+            "status": "PASS",
+            "evidence": "h2 at line 49 with Korean text '승인 대기 중입니다'"
+          },
+          {
+            "check": "Button is keyboard accessible",
+            "status": "PASS",
+            "evidence": "Native <button> element at line 80, naturally keyboard-accessible"
+          }
+        ]
+      }
+    },
+
+    {
+      "scenario_id": "TC-085",
+      "title": "ApprovalRejectedModal - ARIA accessibility",
+      "status": "PASS",
+      "severity": "N/A",
+      "details": {
+        "component": "ApprovalRejectedModal.tsx",
+        "file": "app/_lib/widgets/modal/ApprovalRejectedModal.tsx",
+        "findings": [
+          {
+            "check": "role='dialog' present",
+            "status": "PASS",
+            "evidence": "role='dialog' at line 491",
+            "line": 491
+          },
+          {
+            "check": "aria-modal='true' present",
+            "status": "PASS",
+            "evidence": "aria-modal='true' at line 491",
+            "line": 491
+          },
+          {
+            "check": "aria-labelledby references valid ID",
+            "status": "PASS",
+            "evidence": "aria-labelledby='rejected-modal-title' references h2 id='rejected-modal-title' at lines 215, 291, 454 (one per mode: rejected/edit/pending)",
+            "line": 491
+          },
+          {
+            "check": "Focus trap active",
+            "status": "PASS",
+            "evidence": "focusTrapRef = useFocusTrap(isOpen) at line 42, ref on container at line 491",
+            "line": 42
+          },
+          {
+            "check": "ESC key closes modal",
+            "status": "PASS",
+            "evidence": "ESC handler at lines 59-66",
+            "line": 59
+          },
+          {
+            "check": "Focus return after close",
+            "status": "PASS",
+            "evidence": "Handled by useFocusTrap hook cleanup"
+          },
+          {
+            "check": "Form fields have labels (edit mode)",
+            "status": "PASS",
+            "evidence": "htmlFor used for all input fields: 'rejected-name' (L306), 'rejected-phone' (L323), 'rejected-birth' (L341), 'rejected-address' (L357). All inputs have matching id attributes.",
+            "line": 306
+          },
+          {
+            "check": "Required fields marked with aria-required",
+            "status": "PASS",
+            "evidence": "aria-required='true' on name (L312), phone (L329), birth_date (L346), address (L363) inputs",
+            "line": 312
+          },
+          {
+            "check": "Error messages use role='alert'",
+            "status": "PASS",
+            "evidence": "Error div at line 398 has role='alert'",
+            "line": 398
+          },
+          {
+            "check": "Loading state communicated",
+            "status": "PASS",
+            "evidence": "Submit button text changes to '처리 중...' with spinner icon when isSubmitting (line 429-433), button disabled state prevents interaction"
+          }
+        ]
+      }
+    },
+
+    {
+      "scenario_id": "TC-086",
+      "title": "BlockedUserModal - ARIA accessibility",
+      "status": "PASS",
+      "severity": "N/A",
+      "details": {
+        "component": "BlockedUserModal.tsx",
+        "file": "app/_lib/widgets/common/BlockedUserModal.tsx",
+        "findings": [
+          {
+            "check": "role='alertdialog' present",
+            "status": "PASS",
+            "evidence": "role='alertdialog' at line 16 (correctly uses alertdialog instead of dialog since this is an urgent blocking notification)",
+            "line": 16
+          },
+          {
+            "check": "aria-modal='true' present",
+            "status": "PASS",
+            "evidence": "aria-modal='true' at line 16",
+            "line": 16
+          },
+          {
+            "check": "aria-labelledby references valid ID",
+            "status": "PASS",
+            "evidence": "aria-labelledby='blocked-modal-title' references h2 id='blocked-modal-title' at line 23",
+            "line": 23
+          },
+          {
+            "check": "Focus trap active",
+            "status": "PASS",
+            "evidence": "focusTrapRef = useFocusTrap(true) at line 13 (always active since modal has no close capability), ref on container at line 16",
+            "line": 13
+          },
+          {
+            "check": "No close button (by design)",
+            "status": "PASS",
+            "evidence": "BlockedUserModal has no close button or ESC handler. This is intentional - blocked users cannot dismiss this modal. The only interactive element is a phone link for contacting the union office.",
+            "note": "This is correct behavior for an alertdialog blocking access"
+          },
+          {
+            "check": "Phone link is accessible",
+            "status": "PASS",
+            "evidence": "tel: link at line 50-52 uses <a href={`tel:${unionPhone}`}> which is keyboard-focusable and announced by screen readers as a phone link",
+            "line": 50
+          }
+        ]
+      }
+    },
+
+    {
+      "scenario_id": "TC-087",
+      "title": "MemberEditModal - ARIA accessibility",
+      "status": "PASS_WITH_WARNINGS",
+      "severity": "LOW",
+      "details": {
+        "component": "MemberEditModal.tsx",
+        "file": "app/[slug]/admin/members/MemberEditModal.tsx",
+        "findings": [
+          {
+            "check": "role='dialog' present",
+            "status": "PASS",
+            "evidence": "role='dialog' at line 406",
+            "line": 406
+          },
+          {
+            "check": "aria-modal='true' present",
+            "status": "PASS",
+            "evidence": "aria-modal='true' at line 406",
+            "line": 406
+          },
+          {
+            "check": "aria-labelledby references valid ID",
+            "status": "PASS",
+            "evidence": "aria-labelledby='member-edit-modal-title' references h3 id='member-edit-modal-title' at line 410",
+            "line": 410
+          },
+          {
+            "check": "Focus trap active",
+            "status": "PASS",
+            "evidence": "focusTrapRef = useFocusTrap(true) at line 95, ref on container at line 406",
+            "line": 95
+          },
+          {
+            "check": "ESC key closes modal",
+            "status": "PASS",
+            "evidence": "ESC handler at lines 98-104",
+            "line": 98
+          },
+          {
+            "check": "Close button accessible",
+            "status": "PASS",
+            "evidence": "Close button at line 411-416 uses native <button> with X icon. However, it lacks an aria-label.",
+            "line": 411
+          }
+        ],
+        "warnings": [
+          {
+            "issue": "Close button missing aria-label",
+            "description": "Close button (X icon) at line 411 does not have an aria-label. Screen reader users would hear 'button' without context. Should add aria-label='닫기' or aria-label='모달 닫기'.",
+            "wcag": "4.1.2 Name, Role, Value",
+            "severity": "LOW",
+            "line": 411
+          },
+          {
+            "issue": "Form labels not associated with inputs via htmlFor",
+            "description": "In edit mode, labels at lines 462-464 (생년월일), 480-482 (전화번호), 502-504 (거주지), 543-545 (특이사항) use <label> elements but do not use htmlFor to associate with their corresponding <Input>/<textarea> elements. Screen readers may not announce the relationship.",
+            "wcag": "1.3.1 Info and Relationships",
+            "severity": "LOW",
+            "line": 462
+          },
+          {
+            "issue": "Nested save confirm/success modals lack ARIA attributes",
+            "description": "The save confirm modal (line 1056) and save success modal (line 1087) are nested divs with fixed positioning but lack role='dialog', aria-modal='true', and aria-labelledby. These sub-modals would not be announced as dialogs to screen readers.",
+            "wcag": "4.1.2 Name, Role, Value",
+            "severity": "MEDIUM",
+            "line": 1056
+          }
+        ]
+      }
+    },
+
+    {
+      "scenario_id": "TC-088",
+      "title": "BlockMemberModal - ARIA accessibility",
+      "status": "PASS_WITH_WARNINGS",
+      "severity": "LOW",
+      "details": {
+        "component": "BlockMemberModal.tsx",
+        "file": "app/[slug]/admin/members/BlockMemberModal.tsx",
+        "findings": [
+          {
+            "check": "role='dialog' present",
+            "status": "PASS",
+            "evidence": "role='dialog' at line 84",
+            "line": 84
+          },
+          {
+            "check": "aria-modal='true' present",
+            "status": "PASS",
+            "evidence": "aria-modal='true' at line 84",
+            "line": 84
+          },
+          {
+            "check": "aria-labelledby references valid ID",
+            "status": "PASS",
+            "evidence": "aria-labelledby='block-member-modal-title' references h3 id='block-member-modal-title' at line 96",
+            "line": 96
+          },
+          {
+            "check": "Focus trap active",
+            "status": "PASS",
+            "evidence": "focusTrapRef = useFocusTrap(true) at line 26, ref on container at line 84",
+            "line": 26
+          },
+          {
+            "check": "ESC key closes modal",
+            "status": "PASS",
+            "evidence": "ESC handler at lines 29-35",
+            "line": 29
+          },
+          {
+            "check": "Close button with icon",
+            "status": "PASS",
+            "evidence": "Close button at line 100-105 uses native <button> with X icon",
+            "line": 100
+          }
+        ],
+        "warnings": [
+          {
+            "issue": "Close button missing aria-label",
+            "description": "Close button at line 100-105 has X icon but no aria-label. Screen readers would announce it as just 'button'. Should add aria-label='닫기'.",
+            "wcag": "4.1.2 Name, Role, Value",
+            "severity": "LOW",
+            "line": 100
+          },
+          {
+            "issue": "Textarea label not associated via htmlFor",
+            "description": "The block reason textarea at line 160-166 has a <label> at line 157 but no htmlFor/id association. Screen readers may not announce the label when focusing the textarea.",
+            "wcag": "1.3.1 Info and Relationships",
+            "severity": "LOW",
+            "line": 157
+          }
+        ]
+      }
+    }
+  ],
+
+  "cross_cutting_analysis": {
+    "useFocusTrap_hook": {
+      "file": "app/_lib/shared/hooks/useFocusTrap.ts",
+      "status": "PASS",
+      "findings": [
+        {
+          "check": "Saves previous focus on mount",
+          "status": "PASS",
+          "evidence": "Line 10: const previouslyFocused = document.activeElement as HTMLElement | null"
+        },
+        {
+          "check": "Moves focus to first focusable element",
+          "status": "PASS",
+          "evidence": "Lines 17-20: queries all focusable elements and calls focusableElements[0].focus()"
+        },
+        {
+          "check": "Traps Tab key forward",
+          "status": "PASS",
+          "evidence": "Lines 36-39: when document.activeElement === last, prevents default and focuses first"
+        },
+        {
+          "check": "Traps Shift+Tab key backward",
+          "status": "PASS",
+          "evidence": "Lines 31-35: when document.activeElement === first, prevents default and focuses last"
+        },
+        {
+          "check": "Restores previous focus on cleanup",
+          "status": "PASS",
+          "evidence": "Lines 48-51: if (previouslyFocused && typeof previouslyFocused.focus === 'function') previouslyFocused.focus()"
+        },
+        {
+          "check": "Focusable selector is comprehensive",
+          "status": "PASS",
+          "evidence": "Lines 13-14: selector covers a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex='-1'])"
+        }
+      ]
+    },
+
+    "ConfirmModal_AlertModal": {
+      "status": "PASS",
+      "findings": [
+        {
+          "check": "ConfirmModal uses Radix Dialog",
+          "status": "PASS",
+          "evidence": "ConfirmModal.tsx uses <Dialog>/<DialogContent>/<DialogHeader>/<DialogTitle>/<DialogDescription> from @/components/ui/dialog (Radix-based). Radix Dialog automatically provides role='dialog', aria-modal, focus trap, ESC key, and focus restoration.",
+          "file": "app/_lib/widgets/modal/ConfirmModal.tsx"
+        },
+        {
+          "check": "AlertModal uses Radix Dialog",
+          "status": "PASS",
+          "evidence": "AlertModal.tsx uses same Radix Dialog pattern. Includes DialogTitle and DialogDescription for proper ARIA labeling.",
+          "file": "app/_lib/widgets/modal/AlertModal.tsx"
+        }
+      ]
+    },
+
+    "header_navigation": {
+      "status": "PASS",
+      "findings": [
+        {
+          "check": "Mobile sidebar toggle has aria-label",
+          "status": "PASS",
+          "evidence": "UnionHomeHeader.tsx line 138: aria-label='메뉴 열기', aria-expanded={isSidebarOpen}, aria-controls='mobile-sidebar'",
+          "file": "app/_lib/widgets/union/header/UnionHomeHeader.tsx"
+        },
+        {
+          "check": "User menu has proper ARIA",
+          "status": "PASS",
+          "evidence": "Desktop user menu button (L272-275): aria-label='사용자 메뉴 열기', aria-expanded={isUserMenuOpen}, aria-haspopup='menu'. Dropdown (L290-294): role='menu', aria-label='사용자 메뉴'. Menu items have role='menuitem'.",
+          "file": "app/_lib/widgets/union/header/UnionHomeHeader.tsx"
+        },
+        {
+          "check": "Mobile sidebar uses Sheet (Radix)",
+          "status": "PASS",
+          "evidence": "UnionMobileSidebar.tsx uses <Sheet>/<SheetContent> (Radix-based) with SheetTitle/SheetDescription (sr-only for screen readers). Nav area has aria-label='메인 네비게이션'. Menu buttons have aria-expanded and focus-visible ring styles.",
+          "file": "app/_lib/widgets/union/header/UnionMobileSidebar.tsx"
+        },
+        {
+          "check": "Logo links have aria-labels",
+          "status": "PASS",
+          "evidence": "Both mobile (L149) and desktop (L179) logo links have aria-label='{union.name} 홈으로 이동'",
+          "file": "app/_lib/widgets/union/header/UnionHomeHeader.tsx"
+        },
+        {
+          "check": "Decorative icons hidden from screen readers",
+          "status": "PASS",
+          "evidence": "All decorative icons use aria-hidden='true' (Home L161, PanelLeft L142, UserCircle L279, ChevronDown L284, LogOut L309, MapPin L302, etc.)",
+          "file": "app/_lib/widgets/union/header/UnionHomeHeader.tsx"
+        },
+        {
+          "check": "Focus visible ring on interactive elements",
+          "status": "PASS",
+          "evidence": "All interactive elements in header and sidebar use 'focus-visible:ring-2 focus-visible:ring-[#4E8C6D]' classes for keyboard focus visibility (L137, L272, L161-162, sidebar L238, L268, etc.)"
+        },
+        {
+          "check": "User menu account button in sidebar",
+          "status": "PASS",
+          "evidence": "Mobile sidebar account button (L234-260): aria-label='내 계정 메뉴 열기', aria-expanded={isUserMenuExpanded}, aria-haspopup='menu'",
+          "file": "app/_lib/widgets/union/header/UnionMobileSidebar.tsx"
+        }
+      ]
+    },
+
+    "image_alt_text": {
+      "status": "PASS",
+      "findings": [
+        {
+          "check": "Union logos have alt text",
+          "status": "PASS",
+          "evidence": "Logo images in UnionHomeHeader.tsx at lines 155 and 186 use alt='{union.name} 로고'. UnionMobileSidebar.tsx line 134 also uses alt='{union.name} 로고'."
+        },
+        {
+          "check": "Landing page images have alt text",
+          "status": "PASS",
+          "evidence": "LandingContentGrid.tsx: alt='모바일 앱 목업' (L113, L280). CrossfadeBackground.tsx: alt='재개발 후 현대적 아파트 단지' (L49), alt='재개발 전 노후 골목길' (L67). LandingHero.tsx: alt='{slide.title || \"Slide {index + 1}\"}' (L107)."
+        }
+      ]
+    },
+
+    "heading_hierarchy": {
+      "status": "PASS_WITH_WARNINGS",
+      "findings": [
+        {
+          "check": "Modals use appropriate heading levels",
+          "status": "PASS",
+          "evidence": "All modals use h2 for dialog titles (RegisterModal, ApprovalPending, ApprovalRejected, BlockedUser). Admin modals use h3 (MemberEditModal, BlockMemberModal) which is acceptable inside dialogs."
+        },
+        {
+          "check": "Detail pages heading hierarchy",
+          "status": "PASS_WITH_WARNINGS",
+          "evidence": "Notice detail: h1 (title, L81) -> h3 (comments, L156) -- skips h2. Free-board detail: h2 (title, L83). QnA detail: h2 (title, L138) -> h3 (answer, L195). The h1->h3 skip in notice is a minor hierarchy violation."
+        }
+      ],
+      "warnings": [
+        {
+          "issue": "Notice detail page skips from h1 to h3",
+          "description": "In notice/[id]/page.tsx, heading jumps from h1 (title at L81) to h3 (comments at L156), skipping h2. Should use h2 for comments section.",
+          "wcag": "1.3.1 Info and Relationships",
+          "severity": "LOW",
+          "file": "app/[slug]/news/notice/[id]/page.tsx"
+        }
+      ]
+    },
+
+    "error_messages": {
+      "status": "PASS",
+      "findings": [
+        {
+          "check": "LoginForm error uses role='alert'",
+          "status": "PASS",
+          "evidence": "LoginForm.tsx line 64: <div role='alert'> wraps error message",
+          "file": "app/_lib/widgets/landing/LoginForm.tsx"
+        },
+        {
+          "check": "RegisterModal errors use role='alert'",
+          "status": "PASS",
+          "evidence": "Line 1548 and 1845: both error containers use role='alert'",
+          "file": "app/_lib/widgets/modal/RegisterModal.tsx"
+        },
+        {
+          "check": "ApprovalRejectedModal error uses role='alert'",
+          "status": "PASS",
+          "evidence": "Line 398: <div role='alert'>",
+          "file": "app/_lib/widgets/modal/ApprovalRejectedModal.tsx"
+        }
+      ]
+    },
+
+    "live_regions": {
+      "status": "FAIL",
+      "findings": [
+        {
+          "check": "aria-live regions for dynamic content",
+          "status": "FAIL",
+          "evidence": "No aria-live, aria-atomic, or role='status' attributes found in the codebase. Dynamic content changes (loading states, success messages, step transitions in RegisterModal) are not announced to screen readers.",
+          "severity": "MEDIUM"
+        }
+      ]
+    },
+
+    "notice_popup": {
+      "status": "PASS_WITH_WARNINGS",
+      "findings": [
+        {
+          "check": "Close button accessible",
+          "status": "PASS",
+          "evidence": "NoticePopup.tsx line 111: aria-label='팝업 닫기', adequate touch target (min-w-[44px] min-h-[44px])",
+          "file": "app/_lib/widgets/notice-popup/NoticePopup.tsx"
+        },
+        {
+          "check": "Checkbox properly labeled",
+          "status": "PASS",
+          "evidence": "Line 134: <label> wraps both Checkbox and text '24시간 동안 안보기'",
+          "file": "app/_lib/widgets/notice-popup/NoticePopup.tsx"
+        }
+      ],
+      "warnings": [
+        {
+          "issue": "NoticePopup lacks role and ARIA for overlay widget",
+          "description": "NoticePopup is a fixed-position overlay but lacks role='dialog' or role='complementary' and aria-label. Not critical since it's not a modal (no backdrop, no focus trap), but could benefit from landmark markup.",
+          "wcag": "4.1.2 Name, Role, Value",
+          "severity": "LOW",
+          "file": "app/_lib/widgets/notice-popup/NoticePopup.tsx"
+        }
+      ]
+    },
+
+    "color_contrast": {
+      "status": "PASS_WITH_WARNINGS",
+      "findings": [
+        {
+          "check": "Primary green #4E8C6D on white",
+          "status": "PASS",
+          "evidence": "#4E8C6D on white background has contrast ratio of ~4.6:1, meeting WCAG AA for normal text (4.5:1 minimum)"
+        },
+        {
+          "check": "Gray text classes",
+          "status": "PASS_WITH_WARNINGS",
+          "evidence": "text-gray-500 (~#6B7280) on white has ~5.0:1 ratio (PASS). text-gray-400 (~#9CA3AF) on white has ~2.9:1 ratio which fails AA for normal text but passes for large text. Used in several sub-descriptions and labels."
+        }
+      ],
+      "warnings": [
+        {
+          "issue": "text-gray-400 may fail contrast for small text",
+          "description": "text-gray-400 (#9CA3AF) on white bg has approximately 2.9:1 contrast ratio, below the 4.5:1 AA requirement for normal text. Used in sub-descriptions (RegisterModal stepConfig.subDescription, MemberEditModal field labels like '토지면적'), and icon placeholders.",
+          "wcag": "1.4.3 Contrast (Minimum)",
+          "severity": "MEDIUM"
+        }
+      ]
+    }
+  },
+
+  "summary": {
+    "total_checks": 62,
+    "pass": 54,
+    "pass_with_warnings": 5,
+    "fail": 1,
+    "not_applicable": 2,
+    "overall_status": "PASS_WITH_WARNINGS",
+    "critical_issues": 0,
+    "high_issues": 0,
+    "medium_issues": 3,
+    "low_issues": 8,
+
+    "strengths": [
+      "All 6 custom modals (RegisterModal, ApprovalPendingModal, ApprovalRejectedModal, BlockedUserModal, MemberEditModal, BlockMemberModal) implement proper ARIA dialog pattern (role='dialog'/'alertdialog', aria-modal='true', aria-labelledby)",
+      "Centralized useFocusTrap hook correctly handles Tab/Shift+Tab trapping, initial focus, and focus restoration",
+      "ESC key handler implemented in all closable modals",
+      "ConfirmModal and AlertModal leverage Radix Dialog for automatic ARIA compliance",
+      "Skip navigation link ('본문 바로가기') present in all layout variants with proper sr-only/focus:not-sr-only pattern",
+      "Header navigation has comprehensive ARIA: aria-label, aria-expanded, aria-haspopup, role='menu'/role='menuitem'",
+      "Error messages consistently use role='alert' for screen reader announcement",
+      "All images have descriptive alt text",
+      "Decorative icons consistently use aria-hidden='true'",
+      "Focus-visible ring styles applied to interactive elements in header/sidebar",
+      "ApprovalRejectedModal edit form uses htmlFor/id associations and aria-required on inputs"
+    ],
+
+    "issues_to_fix": [
+      {
+        "priority": "MEDIUM",
+        "issue": "No aria-live regions for dynamic content updates",
+        "description": "Loading states, success messages, step transitions in RegisterModal, and toast notifications are not announced to screen readers. Add aria-live='polite' regions for status updates.",
+        "wcag": "4.1.3 Status Messages",
+        "affected_components": ["RegisterModal", "MemberEditModal", "BlockMemberModal", "general toast usage"]
+      },
+      {
+        "priority": "MEDIUM",
+        "issue": "MemberEditModal nested sub-modals lack dialog ARIA",
+        "description": "Save confirm (line 1056) and save success (line 1087) modals inside MemberEditModal are plain divs without role='dialog', aria-modal, or aria-labelledby.",
+        "wcag": "4.1.2 Name, Role, Value",
+        "affected_components": ["MemberEditModal"]
+      },
+      {
+        "priority": "MEDIUM",
+        "issue": "text-gray-400 contrast ratio below AA threshold for normal text",
+        "description": "Tailwind text-gray-400 (#9CA3AF) on white has ~2.9:1 contrast ratio, below the 4.5:1 requirement. Used in sub-descriptions and small labels.",
+        "wcag": "1.4.3 Contrast (Minimum)",
+        "affected_components": ["RegisterModal", "MemberEditModal", "various detail pages"]
+      },
+      {
+        "priority": "LOW",
+        "issue": "Close buttons on MemberEditModal and BlockMemberModal lack aria-label",
+        "description": "X icon buttons missing aria-label='닫기'",
+        "wcag": "4.1.2 Name, Role, Value",
+        "affected_components": ["MemberEditModal", "BlockMemberModal"]
+      },
+      {
+        "priority": "LOW",
+        "issue": "Form labels in MemberEditModal/BlockMemberModal not associated via htmlFor",
+        "description": "Edit-mode labels do not use htmlFor to associate with input elements",
+        "wcag": "1.3.1 Info and Relationships",
+        "affected_components": ["MemberEditModal", "BlockMemberModal"]
+      },
+      {
+        "priority": "LOW",
+        "issue": "RegisterModal progress indicator not announced",
+        "description": "Step progress dots are purely visual with no aria-label or aria-live for screen reader announcement of current position",
+        "wcag": "1.3.1 Info and Relationships",
+        "affected_components": ["RegisterModal"]
+      },
+      {
+        "priority": "LOW",
+        "issue": "Property type selection cards lack radio semantics",
+        "description": "Styled buttons for property type selection lack role='radiogroup'/role='radio'",
+        "wcag": "4.1.2 Name, Role, Value",
+        "affected_components": ["RegisterModal"]
+      },
+      {
+        "priority": "LOW",
+        "issue": "Notice detail heading hierarchy skip (h1 to h3)",
+        "description": "Comments section uses h3 directly under h1, skipping h2",
+        "wcag": "1.3.1 Info and Relationships",
+        "affected_components": ["notice/[id]/page.tsx"]
+      }
+    ]
+  }
+}

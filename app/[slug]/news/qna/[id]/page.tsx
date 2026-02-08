@@ -15,6 +15,7 @@ import { TextEditor } from '@/app/_lib/widgets/common/text-editor';
 import { Lock, CheckCircle, User } from 'lucide-react';
 import { ActionButton } from '@/app/_lib/widgets/common/button';
 import { formatDate, formatAuthorName } from '@/app/_lib/shared/utils/commonUtil';
+import { sanitizeHtml } from '@/app/_lib/shared/utils/sanitize';
 
 const QuestionDetailPage = () => {
     const router = useRouter();
@@ -22,6 +23,7 @@ const QuestionDetailPage = () => {
     const slug = params.slug as string;
     const id = params.id as string;
     const questionId = parseInt(id);
+    const isInvalidId = isNaN(questionId);
     const { isLoading: isUnionLoading } = useSlug();
     const { user, isAdmin } = useAuth();
     
@@ -48,10 +50,14 @@ const QuestionDetailPage = () => {
     const [isAnswerMode, setIsAnswerMode] = useState(false);
     const [answerContent, setAnswerContent] = useState('');
 
-    // 조회수 증가 (컴포넌트 마운트 시 1회, union 로드 완료 후)
+    // 조회수 증가 (세션당 1회, union 로드 완료 후)
     React.useEffect(() => {
         if (questionId && !isUnionLoading) {
-            incrementViews(questionId);
+            const viewedKey = `viewed_question_${questionId}`;
+            if (!sessionStorage.getItem(viewedKey)) {
+                incrementViews(questionId);
+                sessionStorage.setItem(viewedKey, '1');
+            }
         }
     }, [questionId, isUnionLoading, incrementViews]);
 
@@ -105,13 +111,19 @@ const QuestionDetailPage = () => {
         );
     }
 
-    if (error || !question) {
+    if (isInvalidId || error || !question) {
         return (
             <div className={cn('container mx-auto max-w-[1280px] px-4 py-8')}>
-                <div className="flex justify-center items-center h-64">
+                <div className="flex flex-col justify-center items-center h-64 gap-4">
                     <p className="text-[18px] text-[#D9534F]">
                         {error?.message || '질문을 찾을 수 없습니다.'}
                     </p>
+                    <button
+                        onClick={() => router.push(`/${slug}/news/qna`)}
+                        className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
+                    >
+                        목록으로
+                    </button>
                 </div>
             </div>
         );
@@ -125,12 +137,12 @@ const QuestionDetailPage = () => {
             <div className={cn('container mx-auto max-w-[1280px] px-4 py-8')}>
                 <div className="space-y-8">
                     {/* 제목 영역 */}
-                    <div className="flex justify-between items-start border-b border-[#CCCCCC] pb-6">
-                        <div className="flex items-center gap-3">
+                    <div className="border-b border-[#CCCCCC] pb-6 space-y-4">
+                        <div className="flex items-center gap-3 flex-wrap">
                             {question.is_secret && (
                                 <Lock className="h-6 w-6 text-[#AFAFAF]" />
                             )}
-                            <h2 className="text-[32px] font-bold text-[#5FA37C]">{question.title}</h2>
+                            <h2 className="text-[24px] md:text-[32px] font-bold text-[#5FA37C]">{question.title}</h2>
                             {question.answered_at && (
                                 <span className="inline-flex items-center gap-1 px-3 py-1 bg-[#4E8C6D] text-white text-[14px] rounded-full">
                                     <CheckCircle className="h-4 w-4" />
@@ -138,51 +150,51 @@ const QuestionDetailPage = () => {
                                 </span>
                             )}
                         </div>
-                        <div className="flex gap-2">
-                            {canEdit && (
-                                <>
-                                    <ActionButton 
-                                        variant="outline" 
-                                        onClick={() => router.push(`/${slug}/news/qna/${id}/edit`)}
-                                        className="h-[40px] px-4 border-[#4E8C6D] text-[#4E8C6D] hover:bg-[#F5F5F5]"
-                                    >
-                                        수정
-                                    </ActionButton>
-                                    <ActionButton 
-                                        variant="destructive" 
-                                        onClick={handleDelete}
-                                        className="h-[40px] px-4"
-                                    >
-                                        삭제
-                                    </ActionButton>
-                                </>
-                            )}
-                            <ActionButton 
-                                buttonType="cancel" 
-                                onClick={() => router.push(`/${slug}/news/qna`)}
-                                className="h-[40px] px-4"
-                            >
-                                목록
-                            </ActionButton>
+                        <div className="flex flex-wrap items-center justify-between gap-4">
+                            <div className="flex flex-wrap gap-6 text-[14px] text-[#AFAFAF]">
+                                <span className="flex items-center gap-1">
+                                    <User className="h-4 w-4" />
+                                    작성자: {authorName}
+                                </span>
+                                <span>작성일: {question.created_at ? formatDate(question.created_at, true) : '-'}</span>
+                                <span>조회수: {question.views}</span>
+                                {question.is_secret && (
+                                    <span className="text-[#F0AD4E]">비밀글</span>
+                                )}
+                            </div>
+                            <div className="flex gap-2">
+                                {canEdit && (
+                                    <>
+                                        <ActionButton
+                                            variant="outline"
+                                            onClick={() => router.push(`/${slug}/news/qna/${id}/edit`)}
+                                            className="h-[40px] px-4 border-[#4E8C6D] text-[#4E8C6D] hover:bg-[#F5F5F5]"
+                                        >
+                                            수정
+                                        </ActionButton>
+                                        <ActionButton
+                                            variant="destructive"
+                                            onClick={handleDelete}
+                                            className="h-[40px] px-4"
+                                        >
+                                            삭제
+                                        </ActionButton>
+                                    </>
+                                )}
+                                <ActionButton
+                                    buttonType="cancel"
+                                    onClick={() => router.push(`/${slug}/news/qna`)}
+                                    className="h-[40px] px-4"
+                                >
+                                    목록
+                                </ActionButton>
+                            </div>
                         </div>
-                    </div>
-
-                    {/* 메타 정보 */}
-                    <div className="flex gap-6 text-[14px] text-[#AFAFAF] pb-4">
-                        <span className="flex items-center gap-1">
-                            <User className="h-4 w-4" />
-                            작성자: {authorName}
-                        </span>
-                        <span>작성일: {question.created_at ? formatDate(question.created_at, true) : '-'}</span>
-                        <span>조회수: {question.views}</span>
-                        {question.is_secret && (
-                            <span className="text-[#F0AD4E]">🔒 비밀글</span>
-                        )}
                     </div>
 
                     {/* 질문 본문 */}
                     <div className="min-h-[200px] whitespace-pre-wrap py-4 prose prose-lg max-w-none text-[18px] leading-relaxed text-gray-800 bg-white rounded-[12px] border border-[#CCCCCC] p-6" 
-                        dangerouslySetInnerHTML={{ __html: question.content }} 
+                        dangerouslySetInnerHTML={{ __html: sanitizeHtml(question.content) }} 
                     />
 
                     {/* 답변 영역 */}
@@ -250,7 +262,7 @@ const QuestionDetailPage = () => {
                                 </div>
                                 <div 
                                     className="prose prose-lg max-w-none text-[16px] leading-relaxed text-gray-800"
-                                    dangerouslySetInnerHTML={{ __html: question.answer_content }}
+                                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(question.answer_content) }}
                                 />
                             </div>
                         ) : (

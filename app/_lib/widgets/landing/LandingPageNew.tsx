@@ -128,7 +128,7 @@ export function LandingPageNew({ unionName, onLoginSuccess, className }: Landing
     };
 
     return (
-        <div className={cn('flex flex-col min-h-screen bg-white', className)}>
+        <div className={cn('flex flex-col min-h-dvh bg-white', className)}>
             {/* Header */}
             <LandingHeader unionName={unionName} />
 

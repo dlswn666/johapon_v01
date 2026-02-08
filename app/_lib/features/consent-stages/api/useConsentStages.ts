@@ -3,6 +3,7 @@
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/app/_lib/shared/supabase/client';
 import { queryClient } from '@/app/_lib/shared/tanstack/queryClient';
+import { escapeLikeWildcards } from '@/app/_lib/shared/utils/escapeLike';
 
 // 동의 단계 타입 정의
 export type BusinessTypeEnum = 'REDEVELOPMENT' | 'RECONSTRUCTION' | 'HOUSING_ASSOCIATION' | 'STREET_HOUSING' | 'SMALL_RECONSTRUCTION';
@@ -251,15 +252,15 @@ export const searchMembersForConsent = async (params: SearchMembersParams): Prom
 
     // 이름 검색: 직접 ilike 적용
     if (searchName) {
-        query = query.ilike('name', `%${searchName}%`);
+        query = query.ilike('name', `%${escapeLikeWildcards(searchName)}%`);
     }
 
     // 주소 검색 조건
     if (searchAddress) {
         if (addressUserIds.length > 0) {
-            query = query.or(`id.in.(${addressUserIds.join(',')}),property_address.ilike.%${searchAddress}%`);
+            query = query.or(`id.in.(${addressUserIds.join(',')}),property_address.ilike.%${escapeLikeWildcards(searchAddress)}%`);
         } else {
-            query = query.ilike('property_address', `%${searchAddress}%`);
+            query = query.ilike('property_address', `%${escapeLikeWildcards(searchAddress)}%`);
         }
     }
 

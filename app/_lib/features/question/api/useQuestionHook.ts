@@ -14,6 +14,7 @@ import { getUnionPath } from '@/app/_lib/shared/lib/utils/slug';
 import { fileApi } from '@/app/_lib/shared/hooks/file/fileApi';
 import { sendAlimTalk } from '@/app/_lib/features/alimtalk/actions/sendAlimTalk';
 import { supabase as supabaseClient } from '@/app/_lib/shared/supabase/client';
+import { escapeLikeWildcards } from '@/app/_lib/shared/utils/escapeLike';
 
 // ============================================
 // Query Hooks (조회)
@@ -40,9 +41,16 @@ export const useQuestions = (
                 .select('*, author:users!questions_author_id_fkey(id, name), answer_author:users!questions_answer_author_id_fkey(id, name)')
                 .eq('union_id', union.id);
 
+            // Server-side secret question filtering (비관리자는 공개글 + 본인 비밀글만)
+            if (!isAdmin && user?.id) {
+                query = query.or(`is_secret.eq.false,author_id.eq.${user.id}`);
+            } else if (!isAdmin) {
+                query = query.eq('is_secret', false);
+            }
+
             // 검색 조건 적용 (제목, 내용, 작성자명)
             if (searchQuery && searchQuery.trim()) {
-                const search = `%${searchQuery.trim()}%`;
+                const search = `%${escapeLikeWildcards(searchQuery.trim())}%`;
                 query = query.or(`title.ilike.${search},content.ilike.${search}`);
             }
 
@@ -58,14 +66,7 @@ export const useQuestions = (
                 return [];
             }
 
-            // 비밀글 필터링 (관리자이거나 본인 글만 표시)
             let filteredData = data;
-            if (!isAdmin) {
-                filteredData = data.filter((q) => {
-                    if (!q.is_secret) return true; // 공개글은 모두 표시
-                    return q.author_id === user?.id; // 비밀글은 본인 글만
-                });
-            }
 
             // 검색어로 작성자명 검색 시 추가 필터링
             if (searchQuery && searchQuery.trim()) {
@@ -184,6 +185,11 @@ const processEditorImages = async (
                 processedContent = processedContent.replace(new RegExp(blobUrl, 'g'), publicUrl);
             } catch (e) {
                 console.error(`Failed to upload editor image: ${file.name}`, e);
+                // Remove the broken blob URL from content
+                processedContent = processedContent.replace(
+                    new RegExp(`<img[^>]*src=["']${blobUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["'][^>]*\\/?>`, 'g'),
+                    ''
+                );
             }
         }
     }
@@ -310,7 +316,7 @@ export const useUpdateQuestion = () => {
     const { union, slug } = useSlug();
 
     return useMutation({
-        mutationFn: async ({ id, updates }: { id: number; updates: UpdateQuestion }) => {
+        mutationFn: async ({ id, updates, updatedAt }: { id: number; updates: UpdateQuestion; updatedAt?: string }) => {
             const finalUpdates = { ...updates };
 
             // 1. 에디터 이미지 업로드 및 본문 URL 치환
@@ -319,13 +325,21 @@ export const useUpdateQuestion = () => {
             }
 
             // 2. 질문 업데이트
-            const { data, error } = await supabase
+            let query = supabase
                 .from('questions')
                 .update(finalUpdates)
                 .eq('id', id)
-                .select()
-                .single();
+                .eq('union_id', union!.id);
 
+            if (updatedAt) {
+                query = query.eq('updated_at', updatedAt);
+            }
+
+            const { data, error } = await query.select().single();
+
+            if (error?.code === 'PGRST116') {
+                throw new Error('CONFLICT: 다른 사용자가 이 질문을 수정했습니다. 페이지를 새로고침하여 최신 내용을 확인해주세요.');
+            }
             if (error) throw error;
 
             return data as Question;
@@ -366,6 +380,7 @@ export const useDeleteQuestion = () => {
     const removeQuestion = useQuestionStore((state) => state.removeQuestion);
     const openAlertModal = useModalStore((state) => state.openAlertModal);
     const { union, slug } = useSlug();
+    const { user, isAdmin } = useAuth();
 
     return useMutation({
         mutationFn: async (questionId: number) => {
@@ -373,15 +388,37 @@ export const useDeleteQuestion = () => {
             await queryClient.cancelQueries({ queryKey: ['questions', union?.id, questionId] });
             await queryClient.cancelQueries({ queryKey: ['questions', union?.id] });
 
-            // 1. 스토리지에서 관련 이미지 파일 삭제
+            // 1. 소유권 사전 검증 (비관리자)
+            if (!isAdmin && user?.id) {
+                const { data: question, error: fetchError } = await supabase
+                    .from('questions')
+                    .select('author_id')
+                    .eq('id', questionId)
+                    .single();
+
+                if (fetchError || !question) {
+                    throw new Error('게시글을 찾을 수 없습니다.');
+                }
+                if (question.author_id !== user.id) {
+                    throw new Error('삭제 권한이 없습니다.');
+                }
+            }
+
+            // 2. 스토리지에서 관련 이미지 파일 삭제
             const folderPath = `unions/${slug}/questions/${questionId}`;
             await fileApi.deleteFolder(folderPath);
 
-            // 2. 질문 삭제
-            const { error } = await supabase
+            // 3. 질문 삭제 (비관리자는 본인 글만 삭제 가능 — 이중 안전장치)
+            let query = supabase
                 .from('questions')
                 .delete()
                 .eq('id', questionId);
+
+            if (!isAdmin && user?.id) {
+                query = query.eq('author_id', user.id);
+            }
+
+            const { error } = await query;
 
             if (error) {
                 throw error;
@@ -424,11 +461,12 @@ export const useAnswerQuestion = () => {
     const clearAnswerEditorImages = useQuestionStore((state) => state.clearAnswerEditorImages);
     const openAlertModal = useModalStore((state) => state.openAlertModal);
     const { union, slug } = useSlug();
-    const { user } = useAuth();
+    const { user, isAdmin } = useAuth();
 
     return useMutation({
         mutationFn: async ({ questionId, answerContent }: { questionId: number; answerContent: string }) => {
             if (!user?.id) throw new Error('로그인이 필요합니다.');
+            if (!isAdmin) throw new Error('관리자만 답변할 수 있습니다.');
             if (!union?.id) throw new Error('Union context missing');
 
             // 1. 에디터 이미지 업로드 및 본문 URL 치환
@@ -445,6 +483,7 @@ export const useAnswerQuestion = () => {
                     answered_at: answeredAt,
                 })
                 .eq('id', questionId)
+                .eq('union_id', union.id)
                 .select()
                 .single();
 
@@ -452,8 +491,6 @@ export const useAnswerQuestion = () => {
 
             // 3. 질문자에게 알림톡 발송
             try {
-                console.log('[답변 알림톡] 질문 작성자 조회 시작:', data.author_id);
-                
                 // 질문 작성자 정보 조회
                 const { data: author, error: authorError } = await supabaseClient
                     .from('users')
@@ -461,18 +498,11 @@ export const useAnswerQuestion = () => {
                     .eq('id', data.author_id)
                     .single();
 
-                if (authorError) {
-                    console.error('[답변 알림톡] 질문 작성자 조회 실패:', authorError);
-                } else if (!author) {
-                    console.warn('[답변 알림톡] 질문 작성자를 찾을 수 없음:', data.author_id);
-                } else if (!author.phone_number) {
-                    console.warn('[답변 알림톡] 질문 작성자 전화번호 없음:', author.name);
-                } else {
-                    console.log('[답변 알림톡] 알림톡 발송 시작:', author.name, author.phone_number);
+                if (!authorError && author?.phone_number) {
                     const answeredDate = new Date(answeredAt);
-                    const alimTalkResult = await sendAlimTalk({
+                    await sendAlimTalk({
                         unionId: union.id,
-                        templateCode: 'UE_3000', // 질문 답변 알림 템플릿
+                        templateCode: 'UE_3000',
                         recipients: [{
                             phoneNumber: author.phone_number,
                             name: author.name,
@@ -486,10 +516,8 @@ export const useAnswerQuestion = () => {
                             },
                         }],
                     });
-                    console.log('[답변 알림톡] 발송 결과:', alimTalkResult);
                 }
-            } catch (alimTalkError) {
-                console.error('[답변 알림톡] 알림톡 발송 실패 (답변 등록):', alimTalkError);
+            } catch {
                 // 알림톡 발송 실패해도 답변 등록은 성공으로 처리
             }
 
@@ -526,10 +554,12 @@ export const useDeleteAnswer = () => {
     const updateQuestion = useQuestionStore((state) => state.updateQuestion);
     const openAlertModal = useModalStore((state) => state.openAlertModal);
     const { union, slug: _slug } = useSlug();
+    const { isAdmin } = useAuth();
 
     return useMutation({
         mutationFn: async (questionId: number) => {
             if (!union?.id) throw new Error('Union context missing');
+            if (!isAdmin) throw new Error('관리자만 답변을 삭제할 수 있습니다.');
 
             // 답변 관련 필드 초기화
             const { data, error } = await supabase
@@ -540,6 +570,7 @@ export const useDeleteAnswer = () => {
                     answered_at: null,
                 })
                 .eq('id', questionId)
+                .eq('union_id', union.id)
                 .select()
                 .single();
 

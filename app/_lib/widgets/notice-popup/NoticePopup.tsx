@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Notice } from '@/app/_lib/shared/type/database.types';
 import { useMediaQuery } from '@/app/_lib/shared/hooks/useMediaQuery';
+import { sanitizeHtml } from '@/app/_lib/shared/utils/sanitize';
 
 interface NoticePopupProps {
     notice: Pick<Notice, 'id' | 'title' | 'content'>;
@@ -106,7 +107,7 @@ export function NoticePopup({
                 </h3>
                 <button
                     onClick={handleClose}
-                    className="p-1 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
+                    className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
                     aria-label="팝업 닫기"
                 >
                     <X className="w-5 h-5 text-gray-500" />
@@ -123,7 +124,7 @@ export function NoticePopup({
                 {/* 게시물 내용 */}
                 <div
                     className="prose prose-sm max-w-none text-gray-700"
-                    dangerouslySetInnerHTML={{ __html: notice.content }}
+                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(notice.content) }}
                 />
             </div>
 

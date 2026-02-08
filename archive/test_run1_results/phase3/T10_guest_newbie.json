@@ -1,0 +1,459 @@
+{
+  "metadata": {
+    "tester_id": "T10",
+    "persona": "P3 Newbie (Guest)",
+    "persona_name": "Jamie-Guest",
+    "role": "GUEST",
+    "generated_at": "2026-02-08T00:00:00Z",
+    "method": "CODE-BASED",
+    "total_scenarios": 11,
+    "pass": 8,
+    "fail": 1,
+    "warn": 2,
+    "scenarios_tested": ["TC-001", "TC-003", "TC-014", "TC-015", "TC-016", "TC-081", "TC-093", "TC-094", "TC-115", "TC-117", "TC-118"]
+  },
+
+  "results": [
+    {
+      "scenario_id": "TC-001",
+      "title": "Kakao OAuth login from union landing page",
+      "priority": "P0",
+      "category": "auth",
+      "result": "PASS",
+      "steps_results": [
+        {
+          "step": "Navigate to /{slug} landing page",
+          "expected": "Login form displayed with Kakao login button",
+          "actual": "PASS. LandingPage.tsx:155 renders <LoginForm>. LoginForm.tsx:72-90 renders Kakao button with yellow #FEE500 background, SVG icon, and text '카카오로 시작하기'. Button has type='button', onClick=handleKakaoLogin, disabled={isLoading}.",
+          "evidence": "LoginForm.tsx:72-90 — <button type='button' onClick={handleKakaoLogin} disabled={isLoading}> with proper styling"
+        },
+        {
+          "step": "Click Kakao login button",
+          "expected": "Redirect to Kakao OAuth authorization page",
+          "actual": "PASS. LoginForm.tsx:25-36 handleKakaoLogin() calls login('kakao', slug) from AuthProvider. AuthProvider.tsx:386-389 constructs redirectTo URL pointing to /auth/callback with slug, calls supabase.auth.signInWithOAuth with Kakao provider and PKCE flow.",
+          "evidence": "AuthProvider.tsx:386-389 — redirectTo = origin/auth/callback?slug={slug}, signInWithOAuth({provider: 'kakao', options: {redirectTo, queryParams}})"
+        },
+        {
+          "step": "Complete Kakao authentication",
+          "expected": "Redirect back to /auth/callback with code",
+          "actual": "PASS. auth/callback/route.ts:15-254 handles GET with code, slug, invite_token, member_invite_token params. Line 74 exchanges code for session via PKCE (exchangeCodeForSession).",
+          "evidence": "auth/callback/route.ts:40-44 — validates code exists; line 74 — exchangeCodeForSession(code)"
+        },
+        {
+          "step": "Callback processes PKCE exchange",
+          "expected": "Session created, user resolved via user_auth_links",
+          "actual": "PASS. auth/callback/route.ts:109-164 queries user_auth_links by auth_user_id, then joins to users table filtered by union_id. If existing user found, redirects based on user_status via getRedirectByUserStatus(). If new user, redirects to /{slug} for RegisterModal auto-open.",
+          "evidence": "auth/callback/route.ts:126-151 — user_auth_links -> users query chain; line 250-254 — new user redirect to main page"
+        }
+      ],
+      "findings": [],
+      "notes": "Full OAuth flow is well-implemented with PKCE. The callback correctly handles multi-union support by filtering user_auth_links with union_id."
+    },
+
+    {
+      "scenario_id": "TC-003",
+      "title": "User registration via RegisterModal after first login",
+      "priority": "P0",
+      "category": "auth",
+      "result": "PASS",
+      "steps_results": [
+        {
+          "step": "RegisterModal auto-opens for new user",
+          "expected": "RegisterModal auto-opens when authUser exists but user does not",
+          "actual": "PASS. LandingPage.tsx:110-117 useEffect checks (authUser && !user && !isRegisterModalOpen), sets isRegisterModalOpen=true after 100ms delay. Same logic in LandingPageNew.tsx.",
+          "evidence": "LandingPage.tsx:110-117 — conditional auto-open with timer"
+        },
+        {
+          "step": "Fill in name, phone, birth_date",
+          "expected": "Form fields accept valid input",
+          "actual": "PASS. RegisterModal.tsx uses multi-step wizard (STEPS array at line 156+). Steps: name -> birth_date -> phone_number -> property_address -> property_type -> dong -> ho -> confirm. Each step has label, placeholder, required flag, type, icon.",
+          "evidence": "RegisterModal.tsx:156-180 — STEPS config array with proper labels and input types"
+        },
+        {
+          "step": "Submit registration form",
+          "expected": "No double-submit (useRef guard active)",
+          "actual": "PASS. RegisterModal.tsx:384 declares isSubmittingRef = useRef(false). Line 1014 checks 'if (isSubmittingRef.current) return'. Line 1040 sets isSubmittingRef.current = true. Line 1256 resets on finally block.",
+          "evidence": "RegisterModal.tsx:384,1014,1040,1256 — useRef guard pattern for double-submit prevention"
+        },
+        {
+          "step": "Conflict check via /api/members/check-conflict",
+          "expected": "No conflict: user created with PENDING_APPROVAL status",
+          "actual": "PASS. Conflict check endpoint exists and is called during registration flow. On success, user created with PENDING_APPROVAL status and APPLICANT role.",
+          "evidence": "RegisterModal.tsx submit handler; api/members/check-conflict/route.ts exists"
+        }
+      ],
+      "findings": [],
+      "notes": "RegisterModal has proper ARIA attributes (role='dialog', aria-modal='true', aria-labelledby='register-modal-title'), ESC key handler (line 394-401), and focus trap via useFocusTrap (line 392, 1268)."
+    },
+
+    {
+      "scenario_id": "TC-014",
+      "title": "Access token guest access flow",
+      "priority": "P0",
+      "category": "auth",
+      "result": "PASS",
+      "steps_results": [
+        {
+          "step": "Navigate to /{slug}?tokenKey={validKey}",
+          "expected": "Middleware validates token against access_tokens table",
+          "actual": "PASS. middleware.ts:284 extracts tokenKey from searchParams. Line 287-329 validates token: checks deleted_at (line 132), expires_at (line 137-142), max_usage vs usage_count (line 145-147). If valid, records usage and sets guest_access cookie.",
+          "evidence": "middleware.ts:116-153 — validateAccessToken() with comprehensive checks"
+        },
+        {
+          "step": "Token validated: cookie set",
+          "expected": "guest_access cookie set (httpOnly, 24h)",
+          "actual": "PASS. middleware.ts:315-319 sets guest_access cookie with: httpOnly=true, secure=(NODE_ENV==='production'), sameSite='lax', maxAge=86400 (24h).",
+          "evidence": "middleware.ts:315-319 — cookie set with proper security options"
+        },
+        {
+          "step": "Navigate to other union pages",
+          "expected": "Cookie re-validated, access granted",
+          "actual": "PASS. middleware.ts:332-342 checks guest_access cookie on subsequent requests. If cookie exists and slug is present, re-validates the token. If still valid, grants access. If invalid, deletes the cookie.",
+          "evidence": "middleware.ts:332-342 — guest_access cookie re-validation on each request"
+        },
+        {
+          "step": "Token usage recorded",
+          "expected": "usage_count incremented, access_token_logs entry created",
+          "actual": "PASS. middleware.ts:158-191 recordTokenUsage() increments usage_count (+1) and inserts into access_token_logs with token_id, accessed_path, ip_address (from x-forwarded-for/x-real-ip), user_agent.",
+          "evidence": "middleware.ts:158-191 — recordTokenUsage() with audit log"
+        }
+      ],
+      "findings": [
+        {
+          "type": "WARN",
+          "severity": "medium",
+          "title": "Access token TOCTOU race condition",
+          "description": "middleware.ts:166-172 reads usage_count then increments with usage_count+1. Under concurrent requests, two requests could read the same usage_count and both increment to the same value, allowing one extra usage beyond max_usage. This is a known technical debt item (requires DB RPC atomic increment).",
+          "location": "middleware.ts:166-172",
+          "recommendation": "Use a Supabase RPC function with SELECT FOR UPDATE or atomic increment to prevent race condition."
+        }
+      ],
+      "notes": "Token-based guest access is well-implemented with proper validation, union scope restriction (line 292-308), and audit logging."
+    },
+
+    {
+      "scenario_id": "TC-015",
+      "title": "Expired access token denied",
+      "priority": "P0",
+      "category": "auth",
+      "result": "PASS",
+      "steps_results": [
+        {
+          "step": "Navigate with expired tokenKey",
+          "expected": "Token validation fails (expired)",
+          "actual": "PASS. middleware.ts:137-142 checks: if (token.expires_at) { const expiresAt = new Date(token.expires_at); if (expiresAt < new Date()) return {valid: false, reason: 'expired'} }",
+          "evidence": "middleware.ts:137-142 — expires_at comparison with current time"
+        },
+        {
+          "step": "Redirect to error page",
+          "expected": "Redirect to /invalid-token with reason=expired",
+          "actual": "PASS. middleware.ts:324-328 creates redirect URL to /invalid-token?reason={validation.reason}. The invalid-token page (app/invalid-token/page.tsx:9) maps 'expired' to '이 링크는 만료되었습니다.' message.",
+          "evidence": "middleware.ts:324-328 and invalid-token/page.tsx:11 — 'expired' -> localized message"
+        }
+      ],
+      "findings": [],
+      "notes": "All token rejection reasons are properly mapped in REASON_MESSAGES: not_found, deleted, expired, max_usage_reached, wrong_union, invalid."
+    },
+
+    {
+      "scenario_id": "TC-016",
+      "title": "Max usage access token denied",
+      "priority": "P0",
+      "category": "auth",
+      "result": "PASS",
+      "steps_results": [
+        {
+          "step": "Navigate with maxed-out tokenKey",
+          "expected": "Token validation fails (max usage reached)",
+          "actual": "PASS. middleware.ts:145-147 checks: if (token.max_usage !== null && token.usage_count >= token.max_usage) return {valid: false, reason: 'max_usage_reached'}. Note: uses >= so even if TOCTOU race adds one extra, subsequent requests are still blocked.",
+          "evidence": "middleware.ts:145-147 — max_usage check with >= operator"
+        },
+        {
+          "step": "Redirect to error page",
+          "expected": "Redirect to /invalid-token with reason=max_usage_reached",
+          "actual": "PASS. middleware.ts:324-328 redirects to /invalid-token?reason=max_usage_reached. invalid-token/page.tsx:12 maps to '이 링크의 사용 횟수가 초과되었습니다.'",
+          "evidence": "invalid-token/page.tsx:12 — max_usage_reached message"
+        }
+      ],
+      "findings": [],
+      "notes": "Correctly handles null max_usage (unlimited) with !== null check before comparison."
+    },
+
+    {
+      "scenario_id": "TC-081",
+      "title": "Landing page renders correctly for union",
+      "priority": "P1",
+      "category": "navigation",
+      "result": "WARN",
+      "steps_results": [
+        {
+          "step": "Navigate to /{slug}",
+          "expected": "Union landing page rendered",
+          "actual": "PASS. middleware.ts:375-377 isUnionLandingPage() returns true for /{slug} (exact match), allowing pass-through without auth. LandingPage component renders with CrossfadeBackground, union name h1, and LoginForm.",
+          "evidence": "middleware.ts:93-99 isUnionLandingPage(); LandingPage.tsx:125-168 render output"
+        },
+        {
+          "step": "Verify login form buttons (Kakao, Naver)",
+          "expected": "OAuth login buttons present and functional",
+          "actual": "WARN. Kakao button is visible and functional (LoginForm.tsx:72-90). However, Naver button is COMMENTED OUT (LoginForm.tsx:93-111, wrapped in {/* */}). The Naver login handler (_handleNaverLogin) exists but is prefixed with underscore indicating it's unused. Only Kakao login is available to guests.",
+          "evidence": "LoginForm.tsx:92-111 — Naver button commented out with JSX comment"
+        }
+      ],
+      "findings": [
+        {
+          "type": "WARN",
+          "severity": "low",
+          "title": "Naver login button is commented out",
+          "description": "LoginForm.tsx:93-111 has the Naver login button wrapped in a JSX comment block. The handler exists as _handleNaverLogin (underscore prefix = unused). Guests only see Kakao login option. This may be intentional (Naver integration not ready) but TC-081 expects both OAuth buttons to be present.",
+          "location": "LoginForm.tsx:93-111",
+          "recommendation": "Verify if Naver login is intentionally disabled. If so, update test scenario TC-081 to reflect single OAuth provider. If Naver should be available, uncomment the button."
+        }
+      ],
+      "notes": "Landing page structure is correct with proper union name display and login form. The guide text '처음 오셨나요? 소셜 로그인 후 간단한 정보 입력으로 조합원 등록을 완료하실 수 있습니다.' is present for newbie guidance."
+    },
+
+    {
+      "scenario_id": "TC-093",
+      "title": "Public pages accessible without auth",
+      "priority": "P1",
+      "category": "navigation",
+      "result": "PASS",
+      "steps_results": [
+        {
+          "step": "Navigate to / (main landing)",
+          "expected": "Page loads without redirect",
+          "actual": "PASS. middleware.ts:20-29 PUBLIC_PATHS includes '/'. isPublicPath('/') returns true (line 41 exact match). Marketing layout renders with MarketingHeader + MarketingFooter via (marketing)/layout.tsx.",
+          "evidence": "middleware.ts:21 — '/' in PUBLIC_PATHS; (marketing)/layout.tsx wraps with AuthProvider"
+        },
+        {
+          "step": "Navigate to /contact",
+          "expected": "Page loads",
+          "actual": "PASS. PUBLIC_PATHS includes '/contact' (middleware.ts:22). Route group (marketing)/contact/page.tsx exists. isPublicPath matches exactly or with prefix.",
+          "evidence": "middleware.ts:22 — '/contact' in PUBLIC_PATHS; (marketing)/contact/page.tsx exists"
+        },
+        {
+          "step": "Navigate to /privacy",
+          "expected": "Page loads",
+          "actual": "PASS. PUBLIC_PATHS includes '/privacy' (middleware.ts:23). Route at (marketing)/privacy/page.tsx. Also /privacy/en for English version at (marketing)/privacy/en/page.tsx.",
+          "evidence": "middleware.ts:23 — '/privacy' in PUBLIC_PATHS; (marketing)/privacy/page.tsx and en/page.tsx exist"
+        },
+        {
+          "step": "Navigate to /terms",
+          "expected": "Page loads",
+          "actual": "PASS. PUBLIC_PATHS includes '/terms' (middleware.ts:24). Route at (marketing)/terms/page.tsx. Also /terms/en for English at (marketing)/terms/en/page.tsx.",
+          "evidence": "middleware.ts:24 — '/terms' in PUBLIC_PATHS; (marketing)/terms/page.tsx and en/page.tsx exist"
+        },
+        {
+          "step": "Navigate to /swagger",
+          "expected": "API docs page loads",
+          "actual": "PASS. PUBLIC_PATHS includes '/swagger' (middleware.ts:28). Route at app/swagger/page.tsx exists.",
+          "evidence": "middleware.ts:28 — '/swagger' in PUBLIC_PATHS; app/swagger/page.tsx exists"
+        }
+      ],
+      "findings": [],
+      "notes": "All 8 PUBLIC_PATHS are verified: /, /contact, /privacy, /terms, /auth, /invite, /member-invite, /swagger. The isPublicPath function handles both exact match and prefix match (pathname.startsWith(path + '/'))."
+    },
+
+    {
+      "scenario_id": "TC-094",
+      "title": "Protected pages redirect unauthenticated users",
+      "priority": "P1",
+      "category": "security",
+      "result": "PASS",
+      "steps_results": [
+        {
+          "step": "Navigate to /{slug}/dashboard",
+          "expected": "Redirect to /{slug} (login page)",
+          "actual": "PASS. middleware.ts:384-392 checks if user is null for union sub-pages. If !user, redirects to /{slug} with redirectTo param set to the original pathname. Line 388 validates redirectTo doesn't contain '://' to prevent open redirect.",
+          "evidence": "middleware.ts:384-392 — !user check with redirect to /{slug}?redirectTo={pathname}"
+        },
+        {
+          "step": "Navigate to /{slug}/news/notice",
+          "expected": "Redirect to login",
+          "actual": "PASS. Same middleware logic applies. /news/notice is not a union landing page (isUnionLandingPage returns false), not a register page, so auth check proceeds. Without user, redirects to /{slug}.",
+          "evidence": "middleware.ts:375-392 — sequential checks: isUnionLandingPage -> isUnionRegisterPage -> auth check"
+        },
+        {
+          "step": "Navigate to /{slug}/admin/members",
+          "expected": "Redirect to login",
+          "actual": "PASS. middleware.ts:385-392 catches unauthenticated users first (redirects to /{slug}). Even if somehow authenticated, admin path guard at lines 395-420 checks user_auth_links -> users.role for ADMIN/SUPER_ADMIN/SYSTEM_ADMIN.",
+          "evidence": "middleware.ts:385-420 — dual protection: auth check + role check for admin paths"
+        }
+      ],
+      "findings": [
+        {
+          "type": "INFO",
+          "severity": "low",
+          "title": "redirectTo open redirect protection is partial",
+          "description": "middleware.ts:388 checks pathname.startsWith('/{slug}/') && !pathname.includes('://') before setting redirectTo. This prevents protocol-based open redirects but the redirectTo is only set by middleware itself (using the current pathname), not read from user-supplied query params. The actual open-redirect risk from TC-010 is that a user could craft a URL like /{slug}?redirectTo=https://evil.com, but the middleware never reads redirectTo from incoming query params — it only SETS redirectTo when redirecting. So there's no open redirect vulnerability in the middleware redirect flow.",
+          "location": "middleware.ts:386-391"
+        }
+      ],
+      "notes": "Protection is comprehensive. Union landing page and register page are properly whitelisted. All other union sub-pages require authentication."
+    },
+
+    {
+      "scenario_id": "TC-115",
+      "title": "Invalid token page",
+      "priority": "P3",
+      "category": "auth",
+      "result": "PASS",
+      "steps_results": [
+        {
+          "step": "Navigate to /invalid-token",
+          "expected": "Invalid token page rendered with message",
+          "actual": "PASS. app/invalid-token/page.tsx renders InvalidTokenContent wrapped in Suspense. Uses useSearchParams() to get 'reason' param. Maps reason to Korean message via REASON_MESSAGES object (6 entries: not_found, deleted, expired, max_usage_reached, wrong_union, invalid). Displays AlertTriangle icon, title '접근할 수 없습니다', reason-specific message, help list, and '홈으로' button linking to '/'.",
+          "evidence": "app/invalid-token/page.tsx:8-15 — REASON_MESSAGES mapping; lines 22-59 — full page layout"
+        }
+      ],
+      "findings": [],
+      "notes": "The invalid token page is properly wrapped in Suspense (line 72-74) for Next.js compatibility with useSearchParams(). Loading fallback shows spinner. All 6 reason codes from middleware are mapped."
+    },
+
+    {
+      "scenario_id": "TC-117",
+      "title": "Privacy policy pages (Korean and English)",
+      "priority": "P3",
+      "category": "navigation",
+      "result": "PASS",
+      "steps_results": [
+        {
+          "step": "Navigate to /privacy",
+          "expected": "Korean privacy policy page loads",
+          "actual": "PASS. Route exists at (marketing)/privacy/page.tsx. Under PUBLIC_PATHS '/privacy'. Served within marketing layout (MarketingHeader + MarketingFooter).",
+          "evidence": "(marketing)/privacy/page.tsx exists"
+        },
+        {
+          "step": "Navigate to /privacy/en",
+          "expected": "English privacy policy page loads",
+          "actual": "PASS. Route exists at (marketing)/privacy/en/page.tsx. isPublicPath('/privacy/en') returns true because '/privacy/en'.startsWith('/privacy/').",
+          "evidence": "(marketing)/privacy/en/page.tsx exists; middleware.ts:41 prefix match"
+        },
+        {
+          "step": "Navigate to /terms",
+          "expected": "Korean terms page loads",
+          "actual": "PASS. Route exists at (marketing)/terms/page.tsx. Under PUBLIC_PATHS '/terms'.",
+          "evidence": "(marketing)/terms/page.tsx exists"
+        },
+        {
+          "step": "Navigate to /terms/en",
+          "expected": "English terms page loads",
+          "actual": "PASS. Route exists at (marketing)/terms/en/page.tsx. isPublicPath('/terms/en') returns true via prefix match.",
+          "evidence": "(marketing)/terms/en/page.tsx exists"
+        }
+      ],
+      "findings": [],
+      "notes": "All 4 legal pages are accessible without auth. English versions properly routed via Next.js route groups."
+    },
+
+    {
+      "scenario_id": "TC-118",
+      "title": "Marketing header and footer rendering",
+      "priority": "P3",
+      "category": "navigation",
+      "result": "FAIL",
+      "steps_results": [
+        {
+          "step": "Navigate to / (marketing landing)",
+          "expected": "MarketingHeader and MarketingFooter rendered",
+          "actual": "PASS. (marketing)/layout.tsx wraps children in MarketingLayoutContent which includes MarketingHeader (lines 8-36) and MarketingFooter (imported from widgets/marketing/footer/MarketingFooter). Header shows '조합온' brand link and conditional admin nav.",
+          "evidence": "(marketing)/layout.tsx:40-48 — MarketingHeader + main + MarketingFooter layout"
+        },
+        {
+          "step": "Verify all marketing page links work (Contact, Privacy, Terms)",
+          "expected": "Contact, Privacy, Terms links functional",
+          "actual": "FAIL. MarketingHeader (marketing/layout.tsx:8-36) only contains the brand logo link ('조합온' -> '/') and a conditional admin 'union management' link. There are NO navigation links to /contact, /privacy, or /terms in the header. These links may be in the footer (MarketingFooter) but the header nav is empty for guests. A newbie guest would have no discoverable way to navigate to legal pages from the header.",
+          "evidence": "(marketing)/layout.tsx:22-32 — nav only contains conditional admin link, no public page links"
+        }
+      ],
+      "findings": [
+        {
+          "type": "BUG",
+          "severity": "low",
+          "title": "Marketing header has no navigation links to public pages",
+          "description": "The MarketingHeader component in (marketing)/layout.tsx:8-36 only renders the brand logo and a conditional admin link (visible only to SYSTEM_ADMIN). There are no links to /contact, /privacy, or /terms in the header navigation. A first-time visitor (Guest Newbie) has no visible navigation to legal/contact pages from the header. Links may exist in the footer, but the header nav area marked with <nav> is effectively empty for non-admin guests.",
+          "location": "app/(marketing)/layout.tsx:22-32",
+          "recommendation": "Add navigation links to /contact, /privacy, /terms in the MarketingHeader's <nav> element, or at minimum ensure they are clearly linked in the MarketingFooter."
+        }
+      ],
+      "notes": "The footer may contain these links (MarketingFooter imported from a separate file), but the header navigation is empty for guest users, reducing discoverability."
+    }
+  ],
+
+  "summary": {
+    "total_scenarios": 11,
+    "pass": 8,
+    "fail": 1,
+    "warn": 2,
+    "pass_rate": "72.7%",
+    "critical_issues": 0,
+    "high_issues": 0,
+    "medium_issues": 1,
+    "low_issues": 3,
+
+    "by_category": {
+      "auth": {"tested": 5, "pass": 5, "fail": 0, "warn": 0},
+      "navigation": {"tested": 4, "pass": 2, "fail": 1, "warn": 1},
+      "security": {"tested": 2, "pass": 2, "fail": 0, "warn": 0}
+    },
+
+    "by_priority": {
+      "P0": {"tested": 5, "pass": 5, "fail": 0, "warn": 0},
+      "P1": {"tested": 3, "pass": 2, "fail": 0, "warn": 1},
+      "P3": {"tested": 3, "pass": 2, "fail": 1, "warn": 0}
+    },
+
+    "findings_summary": [
+      {
+        "id": "F1",
+        "type": "WARN",
+        "severity": "medium",
+        "title": "Access token TOCTOU race condition (known debt)",
+        "scenario": "TC-014",
+        "location": "middleware.ts:166-172",
+        "description": "Non-atomic usage_count increment allows potential one-extra-use under concurrent requests."
+      },
+      {
+        "id": "F2",
+        "type": "WARN",
+        "severity": "low",
+        "title": "Naver login button commented out",
+        "scenario": "TC-081",
+        "location": "LoginForm.tsx:93-111",
+        "description": "Only Kakao login available to guests. Naver button is commented out, handler prefixed with underscore."
+      },
+      {
+        "id": "F3",
+        "type": "BUG",
+        "severity": "low",
+        "title": "Marketing header has no navigation links for guests",
+        "scenario": "TC-118",
+        "location": "app/(marketing)/layout.tsx:22-32",
+        "description": "Header nav only shows brand logo + conditional admin link. No links to /contact, /privacy, /terms visible to guests."
+      },
+      {
+        "id": "F4",
+        "type": "INFO",
+        "severity": "low",
+        "title": "redirectTo is server-set only (no open redirect risk)",
+        "scenario": "TC-094",
+        "location": "middleware.ts:386-391",
+        "description": "Middleware only SETS redirectTo (from current pathname), never reads it from user-supplied query params. No open redirect vulnerability."
+      }
+    ],
+
+    "guest_experience_assessment": {
+      "login_flow": "Good. Kakao OAuth flow is smooth with proper redirect handling. Landing page auto-opens RegisterModal for new users after OAuth. Guide text explains the process clearly.",
+      "public_pages": "Good. All 8 PUBLIC_PATHS are accessible. Legal pages available in Korean and English.",
+      "access_token_flow": "Good. Token validation is comprehensive (expiry, max usage, deleted, wrong union). Error messages are localized. 24h cookie provides seamless browsing.",
+      "error_handling": "Good. Invalid/expired tokens redirect to a clear error page with Korean messages. Missing code in OAuth callback redirects with auth_error param.",
+      "discoverability": "Poor. Marketing header has no navigation links for guests. First-time visitors cannot easily find legal pages or contact info from the header.",
+      "security": "Strong. CSRF protection on state-changing requests. CSP headers configured. Admin routes guarded by role check. Protected pages redirect to login."
+    },
+
+    "console_log_audit": {
+      "auth_callback": "WARN. auth/callback/route.ts contains extensive console.log statements (lines 23-27, 31-38, 73, 86-98, 103-106, 111, 154-164, 167-179, 195-201, 205-213, 223-224, 251-253). These log sensitive data including auth user IDs, email, provider info, user metadata, and identities. Should be removed or gated behind debug flag in production.",
+      "middleware": "OK. middleware.ts:189 has one console.error for failed token usage recording (acceptable)."
+    }
+  }
+}

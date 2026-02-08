@@ -1,8 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { X, FileText } from 'lucide-react';
+import { useFocusTrap } from '@/app/_lib/shared/hooks/useFocusTrap';
 
 interface TermsModalProps {
     isOpen: boolean;
@@ -14,11 +15,26 @@ interface TermsModalProps {
  * 정보통신망법 및 개인정보보호법에 따른 필수 항목 포함
  */
 export function TermsModal({ isOpen, onClose }: TermsModalProps) {
+    const focusTrapRef = useFocusTrap(isOpen);
+
+    useEffect(() => {
+        if (!isOpen) return;
+        const handleEsc = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') onClose();
+        };
+        document.addEventListener('keydown', handleEsc);
+        return () => document.removeEventListener('keydown', handleEsc);
+    }, [isOpen, onClose]);
+
     if (!isOpen) return null;
 
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[70] p-4">
             <div
+                ref={focusTrapRef}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="terms-modal-title"
                 className={cn(
                     'bg-white flex flex-col',
                     // 모바일: 전체 화면
@@ -31,7 +47,7 @@ export function TermsModal({ isOpen, onClose }: TermsModalProps) {
                 <div className="flex-shrink-0 border-b border-gray-200 px-4 md:px-6 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <FileText className="w-6 h-6 text-[#4E8C6D]" />
-                        <h2 className="text-lg md:text-xl font-bold text-gray-900">개인정보 수집 및 이용 동의</h2>
+                        <h2 id="terms-modal-title" className="text-lg md:text-xl font-bold text-gray-900">개인정보 수집 및 이용 동의</h2>
                     </div>
                     <button
                         onClick={onClose}

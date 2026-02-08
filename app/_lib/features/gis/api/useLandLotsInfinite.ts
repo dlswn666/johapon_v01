@@ -2,6 +2,7 @@
 
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { supabase } from '@/app/_lib/shared/supabase/client';
+import { escapeLikeWildcards } from '@/app/_lib/shared/utils/escapeLike';
 
 // 확장된 지번 정보 타입
 export interface ExtendedLandLot {
@@ -59,12 +60,14 @@ export function useLandLotsInfinite({ unionId, searchQuery = '', pageSize = 50 }
             if (searchQuery) {
                 // 검색어 정규화: 하이픈 제거 버전도 준비 (791-1982 → 7911982)
                 const queryNormalized = searchQuery.replace(/-/g, '');
+                const escaped = escapeLikeWildcards(searchQuery);
 
-                let orCondition = `address_text.ilike.%${searchQuery}%,pnu.ilike.%${searchQuery}%,address.ilike.%${searchQuery}%`;
+                let orCondition = `address_text.ilike.%${escaped}%,pnu.ilike.%${escaped}%,address.ilike.%${escaped}%`;
 
                 // 하이픈이 있었다면 제거된 버전으로도 검색
                 if (searchQuery !== queryNormalized) {
-                    orCondition += `,address_text.ilike.%${queryNormalized}%,pnu.ilike.%${queryNormalized}%,address.ilike.%${queryNormalized}%`;
+                    const escapedNormalized = escapeLikeWildcards(queryNormalized);
+                    orCondition += `,address_text.ilike.%${escapedNormalized}%,pnu.ilike.%${escapedNormalized}%,address.ilike.%${escapedNormalized}%`;
                 }
 
                 query = query.or(orCondition);

@@ -26,31 +26,17 @@ export default function UnionHomePage() {
     // 신규 사용자: authUser는 있지만 user가 없는 경우 (회원가입 필요)
     const needsRegistration = !!authUser && !user;
 
-    // [DEBUG] 조합 페이지 렌더링 상태
-    console.log('[DEBUG] 🏠 UnionHomePage 렌더링');
-    console.log('[DEBUG] 상태:', {
-        isUnionLoading,
-        isAuthLoading,
-        isAuthenticated,
-        authUser: authUser ? { id: authUser.id, email: authUser.email } : 'null',
-        user: user ? { id: user.id, name: user.name, role: user.role } : 'null',
-        needsRegistration,
-        forceShowHome,
-        unionSlug: union?.slug || 'null',
-    });
-
     if (isUnionLoading || isAuthLoading || isUserFetching) {
-        console.log('[DEBUG] ⏳ Loading...', { isUnionLoading, isAuthLoading, isUserFetching });
         return (
             <div className="container mx-auto max-w-[1280px] px-4 py-8">
                 <Skeleton className="w-full h-[600px] rounded-[24px]" />
+                <p className="text-center text-gray-400 mt-4">로딩 중...</p>
             </div>
         );
     }
 
     // 조합 정보 없음
     if (!union) {
-        console.log('[DEBUG] ❌ 조합 정보 없음');
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-50">
                 <div className="text-center space-y-4">
@@ -64,19 +50,10 @@ export default function UnionHomePage() {
     // 비로그인 상태 또는 회원가입이 필요한 신규 사용자: 랜딩 페이지 표시
     // needsRegistration: authUser는 있지만 user가 없는 경우 (회원가입 모달 표시 필요)
     const showLandingPage = (!isAuthenticated || needsRegistration) && !forceShowHome;
-    console.log('[DEBUG] 랜딩 페이지 표시 조건:', {
-        '!isAuthenticated': !isAuthenticated,
-        needsRegistration,
-        forceShowHome,
-        showLandingPage,
-    });
 
     if (showLandingPage) {
-        console.log('[DEBUG] 👉 LandingPage 렌더링 (회원가입 모달 포함)');
         return <LandingPage unionName={union.name} onLoginSuccess={() => setForceShowHome(true)} />;
     }
-
-    console.log('[DEBUG] 👉 홈페이지 렌더링 (로그인 완료)');
 
     // 로그인 상태: 새로운 홈페이지 레이아웃
     return (

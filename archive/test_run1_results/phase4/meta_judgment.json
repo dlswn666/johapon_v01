@@ -1,0 +1,602 @@
+{
+  "metadata": {
+    "judge_id": "J2-Meta",
+    "generated_at": "2026-02-08T01:30:00Z",
+    "purpose": "Meta-evaluation of E2E testing process quality, coverage gaps, and recommendations",
+    "phases_reviewed": ["Phase 1 (6 analysis files)", "Phase 2 (3 design files)", "Phase 3 (10 tester outputs)"],
+    "j1_result_judgment_status": "NOT_AVAILABLE_AT_TIME_OF_WRITING"
+  },
+
+  "test_quality": {
+    "coverage_score": 82,
+    "reliability_score": 88,
+    "effectiveness_score": 85,
+    "overall_confidence": "MEDIUM",
+
+    "coverage_analysis": {
+      "score": 82,
+      "rationale": "Strong breadth across API endpoints (100%), roles (100%), and personas (100%). However, depth gaps exist: 6/48 business rules untested, 22 rules lack negative tests, ARCHIVED user status untested, consent reversal transitions uncovered, ~20 LIKE injection locations unescaped and untested. View count dedup inconsistency across content types (union-info missing). The 82 reflects solid horizontal coverage but insufficient vertical testing of edge cases and negative paths.",
+      "strengths": [
+        "All 19 API endpoints tested by at least one tester",
+        "All 4 roles (SYSTEM_ADMIN, ADMIN, USER, GUEST) covered with appropriate depth",
+        "120 scenarios across 10 personas provide diverse perspective coverage",
+        "OWASP Top 10 coverage at 85% — A01, A03, A04, A05, A07, A08, A09 all addressed",
+        "Strong cross-tester corroboration: T3 findings verified by T5, T7, T8 independently",
+        "State machine coverage at 90% — all 8 machines tested with key transitions"
+      ],
+      "weaknesses": [
+        "No runtime testing — all testers used CODE-BASED analysis (static analysis of source code, not live execution)",
+        "No actual browser testing performed — all mobile, a11y, and UX findings are inferred from Tailwind classes and code structure",
+        "ARCHIVED user_status has no test path and no trigger in codebase — unclear if it is active",
+        "PROXY ownership type not tested (claimed to share FAMILY code path but unverified)",
+        "22 business rules have normal tests but no abnormal/negative test cases — state guard failures not validated",
+        "Only 4 of ~24 LIKE injection locations are covered by escapeLikeWildcards — remaining ~20 untested",
+        "No dependency/supply-chain audit (OWASP A06)",
+        "No SSRF testing (OWASP A10)",
+        "Cookie security attributes (httpOnly, secure, SameSite) not verified for register-prefill cookie"
+      ]
+    },
+
+    "reliability_analysis": {
+      "score": 88,
+      "rationale": "Tests are consistent and reproducible since they are code-based (deterministic). No flaky test issues. Cross-tester findings are highly correlated — T2, T3, T5, T7, T8 all independently identified the same critical issues (useDeleteNotice, cascade-delete ordering, RLS absence). The main reliability concern is that all testing is static analysis, not runtime execution, so some findings are theoretical rather than confirmed.",
+      "strengths": [
+        "Code-based analysis is inherently deterministic — no flaky test problems",
+        "Multi-tester cross-validation: critical findings confirmed by 3-5 testers independently",
+        "Evidence-based reporting: every finding includes file paths, line numbers, and code snippets",
+        "Consistent severity ratings across testers for the same issues",
+        "Phase 2 validation score of 92/100 indicates high scenario design quality"
+      ],
+      "weaknesses": [
+        "All tests are static analysis — no runtime execution means some findings are theoretical",
+        "Behavioral assumptions: mobile responsiveness inferred from Tailwind classes, not actual viewport testing",
+        "TipTap editor toolbar mobile usability flagged as 'unknown — requires runtime testing' by T7",
+        "DataTable horizontal overflow on mobile flagged as 'cannot confirm without inspecting component' by T7",
+        "No performance benchmarking — latency claims (e.g., 300-600ms middleware overhead) are estimates"
+      ]
+    },
+
+    "effectiveness_analysis": {
+      "score": 85,
+      "rationale": "The testing process successfully identified the most critical vulnerabilities (no RLS, privilege escalation, client-only auth, stored XSS path). T2's malicious persona was exceptionally effective at finding security issues. T3's chaos persona found cascade-delete ordering bugs that systematic testers missed. T4's newbie persona identified significant UX gaps (no help system, no onboarding). The 85 reflects high discovery rate for critical issues but insufficient depth on medium-severity bugs.",
+      "critical_findings_discovered": {
+        "total_critical": 5,
+        "total_high": 14,
+        "total_medium": 18,
+        "total_low": 22,
+        "most_impactful": [
+          {
+            "id": "SEC-001/SEC-020",
+            "title": "No RLS on any of 34 tables — complete data exposure via anon key",
+            "found_by": ["T2-Admin-Malicious"],
+            "corroborated_by": ["Phase 1 schema.json"],
+            "impact": "CRITICAL — Any internet user can read all data, any authenticated user can write any data"
+          },
+          {
+            "id": "SEC-002/SEC-018",
+            "title": "Client-side role escalation via direct DB write + useApproveUser/useRejectUser bypass server auth",
+            "found_by": ["T2-Admin-Malicious"],
+            "impact": "CRITICAL — Any user can become SYSTEM_ADMIN or approve/reject memberships"
+          },
+          {
+            "id": "CHAOS-008/SEC-005",
+            "title": "useDeleteNotice has no ownership/role guard",
+            "found_by": ["T3-User-Chaos"],
+            "corroborated_by": ["T5-User-Impatient", "T7-User-Mobile", "T8-User-PowerUser"],
+            "impact": "CRITICAL — Any authenticated user can delete any notice"
+          },
+          {
+            "id": "SEC-008/CHAOS-002/CHAOS-003",
+            "title": "Cascade-delete ordering destroys files/comments before ownership check",
+            "found_by": ["T2-Admin-Malicious", "T3-User-Chaos"],
+            "corroborated_by": ["T5-User-Impatient", "T8-User-PowerUser"],
+            "impact": "HIGH — Non-owner can permanently destroy post attachments and comments"
+          },
+          {
+            "id": "T4-F28",
+            "title": "No help/FAQ/support system for regular users",
+            "found_by": ["T4-User-Newbie"],
+            "impact": "CRITICAL (UX) — Target demographic ('digitally vulnerable') has zero help resources"
+          }
+        ]
+      },
+      "issues_likely_missed": [
+        "Runtime performance under load (no load testing or benchmarking performed)",
+        "Real browser rendering issues (all mobile/a11y analysis is from code, not screenshots)",
+        "Third-party component behavior (TipTap, KakaoAddressSearch, BirthDatePicker in mobile context)",
+        "Network error handling and retry behavior (theoretical analysis only)",
+        "Supabase realtime subscription issues (not tested at all)",
+        "File upload size limits and timeout behavior",
+        "OAuth session expiry and refresh token handling",
+        "Browser-specific CSS rendering differences",
+        "Concurrent multi-admin workflow conflicts beyond double-click prevention"
+      ]
+    }
+  },
+
+  "gap_analysis": {
+    "untested_api_endpoints": {
+      "count": 0,
+      "note": "All 19 cataloged endpoints were tested. However, several implicit endpoints exist that were not in the original catalog: GET /api/admin/access-tokens/[id] (detail view, partially covered), async job polling endpoints, Supabase realtime subscription endpoints. These carry LOW risk."
+    },
+
+    "untested_role_combinations": [
+      {
+        "combination": "SYSTEM_ADMIN accessing USER-only features",
+        "risk": "LOW",
+        "reason": "SYSTEM_ADMIN is a superset of ADMIN in the middleware guard, but no test verifies SYSTEM_ADMIN can perform all USER actions (content CRUD, comments, etc.)"
+      },
+      {
+        "combination": "SUPER_ADMIN (distinct from ADMIN and SYSTEM_ADMIN)",
+        "risk": "MEDIUM",
+        "reason": "SUPER_ADMIN exists in the middleware role check but has no dedicated persona or test scenarios. Its permissions may differ from ADMIN in untested ways."
+      },
+      {
+        "combination": "Blocked ADMIN trying admin operations",
+        "risk": "MEDIUM",
+        "reason": "authenticateApiRequest checks is_blocked, but client-side hooks (which bypass API routes) do not check blocked status. A blocked admin could still perform operations via Supabase client."
+      },
+      {
+        "combination": "GUEST with expired cookie accessing cached pages",
+        "risk": "LOW",
+        "reason": "No test verifies behavior when guest_access cookie expires mid-session."
+      }
+    ],
+
+    "untested_business_rules": [
+      {
+        "rule": "BR-025: Bulk AlimTalk only sends to PENDING status invites",
+        "risk": "LOW"
+      },
+      {
+        "rule": "BR-033: All ownership changes recorded in property_ownership_history",
+        "risk": "LOW"
+      },
+      {
+        "rule": "BR-036: Pre-registered members saved even without PNU match",
+        "risk": "LOW"
+      },
+      {
+        "rule": "BR-040: Consent stages have required_rate per business type",
+        "risk": "LOW"
+      },
+      {
+        "rule": "BR-041: Member consent status mapped per stage",
+        "risk": "LOW"
+      },
+      {
+        "rule": "BR-042: Total land price = land_area * official_price * (ownership_ratio/100)",
+        "risk": "MEDIUM"
+      }
+    ],
+
+    "weak_persona_coverage": [
+      {
+        "persona": "T5-User-Impatient (Riley)",
+        "assigned_scenarios": 2,
+        "actual_coverage": 17,
+        "assessment": "ADEQUATE — T5 expanded well beyond assigned scenarios to cover 15 additional concurrency tests. However, all analysis was code-based with no actual rapid-click testing. The persona was effective within static analysis limitations.",
+        "gap": "No actual rapid-click/concurrent request testing performed"
+      },
+      {
+        "persona": "T7-User-Mobile (Sam)",
+        "assigned_scenarios": 3,
+        "actual_coverage": 24,
+        "assessment": "GOOD — T7 expanded to test 24 mobile scenarios across many components. However, ALL analysis was from Tailwind CSS classes and responsive breakpoints — no actual mobile viewport testing performed.",
+        "gap": "No real device or emulated viewport testing. TipTap toolbar, DataTable, and BirthDatePicker mobile behavior unknown."
+      },
+      {
+        "persona": "T8-User-PowerUser (Casey)",
+        "assigned_scenarios": 7,
+        "actual_coverage": 7,
+        "assessment": "ADEQUATE — T8 identified performance concerns (N+2 queries, no pagination, dual state management) but did not expand beyond assigned scenarios. Performance analysis was theoretical with no benchmarks.",
+        "gap": "No actual performance measurement. Large dataset behavior (500+ records) not empirically tested."
+      },
+      {
+        "persona": "T9-User-A11y",
+        "assigned_scenarios": 7,
+        "actual_coverage": 7,
+        "assessment": "GOOD — Thorough WCAG 2.1 AA analysis of all custom modals. However, only code-based — no screen reader testing (NVDA/JAWS/VoiceOver), no automated tools (axe-core, Lighthouse).",
+        "gap": "No screen reader or automated a11y tool validation. aria-live region gap found but not verified with actual SR."
+      }
+    ],
+
+    "structural_testing_gaps": [
+      {
+        "gap": "No runtime execution",
+        "severity": "HIGH",
+        "description": "All 10 testers performed CODE-BASED static analysis. No Playwright/Cypress/Selenium test was executed. No browser was opened. All findings are inferred from source code. While this is thorough for logic bugs and security patterns, it cannot verify: rendering correctness, actual user interactions, network behavior, third-party integrations, or performance."
+      },
+      {
+        "gap": "No database integration testing",
+        "severity": "HIGH",
+        "description": "No test queried the actual Supabase database. RLS absence was identified from Phase 1 schema analysis and T2 code analysis, but not verified by actually attempting unauthorized queries. All CRUD operations were traced through code, not executed."
+      },
+      {
+        "gap": "No load/stress testing",
+        "severity": "MEDIUM",
+        "description": "T8 identified performance concerns (N+2 queries, no pagination) but provided no benchmarks. SMS cost amplification, token brute-force, and rate limiting gaps are theoretical."
+      },
+      {
+        "gap": "No cross-browser testing",
+        "severity": "LOW",
+        "description": "No browser-specific testing. Safari, Firefox, Edge behavior for: Tailwind CSS, Radix components, DOMPurify, useMediaQuery hook — all assumed to work based on library documentation."
+      },
+      {
+        "gap": "No content editor testing",
+        "severity": "MEDIUM",
+        "description": "TipTap editor behavior (mobile toolbar, image upload, paste handling, keyboard shortcuts) not tested at all. The editor is a critical path for notice, question, and free-board content creation."
+      }
+    ]
+  },
+
+  "cross_phase_analysis": {
+    "phase1_to_phase3_traceability": {
+      "score": 90,
+      "details": [
+        {
+          "phase1_finding": "Schema: 29/34 tables have no RLS (schema.json)",
+          "phase3_validation": "T2 identified as SEC-001 (CRITICAL) — confirmed via code analysis of Supabase client",
+          "status": "VALIDATED"
+        },
+        {
+          "phase1_finding": "API: access-tokens route uses manual auth pattern (api.json)",
+          "phase3_validation": "T1 verified authenticateApiRequest in TC-061/TC-062/TC-063 (PASS)",
+          "status": "VALIDATED"
+        },
+        {
+          "phase1_finding": "Business Logic: 48 business rules identified (business_logic.json)",
+          "phase3_validation": "42/48 rules covered by test scenarios; T1 verified critical approval/rejection rules",
+          "status": "PARTIALLY_VALIDATED"
+        },
+        {
+          "phase1_finding": "Data Flow: 6 data flow issues identified (data_flow.json DFI-001 to DFI-006)",
+          "phase3_validation": "DFI-001 (notice delete cascade) validated by T2/T3; DFI-002 (free-board cascade) validated by T3/T5",
+          "status": "PARTIALLY_VALIDATED"
+        },
+        {
+          "phase1_finding": "Permissions: 38 permissions mapped across 4 roles (permissions.json)",
+          "phase3_validation": "T1 tested admin permissions, T2 tested bypass attempts, T4/T10 tested user/guest permissions",
+          "status": "VALIDATED"
+        },
+        {
+          "phase1_finding": "Code Structure: 65 pages, 19 API routes, 17 feature modules (code_structure.json)",
+          "phase3_validation": "Testers covered key pages and API routes but not all 65 pages; list/index pages largely untested",
+          "status": "PARTIALLY_VALIDATED"
+        }
+      ],
+      "untraced_findings": [
+        "Phase 1 identified 6 data flow issues (DFI-001 to DFI-006), but only 2 were explicitly validated in Phase 3",
+        "Phase 1 identified 38 permissions, but no systematic permission matrix verification was performed in Phase 3",
+        "Phase 1 code_structure identified 17 Zustand stores, but only T8 noted the dual-state management concern"
+      ]
+    },
+
+    "phase2_scenario_execution_rate": {
+      "total_designed": 120,
+      "explicitly_executed": 106,
+      "execution_rate": "88.3%",
+      "not_executed": [
+        "TC-043 (comment ownership bypass) — partially covered by T6 TC-042",
+        "TC-064 (SYSTEM_ADMIN-only API access) — partially covered by T1 TC-061",
+        "TC-065 (union create) — SKIPPED by T1 (SYSTEM_ADMIN-only interface not scoped)",
+        "TC-066 (inactive union) — tested by T4 only",
+        "TC-067 (union delete cascade) — SKIPPED by T1 (SYSTEM_ADMIN-only interface not scoped)",
+        "TC-095 (role escalation prevention) — partially covered by T2 SEC-012",
+        "TC-098 (question search LIKE escape) — tested by T3 only",
+        "TC-099 (member search LIKE escape) — partially covered by T1 TC-075",
+        "TC-101 (admin-only content management) — partially covered by T2/T8",
+        "TC-110 (dong/ho normalization) — tested by T3 only",
+        "TC-112 (error page) — tested by T3 only",
+        "TC-114 (auth error page) — tested by T3 only",
+        "TC-116 (help system) — tested by T4 only",
+        "TC-120 (content page mobile) — tested by T7 only"
+      ],
+      "notes": "Most non-executed scenarios were covered by expansion or cross-testing from other testers. Only TC-065 and TC-067 were truly SKIPPED (SYSTEM_ADMIN features outside scope)."
+    },
+
+    "cross_tester_finding_correlation": {
+      "highly_corroborated_findings": [
+        {
+          "finding": "useDeleteNotice missing ownership guard",
+          "testers": ["T3", "T5", "T7", "T8"],
+          "confidence": "VERY_HIGH"
+        },
+        {
+          "finding": "Cascade-delete ordering bug (files/comments before ownership)",
+          "testers": ["T2", "T3", "T5", "T8"],
+          "confidence": "VERY_HIGH"
+        },
+        {
+          "finding": "No RLS on Supabase tables",
+          "testers": ["T2"],
+          "corroborated_by": "Phase 1 schema.json",
+          "confidence": "VERY_HIGH"
+        },
+        {
+          "finding": "Union-info view count has no sessionStorage dedup",
+          "testers": ["T3", "T6", "T8"],
+          "confidence": "VERY_HIGH"
+        },
+        {
+          "finding": "Free-board dual-path double view count",
+          "testers": ["T3", "T6", "T8"],
+          "confidence": "VERY_HIGH"
+        },
+        {
+          "finding": "useAdminUsers search lacks LIKE wildcard escape",
+          "testers": ["T1", "T2", "T3"],
+          "confidence": "VERY_HIGH"
+        },
+        {
+          "finding": "Client-only DOMPurify (no server-side sanitization)",
+          "testers": ["T2", "T3"],
+          "confidence": "VERY_HIGH"
+        },
+        {
+          "finding": "Auth callback has 40+ console.log statements",
+          "testers": ["T2", "T8", "T10"],
+          "confidence": "VERY_HIGH"
+        }
+      ],
+      "single_tester_findings_requiring_verification": [
+        {
+          "finding": "Comment update mutation lacks ownership check (SEC-004)",
+          "tester": "T2",
+          "confidence": "HIGH",
+          "note": "Only T2 tested this; no cross-validation. Code evidence is clear."
+        },
+        {
+          "finding": "useAnswerQuestion/useDeleteAnswer lack admin check (SEC-016/017)",
+          "tester": "T2",
+          "confidence": "HIGH",
+          "note": "Only T2 tested this; code evidence is clear."
+        },
+        {
+          "finding": "Cross-union admin operations via hooks (SEC-013/014)",
+          "tester": "T2",
+          "confidence": "HIGH",
+          "note": "Only T2 identified. Requires multi-union setup to verify at runtime."
+        },
+        {
+          "finding": "No help/FAQ system (T4-F28)",
+          "tester": "T4",
+          "confidence": "HIGH",
+          "note": "Only T4 specifically tested for this. Comprehensive codebase search confirms absence."
+        },
+        {
+          "finding": "Register-prefill cookie not httpOnly (SEC-010)",
+          "tester": "T2",
+          "confidence": "HIGH",
+          "note": "Code evidence clear at auth/callback/route.ts:218."
+        }
+      ]
+    }
+  },
+
+  "recommendations": {
+    "next_test_cycle": [
+      {
+        "priority": 1,
+        "action": "Add runtime execution testing (Playwright/Cypress)",
+        "rationale": "All 10 testers performed static analysis only. Runtime testing would validate rendering, user interactions, network behavior, and third-party component integration. This is the single biggest testing process gap.",
+        "effort": "HIGH"
+      },
+      {
+        "priority": 2,
+        "action": "Add RLS verification tests against live Supabase",
+        "rationale": "The #1 critical vulnerability (no RLS) was identified by code analysis. Runtime verification with actual unauthorized Supabase queries would confirm the severity and validate any RLS policies added as fixes.",
+        "effort": "MEDIUM"
+      },
+      {
+        "priority": 3,
+        "action": "Add negative/abnormal test cases for 22 untested business rule edge cases",
+        "rationale": "Phase 2 validation identified 22 business rules with normal tests but no negative tests. Critical state guards (approve non-PENDING, reject non-PENDING, block without reason) should be verified.",
+        "effort": "MEDIUM"
+      },
+      {
+        "priority": 4,
+        "action": "Add performance benchmarking for large datasets",
+        "rationale": "T8 identified multiple N+1/N+2 query patterns, no pagination on notices/questions, and middleware DB round-trips. Benchmarks with 500+ records would quantify actual impact.",
+        "effort": "MEDIUM"
+      },
+      {
+        "priority": 5,
+        "action": "Add automated a11y scanning (axe-core/Lighthouse)",
+        "rationale": "T9 performed thorough manual WCAG analysis but no automated tools. axe-core would catch color contrast violations, missing ARIA attributes, and focus management issues that code review might miss.",
+        "effort": "LOW"
+      },
+      {
+        "priority": 6,
+        "action": "Add cross-browser testing (Safari, Firefox, Edge)",
+        "rationale": "No browser-specific testing was performed. Korean user base likely uses Chrome, Safari (iOS), and Samsung Internet. CSS rendering and DOMPurify behavior may vary.",
+        "effort": "MEDIUM"
+      },
+      {
+        "priority": 7,
+        "action": "Add API security testing with tools (OWASP ZAP, Burp)",
+        "rationale": "T2 identified many security issues through code analysis, but automated security scanners would catch additional issues (headers, response analysis, request fuzzing).",
+        "effort": "MEDIUM"
+      }
+    ],
+
+    "persona_adjustments": [
+      {
+        "persona": "T2-Admin-Malicious",
+        "current_effectiveness": "EXCELLENT",
+        "adjustment": "Consider splitting into two personas: (1) External Attacker (unauthenticated, probing), (2) Internal Malicious User (authenticated, escalating). T2 currently covers both but conflates the threat models.",
+        "priority": "LOW"
+      },
+      {
+        "persona": "T5-User-Impatient",
+        "current_effectiveness": "GOOD",
+        "adjustment": "Assign more scenarios directly. T5 self-expanded to 17 tests but was only assigned 2. The impatient persona is well-suited to test loading states, timeout behavior, retry logic, and error recovery under time pressure.",
+        "priority": "MEDIUM"
+      },
+      {
+        "persona": "T7-User-Mobile",
+        "current_effectiveness": "GOOD",
+        "adjustment": "Add RUNTIME REQUIREMENT — T7 must use actual mobile viewports (Playwright mobile config or real devices). Code-based Tailwind class analysis is insufficient for verifying mobile rendering, touch interactions, and third-party component behavior.",
+        "priority": "HIGH"
+      },
+      {
+        "persona": "T8-User-PowerUser",
+        "current_effectiveness": "ADEQUATE",
+        "adjustment": "Add PERFORMANCE BENCHMARKING requirement. T8 should measure actual query times, page load times, and bundle sizes — not just identify patterns from code.",
+        "priority": "MEDIUM"
+      },
+      {
+        "persona": "T9-User-A11y",
+        "current_effectiveness": "GOOD",
+        "adjustment": "Add SCREEN READER TESTING requirement. Code-based ARIA analysis is necessary but not sufficient. VoiceOver (macOS/iOS) testing would validate actual screen reader experience.",
+        "priority": "HIGH"
+      },
+      {
+        "persona": "NEW: T11-Admin-Concurrent",
+        "current_effectiveness": "N/A",
+        "adjustment": "Add a new persona focused on multi-admin concurrent workflows. Currently no persona tests what happens when two admins approve/reject/block the same member simultaneously from different browsers. This is a real-world scenario for active unions.",
+        "priority": "MEDIUM"
+      },
+      {
+        "persona": "NEW: T12-Attacker-Unauthenticated",
+        "current_effectiveness": "N/A",
+        "adjustment": "Add a persona specifically for unauthenticated attack surface testing. Current T2 is authenticated. A dedicated unauthenticated tester would focus on: anon key exploitation, public endpoint fuzzing, OAuth flow manipulation, and information disclosure from error responses.",
+        "priority": "HIGH"
+      }
+    ],
+
+    "additional_test_types": [
+      {
+        "type": "Integration Tests",
+        "rationale": "Current testing is purely static. Integration tests against the actual Supabase instance would verify: RLS policies, RPC functions (set_primary_property_unit, increment_*_views), foreign key cascades, and trigger behavior.",
+        "priority": "HIGH"
+      },
+      {
+        "type": "Load/Stress Tests",
+        "rationale": "No performance testing exists. The SMS endpoint cost amplification, access token TOCTOU race, and pagination-less queries need load testing to quantify real-world impact.",
+        "priority": "MEDIUM"
+      },
+      {
+        "type": "Visual Regression Tests",
+        "rationale": "Mobile responsiveness and CSS rendering verified only through Tailwind class analysis. Visual regression tools (Chromatic, Percy, Playwright screenshots) would catch actual rendering issues.",
+        "priority": "MEDIUM"
+      },
+      {
+        "type": "Dependency Audit",
+        "rationale": "OWASP A06 (Vulnerable Components) is uncovered. npm audit and Snyk scanning would identify known vulnerabilities in dependencies.",
+        "priority": "LOW"
+      },
+      {
+        "type": "API Contract Tests",
+        "rationale": "Swagger docs exist at /api/docs but no contract testing verifies API responses match documented schemas. This would catch drift between documentation and implementation.",
+        "priority": "LOW"
+      }
+    ]
+  },
+
+  "process_evaluation": {
+    "phase1_quality": {
+      "score": 95,
+      "assessment": "EXCELLENT. Six comprehensive analysis files covering code structure, API surface, permissions, business logic, data flow, and schema. The schema analysis correctly identified the critical RLS absence. The business logic analysis cataloged 48 rules providing a strong testing baseline. The permission analysis mapped 38 permissions across 4 roles with special access patterns.",
+      "improvement": "Consider adding a 7th analysis file for dependencies/third-party libraries to enable OWASP A06 coverage."
+    },
+    "phase2_quality": {
+      "score": 92,
+      "assessment": "EXCELLENT. 120 scenarios across 10 personas with strong validation (92/100 score). Test data covers valid/boundary/invalid/malicious categories for all major entities. The scenario architecture correctly distributed scenarios across roles and priorities (P0:20, P1:40, P2:35, P3:25). Phase 2 validation identified 5 medium and 3 low gaps proactively.",
+      "improvement": "Increase negative/abnormal test case coverage from 73% (35/48) to 90%+. Add test data for hero_slides entity. Consider adding performance test scenarios (response time thresholds, concurrent user counts)."
+    },
+    "phase3_quality": {
+      "score": 80,
+      "assessment": "GOOD with significant caveat. All 10 testers produced detailed, evidence-based results with file paths and line numbers. Cross-tester corroboration of critical findings is strong. However, the fundamental limitation is that ALL testing was code-based static analysis — no runtime execution occurred. This means the test suite cannot verify rendering, user interactions, network behavior, or actual security exploits. The 80 reflects high-quality static analysis with a major methodological gap.",
+      "improvement": "The single most impactful change would be adding runtime execution capability. Even a basic Playwright suite covering the top 20 scenarios would dramatically increase testing confidence."
+    },
+    "overall_pipeline_assessment": {
+      "score": 85,
+      "assessment": "The 4-phase pipeline (Analysis -> Design -> Testing -> Judgment) is well-structured and produced valuable results. Phase 1 provided a strong foundation. Phase 2 built comprehensive scenarios. Phase 3 executed thorough code analysis. The pipeline successfully identified critical vulnerabilities (no RLS, privilege escalation, missing ownership guards) and meaningful UX/a11y issues. The main limitation is the absence of runtime testing, which is a pipeline design issue rather than an execution quality issue.",
+      "pipeline_strengths": [
+        "Multi-phase approach ensures systematic coverage",
+        "10 diverse personas provide comprehensive perspective coverage",
+        "Cross-tester validation increases finding confidence",
+        "Evidence-based reporting with code references enables actionable fixes",
+        "Validation phase (Phase 2) catches scenario design gaps before execution",
+        "Phase 1 analysis correctly identified root causes (RLS, client-only auth) that Phase 3 testers then verified"
+      ],
+      "pipeline_weaknesses": [
+        "No runtime execution in any phase — all analysis is static/theoretical",
+        "No automated test artifacts generated (no Playwright/Cypress scripts, no CI integration)",
+        "No regression testing capability — fixes cannot be verified without re-running the entire pipeline",
+        "Phase 3 testers self-expanded beyond assigned scenarios inconsistently (T5 expanded to 17, T8 stayed at 7)",
+        "No standardized severity scale — T2 uses CRITICAL/HIGH/MEDIUM/LOW, T6 uses defects with different categorization",
+        "Phase 4 judges cannot verify findings without runtime access"
+      ]
+    }
+  },
+
+  "finding_summary_by_severity": {
+    "CRITICAL": {
+      "count": 5,
+      "findings": [
+        "SEC-001/SEC-020: No RLS on any table — complete data exposure (T2)",
+        "SEC-002: Client-side role escalation via direct DB write (T2)",
+        "SEC-018: useApproveUser/useRejectUser bypass server-side auth (T2)",
+        "CHAOS-008/SEC-005: useDeleteNotice has no ownership guard (T3, corroborated by T5/T7/T8)",
+        "T4-F28: No help/FAQ/support system for regular users (T4)"
+      ],
+      "note": "The first 4 are security issues that share a common root cause: no database-level access control (RLS). Fixing RLS would mitigate all 4 simultaneously."
+    },
+    "HIGH": {
+      "count": 14,
+      "findings": [
+        "SEC-004: Comment update mutation lacks ownership check (T2)",
+        "SEC-005/CHAOS-008: Notice delete lacks author/admin check (T2, T3)",
+        "SEC-008/CHAOS-002: Free board cascade delete ordering (T2, T3)",
+        "SEC-012: useUpdateUserRole allows arbitrary role assignment (T2)",
+        "SEC-013: Cross-union executive status modification (T2)",
+        "SEC-014: Cross-union ownership type modification (T2)",
+        "SEC-016/017: useAnswerQuestion/useDeleteAnswer lack admin check (T2)",
+        "SEC-019: No rate limiting on any endpoint (T2)",
+        "SEC-021: Stored XSS via direct DB insertion (T2)",
+        "CHAOS-003: Question delete cascade ordering (T3)",
+        "T4-F05: Registration progress dots provide no semantic meaning (T4)",
+        "T4-F06: RegisterModal auto-opens with no intro (T4)",
+        "T4-F14: No onboarding guidance after approval (T4)",
+        "T4-F25/F26: Generic error messages and unread auth_error params (T4)"
+      ]
+    },
+    "MEDIUM": {
+      "count": 18,
+      "key_findings": [
+        "SEC-006: useAdminUsers LIKE wildcard injection (T1, T2, T3)",
+        "SEC-007: Access token TOCTOU race condition (T2, T10)",
+        "SEC-009: Auth callback excessive debug logging (T2, T8, T10)",
+        "SEC-010: register-prefill cookie not httpOnly (T2)",
+        "SEC-015: Content update mutations lack union_id scope (T2)",
+        "SEC-022: SMS API unlimited recipients (T2)",
+        "TC-011: CSP allows unsafe-eval and unsafe-inline (T2)",
+        "DFI-003/004: Silent file attachment failure / broken blob URLs (T6)",
+        "PERF-006: Union-info view count no dedup (T3, T6, T8)",
+        "BUG-001: Dual-path free-board double view count (T3, T6, T8)",
+        "MOBILE-ISSUE-001/002: Union-info title not responsive (T7)",
+        "MOBILE-ISSUE-003: Admin tabs overflow on mobile (T7)",
+        "A11y: No aria-live regions for dynamic content (T9)",
+        "A11y: text-gray-400 contrast ratio below AA (T9)",
+        "A11y: MemberEditModal sub-modals lack dialog ARIA (T9)"
+      ]
+    }
+  },
+
+  "confidence_assessment": {
+    "overall_confidence": "MEDIUM",
+    "rationale": "The testing process identified critical vulnerabilities with high confidence (multi-tester corroboration, code evidence). However, the absence of runtime execution means all findings are theoretical rather than empirically verified. The MEDIUM confidence reflects high certainty about the identified issues but uncertainty about what issues were MISSED due to the static-only methodology.",
+    "confidence_by_area": {
+      "security_findings": "HIGH — T2's malicious persona provided thorough code-level security analysis. Critical findings (no RLS, missing ownership guards) are well-evidenced and corroborated.",
+      "ux_findings": "MEDIUM — T4's newbie persona identified meaningful UX gaps, but without user testing, the actual impact is uncertain.",
+      "a11y_findings": "MEDIUM — T9's WCAG analysis is thorough but code-based. Without screen reader testing, compliance cannot be confirmed.",
+      "mobile_findings": "LOW — T7's analysis is entirely based on Tailwind CSS classes. No actual mobile viewport or device testing was performed.",
+      "performance_findings": "LOW — T8's analysis identified patterns but provided no benchmarks. Actual performance impact is unknown.",
+      "completeness": "MEDIUM — 120 scenarios with 88.3% execution rate is good but ~20 LIKE injection locations remain untested, and runtime testing gaps may hide additional issues."
+    }
+  },
+
+  "executive_summary": "The E2E testing pipeline successfully identified 5 CRITICAL, 14 HIGH, and 18 MEDIUM severity issues across security, UX, accessibility, mobile, and performance domains. The most critical finding is the complete absence of Row Level Security on all 34 Supabase tables, enabling full data exposure and privilege escalation. The testing process demonstrated strong Phase 1 analysis (score: 95), excellent Phase 2 design (score: 92), and good Phase 3 execution (score: 80). The 10-persona approach provided diverse perspectives, and cross-tester corroboration increased confidence in critical findings. However, the fundamental limitation is that ALL testing was code-based static analysis with NO runtime execution. This means the suite cannot verify rendering, user interactions, network behavior, or actual security exploits. The single most impactful improvement for the next cycle would be adding Playwright-based runtime testing alongside the static analysis approach. Overall confidence is MEDIUM — high certainty about identified issues, but uncertainty about undiscovered issues due to methodology limitations."
+}

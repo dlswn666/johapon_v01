@@ -5,6 +5,7 @@ import { XCircle, RefreshCw, Clock, User as UserIcon, Phone, Calendar, MapPin, L
 import { cn } from '@/lib/utils';
 import { supabase } from '@/app/_lib/shared/supabase/client';
 import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
+import { useFocusTrap } from '@/app/_lib/shared/hooks/useFocusTrap';
 
 interface ApprovalRejectedModalProps {
     isOpen: boolean;
@@ -38,6 +39,7 @@ export function ApprovalRejectedModal({
     rejectedReason,
 }: ApprovalRejectedModalProps) {
     const { user, refreshUser, isLoading: authLoading, isUserFetching } = useAuth();
+    const focusTrapRef = useFocusTrap(isOpen);
     const [mode, setMode] = useState<ModalMode>('rejected');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState('');
@@ -52,6 +54,16 @@ export function ApprovalRejectedModal({
         property_address_jibun: '',
         property_address_detail: '',
     });
+
+    // ESC 키 핸들러
+    useEffect(() => {
+        if (!isOpen) return;
+        const handleEsc = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') onClose();
+        };
+        document.addEventListener('keydown', handleEsc);
+        return () => document.removeEventListener('keydown', handleEsc);
+    }, [isOpen, onClose]);
 
     // 모달 열릴 때 사용자 정보로 폼 초기화
     useEffect(() => {
@@ -138,10 +150,6 @@ export function ApprovalRejectedModal({
             setError('전화번호를 입력해주세요.');
             return;
         }
-        if (!form.birth_date) {
-            setError('생년월일을 입력해주세요.');
-            return;
-        }
         if (!form.property_address_road) {
             setError('물건지 주소를 입력해주세요.');
             return;
@@ -200,7 +208,7 @@ export function ApprovalRejectedModal({
                 <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
                     <XCircle className="w-8 h-8 text-white" />
                 </div>
-                <h2 className="text-xl font-bold text-white">
+                <h2 id="rejected-modal-title" className="text-xl font-bold text-white">
                     승인이 반려되었습니다
                 </h2>
             </div>
@@ -276,7 +284,7 @@ export function ApprovalRejectedModal({
                 <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
                     <RefreshCw className="w-8 h-8 text-white" />
                 </div>
-                <h2 className="text-xl font-bold text-white">
+                <h2 id="rejected-modal-title" className="text-xl font-bold text-white">
                     정보 수정 후 재신청
                 </h2>
             </div>
@@ -291,56 +299,64 @@ export function ApprovalRejectedModal({
                 <div className="space-y-4">
                     {/* 이름 */}
                     <div className="space-y-2">
-                        <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                        <label htmlFor="rejected-name" className="flex items-center gap-2 text-sm font-medium text-gray-700">
                             <UserIcon className="w-4 h-4 text-gray-400" />
                             이름 <span className="text-red-500">*</span>
                         </label>
                         <input
+                            id="rejected-name"
+                            aria-required="true"
                             type="text"
                             value={form.name}
                             onChange={(e) => setForm(prev => ({ ...prev, name: e.target.value }))}
                             placeholder="이름을 입력하세요"
-                            className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4E8C6D] focus:border-transparent text-sm"
+                            className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4E8C6D] focus:border-transparent text-base"
                         />
                     </div>
 
                     {/* 전화번호 */}
                     <div className="space-y-2">
-                        <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                        <label htmlFor="rejected-phone" className="flex items-center gap-2 text-sm font-medium text-gray-700">
                             <Phone className="w-4 h-4 text-gray-400" />
                             전화번호 <span className="text-red-500">*</span>
                         </label>
                         <input
+                            id="rejected-phone"
+                            aria-required="true"
                             type="tel"
                             value={form.phone_number}
                             onChange={(e) => setForm(prev => ({ ...prev, phone_number: e.target.value }))}
                             placeholder="전화번호를 입력하세요"
-                            className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4E8C6D] focus:border-transparent text-sm"
+                            className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4E8C6D] focus:border-transparent text-base"
                         />
                     </div>
 
                     {/* 생년월일 */}
                     <div className="space-y-2">
-                        <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                        <label htmlFor="rejected-birth" className="flex items-center gap-2 text-sm font-medium text-gray-700">
                             <Calendar className="w-4 h-4 text-gray-400" />
                             생년월일 <span className="text-red-500">*</span>
                         </label>
                         <input
+                            id="rejected-birth"
+                            aria-required="true"
                             type="date"
                             value={form.birth_date}
                             onChange={(e) => setForm(prev => ({ ...prev, birth_date: e.target.value }))}
-                            className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4E8C6D] focus:border-transparent text-sm"
+                            className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4E8C6D] focus:border-transparent text-base"
                         />
                     </div>
 
                     {/* 물건지 주소 */}
                     <div className="space-y-2">
-                        <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                        <label htmlFor="rejected-address" className="flex items-center gap-2 text-sm font-medium text-gray-700">
                             <MapPin className="w-4 h-4 text-gray-400" />
                             물건지 주소 <span className="text-red-500">*</span>
                         </label>
                         <div className="flex gap-2">
                             <input
+                                id="rejected-address"
+                                aria-required="true"
                                 type="text"
                                 value={form.property_address_road}
                                 readOnly
@@ -362,20 +378,21 @@ export function ApprovalRejectedModal({
 
                     {/* 상세주소 */}
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-700">상세주소</label>
+                        <label htmlFor="detail-address" className="text-sm font-medium text-gray-700">상세주소</label>
                         <input
+                            id="detail-address"
                             type="text"
                             value={form.property_address_detail}
                             onChange={(e) => setForm(prev => ({ ...prev, property_address_detail: e.target.value }))}
                             placeholder="상세주소를 입력하세요"
-                            className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4E8C6D] focus:border-transparent text-sm"
+                            className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4E8C6D] focus:border-transparent text-base"
                         />
                     </div>
                 </div>
 
                 {/* 에러 메시지 */}
                 {error && (
-                    <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-3">
+                    <div role="alert" className="mt-4 bg-red-50 border border-red-200 rounded-lg p-3">
                         <p className="text-sm text-red-600 text-center">{error}</p>
                     </div>
                 )}
@@ -431,7 +448,7 @@ export function ApprovalRejectedModal({
                 <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
                     <Clock className="w-8 h-8 text-white" />
                 </div>
-                <h2 className="text-xl font-bold text-white">
+                <h2 id="rejected-modal-title" className="text-xl font-bold text-white">
                     재신청이 완료되었습니다
                 </h2>
             </div>
@@ -468,7 +485,7 @@ export function ApprovalRejectedModal({
     );
 
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div ref={focusTrapRef} role="dialog" aria-modal="true" aria-labelledby="rejected-modal-title" className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-xl shadow-xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in duration-200">
                 {mode === 'rejected' && renderRejectedMode()}
                 {mode === 'edit' && renderEditMode()}

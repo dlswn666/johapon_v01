@@ -1,0 +1,777 @@
+{
+  "metadata": {
+    "judge": "J1-Result-Judge",
+    "generated_at": "2026-02-08T01:00:00Z",
+    "testers_analyzed": 10,
+    "phase": "Phase 4 - Result Judgment"
+  },
+
+  "summary": {
+    "total_scenarios": 172,
+    "passed": 131,
+    "failed": 24,
+    "blocked": 1,
+    "skipped": 7,
+    "pass_with_caveat": 9,
+    "pass_rate": 76.2,
+    "adjusted_pass_rate_excl_skipped": 79.4,
+    "notes": "172 total scenario results across 10 testers. Some scenarios tested by multiple testers (cross-verified). Unique scenario IDs: ~116. pass_with_caveat counted as conditional passes."
+  },
+
+  "quality_score": {
+    "total": 42,
+    "breakdown": {
+      "functionality": {
+        "weight": 40,
+        "raw_score": 55,
+        "weighted_score": 22.0,
+        "rationale": "Core happy-path flows (auth, CRUD, approval, comments, search) work correctly. 4 Critical defects found (all RLS-related), 10+ High-severity bugs in authorization/ownership checks. Admin workflows solid. User workflows mostly functional but mutation-level guards missing in several places. Pass rate dragged down by T2-Malicious (27 fails out of 42 tests) which exposed fundamental RLS absence."
+      },
+      "performance": {
+        "weight": 20,
+        "raw_score": 55,
+        "weighted_score": 11.0,
+        "rationale": "T8-PowerUser found several scalability concerns: no pagination on notices/questions (only free-board has it), N+2 query patterns in search, client-side count aggregation, dual Zustand+TanStack state, 3-5 sequential DB queries in auth callback. TanStack Query caching is well-configured (5min staleTime, proper invalidation). Middleware admin check adds 2 DB queries per admin page. No critical performance failures but significant scaling risks for unions with 500+ records."
+      },
+      "security": {
+        "weight": 20,
+        "raw_score": 15,
+        "weighted_score": 3.0,
+        "rationale": "CRITICAL: No RLS on any of 34+ tables - the single most severe finding. All client-side authorization can be bypassed via browser DevTools. T2-Malicious found 4 Critical, 10 High, 7 Medium security issues. Privilege escalation from any role to SYSTEM_ADMIN is trivial. Cross-union data access unprotected. Client-only XSS sanitization with permissive CSP. No rate limiting. Access token TOCTOU race. However, middleware CSRF and redirectTo validation are correct, API route auth (authenticateApiRequest) works properly, and ownership guards exist on most delete operations."
+      },
+      "usability": {
+        "weight": 10,
+        "raw_score": 62,
+        "weighted_score": 6.2,
+        "rationale": "T4-Newbie gave 62/100 UX score. Strong points: step-by-step registration wizard, approval pending modal, mobile sidebar. Critical gaps: no help/FAQ system, no onboarding after approval, OAuth errors not displayed, registration auto-opens without context, no profile edit for users. T7-Mobile found 4 moderate issues (union-info title not responsive, admin tabs overflow, invite header overlap) and 3 minor issues."
+      },
+      "accessibility": {
+        "weight": 10,
+        "raw_score": 78,
+        "weighted_score": 7.8,
+        "rationale": "T9-A11y found 54/62 checks passed (87%). All 6 custom modals have proper ARIA (role, aria-modal, aria-labelledby). useFocusTrap hook is well-implemented. Skip navigation present in all layouts. Error messages use role='alert'. Main gaps: no aria-live regions for dynamic content (MEDIUM), MemberEditModal nested sub-modals lack ARIA (MEDIUM), text-gray-400 contrast below AA (MEDIUM), some close buttons missing aria-label (LOW)."
+      }
+    }
+  },
+
+  "defects": [
+    {
+      "id": "DEF-001",
+      "severity": "Critical",
+      "tester": "T2-Admin-Malicious",
+      "title": "No RLS on any Supabase table (34+ tables unprotected)",
+      "description": "All 34+ tables have no Row Level Security policies. Any user with the Supabase anon key (publicly visible in client bundle) can read, write, update, or delete any row in any table. This bypasses all application-level authorization. This is the ROOT CAUSE of most other security findings.",
+      "location": "All Supabase tables",
+      "impact": "Complete data breach of all unions, full privilege escalation, cross-union data access, deletion of any records. CRITICAL infrastructure vulnerability."
+    },
+    {
+      "id": "DEF-002",
+      "severity": "Critical",
+      "tester": "T2-Admin-Malicious",
+      "title": "Client-side role escalation via direct DB write",
+      "description": "Any authenticated user can update their own role to SYSTEM_ADMIN by calling supabase.from('users').update({role:'SYSTEM_ADMIN'}).eq('id', myId) via browser DevTools.",
+      "location": "Supabase client (anon key, no RLS)",
+      "impact": "Any registered user can become SYSTEM_ADMIN, gaining access to all admin functions."
+    },
+    {
+      "id": "DEF-003",
+      "severity": "Critical",
+      "tester": "T2-Admin-Malicious",
+      "title": "useApproveUser/useRejectUser bypass server-side auth",
+      "description": "Client-side hooks directly update the users table via Supabase client without API route authentication. The hooks have no admin role check.",
+      "location": "app/_lib/features/member-management/api/useMemberHook.ts:1013-1099",
+      "impact": "Non-admin users can approve or reject membership applications by calling the mutation directly."
+    },
+    {
+      "id": "DEF-004",
+      "severity": "Critical",
+      "tester": "T3-User-Chaos, T5-User-Impatient, T8-User-PowerUser (cross-verified)",
+      "title": "useDeleteNotice has NO ownership or role guard",
+      "description": "Notice delete mutation runs .from('notices').delete().eq('id', noticeId) with no .eq('author_id', user.id) guard. Unlike useDeleteFreeBoard and useDeleteQuestion which guard non-admin deletes, notice delete is completely unguarded.",
+      "location": "app/_lib/features/notice/api/useNoticeHook.ts:511",
+      "impact": "Any authenticated user can delete any notice in any union by calling the mutation with arbitrary noticeId."
+    },
+    {
+      "id": "DEF-005",
+      "severity": "Critical",
+      "tester": "T2-Admin-Malicious",
+      "title": "Supabase anon key grants full DB access without authentication",
+      "description": "NEXT_PUBLIC_SUPABASE_ANON_KEY is publicly visible. Without RLS, this key alone grants SELECT/INSERT/UPDATE/DELETE on all tables. Even unauthenticated visitors can extract the key and query the database.",
+      "location": "NEXT_PUBLIC_SUPABASE_ANON_KEY in client bundle",
+      "impact": "Complete data exposure of all 34 tables to any internet user."
+    },
+    {
+      "id": "DEF-006",
+      "severity": "High",
+      "tester": "T2-Admin-Malicious",
+      "title": "Comment update mutation lacks ownership check",
+      "description": "useUpdateComment updates comments without verifying the caller is the author. The delete operation has .eq('author_id', userId) but the update does not.",
+      "location": "app/_lib/features/comment/api/useCommentHook.ts:212-223",
+      "impact": "Any authenticated user can modify any comment's content across all unions."
+    },
+    {
+      "id": "DEF-007",
+      "severity": "High",
+      "tester": "T2-Admin-Malicious",
+      "title": "Notice delete lacks author/admin ownership check (app-level)",
+      "description": "useDeleteNotice deletes notices by ID only, without checking if the caller is an admin or the author. This is a separate concern from the RLS issue (DEF-001) as it should be fixed at both levels.",
+      "location": "app/_lib/features/notice/api/useNoticeHook.ts:511",
+      "impact": "Unauthorized deletion of important union notices."
+    },
+    {
+      "id": "DEF-008",
+      "severity": "High",
+      "tester": "T2-Admin-Malicious, T3-User-Chaos, T5-User-Impatient (cross-verified)",
+      "title": "Free board cascade delete ordering causes orphan data",
+      "description": "useDeleteFreeBoard deletes storage files, DB file records, and comments BEFORE checking post ownership. If the ownership check fails (non-admin deleting another's post), the files and comments are already permanently deleted.",
+      "location": "app/_lib/features/free-board/api/useFreeBoardHook.ts:391-422",
+      "impact": "Data destruction without authorization. Partial cascade delete leaves corrupted state."
+    },
+    {
+      "id": "DEF-009",
+      "severity": "High",
+      "tester": "T3-User-Chaos",
+      "title": "Question delete cascade same ordering bug",
+      "description": "useDeleteQuestion deletes storage files unconditionally before checking author_id ownership. Same structural issue as DEF-008.",
+      "location": "app/_lib/features/question/api/useQuestionHook.ts:378-392",
+      "impact": "File data loss on unauthorized delete attempts."
+    },
+    {
+      "id": "DEF-010",
+      "severity": "High",
+      "tester": "T2-Admin-Malicious",
+      "title": "useUpdateUserRole allows SYSTEM_ADMIN assignment by regular ADMIN",
+      "description": "useUpdateUserRole accepts any role string without validating caller has sufficient privileges. An ADMIN could set another user's role to SYSTEM_ADMIN.",
+      "location": "app/_lib/features/member-management/api/useMemberHook.ts:1106-1113",
+      "impact": "Admin can create SYSTEM_ADMIN accounts with access to system-wide operations."
+    },
+    {
+      "id": "DEF-011",
+      "severity": "High",
+      "tester": "T2-Admin-Malicious",
+      "title": "Cross-union admin operations via direct hooks (missing union_id filter)",
+      "description": "Multiple mutations lack union_id filtering: useUpdateExecutiveStatus, useUpdateExecutiveTitle, useUpdateExecutiveSortOrder, useUpdateOwnershipType. These only filter by user/property ID.",
+      "location": "app/_lib/features/member-management/api/useMemberHook.ts:1173-1221, 727-733",
+      "impact": "Admin of union A can modify users in union B."
+    },
+    {
+      "id": "DEF-012",
+      "severity": "High",
+      "tester": "T2-Admin-Malicious",
+      "title": "useAnswerQuestion and useDeleteAnswer lack admin authorization check",
+      "description": "useAnswerQuestion only verifies user?.id (logged in) but not isAdmin. useDeleteAnswer has no authorization at all.",
+      "location": "app/_lib/features/question/api/useQuestionHook.ts:438-459, 528-543",
+      "impact": "Any user can submit 'admin answers' or delete existing admin answers."
+    },
+    {
+      "id": "DEF-013",
+      "severity": "High",
+      "tester": "T2-Admin-Malicious",
+      "title": "Stored XSS via direct database insertion (bypassing client sanitization)",
+      "description": "DOMPurify sanitize() only runs client-side during rendering. Content is stored raw in DB. Direct Supabase client insertion bypasses sanitization entirely. Combined with permissive CSP (unsafe-inline + unsafe-eval).",
+      "location": "app/_lib/shared/utils/sanitize.ts (client-only), All content tables",
+      "impact": "Cookie theft, session hijacking, phishing via injected content."
+    },
+    {
+      "id": "DEF-014",
+      "severity": "High",
+      "tester": "T2-Admin-Malicious",
+      "title": "No rate limiting on any endpoint",
+      "description": "No rate limiting middleware exists. SMS endpoint is particularly risky (cost amplification). Access token brute-force and mass content creation are also unprotected.",
+      "location": "All API routes and middleware",
+      "impact": "Financial damage (SMS costs), service degradation, token brute-force."
+    },
+    {
+      "id": "DEF-015",
+      "severity": "High",
+      "tester": "T4-User-Newbie",
+      "title": "No help/FAQ/support system for regular users",
+      "description": "No help system, FAQ page, tutorial, or user guide exists anywhere in the application for regular USER role. Critical UX gap for non-tech-savvy target demographic (property owners, potentially elderly).",
+      "location": "Global - no help system found in codebase",
+      "impact": "Users have no self-service support resources. Only phone contact in error modals."
+    },
+    {
+      "id": "DEF-016",
+      "severity": "Medium",
+      "tester": "T1-Admin-Methodical, T2-Admin-Malicious, T3-User-Chaos (cross-verified)",
+      "title": "LIKE wildcard injection in useAdminUsers search",
+      "description": "useAdminUsers (approval tab search) does not apply escapeLikeWildcards to searchQuery before passing it to .or() ilike filter. The sibling function useApprovedMembers correctly escapes.",
+      "location": "app/_lib/features/member-management/api/useMemberHook.ts:990",
+      "impact": "Admin search returns unintended results with wildcard characters."
+    },
+    {
+      "id": "DEF-017",
+      "severity": "Medium",
+      "tester": "T2-Admin-Malicious",
+      "title": "CSP allows unsafe-eval and unsafe-inline for scripts",
+      "description": "Content-Security-Policy includes 'unsafe-eval' and 'unsafe-inline' in script-src, significantly reducing XSS protection.",
+      "location": "next.config.ts:93",
+      "impact": "CSP provides minimal protection against script injection."
+    },
+    {
+      "id": "DEF-018",
+      "severity": "Medium",
+      "tester": "T2-Admin-Malicious, T10-Guest-Newbie (cross-verified)",
+      "title": "Access token TOCTOU race condition",
+      "description": "Token validation reads usage_count then updates usage_count+1 in separate query. Two concurrent requests can both pass max_usage check.",
+      "location": "app/_lib/shared/supabase/middleware.ts:145-172",
+      "impact": "Access tokens can be used beyond max_usage limit."
+    },
+    {
+      "id": "DEF-019",
+      "severity": "Medium",
+      "tester": "T2-Admin-Malicious",
+      "title": "Auth callback excessive debug logging in production",
+      "description": "40+ console.log statements expose sensitive data (auth user IDs, session details, invite tokens) in production logs.",
+      "location": "app/auth/callback/route.ts",
+      "impact": "PII exposure in production logs."
+    },
+    {
+      "id": "DEF-020",
+      "severity": "Medium",
+      "tester": "T2-Admin-Malicious",
+      "title": "register-prefill cookie not httpOnly",
+      "description": "Cookie containing user PII (name, phone) set with httpOnly: false, readable by client-side JavaScript.",
+      "location": "app/auth/callback/route.ts:218",
+      "impact": "PII exposure via cookie theft (XSS scenario)."
+    },
+    {
+      "id": "DEF-021",
+      "severity": "Medium",
+      "tester": "T2-Admin-Malicious",
+      "title": "SMS API accepts unlimited recipients (cost amplification)",
+      "description": "No limit on recipients array size in SMS send endpoint. Authenticated admin can send to arbitrary number of recipients.",
+      "location": "app/api/sms/send/route.ts",
+      "impact": "Financial damage through SMS cost amplification."
+    },
+    {
+      "id": "DEF-022",
+      "severity": "Medium",
+      "tester": "T2-Admin-Malicious",
+      "title": "Content update mutations lack union_id scoping",
+      "description": "useUpdateNotice, useUpdateQuestion, and useUpdateFreeBoard all update by ID only without verifying content belongs to the current union.",
+      "location": "useNoticeHook.ts:432, useQuestionHook.ts:323, useFreeBoardHook.ts:328",
+      "impact": "Cross-union content modification."
+    },
+    {
+      "id": "DEF-023",
+      "severity": "Medium",
+      "tester": "T3-User-Chaos, T6-User-Perfectionist, T8-User-PowerUser (cross-verified)",
+      "title": "Union-info view count has no sessionStorage dedup",
+      "description": "Unlike notice, question, and free-board detail pages, union-info detail page calls incrementViews unconditionally on every mount.",
+      "location": "app/[slug]/communication/union-info/[id]/page.tsx:35-39",
+      "impact": "View counts for union-info posts are unreliable."
+    },
+    {
+      "id": "DEF-024",
+      "severity": "Medium",
+      "tester": "T6-User-Perfectionist",
+      "title": "Silent file attachment failure on move error",
+      "description": "In fileApi.confirmFiles, when a storage move operation fails, the error is logged but the user is not informed. Post saved without attachment.",
+      "location": "app/_lib/shared/hooks/file/fileApi.ts:114-118",
+      "impact": "Silent data loss without user awareness."
+    },
+    {
+      "id": "DEF-025",
+      "severity": "Medium",
+      "tester": "T6-User-Perfectionist",
+      "title": "Failed editor image upload leaves broken blob: URL in content",
+      "description": "If image upload fails in processEditorImages, the blob: URL remains in saved content. Renders as broken image for all viewers.",
+      "location": "app/_lib/features/notice/api/useNoticeHook.ts:236-246",
+      "impact": "Broken images in saved content without user notification."
+    },
+    {
+      "id": "DEF-026",
+      "severity": "Medium",
+      "tester": "T4-User-Newbie",
+      "title": "OAuth errors not displayed to users",
+      "description": "auth_error URL parameter is set on OAuth failure but never read or displayed in the UI. Users land back on landing page with no visible error.",
+      "location": "app/auth/callback/route.ts:42-43, LoginForm.tsx",
+      "impact": "Users have no feedback on why login failed."
+    },
+    {
+      "id": "DEF-027",
+      "severity": "Medium",
+      "tester": "T4-User-Newbie",
+      "title": "No onboarding experience after first approval",
+      "description": "Approved user lands on homepage with no welcome message, guided tour, or feature explanation.",
+      "location": "app/[slug]/UnionLayoutContent.tsx",
+      "impact": "First-time users confused about available features."
+    },
+    {
+      "id": "DEF-028",
+      "severity": "Medium",
+      "tester": "T4-User-Newbie",
+      "title": "Expired invite token silently falls through to generic registration",
+      "description": "When an invite token is expired, user is redirected to generic registration form with no error message about the expiration.",
+      "location": "app/auth/callback/route.ts:303-307",
+      "impact": "Confused newbie users following expired invite links."
+    },
+    {
+      "id": "DEF-029",
+      "severity": "Medium",
+      "tester": "T4-User-Newbie",
+      "title": "birth_date requirement inconsistency between registration and re-application",
+      "description": "birth_date is optional in RegisterModal (required: false) but mandatory in ApprovalRejectedModal edit mode.",
+      "location": "RegisterModal.tsx:172 vs ApprovalRejectedModal.tsx:153",
+      "impact": "Confusing inconsistency for rejected users trying to re-apply."
+    },
+    {
+      "id": "DEF-030",
+      "severity": "Medium",
+      "tester": "T9-User-A11y",
+      "title": "No aria-live regions for dynamic content updates",
+      "description": "Loading states, success messages, step transitions are not announced to screen readers. No aria-live, aria-atomic, or role='status' found.",
+      "location": "Multiple components (RegisterModal, MemberEditModal, etc.)",
+      "impact": "Screen reader users unaware of dynamic content changes."
+    },
+    {
+      "id": "DEF-031",
+      "severity": "Medium",
+      "tester": "T9-User-A11y",
+      "title": "text-gray-400 contrast ratio below WCAG AA threshold",
+      "description": "text-gray-400 (#9CA3AF) on white has ~2.9:1 contrast ratio, below 4.5:1 AA requirement for normal text.",
+      "location": "RegisterModal sub-descriptions, MemberEditModal labels",
+      "impact": "Low-vision users may not be able to read secondary text."
+    },
+    {
+      "id": "DEF-032",
+      "severity": "Medium",
+      "tester": "T9-User-A11y",
+      "title": "MemberEditModal nested sub-modals lack ARIA dialog attributes",
+      "description": "Save confirm and save success modals inside MemberEditModal are plain divs without role='dialog', aria-modal='true', or aria-labelledby.",
+      "location": "app/[slug]/admin/members/MemberEditModal.tsx:1056, 1087",
+      "impact": "Screen readers do not announce sub-modals as dialogs."
+    },
+    {
+      "id": "DEF-033",
+      "severity": "Medium",
+      "tester": "T7-User-Mobile",
+      "title": "Admin members tab navigation overflows on mobile",
+      "description": "4 tabs with px-6 padding and icon+text in a simple flex container. No overflow-x-auto.",
+      "location": "app/[slug]/admin/members/page.tsx:753",
+      "impact": "Tabs get clipped on mobile screens."
+    },
+    {
+      "id": "DEF-034",
+      "severity": "Medium",
+      "tester": "T7-User-Mobile",
+      "title": "Union-info detail page title not responsive",
+      "description": "Title uses fixed text-[32px] without responsive breakpoint. Other detail pages use text-[24px] md:text-[32px].",
+      "location": "app/[slug]/communication/union-info/[id]/page.tsx:80",
+      "impact": "Oversized text on mobile viewports."
+    },
+    {
+      "id": "DEF-035",
+      "severity": "Medium",
+      "tester": "T8-User-PowerUser",
+      "title": "Duplicate view count increment via two free-board paths",
+      "description": "Free board posts accessible via two URL paths use different sessionStorage dedup keys. Same post viewed via both paths increments view count twice per session.",
+      "location": "app/[slug]/free-board/[id]/page.tsx:44 vs app/[slug]/communication/free-board/[id]/page.tsx:40",
+      "impact": "View count inflation for analytics."
+    },
+    {
+      "id": "DEF-036",
+      "severity": "Medium",
+      "tester": "T8-User-PowerUser",
+      "title": "Middleware performs 2 DB queries per admin page request for auth",
+      "description": "Each admin page request makes 3 external calls (auth.getUser + user_auth_links + users.role), adding 300-600ms latency.",
+      "location": "app/_lib/shared/supabase/middleware.ts:395-420",
+      "impact": "Perceptible delay on admin page navigation."
+    },
+    {
+      "id": "DEF-037",
+      "severity": "Low",
+      "tester": "T2-Admin-Malicious",
+      "title": "Internal API key comparison not constant-time",
+      "description": "authenticateServiceRequest uses === for API key comparison, theoretically vulnerable to timing attacks.",
+      "location": "app/_lib/shared/api/auth.ts:138",
+      "impact": "Potential internal API key extraction (requires many requests and precise timing)."
+    },
+    {
+      "id": "DEF-038",
+      "severity": "Low",
+      "tester": "T2-Admin-Malicious",
+      "title": "Access token key in URL query parameter",
+      "description": "Token keys in URL get logged in server access logs, browser history, and Referrer headers.",
+      "location": "app/_lib/shared/supabase/middleware.ts:284",
+      "impact": "Token exposure risk via Referrer headers."
+    },
+    {
+      "id": "DEF-039",
+      "severity": "Low",
+      "tester": "T2-Admin-Malicious",
+      "title": "Error messages expose internal state",
+      "description": "Some error responses expose internal details like user_status values.",
+      "location": "app/api/sms/send/route.ts:132, app/api/members/approve/route.ts:112",
+      "impact": "Aids attacker reconnaissance."
+    },
+    {
+      "id": "DEF-040",
+      "severity": "Low",
+      "tester": "T2-Admin-Malicious",
+      "title": "View count RPC can be called without server-side dedup",
+      "description": "View count RPCs have only client-side sessionStorage dedup. Can be called directly to inflate counts.",
+      "location": "useNoticeHook.ts:558, useQuestionHook.ts:578, useFreeBoardHook.ts:465",
+      "impact": "Artificial view count inflation."
+    },
+    {
+      "id": "DEF-041",
+      "severity": "Low",
+      "tester": "T3-User-Chaos",
+      "title": "parseInt(id) without NaN validation on detail/edit pages",
+      "description": "All 10 detail/edit pages use parseInt(id) without NaN validation. Supabase fails gracefully but error UX may be poor.",
+      "location": "All detail pages (free-board, notice, qna, union-info)",
+      "impact": "Poor error UX for invalid URLs."
+    },
+    {
+      "id": "DEF-042",
+      "severity": "Low",
+      "tester": "T4-User-Newbie",
+      "title": "Registration progress indicator is 12 anonymous dots",
+      "description": "Progress dots show no step names. Users cannot tell what step they are on or what remains.",
+      "location": "app/_lib/widgets/modal/RegisterModal.tsx:1296-1309",
+      "impact": "Cognitive overload for beginners."
+    },
+    {
+      "id": "DEF-043",
+      "severity": "Low",
+      "tester": "T4-User-Newbie",
+      "title": "No profile edit accessible to regular users",
+      "description": "User menu only has 'View my official land price' and 'Logout'. No profile viewing or editing capability.",
+      "location": "app/_lib/widgets/union/header/UnionHomeHeader.tsx:296-312",
+      "impact": "Users cannot update registration info after submission."
+    },
+    {
+      "id": "DEF-044",
+      "severity": "Low",
+      "tester": "T10-Guest-Newbie",
+      "title": "Marketing header has no navigation links for guests",
+      "description": "Header nav only shows brand logo + conditional admin link. No links to /contact, /privacy, /terms.",
+      "location": "app/(marketing)/layout.tsx:22-32",
+      "impact": "First-time visitors cannot find legal/contact pages from header."
+    },
+    {
+      "id": "DEF-045",
+      "severity": "Low",
+      "tester": "T10-Guest-Newbie",
+      "title": "Naver login button commented out with no explanation",
+      "description": "LoginForm only renders Kakao login. Naver button is commented out. No user-facing message about Naver unavailability.",
+      "location": "app/_lib/widgets/landing/LoginForm.tsx:93-111",
+      "impact": "Users with only Naver accounts have no login option."
+    },
+    {
+      "id": "DEF-046",
+      "severity": "Low",
+      "tester": "T8-User-PowerUser",
+      "title": "Notice and Question lists have no server-side pagination",
+      "description": "useNotices and useQuestions fetch ALL rows without pagination. Free-board correctly implements pagination.",
+      "location": "useNoticeHook.ts:27-135, useQuestionHook.ts:26-112",
+      "impact": "Slow load times for unions with many records."
+    },
+    {
+      "id": "DEF-047",
+      "severity": "Low",
+      "tester": "T8-User-PowerUser",
+      "title": "Comments fetch all rows without pagination",
+      "description": "useComments fetches ALL comments for an entity with no limit. Viral posts with hundreds of comments transfer excessive data.",
+      "location": "app/_lib/features/comment/api/useCommentHook.ts:47-72",
+      "impact": "Slow rendering for highly commented posts."
+    },
+    {
+      "id": "DEF-048",
+      "severity": "Low",
+      "tester": "T9-User-A11y",
+      "title": "Close buttons on admin modals missing aria-label",
+      "description": "MemberEditModal and BlockMemberModal X icon buttons missing aria-label='close'.",
+      "location": "MemberEditModal.tsx:411, BlockMemberModal.tsx:100",
+      "impact": "Screen readers announce buttons without context."
+    },
+    {
+      "id": "DEF-049",
+      "severity": "Low",
+      "tester": "T9-User-A11y",
+      "title": "Form labels in admin modals not associated via htmlFor",
+      "description": "Edit-mode labels in MemberEditModal and BlockMemberModal do not use htmlFor to associate with input elements.",
+      "location": "MemberEditModal.tsx:462, BlockMemberModal.tsx:157",
+      "impact": "Screen readers may not announce label-input relationships."
+    },
+    {
+      "id": "DEF-050",
+      "severity": "Low",
+      "tester": "T7-User-Mobile",
+      "title": "RegisterModal close button below 44px touch target",
+      "description": "Close button uses p-2 with 20px icon, resulting in ~36px touch target. Below Apple's 44px recommendation.",
+      "location": "app/_lib/widgets/modal/RegisterModal.tsx:1286",
+      "impact": "May be hard to tap on mobile devices."
+    },
+    {
+      "id": "DEF-051",
+      "severity": "Low",
+      "tester": "T8-User-PowerUser",
+      "title": "~20 unescaped ILIKE locations remain in codebase",
+      "description": "escapeLikeWildcards is applied to 4 high-traffic hooks but not to ~20 other ILIKE locations in admin paths.",
+      "location": "Various (consent-stages, alimtalk, union-management, gis, etc.)",
+      "impact": "Wildcard injection in lower-traffic admin search paths."
+    }
+  ],
+
+  "by_role": {
+    "admin": {
+      "testers": ["T1-Admin-Methodical", "T2-Admin-Malicious"],
+      "total_scenarios": 88,
+      "passed": 52,
+      "failed": 28,
+      "blocked": 0,
+      "skipped": 7,
+      "pass_with_caveat": 5,
+      "pass_rate": 59.1,
+      "notes": "T1 happy-path: 42/43 passed (1 medium fail). T2 adversarial: 10/42 passed (27 fails, 5 pass-with-caveat). Admin role has highest failure rate due to T2's security testing which exposed fundamental RLS/authorization gaps."
+    },
+    "user": {
+      "testers": ["T3-User-Chaos", "T4-User-Newbie", "T5-User-Impatient", "T6-User-Perfectionist", "T7-User-Mobile", "T8-User-PowerUser", "T9-User-A11y"],
+      "total_scenarios": 73,
+      "passed": 66,
+      "failed": 7,
+      "blocked": 0,
+      "skipped": 0,
+      "pass_with_caveat": 4,
+      "pass_rate": 90.4,
+      "notes": "User role tests show strong happy-path performance. Failures concentrated in data integrity (view count dedup), cascade-delete ordering, and UX gaps. Security issues found by chaos tester confirmed by other testers."
+    },
+    "guest": {
+      "testers": ["T10-Guest-Newbie"],
+      "total_scenarios": 11,
+      "passed": 8,
+      "failed": 1,
+      "blocked": 1,
+      "skipped": 0,
+      "pass_with_caveat": 0,
+      "pass_rate": 72.7,
+      "notes": "Guest experience is mostly functional. Auth flows (OAuth, access tokens) work correctly. Main gap is discoverability (marketing header has no nav links) and Naver login unavailable."
+    }
+  },
+
+  "by_persona": {
+    "P1-Admin-Methodical": {
+      "tester": "T1",
+      "scenarios": 46,
+      "defects_found": 1,
+      "defect_rate": 2.2,
+      "unique_defects": ["LIKE wildcard injection in useAdminUsers"],
+      "assessment": "Systematically verified all admin happy-path workflows. Very low defect rate expected from methodical testing. Confirmed strength of approval flow, CRUD operations, and state management."
+    },
+    "P6-Admin-Malicious": {
+      "tester": "T2",
+      "scenarios": 42,
+      "defects_found": 23,
+      "defect_rate": 54.8,
+      "unique_defects": 23,
+      "assessment": "Highest defect discovery rate. Found all Critical and most High-severity security issues. Demonstrated that absence of RLS makes all other authorization checks bypassable. Most productive tester for security findings."
+    },
+    "P2-User-Chaos": {
+      "tester": "T3",
+      "scenarios": 42,
+      "defects_found": 8,
+      "defect_rate": 19.0,
+      "unique_defects": ["Notice delete no ownership guard (CRITICAL)", "Cascade delete ordering (2x HIGH)", "Union-info view count no dedup", "Duplicate view count via dual paths"],
+      "assessment": "Second highest defect rate. Found the CRITICAL notice delete ownership gap that was cross-verified by 3 other testers. Effective at edge-case analysis with chaos inputs."
+    },
+    "P3-User-Newbie": {
+      "tester": "T4",
+      "scenarios": 18,
+      "defects_found": 28,
+      "defect_rate": 155.6,
+      "unique_defects": ["No help system (CRITICAL UX)", "OAuth errors not displayed", "No onboarding after approval"],
+      "assessment": "Highest raw finding count (28) but many are UX suggestions (low/info severity). Identified the most impactful UX gap: complete absence of help/FAQ system for the target demographic."
+    },
+    "P4-User-Impatient": {
+      "tester": "T5",
+      "scenarios": 17,
+      "defects_found": 4,
+      "defect_rate": 23.5,
+      "unique_defects": [],
+      "assessment": "Verified double-submit prevention across all mutation types. Confirmed RegisterModal's useRef pattern is the strongest client-side approach. Cross-verified T3's findings with concurrency analysis."
+    },
+    "P5-User-Perfectionist": {
+      "tester": "T6",
+      "scenarios": 42,
+      "defects_found": 4,
+      "defect_rate": 9.5,
+      "unique_defects": ["Silent file move failure", "Broken blob URLs on image upload failure"],
+      "assessment": "Found subtle data integrity issues in file handling pipeline that other testers missed. Thorough verification of data completeness from form through storage to display."
+    },
+    "P7-User-Mobile": {
+      "tester": "T7",
+      "scenarios": 42,
+      "defects_found": 10,
+      "defect_rate": 23.8,
+      "unique_defects": ["Union-info title not responsive", "Admin tabs overflow", "RegisterModal close button < 44px"],
+      "assessment": "Comprehensive mobile analysis. Found several moderate responsive layout issues. Confirmed strong points: safe area insets, fullscreen modal on mobile, iOS zoom prevention."
+    },
+    "P8-User-PowerUser": {
+      "tester": "T8",
+      "scenarios": 7,
+      "defects_found": 11,
+      "defect_rate": 157.1,
+      "unique_defects": ["Notice/Question no pagination", "Comments no pagination", "Dual Zustand+TanStack state", "Middleware auth latency"],
+      "assessment": "Highest defect rate per scenario. Found critical performance scalability issues. Identified that free-board is the only content type with proper pagination - notices and questions will degrade at scale."
+    },
+    "P9-User-A11y": {
+      "tester": "T9",
+      "scenarios": 62,
+      "defects_found": 11,
+      "defect_rate": 17.7,
+      "unique_defects": ["No aria-live regions", "Sub-modal missing ARIA", "text-gray-400 contrast"],
+      "assessment": "Most comprehensive check count (62). Found all modals have proper ARIA dialog pattern. Main gap is missing aria-live for dynamic content. Overall accessibility is above average for the framework."
+    },
+    "P3-Guest-Newbie": {
+      "tester": "T10",
+      "scenarios": 11,
+      "defects_found": 4,
+      "defect_rate": 36.4,
+      "unique_defects": ["Marketing header no nav links"],
+      "assessment": "Verified guest auth flows thoroughly (OAuth, access tokens, public paths). Found marketing header discoverability gap."
+    }
+  },
+
+  "by_category": {
+    "security": {
+      "total_defects": 20,
+      "critical": 5,
+      "high": 8,
+      "medium": 7,
+      "low": 0,
+      "top_issues": [
+        "No RLS on any table (root cause of most security findings)",
+        "Client-side role escalation via direct DB write",
+        "useDeleteNotice no ownership guard",
+        "Stored XSS via direct DB insertion",
+        "No rate limiting"
+      ]
+    },
+    "data_integrity": {
+      "total_defects": 7,
+      "critical": 0,
+      "high": 2,
+      "medium": 4,
+      "low": 1,
+      "top_issues": [
+        "Cascade delete ordering destroys files/comments before ownership check",
+        "Union-info view count no dedup",
+        "Silent file attachment failure",
+        "Broken blob URLs on upload failure"
+      ]
+    },
+    "usability": {
+      "total_defects": 10,
+      "critical": 0,
+      "high": 1,
+      "medium": 5,
+      "low": 4,
+      "top_issues": [
+        "No help/FAQ system (HIGH for target demographic)",
+        "No onboarding after approval",
+        "OAuth errors not shown to users",
+        "No profile edit capability"
+      ]
+    },
+    "performance": {
+      "total_defects": 5,
+      "critical": 0,
+      "high": 0,
+      "medium": 1,
+      "low": 4,
+      "top_issues": [
+        "Middleware auth 3 DB queries per admin page",
+        "No pagination on notices/questions/comments",
+        "N+2 query pattern in search",
+        "Dual state management (Zustand + TanStack)"
+      ]
+    },
+    "accessibility": {
+      "total_defects": 5,
+      "critical": 0,
+      "high": 0,
+      "medium": 3,
+      "low": 2,
+      "top_issues": [
+        "No aria-live regions for dynamic content",
+        "text-gray-400 contrast below AA",
+        "Sub-modals missing ARIA dialog attributes"
+      ]
+    },
+    "mobile": {
+      "total_defects": 4,
+      "critical": 0,
+      "high": 0,
+      "medium": 3,
+      "low": 1,
+      "top_issues": [
+        "Admin tabs overflow on mobile",
+        "Union-info title not responsive",
+        "RegisterModal close button < 44px"
+      ]
+    }
+  },
+
+  "cross_verification": {
+    "notice_delete_no_guard": {
+      "defect_id": "DEF-004",
+      "verified_by": ["T3-User-Chaos (original)", "T5-User-Impatient", "T7-User-Mobile", "T8-User-PowerUser"],
+      "confidence": "CONFIRMED by 4 independent testers"
+    },
+    "cascade_delete_ordering": {
+      "defect_id": "DEF-008",
+      "verified_by": ["T3-User-Chaos (original)", "T5-User-Impatient", "T7-User-Mobile", "T8-User-PowerUser"],
+      "confidence": "CONFIRMED by 4 independent testers"
+    },
+    "like_wildcard_useAdminUsers": {
+      "defect_id": "DEF-016",
+      "verified_by": ["T1-Admin-Methodical (original)", "T2-Admin-Malicious", "T3-User-Chaos"],
+      "confidence": "CONFIRMED by 3 independent testers"
+    },
+    "union_info_view_dedup": {
+      "defect_id": "DEF-023",
+      "verified_by": ["T3-User-Chaos (original)", "T6-User-Perfectionist", "T8-User-PowerUser"],
+      "confidence": "CONFIRMED by 3 independent testers"
+    },
+    "access_token_toctou": {
+      "defect_id": "DEF-018",
+      "verified_by": ["T2-Admin-Malicious", "T8-User-PowerUser", "T10-Guest-Newbie"],
+      "confidence": "CONFIRMED by 3 independent testers"
+    }
+  },
+
+  "strengths": [
+    "RegisterModal uses useRef for double-submit prevention -- the strongest client-side approach",
+    "Admin approval has 3-layer protection: client state, button disabled, DB WHERE clause",
+    "DOMPurify sanitization is comprehensive with strict ALLOWED_TAGS, FORBID_ATTR, ALLOW_DATA_ATTR",
+    "All 6 custom modals have proper ARIA (role, aria-modal, aria-labelledby, focus trap, ESC key)",
+    "Centralized useFocusTrap hook with Tab/Shift+Tab trapping and focus restoration",
+    "Skip navigation present in all 4 layout variants",
+    "escapeLikeWildcards applied to 4 high-traffic search hooks",
+    "Middleware CSRF validation (Origin vs Host) correctly implemented",
+    "Access token guest flow with comprehensive validation and audit logging",
+    "Korean filename preservation through DB+storage pipeline",
+    "Step-by-step registration wizard is excellent for digital beginners",
+    "Mobile header with safe-area-inset-top for notched phones",
+    "iOS zoom prevention with 16px input font sizes",
+    "TanStack Query cache properly configured with 5min staleTime and correct invalidation",
+    "Primary property unit operations use atomic RPC for race condition prevention"
+  ],
+
+  "risk_assessment": {
+    "critical_risk": "The absence of RLS on all 34+ Supabase tables means the application has NO effective authorization at the database level. All client-side checks are bypassable. This is a deployment-blocking issue for production use with real user data.",
+    "deployment_readiness": "NOT READY for production with real user data due to Critical security vulnerabilities. The application functions correctly for normal use cases but cannot withstand adversarial users.",
+    "recommended_actions_before_production": [
+      "1. Enable RLS on all tables with proper policies (Critical, blocks deployment)",
+      "2. Add ownership guard to useDeleteNotice (Critical, quick fix)",
+      "3. Fix cascade delete ordering in useDeleteFreeBoard and useDeleteQuestion (High)",
+      "4. Add server-side HTML sanitization (High)",
+      "5. Implement rate limiting on API endpoints (High)",
+      "6. Remove auth callback console.log statements (Medium)",
+      "7. Add union_id scoping to content update mutations (Medium)"
+    ]
+  }
+}

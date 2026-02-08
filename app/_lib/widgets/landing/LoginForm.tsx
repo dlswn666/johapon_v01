@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
@@ -11,6 +12,24 @@ interface LoginFormProps {
     onLoginSuccess?: () => void;
 }
 
+function getUrlError(searchParams: URLSearchParams): string {
+    const authError = searchParams.get('auth_error');
+    const inviteError = searchParams.get('invite_error');
+    if (authError) {
+        const errorMessages: Record<string, string> = {
+            'no_code': '로그인 인증에 실패했습니다. 다시 시도해주세요.',
+            'session_error': '로그인 처리 중 오류가 발생했습니다.',
+        };
+        return errorMessages[authError] || '로그인 중 오류가 발생했습니다.';
+    } else if (inviteError) {
+        const inviteMessages: Record<string, string> = {
+            'expired': '초대 링크가 만료되었거나 유효하지 않습니다.',
+        };
+        return inviteMessages[inviteError] || '초대 처리 중 오류가 발생했습니다.';
+    }
+    return '';
+}
+
 /**
  * 로그인 폼 컴포넌트
  * - 카카오/네이버 소셜 로그인
@@ -19,11 +38,15 @@ interface LoginFormProps {
 export function LoginForm({ className, unionName, onLoginSuccess: _onLoginSuccess }: LoginFormProps) {
     const { login } = useAuth();
     const { slug } = useSlug();
+    const searchParams = useSearchParams();
     const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState('');
+    const [manualError, setManualError] = useState('');
+
+    const urlError = useMemo(() => getUrlError(searchParams), [searchParams]);
+    const error = manualError || urlError;
 
     const handleKakaoLogin = async () => {
-        setError('');
+        setManualError('');
         setIsLoading(true);
 
         try {
@@ -31,13 +54,13 @@ export function LoginForm({ className, unionName, onLoginSuccess: _onLoginSucces
             // 리다이렉트되므로 onLoginSuccess는 호출되지 않음
         } catch (err) {
             console.error('Kakao login error:', err);
-            setError('카카오 로그인 중 오류가 발생했습니다.');
+            setManualError('카카오 로그인 중 오류가 발생했습니다.');
             setIsLoading(false);
         }
     };
 
     const _handleNaverLogin = async () => {
-        setError('');
+        setManualError('');
         setIsLoading(true);
 
         try {
@@ -45,7 +68,7 @@ export function LoginForm({ className, unionName, onLoginSuccess: _onLoginSucces
             // 리다이렉트되므로 onLoginSuccess는 호출되지 않음
         } catch (err) {
             console.error('Naver login error:', err);
-            setError('네이버 로그인 중 오류가 발생했습니다.');
+            setManualError('네이버 로그인 중 오류가 발생했습니다.');
             setIsLoading(false);
         }
     };
@@ -61,7 +84,7 @@ export function LoginForm({ className, unionName, onLoginSuccess: _onLoginSucces
 
             {/* 에러 메시지 */}
             {error && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <div role="alert" className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
                     <p className="text-sm text-red-600 text-center">{error}</p>
                 </div>
             )}

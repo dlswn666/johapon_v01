@@ -18,6 +18,7 @@ import useModalStore from '@/app/_lib/shared/stores/modal/useModalStore';
 import { FileUploader } from '@/app/_lib/widgets/common/file-uploader/FileUploader';
 import { BoardComment } from '@/app/_lib/widgets/common/comment';
 import { formatDate, formatAuthorName } from '@/app/_lib/shared/utils/commonUtil';
+import { sanitizeHtml } from '@/app/_lib/shared/utils/sanitize';
 
 const FreeBoardDetailPage = () => {
     const router = useRouter();
@@ -25,6 +26,7 @@ const FreeBoardDetailPage = () => {
     const slug = params.slug as string;
     const id = params.id as string;
     const freeBoardId = parseInt(id);
+    const isInvalidId = isNaN(freeBoardId);
     const { isLoading: isUnionLoading } = useSlug();
     const { user } = useAuth();
 
@@ -37,10 +39,14 @@ const FreeBoardDetailPage = () => {
     const isMine = freeBoard?.author_id === user?.id;
     const authorName = formatAuthorName((freeBoard?.author as { name: string } | null)?.name);
 
-    // 조회수 증가 (컴포넌트 마운트 시 1회)
+    // 조회수 증가 (세션당 1회)
     React.useEffect(() => {
         if (freeBoardId) {
-            incrementViews(freeBoardId);
+            const viewedKey = `viewed_free_board_${freeBoardId}`;
+            if (!sessionStorage.getItem(viewedKey)) {
+                incrementViews(freeBoardId);
+                sessionStorage.setItem(viewedKey, '1');
+            }
         }
     }, [freeBoardId, incrementViews]);
 
@@ -60,11 +66,17 @@ const FreeBoardDetailPage = () => {
         );
     }
 
-    if (error || !freeBoard) {
+    if (isInvalidId || error || !freeBoard) {
         return (
             <div className={cn('container mx-auto max-w-[1280px] px-4 py-8')}>
-                <div className="flex justify-center items-center h-64">
+                <div className="flex flex-col justify-center items-center h-64 gap-4">
                     <p className="text-[18px] text-[#D9534F]">게시글을 찾을 수 없습니다.</p>
+                    <button
+                        onClick={() => router.push(`/${slug}/free-board`)}
+                        className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
+                    >
+                        목록으로
+                    </button>
                 </div>
             </div>
         );
@@ -74,43 +86,44 @@ const FreeBoardDetailPage = () => {
         <>
             <div className={cn('container mx-auto max-w-[1280px] px-4 py-8')}>
                 <div className="space-y-8">
-                    <div className="flex justify-between items-start border-b border-[#CCCCCC] pb-6">
-                        <h2 className="text-[32px] font-bold text-[#5FA37C]">{freeBoard.title}</h2>
-                        <div className="flex gap-2">
-                            {isMine && (
-                                <>
-                                    <Button
-                                        className="bg-white border border-[#4E8C6D] text-[#4E8C6D] hover:bg-[#F5F5F5] cursor-pointer"
-                                        onClick={() => router.push(`/${slug}/free-board/${id}/edit`)}
-                                    >
-                                        수정
-                                    </Button>
-                                    <Button
-                                        className="bg-[#D9534F] text-white hover:bg-[#D9534F]/90 cursor-pointer"
-                                        onClick={handleDelete}
-                                    >
-                                        삭제
-                                    </Button>
-                                </>
-                            )}
-                            <Button
-                                className="bg-[#E6E6E6] text-[#5FA37C] hover:bg-[#E6E6E6]/80 cursor-pointer"
-                                onClick={() => router.push(`/${slug}/free-board`)}
-                            >
-                                목록
-                            </Button>
+                    <div className="border-b border-[#CCCCCC] pb-6 space-y-4">
+                        <h2 className="text-[24px] md:text-[32px] font-bold text-[#5FA37C]">{freeBoard.title}</h2>
+                        <div className="flex flex-wrap items-center justify-between gap-4">
+                            <div className="flex flex-wrap gap-6 text-[14px] text-[#AFAFAF]">
+                                <span>작성자: {authorName}</span>
+                                <span>작성일: {formatDate(freeBoard.created_at, true)}</span>
+                                <span>조회수: {freeBoard.views}</span>
+                            </div>
+                            <div className="flex gap-2">
+                                {isMine && (
+                                    <>
+                                        <Button
+                                            className="bg-white border border-[#4E8C6D] text-[#4E8C6D] hover:bg-[#F5F5F5] cursor-pointer"
+                                            onClick={() => router.push(`/${slug}/free-board/${id}/edit`)}
+                                        >
+                                            수정
+                                        </Button>
+                                        <Button
+                                            className="bg-[#D9534F] text-white hover:bg-[#D9534F]/90 cursor-pointer"
+                                            onClick={handleDelete}
+                                        >
+                                            삭제
+                                        </Button>
+                                    </>
+                                )}
+                                <Button
+                                    className="bg-[#E6E6E6] text-[#5FA37C] hover:bg-[#E6E6E6]/80 cursor-pointer"
+                                    onClick={() => router.push(`/${slug}/free-board`)}
+                                >
+                                    목록
+                                </Button>
+                            </div>
                         </div>
-                    </div>
-
-                    <div className="flex gap-6 text-[14px] text-[#AFAFAF] pb-4">
-                        <span>작성자: {authorName}</span>
-                        <span>작성일: {formatDate(freeBoard.created_at, true)}</span>
-                        <span>조회수: {freeBoard.views}</span>
                     </div>
 
                     <div
                         className="min-h-[300px] whitespace-pre-wrap py-4 prose prose-lg max-w-none text-[18px] leading-relaxed text-gray-800 prose-img:max-w-full prose-img:h-auto prose-img:rounded-lg prose-img:my-4"
-                        dangerouslySetInnerHTML={{ __html: freeBoard.content }}
+                        dangerouslySetInnerHTML={{ __html: sanitizeHtml(freeBoard.content) }}
                     />
 
                     {/* 첨부파일 영역 */}

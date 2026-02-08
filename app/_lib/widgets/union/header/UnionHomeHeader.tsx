@@ -82,6 +82,7 @@ export default function UnionHomeHeader() {
                 { label: '조합 정보 설정', href: `/${union?.slug || ''}/admin/settings` },
                 { label: '슬라이드 관리', href: `/${union?.slug || ''}/admin/slides` },
                 { label: '알림톡 내역', href: `/${union?.slug || ''}/admin/alimtalk` },
+                { label: '문자 발송', href: `/${union?.slug || ''}/admin/sms` },
                 { label: '조합원 관리', href: `/${union?.slug || ''}/admin/members` },
                 { label: '동의율 관리', href: `/${union?.slug || ''}/admin/land-lots` },
             ],
@@ -134,7 +135,7 @@ export default function UnionHomeHeader() {
                         {/* 왼쪽: 사이드바 토글 버튼 */}
                         <button
                             onClick={toggleSidebar}
-                            className="size-[40px] flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#4E8C6D] focus-visible:ring-offset-2 outline-none"
+                            className="size-[44px] flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#4E8C6D] focus-visible:ring-offset-2 outline-none"
                             aria-label="메뉴 열기"
                             aria-expanded={isSidebarOpen}
                             aria-controls="mobile-sidebar"
@@ -165,7 +166,7 @@ export default function UnionHomeHeader() {
                         </Link>
 
                         {/* 오른쪽: 빈 공간 (균형을 위해) */}
-                        <div className="size-[40px]" aria-hidden="true" />
+                        <div className="size-[44px]" aria-hidden="true" />
                     </div>
                 </div>
 

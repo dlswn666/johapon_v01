@@ -19,27 +19,9 @@ export async function GET(request: NextRequest) {
     const inviteToken = searchParams.get('invite_token');
     const memberInviteToken = searchParams.get('member_invite_token');
 
-    // #region agent log
-    console.log('[JOHAPON_DEBUG][auth/callback][F] OAuth Callback 호출', {
-        fullUrl: request.url,
-        slug: slug || '(empty)',
-        hasCode: !!code,
-    });
-    // #endregion
-
-    // [DEBUG] OAuth 콜백 시작
-    console.log('='.repeat(60));
-    console.log('[DEBUG] 🔄 OAuth Callback 시작');
-    console.log('='.repeat(60));
-    console.log('[DEBUG] Full URL:', request.url);
-    console.log('[DEBUG] code:', code ? `${code.substring(0, 20)}...` : 'null');
-    console.log('[DEBUG] slug:', slug || '(empty)');
-    console.log('[DEBUG] inviteToken:', inviteToken || 'null');
-    console.log('[DEBUG] memberInviteToken:', memberInviteToken || 'null');
-
     if (!code) {
-        console.error('[DEBUG] ❌ No code provided');
-        return NextResponse.redirect(`${origin}/auth/error?message=no_code`);
+        const errorRedirect = slug ? `${origin}/${slug}?auth_error=no_code` : `${origin}?auth_error=no_code`;
+        return NextResponse.redirect(errorRedirect);
     }
 
     // Next.js 쿠키 스토어 가져오기
@@ -69,44 +51,22 @@ export async function GET(request: NextRequest) {
     );
 
     // Authorization code를 세션으로 교환 (PKCE: 쿠키에서 code_verifier 자동 읽기)
-    console.log('[DEBUG] 세션 교환 시작...');
     const { data: sessionData, error: sessionError } = await supabase.auth.exchangeCodeForSession(code);
 
     if (sessionError || !sessionData.session) {
-        console.error('[DEBUG] ❌ Session exchange failed:', sessionError);
-        return NextResponse.redirect(`${origin}/auth/error?message=session_error`);
+        console.error('[auth/callback] Session exchange failed:', sessionError?.message);
+        const errorRedirect = slug ? `${origin}/${slug}?auth_error=session_error` : `${origin}?auth_error=session_error`;
+        return NextResponse.redirect(errorRedirect);
     }
 
     const authUser = sessionData.session.user;
-    const provider = authUser.app_metadata.provider as 'kakao' | 'naver';
-
-    // [DEBUG] 세션 교환 성공 - 상세 정보
-    console.log('[DEBUG] ✅ 세션 교환 성공');
-    console.log('[DEBUG] authUser 상세:', {
-        id: authUser.id,
-        email: authUser.email,
-        provider: provider,
-        app_metadata: authUser.app_metadata,
-        user_metadata: authUser.user_metadata,
-        identities: authUser.identities?.map((i) => ({
-            provider: i.provider,
-            id: i.id,
-            identity_id: i.identity_id,
-        })),
-    });
 
     // 현재 접근 중인 조합(slug)의 union_id 조회
     let currentUnionId: string | null = null;
     if (slug) {
-        console.log('[DEBUG] 현재 조합(slug) 조회 중...', slug);
         const { data: currentUnion } = await supabase.from('unions').select('id').eq('slug', slug).single();
         currentUnionId = currentUnion?.id || null;
-        console.log('[DEBUG] 현재 조합 ID:', currentUnionId || 'null');
     }
-
-    // user_auth_links에서 해당 조합에 대한 멤버십 확인
-    // 다중 조합 지원: auth_user_id + union_id로 조회
-    console.log('[DEBUG] user_auth_links 조회 중... (auth_user_id:', authUser.id, ', union_id:', currentUnionId, ')');
 
     // 해당 조합에 대한 멤버십 확인 (auth_user_id + union_id)
     interface ExistingUserType {
@@ -149,106 +109,64 @@ export async function GET(request: NextRequest) {
         }
     }
 
-    console.log(
-        '[DEBUG] 해당 조합 멤버십 조회 결과:',
-        existingUser
-            ? {
-                  userId: existingUser.id,
-                  name: existingUser.name,
-                  role: existingUser.role,
-                  userStatus: existingUser.user_status,
-              }
-            : 'null (해당 조합에 미가입)'
-    );
-
     if (existingUser) {
-        console.log('[DEBUG] ✅ 해당 조합에 이미 가입된 사용자 발견!');
-
         // 해당 조합에 이미 가입됨 - 사용자 상태에 따라 리다이렉트
         const userUnionSlug = existingUser.union?.slug || slug;
         const redirectUrl = getRedirectByUserStatus(origin, slug, existingUser.user_status, userUnionSlug);
-        console.log('[DEBUG] 기존 사용자 리다이렉트:', {
-            userId: existingUser.id,
-            name: existingUser.name,
-            role: existingUser.role,
-            userStatus: existingUser.user_status,
-            redirectUrl,
-        });
-        console.log('='.repeat(60));
         return NextResponse.redirect(redirectUrl);
     }
 
     // 해당 조합에 미가입 - 다른 조합에 가입되어 있는지 확인 (로깅용)
-    const { data: otherLinks } = await supabase
+    const { data: _otherLinks } = await supabase
         .from('user_auth_links')
         .select('user_id')
         .eq('auth_user_id', authUser.id);
 
-    if (otherLinks && otherLinks.length > 0) {
-        // 다른 조합에 가입된 사용자 정보 조회
-        const userIds = otherLinks.map((link) => link.user_id);
-        const { data: otherUsers } = await supabase.from('users').select('id, name, union_id').in('id', userIds);
-
-        if (otherUsers && otherUsers.length > 0) {
-            console.log('[DEBUG] ℹ️ 다른 조합에 가입된 사용자:', otherUsers.length, '명');
-            console.log(
-                '[DEBUG] userIds:',
-                otherUsers.map((u) => u.id)
-            );
-        }
-        console.log('[DEBUG] 👉 새 조합 가입 플로우 진행 (회원가입 모달 표시)');
-    }
-
     // 초대 토큰이 있는 경우 - prefill 데이터를 쿠키에 저장하고 메인 페이지로 이동
-    console.log('[DEBUG] inviteToken 체크:', !!inviteToken);
     if (inviteToken) {
-        console.log('[DEBUG] ✅ inviteToken 있음, handleAdminInvitePrefill 호출...');
         const result = await handleAdminInvitePrefill(supabase, inviteToken, origin, slug);
-        console.log('[DEBUG] handleAdminInvitePrefill 결과:', result ? 'success' : 'null');
 
         if (result) {
-            console.log('[DEBUG] prefill 데이터:', result.prefillData);
-            console.log('[DEBUG] 리다이렉트 URL:', result.redirectUrl);
-
             const response = NextResponse.redirect(result.redirectUrl);
-            // prefill 데이터를 쿠키에 저장
             response.cookies.set('register-prefill', JSON.stringify(result.prefillData), {
                 httpOnly: false,
                 secure: process.env.NODE_ENV === 'production',
                 sameSite: 'lax',
                 maxAge: 60 * 60, // 1시간
             });
-            console.log('[DEBUG] ✅ register-prefill 쿠키 설정 완료');
-            console.log('='.repeat(60));
             return response;
+        } else {
+            // 초대 토큰이 유효하지 않거나 만료됨
+            const errorRedirect = slug
+                ? `${origin}/${slug}?invite_error=expired`
+                : `${origin}?invite_error=expired`;
+            return NextResponse.redirect(errorRedirect);
         }
     }
 
     // 조합원 초대 토큰이 있는 경우 - prefill 데이터를 쿠키에 저장하고 메인 페이지로 이동
     if (memberInviteToken) {
-        console.log('[DEBUG] ✅ memberInviteToken 있음, handleMemberInvitePrefill 호출...');
         const result = await handleMemberInvitePrefill(supabase, memberInviteToken, origin, slug);
         if (result) {
             const response = NextResponse.redirect(result.redirectUrl);
-            // prefill 데이터를 쿠키에 저장
             response.cookies.set('register-prefill', JSON.stringify(result.prefillData), {
                 httpOnly: false,
                 secure: process.env.NODE_ENV === 'production',
                 sameSite: 'lax',
                 maxAge: 60 * 60, // 1시간
             });
-            console.log('[DEBUG] ✅ register-prefill 쿠키 설정 완료 (member)');
-            console.log('='.repeat(60));
             return response;
+        } else {
+            // 초대 토큰이 유효하지 않거나 만료됨
+            const errorRedirect = slug
+                ? `${origin}/${slug}?invite_error=expired`
+                : `${origin}?invite_error=expired`;
+            return NextResponse.redirect(errorRedirect);
         }
     }
 
     // 연결된 사용자가 없음 - 메인 페이지로 이동 (회원가입 모달이 자동으로 표시됨)
-    // 신규 사용자는 프로필 입력이 필요함
     const mainPageUrl = slug ? `${origin}/${slug}` : origin;
-    console.log('[DEBUG] 신규 사용자 - 메인 페이지로 이동:', mainPageUrl);
-    console.log('[DEBUG] (회원가입 모달이 자동으로 표시될 예정)');
-    console.log('='.repeat(60));
     return NextResponse.redirect(mainPageUrl);
 }
 
@@ -262,14 +180,8 @@ async function handleAdminInvitePrefill(
     origin: string,
     slug: string
 ): Promise<{ redirectUrl: string; prefillData: object } | null> {
-    console.log('[DEBUG] === handleAdminInvitePrefill 함수 진입 ===');
-    console.log('[DEBUG] inviteToken:', inviteToken);
-    console.log('[DEBUG] origin:', origin);
-    console.log('[DEBUG] slug:', slug);
-
     try {
         // 초대 정보 조회
-        console.log('[DEBUG] admin_invites 테이블에서 초대 정보 조회 중...');
         const { data: invite, error: inviteError } = await supabase
             .from('admin_invites')
             .select('*, union:unions(id, name, slug)')
@@ -277,39 +189,21 @@ async function handleAdminInvitePrefill(
             .eq('status', 'PENDING')
             .single();
 
-        console.log('[DEBUG] 초대 조회 결과:', {
-            invite: invite
-                ? { id: invite.id, name: invite.name, status: invite.status, union_slug: invite.union?.slug }
-                : 'null',
-            inviteError: inviteError?.message || 'null',
-        });
-
         if (inviteError || !invite) {
-            console.error('[DEBUG] ❌ Invalid invite token:', inviteToken);
             return null;
         }
 
         // 만료 여부 확인
         const now = new Date();
         const expiresAt = new Date(invite.expires_at);
-        console.log('[DEBUG] 만료 체크:', {
-            now: now.toISOString(),
-            expiresAt: expiresAt.toISOString(),
-            isExpired: now > expiresAt,
-        });
 
         if (now > expiresAt) {
-            console.error('[DEBUG] ❌ Invite token expired:', inviteToken);
             await supabase.from('admin_invites').update({ status: 'EXPIRED' }).eq('id', invite.id);
             return null;
         }
 
         const unionSlug = invite.union?.slug || slug;
         const mainPageUrl = unionSlug ? `${origin}/${unionSlug}` : origin;
-
-        console.log('[DEBUG] ✅ 초대 정보 유효! prefill 데이터 반환');
-        console.log('[DEBUG] unionSlug:', unionSlug);
-        console.log('[DEBUG] mainPageUrl:', mainPageUrl);
 
         return {
             redirectUrl: mainPageUrl,
@@ -322,7 +216,7 @@ async function handleAdminInvitePrefill(
             },
         };
     } catch (error) {
-        console.error('[DEBUG] ❌ Error handling admin invite prefill:', error);
+        console.error('[auth/callback] Error handling admin invite prefill:', error instanceof Error ? error.message : error);
         return null;
     }
 }

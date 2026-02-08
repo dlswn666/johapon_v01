@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { authenticateApiRequest } from '@/app/_lib/shared/api/auth';
 
 const PROXY_SERVER_URL = process.env.ALIMTALK_PROXY_URL || 'http://localhost:3100';
 
@@ -46,6 +47,11 @@ async function getJobStatusFromDB(jobId: string) {
  */
 export async function GET(request: NextRequest, { params }: { params: Promise<{ jobId: string }> }) {
     try {
+        // ========== SECURITY: 인증 검사 ==========
+        const auth = await authenticateApiRequest({ requireAdmin: true });
+        if (!auth.authenticated) return auth.response;
+        // ==========================================
+
         const { jobId } = await params;
 
         if (!jobId) {

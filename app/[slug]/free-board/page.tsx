@@ -22,14 +22,15 @@ const FreeBoardPage = () => {
     const { user } = useAuth();
     const [searchInput, setSearchInput] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
-    
+    const [sortBy, setSortBy] = useState<'created_at' | 'views'>('created_at');
+
     const { currentPage, pageSize, totalCount, setCurrentPage } = useFreeBoardStore();
 
     // 페이지 진입 시 초기화
     React.useEffect(() => {
         setCurrentPage(1);
     }, [setCurrentPage]);
-    const { data, isLoading, isFetching, error } = useFreeBoards(!isUnionLoading, searchQuery, currentPage, pageSize);
+    const { data, isLoading, isFetching, error } = useFreeBoards(!isUnionLoading, searchQuery, currentPage, pageSize, sortBy);
 
     const freeBoards = data?.data || [];
     const totalPages = Math.ceil(totalCount / pageSize);
@@ -75,6 +76,7 @@ const FreeBoardPage = () => {
         return (
             <div className="container mx-auto max-w-[1280px] px-4 py-8">
                 <Skeleton className="w-full h-[600px] rounded-[24px]" />
+                <p className="text-center text-gray-400 mt-4">로딩 중...</p>
             </div>
         );
     }
@@ -138,6 +140,14 @@ const FreeBoardPage = () => {
                     >
                         검색
                     </Button>
+                    <select
+                        value={sortBy}
+                        onChange={(e) => setSortBy(e.target.value as 'created_at' | 'views')}
+                        className="h-[44px] px-4 rounded-[8px] border border-[#CCCCCC] text-[16px]"
+                    >
+                        <option value="created_at">최신순</option>
+                        <option value="views">조회순</option>
+                    </select>
                 </div>
 
                 <BoardListCard

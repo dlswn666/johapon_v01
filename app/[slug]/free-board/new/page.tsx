@@ -22,8 +22,8 @@ import { TextEditor } from '@/app/_lib/widgets/common/text-editor';
 import { useFileStore } from '@/app/_lib/shared/stores/file/useFileStore';
 
 const formSchema = z.object({
-    title: z.string().min(1, '제목을 입력해주세요.'),
-    content: z.string().min(1, '내용을 입력해주세요.'),
+    title: z.string().min(1, '제목을 입력해주세요.').max(200, '제목은 200자 이내로 입력해주세요.'),
+    content: z.string().min(1, '내용을 입력해주세요.').max(50000, '내용이 너무 깁니다.'),
 });
 
 const NewFreeBoardPage = () => {
@@ -55,8 +55,18 @@ const NewFreeBoardPage = () => {
         },
     });
 
+    useEffect(() => {
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            if (form.formState.isDirty) {
+                e.preventDefault();
+            }
+        };
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    });
+
     function onSubmit(values: z.infer<typeof formSchema>) {
-        if (!union) return;
+        if (!union || isPending) return;
 
         addFreeBoard({
             ...values,
@@ -91,6 +101,7 @@ const NewFreeBoardPage = () => {
                                             <Input
                                                 placeholder="제목을 입력해주세요"
                                                 {...field}
+                                                maxLength={200}
                                                 className="h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]"
                                             />
                                         </FormControl>
@@ -128,7 +139,15 @@ const NewFreeBoardPage = () => {
                              <div className="flex justify-end gap-3 pt-6 border-t border-[#CCCCCC]">
                                 <ActionButton
                                     buttonType="cancel"
-                                    onClick={() => router.push(`/${slug}/free-board`)}
+                                    onClick={() => {
+                                        if (form.formState.isDirty) {
+                                            if (window.confirm('작성 중인 내용이 있습니다. 나가시겠습니까?')) {
+                                                router.push(`/${slug}/free-board`);
+                                            }
+                                        } else {
+                                            router.push(`/${slug}/free-board`);
+                                        }
+                                    }}
                                 >
                                     취소
                                 </ActionButton>

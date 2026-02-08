@@ -13,6 +13,7 @@ import {
     UserStatus,
     UserRole,
 } from '@/app/_lib/shared/type/database.types';
+import { escapeLikeWildcards } from '@/app/_lib/shared/utils/escapeLike';
 
 // ========================================
 // Query: 사용자 목록 조회
@@ -66,8 +67,9 @@ export const useUsers = (options: UseUsersOptions = {}) => {
 
             // 검색
             if (search) {
+                const escaped = escapeLikeWildcards(search);
                 query = query.or(
-                    `name.ilike.%${search}%,phone_number.ilike.%${search}%,property_address.ilike.%${search}%`
+                    `name.ilike.%${escaped}%,phone_number.ilike.%${escaped}%,property_address.ilike.%${escaped}%`
                 );
             }
 

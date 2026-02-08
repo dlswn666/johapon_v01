@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SignJWT } from 'jose';
+import { authenticateApiRequest } from '@/app/_lib/shared/api/auth';
 
 // 프록시 서버 설정
 const PROXY_URL = process.env.ALIMTALK_PROXY_URL || 'http://localhost:3100';
@@ -36,6 +37,21 @@ async function generateProxyToken(unionId: string, userId: string): Promise<stri
 
 export async function POST(request: NextRequest) {
   try {
+    const body: SendRequest = await request.json();
+    const { unionId, recipients, message, msgType, title } = body;
+
+    // ========== SECURITY: 인증 검사 ==========
+    const auth = await authenticateApiRequest({
+      requireAdmin: true,
+      requireUnionId: true,
+      unionId: unionId,
+    });
+
+    if (!auth.authenticated) {
+      return auth.response;
+    }
+    // ==========================================
+
     // JWT_SECRET 체크
     if (!process.env.JWT_SECRET) {
       console.error('Missing JWT_SECRET');
@@ -44,9 +60,6 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
-
-    const body: SendRequest = await request.json();
-    const { unionId, recipients, message, msgType, title } = body;
 
     if (!unionId || !recipients || !message || !msgType) {
       return NextResponse.json(
@@ -62,8 +75,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const MAX_RECIPIENTS = 1000;
+    if (recipients.length > MAX_RECIPIENTS) {
+      return NextResponse.json(
+        { error: `수신자는 최대 ${MAX_RECIPIENTS}명까지 가능합니다.` },
+        { status: 400 }
+      );
+    }
+
     // JWT 토큰 생성
-    const token = await generateProxyToken(unionId, 'system-admin');
+    const token = await generateProxyToken(unionId, auth.user.id);
 
     // 프록시 서버 API 호출
     // 프록시 서버가 {이름} 변수 치환을 처리함
@@ -116,7 +137,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('SMS 전송 오류:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'SMS 전송 중 오류가 발생했습니다.' },
+      { error: process.env.NODE_ENV === 'development' && error instanceof Error ? error.message : 'SMS 전송 중 오류가 발생했습니다.' },
       { status: 500 }
     );
   }

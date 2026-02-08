@@ -13,6 +13,7 @@ import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import { getUnionPath } from '@/app/_lib/shared/lib/utils/slug';
 import { fileApi } from '@/app/_lib/shared/hooks/file/fileApi';
+import { escapeLikeWildcards } from '@/app/_lib/shared/utils/escapeLike';
 
 // ============================================
 // Query Hooks (조회)
@@ -41,7 +42,7 @@ export const useUnionInfos = (enabled: boolean = true) => {
 
             // 통합 검색 (제목/내용) - 작성자는 프론트에서 추가 필터링
             if (search && search.trim()) {
-                const searchTerm = `%${search.trim()}%`;
+                const searchTerm = `%${escapeLikeWildcards(search.trim())}%`;
                 query = query.or(`title.ilike.${searchTerm},content.ilike.${searchTerm}`);
             }
 

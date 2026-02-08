@@ -7,8 +7,8 @@ import { AccessToken } from '@/app/_lib/shared/type/accessToken.types';
  * production 환경에서는 절대 true를 반환하지 않음
  */
 function isLocalhostRequest(request: NextRequest): boolean {
-    // production 환경에서는 절대 작동하지 않음
-    if (process.env.NODE_ENV === 'production') return false;
+    // development 환경에서만 작동
+    if (process.env.NODE_ENV !== 'development') return false;
 
     const host = request.headers.get('host') || '';
     return host.startsWith('localhost') || host.startsWith('127.0.0.1');
@@ -23,7 +23,6 @@ const PUBLIC_PATHS = [
     '/privacy',
     '/terms',
     '/auth',
-    '/api',
     '/invite',
     '/member-invite',
     '/swagger',
@@ -111,10 +110,10 @@ function isUnionRegisterPage(pathname: string): boolean {
 }
 
 /**
- * 접근 토큰 검증 함수
- * Supabase 클라이언트를 사용하여 토큰 유효성 확인
+ * 접근 토큰 유효성 확인 (사용 횟수를 증가시키지 않음)
+ * guest_access 쿠키 검증 등 non-consuming 체크에 사용
  */
-async function validateAccessToken(
+async function checkAccessTokenValidity(
     supabase: ReturnType<typeof createServerClient>,
     tokenKey: string
 ): Promise<{ valid: boolean; token?: AccessToken; reason?: string }> {
@@ -129,12 +128,10 @@ async function validateAccessToken(
             return { valid: false, reason: 'not_found' };
         }
 
-        // 삭제 여부 확인
         if (token.deleted_at) {
             return { valid: false, reason: 'deleted' };
         }
 
-        // 만료일 확인
         if (token.expires_at) {
             const expiresAt = new Date(token.expires_at);
             if (expiresAt < new Date()) {
@@ -142,52 +139,9 @@ async function validateAccessToken(
             }
         }
 
-        // 최대 사용 횟수 확인
-        if (token.max_usage !== null && token.usage_count >= token.max_usage) {
-            return { valid: false, reason: 'max_usage_reached' };
-        }
-
         return { valid: true, token };
     } catch {
         return { valid: false, reason: 'error' };
-    }
-}
-
-/**
- * 토큰 사용 횟수 증가 및 로그 기록
- */
-async function recordTokenUsage(
-    supabase: ReturnType<typeof createServerClient>,
-    token: AccessToken,
-    pathname: string,
-    request: NextRequest
-): Promise<void> {
-    try {
-        // 사용 횟수 증가
-        await supabase
-            .from('access_tokens')
-            .update({
-                usage_count: token.usage_count + 1,
-                updated_at: new Date().toISOString(),
-            })
-            .eq('id', token.id);
-
-        // 접근 로그 기록
-        const ip = request.headers.get('x-forwarded-for') ||
-                   request.headers.get('x-real-ip') ||
-                   'unknown';
-        const userAgent = request.headers.get('user-agent') || null;
-
-        await supabase
-            .from('access_token_logs')
-            .insert({
-                token_id: token.id,
-                accessed_path: pathname,
-                ip_address: ip,
-                user_agent: userAgent,
-            });
-    } catch (error) {
-        console.error('[MIDDLEWARE] Failed to record token usage:', error);
     }
 }
 
@@ -204,6 +158,44 @@ async function recordTokenUsage(
  * @returns NextResponse 객체
  */
 export async function updateSession(request: NextRequest) {
+    // CSRF 검증: 상태 변경 요청에 대해 Origin 헤더 확인
+    const method = request.method;
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+        if (!isLocalhostRequest(request)) {
+            const origin = request.headers.get('origin');
+            const host = request.headers.get('host');
+
+            if (!origin) {
+                return NextResponse.json(
+                    { error: 'Origin header required' },
+                    { status: 403 }
+                );
+            }
+
+            if (!host) {
+                return NextResponse.json(
+                    { error: 'Host header required' },
+                    { status: 403 }
+                );
+            }
+
+            try {
+                const originHost = new URL(origin).host;
+                if (originHost !== host) {
+                    return NextResponse.json(
+                        { error: 'CSRF validation failed' },
+                        { status: 403 }
+                    );
+                }
+            } catch {
+                return NextResponse.json(
+                    { error: 'Invalid origin header' },
+                    { status: 403 }
+                );
+            }
+        }
+    }
+
     let supabaseResponse = NextResponse.next({
         request,
     });
@@ -248,57 +240,80 @@ export async function updateSession(request: NextRequest) {
 
     // 0. tokenKey가 있으면 토큰 기반 접근 처리
     if (tokenKey) {
-        const validation = await validateAccessToken(supabase, tokenKey);
+        // First check token exists and get its metadata (no increment)
+        const tokenCheck = await checkAccessTokenValidity(supabase, tokenKey);
+        if (!tokenCheck.valid || !tokenCheck.token) {
+            const redirectUrl = new URL('/invalid-token', request.url);
+            redirectUrl.searchParams.set('reason', tokenCheck.reason || 'invalid');
+            return NextResponse.redirect(redirectUrl);
+        }
 
-        if (validation.valid && validation.token) {
-            // 토큰이 특정 조합으로 제한된 경우, 해당 조합만 접근 가능
-            if (validation.token.union_id) {
-                const slug = extractSlugFromPath(pathname);
-                if (slug) {
-                    // 조합 slug로 union_id 확인
-                    const { data: union } = await supabase
-                        .from('unions')
-                        .select('id')
-                        .eq('slug', slug)
-                        .single();
+        // Union scope check (before consuming a use)
+        if (tokenCheck.token.union_id) {
+            const slug = extractSlugFromPath(pathname);
+            if (slug) {
+                const { data: union } = await supabase
+                    .from('unions')
+                    .select('id')
+                    .eq('slug', slug)
+                    .single();
 
-                    if (!union || union.id !== validation.token.union_id) {
-                        // 다른 조합 접근 시도 - 유효하지 않은 토큰으로 처리
-                        const redirectUrl = new URL('/invalid-token', request.url);
-                        redirectUrl.searchParams.set('reason', 'wrong_union');
-                        return NextResponse.redirect(redirectUrl);
-                    }
+                if (!union || union.id !== tokenCheck.token.union_id) {
+                    const redirectUrl = new URL('/invalid-token', request.url);
+                    redirectUrl.searchParams.set('reason', 'wrong_union');
+                    return NextResponse.redirect(redirectUrl);
                 }
             }
+        }
 
-            // 토큰 사용 기록
-            await recordTokenUsage(supabase, validation.token, pathname, request);
+        // Atomic: check usage + increment + log in single RPC
+        const ip = request.headers.get('x-forwarded-for') ||
+                   request.headers.get('x-real-ip') || '0.0.0.0';
+        const userAgent = request.headers.get('user-agent') || null;
+        const { data: rpcResult, error: rpcError } = await supabase.rpc('use_access_token', {
+            p_token_id: tokenCheck.token.id,
+            p_accessed_path: pathname,
+            p_ip_address: ip,
+            p_user_agent: userAgent,
+        });
 
-            // guest_access 쿠키 설정
-            supabaseResponse.cookies.set('guest_access', tokenKey, {
+        if (rpcError || !rpcResult?.[0]?.success) {
+            const redirectUrl = new URL('/invalid-token', request.url);
+            redirectUrl.searchParams.set('reason', 'max_usage_reached');
+            return NextResponse.redirect(redirectUrl);
+        }
+
+        // guest_access 쿠키 설정
+        supabaseResponse.cookies.set('guest_access', tokenKey, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: 60 * 60 * 24, // 24시간
+        });
+
+        // Strip tokenKey from URL to prevent it persisting in browser history
+        const cleanUrl = new URL(request.url);
+        cleanUrl.searchParams.delete('tokenKey');
+        if (cleanUrl.toString() !== request.url) {
+            const redirectResponse = NextResponse.redirect(cleanUrl);
+            redirectResponse.cookies.set('guest_access', tokenKey, {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === 'production',
                 sameSite: 'lax',
-                maxAge: 60 * 60 * 24, // 24시간
+                maxAge: 60 * 60 * 24,
             });
-
-            console.log(`[MIDDLEWARE] Token access granted: ${tokenKey.substring(0, 8)}...`);
-            return supabaseResponse;
-        } else {
-            // 유효하지 않은 토큰 - 에러 페이지로 리다이렉트
-            const redirectUrl = new URL('/invalid-token', request.url);
-            redirectUrl.searchParams.set('reason', validation.reason || 'invalid');
-            return NextResponse.redirect(redirectUrl);
+            return redirectResponse;
         }
+
+        return supabaseResponse;
     }
 
     // guest_access 쿠키가 있으면 인증 없이 통과 (조합 페이지만)
     const guestAccessCookie = request.cookies.get('guest_access');
     if (guestAccessCookie && extractSlugFromPath(pathname)) {
         // 쿠키의 토큰이 아직 유효한지 확인
-        const validation = await validateAccessToken(supabase, guestAccessCookie.value);
+        const validation = await checkAccessTokenValidity(supabase, guestAccessCookie.value);
         if (validation.valid) {
-            console.log('[MIDDLEWARE] Guest access via cookie');
             return supabaseResponse;
         } else {
             // 쿠키 삭제
@@ -313,7 +328,6 @@ export async function updateSession(request: NextRequest) {
 
     // [DEV ONLY] localhost 환경에서는 인증 체크 스킵
     if (isLocalhostRequest(request)) {
-        console.log('[MIDDLEWARE] 🔧 [DEV MODE] localhost 감지 - 인증 체크 스킵');
         return supabaseResponse;
     }
 
@@ -351,8 +365,38 @@ export async function updateSession(request: NextRequest) {
         if (!user) {
             // 미인증 시 해당 조합의 랜딩 페이지로 리다이렉트
             const redirectUrl = new URL(`/${slug}`, request.url);
-            redirectUrl.searchParams.set('redirectTo', pathname);
+            if (pathname.startsWith(`/${slug}/`) && !pathname.includes('://')) {
+                redirectUrl.searchParams.set('redirectTo', pathname);
+            }
             return NextResponse.redirect(redirectUrl);
+        }
+
+        // Admin path authorization check
+        if (pathname.includes(`/${slug}/admin/`) || pathname === `/${slug}/admin`) {
+            const { data: link } = await supabase
+                .from('user_auth_links')
+                .select('user_id')
+                .eq('auth_user_id', user.id)
+                .single();
+
+            if (link) {
+                const { data: userData } = await supabase
+                    .from('users')
+                    .select('role')
+                    .eq('id', link.user_id)
+                    .single();
+
+                const isAdminUser = userData?.role === 'ADMIN' ||
+                                    userData?.role === 'SUPER_ADMIN' ||
+                                    userData?.role === 'SYSTEM_ADMIN';
+                if (!isAdminUser) {
+                    const redirectUrl = new URL(`/${slug}`, request.url);
+                    return NextResponse.redirect(redirectUrl);
+                }
+            } else {
+                const redirectUrl = new URL(`/${slug}`, request.url);
+                return NextResponse.redirect(redirectUrl);
+            }
         }
     }
 

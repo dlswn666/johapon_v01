@@ -203,19 +203,29 @@ export const useUpdateComment = () => {
             updates,
             entityType,
             entityId,
+            userId,
+            isAdmin,
         }: {
             id: number;
             updates: UpdateComment;
             entityType: EntityType;
             entityId: number;
+            userId?: string;
+            isAdmin?: boolean;
         }) => {
-            const { data, error } = await supabase
+            let query = supabase
                 .from('comments')
                 .update({
                     ...updates,
                     updated_at: new Date().toISOString(),
                 })
-                .eq('id', id)
+                .eq('id', id);
+
+            if (!isAdmin && userId) {
+                query = query.eq('author_id', userId);
+            }
+
+            const { data, error } = await query
                 .select(`
                     *,
                     author:users!comments_author_id_fkey(id, name)
@@ -258,16 +268,27 @@ export const useDeleteComment = () => {
             id,
             entityType,
             entityId,
+            userId,
+            isAdmin,
         }: {
             id: number;
             entityType: EntityType;
             entityId: number;
+            userId?: string;
+            isAdmin?: boolean;
         }) => {
             // CASCADE로 답글도 함께 삭제됨
-            const { error } = await supabase
+            let query = supabase
                 .from('comments')
                 .delete()
                 .eq('id', id);
+
+            // Non-admin users can only delete their own comments
+            if (!isAdmin && userId) {
+                query = query.eq('author_id', userId);
+            }
+
+            const { error } = await query;
 
             if (error) {
                 throw error;

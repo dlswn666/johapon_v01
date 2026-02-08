@@ -12,6 +12,7 @@ import {
 import { useLogAccessEvent } from '@/app/_lib/features/member-management/api/useAccessLogHook';
 import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
+import { useFocusTrap } from '@/app/_lib/shared/hooks/useFocusTrap';
 
 interface BlockMemberModalProps {
     member: MemberWithLandInfo;
@@ -22,6 +23,16 @@ export default function BlockMemberModal({ member, onClose }: BlockMemberModalPr
     const { user } = useAuth();
     const { union } = useSlug();
     const unionId = union?.id;
+    const focusTrapRef = useFocusTrap(true);
+
+    // ESC key handler
+    React.useEffect(() => {
+        const handleEsc = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') onClose();
+        };
+        document.addEventListener('keydown', handleEsc);
+        return () => document.removeEventListener('keydown', handleEsc);
+    }, [onClose]);
 
     const [reason, setReason] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -43,11 +54,11 @@ export default function BlockMemberModal({ member, onClose }: BlockMemberModalPr
         try {
             if (isBlocked) {
                 // 차단 해제
-                await unblockMember(member.id);
+                await unblockMember({ memberId: member.id, unionId: unionId || '' });
                 toast.success('차단이 해제되었습니다.');
             } else {
                 // 차단 처리
-                await blockMember({ memberId: member.id, reason: reason.trim() });
+                await blockMember({ memberId: member.id, unionId: unionId || '', reason: reason.trim() });
                 toast.success('회원이 차단되었습니다.');
 
                 // 차단 로그 기록
@@ -70,7 +81,7 @@ export default function BlockMemberModal({ member, onClose }: BlockMemberModalPr
     };
 
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div ref={focusTrapRef} role="dialog" aria-modal="true" aria-labelledby="block-member-modal-title" className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
                 {/* 헤더 */}
                 <div className="p-6 border-b border-gray-100 flex items-center justify-between">
@@ -82,12 +93,13 @@ export default function BlockMemberModal({ member, onClose }: BlockMemberModalPr
                         >
                             <Ban className={`w-5 h-5 ${isBlocked ? 'text-green-600' : 'text-red-600'}`} />
                         </div>
-                        <h3 className="text-[18px] font-bold text-gray-900">
+                        <h3 id="block-member-modal-title" className="text-[18px] font-bold text-gray-900">
                             {isBlocked ? '차단 해제' : '강제 탈퇴 (차단)'}
                         </h3>
                     </div>
                     <button
                         onClick={onClose}
+                        aria-label="닫기"
                         className="p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
                     >
                         <X className="w-5 h-5 text-gray-500" />
@@ -143,19 +155,22 @@ export default function BlockMemberModal({ member, onClose }: BlockMemberModalPr
                             </div>
 
                             <div className="space-y-2">
-                                <label className="block text-[14px] font-medium text-gray-700">
+                                <label htmlFor="block-reason" className="block text-[14px] font-medium text-gray-700">
                                     차단 사유 <span className="text-red-500">*</span>
                                 </label>
                                 <textarea
+                                    id="block-reason"
                                     value={reason}
                                     onChange={(e) => setReason(e.target.value)}
                                     placeholder="차단 사유를 입력하세요..."
                                     rows={4}
                                     className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none text-[14px]"
                                 />
-                                {reason.trim().length === 0 && (
-                                    <p className="text-[12px] text-red-500">차단 사유를 입력해야 차단할 수 있습니다.</p>
-                                )}
+                                <div aria-live="polite">
+                                    {reason.trim().length === 0 && (
+                                        <p className="text-[12px] text-red-500">차단 사유를 입력해야 차단할 수 있습니다.</p>
+                                    )}
+                                </div>
                             </div>
                         </>
                     )}

@@ -8,6 +8,7 @@ import {
     OwnershipType,
 } from '@/app/_lib/shared/type/database.types';
 import useMemberStore, { BlockedFilter } from '../model/useMemberStore';
+import { escapeLikeWildcards } from '@/app/_lib/shared/utils/escapeLike';
 
 // 기존 호환성 유지를 위한 타입 (deprecated)
 export interface MemberWithLandInfo extends User {
@@ -75,8 +76,9 @@ export function useApprovedMembers({
 
             // 검색 필터 적용 (이름 또는 물건지 주소)
             if (searchQuery) {
+                const escaped = escapeLikeWildcards(searchQuery);
                 query = query.or(
-                    `name.ilike.%${searchQuery}%,property_address.ilike.%${searchQuery}%`
+                    `name.ilike.%${escaped}%,property_address.ilike.%${escaped}%`
                 );
             }
 
@@ -339,7 +341,6 @@ export function useApprovedMembersInfinite({
 
             // 4. 대표 사용자들의 property_units 정보 조회
             const userIds = members.map((u) => u.id);
-            console.log('[DEBUG] Target userIds:', userIds);
             const propertyUnitsMap: Record<string, MemberPropertyUnitInfo[]> = {};
 
             if (userIds.length > 0) {
@@ -485,9 +486,11 @@ export function useUpdateMember() {
     return useMutation({
         mutationFn: async ({
             memberId,
+            unionId,
             updates,
         }: {
             memberId: string;
+            unionId: string;
             updates: Pick<
                 UpdateUser,
                 | 'name'
@@ -507,7 +510,8 @@ export function useUpdateMember() {
                     ...updates,
                     updated_at: new Date().toISOString(),
                 })
-                .eq('id', memberId);
+                .eq('id', memberId)
+                .eq('union_id', unionId);
 
             if (error) throw error;
         },
@@ -523,7 +527,7 @@ export function useBlockMember() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async ({ memberId, reason }: { memberId: string; reason: string }) => {
+        mutationFn: async ({ memberId, unionId, reason }: { memberId: string; unionId: string; reason: string }) => {
             const { error } = await supabase
                 .from('users')
                 .update({
@@ -532,7 +536,8 @@ export function useBlockMember() {
                     blocked_reason: reason,
                     updated_at: new Date().toISOString(),
                 })
-                .eq('id', memberId);
+                .eq('id', memberId)
+                .eq('union_id', unionId);
 
             if (error) throw error;
         },
@@ -548,7 +553,7 @@ export function useUnblockMember() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async (memberId: string) => {
+        mutationFn: async ({ memberId, unionId }: { memberId: string; unionId: string }) => {
             const { error } = await supabase
                 .from('users')
                 .update({
@@ -557,7 +562,8 @@ export function useUnblockMember() {
                     blocked_reason: null,
                     updated_at: new Date().toISOString(),
                 })
-                .eq('id', memberId);
+                .eq('id', memberId)
+                .eq('union_id', unionId);
 
             if (error) throw error;
         },
@@ -573,7 +579,7 @@ export function useUpdateMemberPnu() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async ({ memberId, pnu }: { memberId: string; pnu: string }) => {
+        mutationFn: async ({ memberId, unionId, pnu }: { memberId: string; unionId: string; pnu: string }) => {
             // PNU 유효성 검증 (19자리)
             if (!/^\d{19}$/.test(pnu)) {
                 throw new Error('PNU는 19자리 숫자여야 합니다.');
@@ -585,7 +591,8 @@ export function useUpdateMemberPnu() {
                     property_pnu: pnu,
                     updated_at: new Date().toISOString(),
                 })
-                .eq('id', memberId);
+                .eq('id', memberId)
+                .eq('union_id', unionId);
 
             if (error) throw error;
         },
@@ -645,15 +652,15 @@ export function useMemberPropertyUnits(memberId: string | undefined) {
                     building_ownership_ratio,
                     property_address_jibun,
                     property_address_road,
-                    building_units!inner (
+                    building_units (
                         dong,
                         ho,
                         area,
                         official_price,
-                        buildings!building_units_building_id_fkey!inner (
+                        buildings!building_units_building_id_fkey (
                             building_name,
                             pnu,
-                            land_lots!inner (
+                            land_lots (
                                 address
                             )
                         )
@@ -736,6 +743,7 @@ export function useUpdateOwnershipType() {
 }
 
 // 대표 물건지 변경
+// TASK-S003: 원자적 UPDATE로 Race Condition 해결
 export function useSetPrimaryPropertyUnit() {
     const queryClient = useQueryClient();
 
@@ -747,26 +755,98 @@ export function useSetPrimaryPropertyUnit() {
             memberId: string;
             propertyUnitId: string;
         }) => {
-            // 1. 해당 사용자의 모든 물건지를 is_primary = false로 설정
-            const { error: resetError } = await supabase
-                .from('user_property_units')
-                .update({ is_primary: false, updated_at: new Date().toISOString() })
-                .eq('user_id', memberId);
+            // ✅ 원자적 RPC 함수 호출로 Race Condition 방지
+            // 하나의 UPDATE 문으로 모든 물건지 처리
+            const { data, error } = await supabase.rpc(
+                'set_primary_property_unit',
+                {
+                    p_user_id: memberId,
+                    p_property_unit_id: propertyUnitId
+                }
+            );
 
-            if (resetError) throw resetError;
+            if (error) {
+                throw new Error(error.message || 'Failed to set primary property unit');
+            }
 
-            // 2. 선택된 물건지를 is_primary = true로 설정
-            const { error: setError } = await supabase
-                .from('user_property_units')
-                .update({ is_primary: true, updated_at: new Date().toISOString() })
-                .eq('id', propertyUnitId);
+            if (!data || data.length === 0) {
+                throw new Error('RPC function returned no result');
+            }
 
-            if (setError) throw setError;
+            const result = data[0];
+            if (!result.success) {
+                throw new Error(result.error_message || 'Failed to set primary property unit');
+            }
+
+            return { success: true, propertyUnitId };
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['approved-members'] });
             queryClient.invalidateQueries({ queryKey: ['member-property-units'] });
+            queryClient.invalidateQueries({ queryKey: ['member-detail'] });
         },
+        onError: (error) => {
+            console.error('Failed to set primary property unit:', error);
+        },
+    });
+}
+
+// 물건지 삭제
+export function useDeletePropertyUnit() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({
+            memberId,
+            propertyUnitId,
+        }: {
+            memberId: string;
+            propertyUnitId: string;
+        }) => {
+            // 사전 조건 검증: 삭제하려는 물건지가 is_primary=true인지 확인
+            const { data: propertyUnit, error: fetchError } = await supabase
+                .from('user_property_units')
+                .select('id, is_primary')
+                .eq('id', propertyUnitId)
+                .eq('user_id', memberId)
+                .single();
+
+            if (fetchError || !propertyUnit) {
+                throw new Error('물건지를 찾을 수 없습니다');
+            }
+
+            if (propertyUnit.is_primary) {
+                throw new Error('대표 물건지는 삭제할 수 없습니다');
+            }
+
+            // DELETE 실행: WHERE is_primary = false 조건 추가
+            const { error: deleteError } = await supabase
+                .from('user_property_units')
+                .delete()
+                .eq('id', propertyUnitId)
+                .eq('is_primary', false);
+
+            if (deleteError) throw deleteError;
+
+            return { success: true, message: '물건지가 삭제되었습니다', deletedPropertyUnitId: propertyUnitId };
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({
+                queryKey: ['member-property-units'],
+                exact: false
+            });
+            queryClient.invalidateQueries({
+                queryKey: ['approved-members'],
+                exact: false
+            });
+            queryClient.invalidateQueries({
+                queryKey: ['member-detail'],
+                exact: false
+            });
+        },
+        onError: (error) => {
+            console.error('Failed to delete property unit:', error);
+        }
     });
 }
 
@@ -859,6 +939,45 @@ export function useMemberConsentStatus(memberId: string | undefined, businessTyp
     });
 }
 
+// 조합원 동의 상태 업데이트
+export function useUpdateMemberConsent() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({
+            userId,
+            stageId,
+            status,
+        }: {
+            userId: string;
+            stageId: string;
+            status: 'AGREED' | 'DISAGREED';
+        }) => {
+            const { data, error } = await supabase
+                .from('user_consents')
+                .upsert(
+                    {
+                        user_id: userId,
+                        stage_id: stageId,
+                        status,
+                        consent_date: status === 'AGREED' ? new Date().toISOString() : null,
+                    },
+                    { onConflict: 'user_id,stage_id' }
+                )
+                .select()
+                .single();
+
+            if (error) throw error;
+            return data;
+        },
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({
+                queryKey: ['member-consent-status', variables.userId],
+            });
+        },
+    });
+}
+
 // ====== 승인 관리 관련 Hook ======
 
 // 사용자 상태 필터 타입
@@ -907,8 +1026,9 @@ export function useAdminUsers({
             }
 
             if (searchQuery) {
+                const escaped = escapeLikeWildcards(searchQuery);
                 query = query.or(
-                    `name.ilike.%${searchQuery}%,phone_number.ilike.%${searchQuery}%,property_address.ilike.%${searchQuery}%`
+                    `name.ilike.%${escaped}%,phone_number.ilike.%${escaped}%,property_address.ilike.%${escaped}%`
                 );
             }
 
@@ -926,25 +1046,24 @@ export function useAdminUsers({
     });
 }
 
-// 사용자 승인 mutation
+// 사용자 승인 mutation (서버 사이드 API 라우트 사용)
 export function useApproveUser() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async (userId: string) => {
-            const { error } = await supabase
-                .from('users')
-                .update({
-                    user_status: 'APPROVED',
-                    role: 'USER',
-                    approved_at: new Date().toISOString(),
-                    rejected_reason: null,
-                    rejected_at: null,
-                    updated_at: new Date().toISOString(),
-                })
-                .eq('id', userId);
+        mutationFn: async ({ userId, unionId }: { userId: string; unionId: string }) => {
+            const response = await fetch('/api/members/approve', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ memberId: userId, unionId }),
+            });
 
-            if (error) throw error;
+            if (!response.ok) {
+                const data = await response.json();
+                throw new Error(data.error || '승인 처리에 실패했습니다.');
+            }
+
+            return response.json();
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['admin-users'] });
@@ -952,23 +1071,28 @@ export function useApproveUser() {
     });
 }
 
-// 사용자 반려 mutation
+// 사용자 반려 mutation (서버 사이드 API 라우트 사용)
 export function useRejectUser() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async ({ userId, reason }: { userId: string; reason: string }) => {
-            const { error } = await supabase
-                .from('users')
-                .update({
-                    user_status: 'REJECTED',
-                    rejected_reason: reason,
-                    rejected_at: new Date().toISOString(),
-                    updated_at: new Date().toISOString(),
-                })
-                .eq('id', userId);
+        mutationFn: async ({ userId, unionId, reason }: { userId: string; unionId: string; reason: string }) => {
+            if (!reason || reason.trim().length === 0) {
+                throw new Error('반려 사유는 필수입니다.');
+            }
 
-            if (error) throw error;
+            const response = await fetch('/api/members/reject', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ memberId: userId, unionId, reason: reason.trim() }),
+            });
+
+            if (!response.ok) {
+                const data = await response.json();
+                throw new Error(data.error || '반려 처리에 실패했습니다.');
+            }
+
+            return response.json();
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['admin-users'] });
@@ -976,19 +1100,26 @@ export function useRejectUser() {
     });
 }
 
-// 역할 변경 mutation
+// 역할 변경 mutation (역할 화이트리스트 + union_id 필터)
+const ALLOWED_ROLES = ['USER', 'ADMIN'];
+
 export function useUpdateUserRole() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async ({ userId, role }: { userId: string; role: string }) => {
+        mutationFn: async ({ userId, role, unionId }: { userId: string; role: string; unionId: string }) => {
+            if (!ALLOWED_ROLES.includes(role)) {
+                throw new Error('허용되지 않은 역할입니다.');
+            }
+
             const { error } = await supabase
                 .from('users')
                 .update({
                     role,
                     updated_at: new Date().toISOString(),
                 })
-                .eq('id', userId);
+                .eq('id', userId)
+                .eq('union_id', unionId);
 
             if (error) throw error;
         },
@@ -998,23 +1129,24 @@ export function useUpdateUserRole() {
     });
 }
 
-// 반려 취소 mutation (REJECTED → PENDING_APPROVAL)
+// 반려 취소 mutation (서버 사이드 API 라우트 사용)
 export function useCancelRejection() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async (userId: string) => {
-            const { error } = await supabase
-                .from('users')
-                .update({
-                    user_status: 'PENDING_APPROVAL',
-                    rejected_reason: null,
-                    rejected_at: null,
-                    updated_at: new Date().toISOString(),
-                })
-                .eq('id', userId);
+        mutationFn: async ({ userId, unionId }: { userId: string; unionId: string }) => {
+            const response = await fetch('/api/members/cancel-rejection', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ memberId: userId, unionId }),
+            });
 
-            if (error) throw error;
+            if (!response.ok) {
+                const data = await response.json();
+                throw new Error(data.error || '반려 취소에 실패했습니다.');
+            }
+
+            return response.json();
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['admin-users'] });
@@ -1022,16 +1154,17 @@ export function useCancelRejection() {
     });
 }
 
-// 임원 여부 변경 mutation
+// 임원 여부 변경 mutation (union_id 필터 추가)
 export function useUpdateExecutiveStatus() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async ({ userId, isExecutive }: { userId: string; isExecutive: boolean }) => {
+        mutationFn: async ({ userId, isExecutive, unionId }: { userId: string; isExecutive: boolean; unionId: string }) => {
             const { error } = await supabase
                 .from('users')
                 .update({ is_executive: isExecutive })
-                .eq('id', userId);
+                .eq('id', userId)
+                .eq('union_id', unionId);
 
             if (error) throw error;
         },
@@ -1041,16 +1174,17 @@ export function useUpdateExecutiveStatus() {
     });
 }
 
-// 임원 직위 변경 mutation
+// 임원 직위 변경 mutation (union_id 필터 추가)
 export function useUpdateExecutiveTitle() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async ({ userId, title }: { userId: string; title: string }) => {
+        mutationFn: async ({ userId, title, unionId }: { userId: string; title: string; unionId: string }) => {
             const { error } = await supabase
                 .from('users')
                 .update({ executive_title: title })
-                .eq('id', userId);
+                .eq('id', userId)
+                .eq('union_id', unionId);
 
             if (error) throw error;
         },
@@ -1060,16 +1194,17 @@ export function useUpdateExecutiveTitle() {
     });
 }
 
-// 노출 순서 변경 mutation
+// 노출 순서 변경 mutation (union_id 필터 추가)
 export function useUpdateExecutiveSortOrder() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async ({ userId, sortOrder }: { userId: string; sortOrder: number }) => {
+        mutationFn: async ({ userId, sortOrder, unionId }: { userId: string; sortOrder: number; unionId: string }) => {
             const { error } = await supabase
                 .from('users')
                 .update({ executive_sort_order: sortOrder })
-                .eq('id', userId);
+                .eq('id', userId)
+                .eq('union_id', unionId);
 
             if (error) throw error;
         },

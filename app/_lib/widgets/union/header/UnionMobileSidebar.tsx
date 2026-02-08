@@ -259,25 +259,20 @@ export default function UnionMobileSidebar({ isOpen, onClose }: UnionMobileSideb
                             />
                         </button>
 
-                        {/* 사용자 서브메뉴 - 오른쪽으로 확장 */}
+                        {/* 사용자 서브메뉴 - 아래로 확장 */}
                         {isUserMenuExpanded && (
-                            <div
-                                className="absolute left-full top-0 ml-2 w-[180px] bg-white border border-gray-200 rounded-lg shadow-lg z-50"
-                                role="menu"
-                                aria-label="내 계정 메뉴"
-                            >
+                            <div className="mt-1 ml-4 space-y-1">
                                 <Link
                                     href={`/${union.slug}/my-property`}
                                     onClick={handleLinkClick}
-                                    className="px-4 py-3 text-[14px] text-gray-700 hover:bg-gray-50 transition-colors rounded-t-lg cursor-pointer flex items-center gap-2 focus-visible:bg-gray-100 focus-visible:outline-none"
-                                    role="menuitem"
+                                    className="block px-3 py-2.5 rounded-lg text-[14px] text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-[#4E8C6D] focus-visible:ring-inset"
                                 >
-                                    <MapPin className="size-4" aria-hidden="true" />내 공시지가 보기
+                                    <MapPin className="size-4" aria-hidden="true" />
+                                    내 공시지가 보기
                                 </Link>
                                 <button
                                     onClick={handleLogout}
-                                    className="w-full text-left px-4 py-3 text-[14px] text-gray-700 hover:bg-gray-50 transition-colors rounded-b-lg flex items-center gap-2 cursor-pointer focus-visible:bg-gray-100 focus-visible:outline-none"
-                                    role="menuitem"
+                                    className="w-full text-left px-3 py-2.5 rounded-lg text-[14px] text-gray-600 hover:bg-gray-100 transition-colors flex items-center gap-2 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[#4E8C6D] focus-visible:ring-inset"
                                 >
                                     <LogOut className="size-4" aria-hidden="true" />
                                     로그아웃

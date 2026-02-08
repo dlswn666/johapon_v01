@@ -126,6 +126,7 @@ const EditNoticePage = () => {
                 start_date: values.start_date ? values.start_date.toISOString() : null,
                 end_date: values.end_date ? values.end_date.toISOString() : null,
             },
+            updatedAt: notice?.updated_at ?? undefined,
         });
     }
 

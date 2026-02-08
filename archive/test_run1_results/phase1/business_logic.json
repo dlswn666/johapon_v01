@@ -1,0 +1,794 @@
+{
+  "entities": [
+    {
+      "name": "Union",
+      "table": "unions",
+      "description": "Apartment/housing reconstruction union organization",
+      "key_fields": ["id", "name", "slug", "is_active", "business_type", "kakao_channel_id", "current_stage_id"],
+      "business_types": ["REDEVELOPMENT", "RECONSTRUCTION", "HOUSING_ASSOCIATION", "STREET_HOUSING", "SMALL_RECONSTRUCTION"],
+      "operations": ["create", "read", "update", "delete", "toggle_active", "update_alimtalk_settings", "register_sender_key"]
+    },
+    {
+      "name": "User/Member",
+      "table": "users",
+      "description": "Union member (applicant, pre-registered, approved, blocked, rejected, transferred)",
+      "key_fields": ["id", "name", "email", "phone_number", "role", "user_status", "union_id", "is_blocked", "is_executive", "executive_title", "property_address", "property_pnu"],
+      "roles": ["SYSTEM_ADMIN", "SUPER_ADMIN", "ADMIN", "USER", "APPLICANT"],
+      "statuses": ["PRE_REGISTERED", "PENDING_APPROVAL", "APPROVED", "REJECTED", "TRANSFERRED", "ARCHIVED"],
+      "operations": ["register", "approve", "reject", "cancel_rejection", "block", "unblock", "update_info", "update_role", "update_executive_status", "update_executive_title", "update_sort_order", "delete_pre_registered"]
+    },
+    {
+      "name": "UserPropertyUnit",
+      "table": "user_property_units",
+      "description": "Property ownership unit linked to a user (supports multiple properties per user)",
+      "key_fields": ["id", "user_id", "pnu", "building_unit_id", "ownership_type", "is_primary", "dong", "ho", "land_area", "building_area", "land_ownership_ratio", "building_ownership_ratio"],
+      "ownership_types": ["OWNER", "CO_OWNER", "FAMILY", "PROXY"],
+      "operations": ["create", "update_ownership_type", "set_primary", "delete", "transfer"]
+    },
+    {
+      "name": "Notice",
+      "table": "notices",
+      "description": "Official announcements from union administration",
+      "key_fields": ["id", "title", "content", "author_id", "union_id", "views", "is_popup", "start_date", "end_date"],
+      "operations": ["create", "read", "update", "delete", "increment_views", "popup_query"],
+      "features": ["search_by_title_content_author", "file_attachments", "comment_counts", "alimtalk_notification", "scheduled_alimtalk", "popup_display"]
+    },
+    {
+      "name": "Question",
+      "table": "questions",
+      "description": "Q&A board where members ask and admins answer",
+      "key_fields": ["id", "title", "content", "author_id", "union_id", "is_secret", "answer_content", "answer_author_id", "answered_at", "views"],
+      "operations": ["create", "read", "update", "delete", "answer", "delete_answer", "increment_views"],
+      "features": ["secret_questions", "admin_answers", "alimtalk_on_question", "alimtalk_on_answer", "my_posts_first_sort"]
+    },
+    {
+      "name": "FreeBoard",
+      "table": "free_boards",
+      "description": "Free discussion board for members",
+      "key_fields": ["id", "title", "content", "author_id", "union_id", "views"],
+      "operations": ["create", "read", "update", "delete", "increment_views"],
+      "features": ["search_by_title_content_author", "file_attachments", "comment_counts", "pagination"]
+    },
+    {
+      "name": "UnionInfo",
+      "table": "union_info",
+      "description": "Union official information posts (communication board)",
+      "key_fields": ["id", "title", "content", "author_id", "union_id", "views", "has_attachments"],
+      "operations": ["create", "read", "update", "delete", "increment_views", "delete_file"],
+      "features": ["search_by_title_content_author", "file_attachments", "comment_counts", "pagination"]
+    },
+    {
+      "name": "Comment",
+      "table": "comments",
+      "description": "Comments on notices, free-board, union-info posts (polymorphic)",
+      "key_fields": ["id", "entity_type", "entity_id", "author_id", "content", "parent_id", "union_id"],
+      "entity_types": ["notice", "free_board", "union_info", "board"],
+      "operations": ["create", "read", "update", "delete"],
+      "features": ["nested_replies_max_1_level", "ownership_check_on_delete"]
+    },
+    {
+      "name": "File",
+      "table": "files",
+      "description": "Polymorphic file attachments for various entities",
+      "key_fields": ["id", "attachable_type", "attachable_id", "path", "union_id"],
+      "attachable_types": ["notice", "free_board", "union_info"],
+      "operations": ["upload_temp", "confirm", "delete"]
+    },
+    {
+      "name": "HeroSlide",
+      "table": "hero_slides",
+      "description": "Banner/hero slides on union landing page",
+      "key_fields": ["id", "union_id", "is_active", "display_order"],
+      "operations": ["create", "read", "update", "delete"],
+      "constraints": ["max_5_active_slides", "ordered_by_display_order"]
+    },
+    {
+      "name": "Advertisement",
+      "table": "advertisements",
+      "description": "Ads displayed on union pages",
+      "key_fields": ["id", "union_id", "type", "contract_start_date", "contract_end_date"],
+      "ad_types": ["AdType enum (various types)"],
+      "operations": ["create", "read", "update", "delete"],
+      "features": ["date_based_active_filter", "random_display", "admin_management"]
+    },
+    {
+      "name": "LandLot",
+      "table": "land_lots",
+      "description": "GIS land parcel data for a union (PNU-based)",
+      "key_fields": ["pnu", "union_id", "address", "address_text", "area", "official_price"],
+      "operations": ["read", "match_address"]
+    },
+    {
+      "name": "Building",
+      "table": "buildings",
+      "description": "Building structure data linked to land lots",
+      "key_fields": ["id", "pnu", "building_name"],
+      "operations": ["read"]
+    },
+    {
+      "name": "BuildingUnit",
+      "table": "building_units",
+      "description": "Individual units within a building (dong/ho)",
+      "key_fields": ["id", "building_id", "dong", "ho", "area", "official_price"],
+      "operations": ["read"]
+    },
+    {
+      "name": "ConsentStage",
+      "table": "consent_stages",
+      "description": "Legal consent stages for union development process",
+      "key_fields": ["id", "business_type", "stage_code", "stage_name", "required_rate", "sort_order"],
+      "operations": ["create", "read", "update", "delete"]
+    },
+    {
+      "name": "UserConsent",
+      "table": "user_consents",
+      "description": "Individual member consent records per stage",
+      "key_fields": ["user_id", "stage_id", "status", "consent_date"],
+      "consent_statuses": ["AGREED", "DISAGREED", "PENDING"],
+      "operations": ["read", "update"]
+    },
+    {
+      "name": "DevelopmentStage",
+      "table": "development_stages",
+      "description": "Overall development project stages",
+      "key_fields": ["id", "business_type", "stage_name", "sort_order"],
+      "operations": ["create", "read", "update", "delete"]
+    },
+    {
+      "name": "MemberInvite",
+      "table": "member_invites",
+      "description": "Token-based member invitation system",
+      "key_fields": ["id", "union_id", "name", "phone_number", "invite_token", "status", "expires_at", "user_id"],
+      "statuses": ["PENDING", "USED", "EXPIRED"],
+      "operations": ["create", "read", "delete", "accept", "sync_excel", "bulk_alimtalk"]
+    },
+    {
+      "name": "AccessToken",
+      "table": "access_tokens",
+      "description": "Guest access tokens for unauthenticated access",
+      "key_fields": ["id", "key", "union_id", "max_usage", "usage_count", "expires_at", "deleted_at"],
+      "operations": ["create", "validate", "record_usage"]
+    },
+    {
+      "name": "MemberAccessLog",
+      "table": "member_access_logs",
+      "description": "Audit log for member data access",
+      "key_fields": ["id", "union_id", "viewer_id", "viewer_name", "access_type", "accessed_at"],
+      "access_types": ["LIST_VIEW", "DETAIL_VIEW", "MEMBER_UPDATE", "MEMBER_BLOCK"],
+      "operations": ["create", "read", "delete_old"]
+    },
+    {
+      "name": "PropertyOwnershipHistory",
+      "table": "property_ownership_history",
+      "description": "Audit trail for property ownership changes",
+      "key_fields": ["property_unit_id", "from_user_id", "to_user_id", "change_type", "previous_ratio", "new_ratio"],
+      "change_types": ["TRANSFER", "RATIO_CHANGED", "CO_OWNER_ADDED"],
+      "operations": ["create", "read"]
+    },
+    {
+      "name": "UserRelationship",
+      "table": "user_relationships",
+      "description": "Relationships between users (family, proxy)",
+      "key_fields": ["user_id", "related_user_id", "relationship_type", "verified"],
+      "relationship_types": ["FAMILY", "PROXY"],
+      "operations": ["create", "read"]
+    },
+    {
+      "name": "UserAuthLink",
+      "table": "user_auth_links",
+      "description": "Maps Supabase auth users to application users",
+      "key_fields": ["auth_user_id", "user_id"],
+      "operations": ["create", "read", "transfer"]
+    },
+    {
+      "name": "AlimtalkLog",
+      "table": "alimtalk_logs",
+      "description": "Kakao AlimTalk message sending logs",
+      "key_fields": ["id", "union_id", "template_code", "notice_id"],
+      "operations": ["create", "read"]
+    },
+    {
+      "name": "ScheduledAlimtalk",
+      "table": "scheduled_alimtalks",
+      "description": "Scheduled Kakao AlimTalk messages",
+      "key_fields": ["id", "notice_id", "union_id", "template_code", "scheduled_at", "status"],
+      "operations": ["create", "read"]
+    }
+  ],
+
+  "business_rules": [
+    {
+      "id": "BR-001",
+      "category": "member_approval",
+      "rule": "Only PENDING_APPROVAL status users can be approved",
+      "enforcement": "Pre-condition check in useApproveUser + .eq('user_status', 'PENDING_APPROVAL') double-safety",
+      "location": "useMemberHook.ts:useApproveUser"
+    },
+    {
+      "id": "BR-002",
+      "category": "member_approval",
+      "rule": "Only PENDING_APPROVAL status users can be rejected",
+      "enforcement": "Pre-condition check in useRejectUser + .eq('user_status', 'PENDING_APPROVAL') double-safety",
+      "location": "useMemberHook.ts:useRejectUser"
+    },
+    {
+      "id": "BR-003",
+      "category": "member_approval",
+      "rule": "Rejection reason is required (non-empty string)",
+      "enforcement": "Validation check: if (!reason || reason.trim().length === 0) throw",
+      "location": "useMemberHook.ts:useRejectUser"
+    },
+    {
+      "id": "BR-004",
+      "category": "member_approval",
+      "rule": "Only REJECTED status can be reverted to PENDING_APPROVAL",
+      "enforcement": "Pre-condition check in useCancelRejection + .eq('user_status', 'REJECTED') double-safety",
+      "location": "useMemberHook.ts:useCancelRejection"
+    },
+    {
+      "id": "BR-005",
+      "category": "member_approval",
+      "rule": "On approval, role is set to USER and approved_at timestamp is recorded",
+      "enforcement": "Hardcoded in update payload: role:'USER', approved_at: new Date().toISOString()",
+      "location": "useMemberHook.ts:useApproveUser"
+    },
+    {
+      "id": "BR-006",
+      "category": "member_management",
+      "rule": "Block sets is_blocked=true, blocked_at timestamp, and requires blocked_reason",
+      "enforcement": "Parameters require reason; update sets all three fields",
+      "location": "useMemberHook.ts:useBlockMember"
+    },
+    {
+      "id": "BR-007",
+      "category": "member_management",
+      "rule": "Unblock clears is_blocked, blocked_at, and blocked_reason",
+      "enforcement": "Update sets is_blocked:false, blocked_at:null, blocked_reason:null",
+      "location": "useMemberHook.ts:useUnblockMember"
+    },
+    {
+      "id": "BR-008",
+      "category": "property",
+      "rule": "PNU must be exactly 19 digits",
+      "enforcement": "Regex validation: /^\\d{19}$/.test(pnu)",
+      "location": "useMemberHook.ts:useUpdateMemberPnu"
+    },
+    {
+      "id": "BR-009",
+      "category": "property",
+      "rule": "Primary property unit cannot be deleted",
+      "enforcement": "Pre-check: if (propertyUnit.is_primary) throw + DELETE WHERE is_primary=false",
+      "location": "useMemberHook.ts:useDeletePropertyUnit"
+    },
+    {
+      "id": "BR-010",
+      "category": "property",
+      "rule": "Set primary property unit uses atomic RPC to prevent race conditions",
+      "enforcement": "supabase.rpc('set_primary_property_unit') single DB call",
+      "location": "useMemberHook.ts:useSetPrimaryPropertyUnit"
+    },
+    {
+      "id": "BR-011",
+      "category": "property",
+      "rule": "Duplicate PNU+dong+ho within same union is not allowed (for pre-registration)",
+      "enforcement": "checkDuplicatePnu() called before savePreRegisteredMembers",
+      "location": "memberMatching.ts:checkDuplicatePnu"
+    },
+    {
+      "id": "BR-012",
+      "category": "content",
+      "rule": "Comments allow max 1 level of nesting (no reply-to-reply)",
+      "enforcement": "Check parent_id of parent comment; if parent.parent_id !== null, reject",
+      "location": "useCommentHook.ts:useAddComment"
+    },
+    {
+      "id": "BR-013",
+      "category": "content",
+      "rule": "Non-admin users can only delete their own posts/comments (ownership check)",
+      "enforcement": ".eq('author_id', user.id) added to DELETE query for non-admin users",
+      "location": "useFreeBoardHook.ts, useQuestionHook.ts, useCommentHook.ts"
+    },
+    {
+      "id": "BR-014",
+      "category": "content",
+      "rule": "Secret questions are only visible to author and admin",
+      "enforcement": "Server-side: .or(is_secret.eq.false,author_id.eq.{userId}); Detail: canAccess = isAdmin || author_id === user.id",
+      "location": "useQuestionHook.ts:useQuestions, useQuestion"
+    },
+    {
+      "id": "BR-015",
+      "category": "content",
+      "rule": "View count uses RPC function for atomic increment with sessionStorage dedup",
+      "enforcement": "supabase.rpc('increment_*_views') + sessionStorage key check on detail pages",
+      "location": "useNoticeHook.ts, useQuestionHook.ts, useFreeBoardHook.ts, useUnionInfoHook.ts"
+    },
+    {
+      "id": "BR-016",
+      "category": "content",
+      "rule": "Content deletion cascade: storage files -> DB file records -> comments -> post",
+      "enforcement": "Sequential deletion in delete mutation: fileApi.deleteFolder -> files DELETE -> comments DELETE -> post DELETE",
+      "location": "useFreeBoardHook.ts:useDeleteFreeBoard"
+    },
+    {
+      "id": "BR-017",
+      "category": "content",
+      "rule": "Editor images use blob URL replacement: create post first, upload images, then update content",
+      "enforcement": "processEditorImages() replaces blob URLs with uploaded public URLs after insert",
+      "location": "useNoticeHook.ts, useQuestionHook.ts, useFreeBoardHook.ts, useUnionInfoHook.ts"
+    },
+    {
+      "id": "BR-018",
+      "category": "content",
+      "rule": "File attachments use polymorphic pattern (attachable_type + attachable_id)",
+      "enforcement": "files table with attachable_type='notice'|'free_board'|'union_info' and attachable_id",
+      "location": "useNoticeHook.ts, useFreeBoardHook.ts, useUnionInfoHook.ts"
+    },
+    {
+      "id": "BR-019",
+      "category": "notification",
+      "rule": "Notice creation sends AlimTalk to all APPROVED USER-role members (immediate or scheduled)",
+      "enforcement": "sendAlimTalk with template UE_2827 to all approved members; supports scheduled_alimtalks insert",
+      "location": "useNoticeHook.ts:useAddNotice"
+    },
+    {
+      "id": "BR-020",
+      "category": "notification",
+      "rule": "Question creation sends AlimTalk to all admins (SUPER_ADMIN, ADMIN, SYSTEM_ADMIN)",
+      "enforcement": "sendAlimTalk with template UE_3236 to admins in same union",
+      "location": "useQuestionHook.ts:useAddQuestion"
+    },
+    {
+      "id": "BR-021",
+      "category": "notification",
+      "rule": "Question answer sends AlimTalk to the question author",
+      "enforcement": "sendAlimTalk with template UE_3000 to author's phone",
+      "location": "useQuestionHook.ts:useAnswerQuestion"
+    },
+    {
+      "id": "BR-022",
+      "category": "notification",
+      "rule": "AlimTalk failures are non-blocking (logged but do not fail the main operation)",
+      "enforcement": "try/catch around sendAlimTalk with console.error only",
+      "location": "useNoticeHook.ts, useQuestionHook.ts, useMemberInviteHook.ts"
+    },
+    {
+      "id": "BR-023",
+      "category": "invite",
+      "rule": "Member invite tokens expire after configured time (checked on access)",
+      "enforcement": "useMemberInviteByToken checks expires_at and auto-updates status to EXPIRED",
+      "location": "useMemberInviteHook.ts:useMemberInviteByToken"
+    },
+    {
+      "id": "BR-024",
+      "category": "invite",
+      "rule": "Only PENDING invites can be accepted",
+      "enforcement": ".eq('status', 'PENDING') in accept mutation",
+      "location": "useMemberInviteHook.ts:useAcceptMemberInvite"
+    },
+    {
+      "id": "BR-025",
+      "category": "invite",
+      "rule": "Bulk AlimTalk only sends to PENDING status invites",
+      "enforcement": ".eq('status', 'PENDING') filter in useSendBulkMemberAlimtalk",
+      "location": "useMemberInviteHook.ts:useSendBulkMemberAlimtalk"
+    },
+    {
+      "id": "BR-026",
+      "category": "access",
+      "rule": "Access tokens have max_usage limit and expiry date",
+      "enforcement": "validateAccessToken checks deleted_at, expires_at, and usage_count >= max_usage",
+      "location": "middleware.ts:validateAccessToken"
+    },
+    {
+      "id": "BR-027",
+      "category": "access",
+      "rule": "Access tokens restricted to specific union (if union_id set)",
+      "enforcement": "Middleware checks slug -> union.id matches token.union_id",
+      "location": "middleware.ts"
+    },
+    {
+      "id": "BR-028",
+      "category": "access",
+      "rule": "Admin routes require ADMIN, SUPER_ADMIN, or SYSTEM_ADMIN role",
+      "enforcement": "Middleware checks user_auth_links -> users.role for admin paths",
+      "location": "middleware.ts"
+    },
+    {
+      "id": "BR-029",
+      "category": "conflict",
+      "rule": "Property conflict detection checks APPROVED and PRE_REGISTERED users with same building_unit_id or PNU",
+      "enforcement": "useConflictCheck queries user_property_units for matching building_unit_id/pnu",
+      "location": "useConflictResolutionHook.ts:useConflictCheck"
+    },
+    {
+      "id": "BR-030",
+      "category": "conflict",
+      "rule": "Conflict resolution supports 4 actions: update (same person), transfer, add_co_owner, add_proxy",
+      "enforcement": "useResolveConflict switch on action type",
+      "location": "useConflictResolutionHook.ts:useResolveConflict"
+    },
+    {
+      "id": "BR-031",
+      "category": "conflict",
+      "rule": "Co-owner share ratios must sum to exactly 100%",
+      "enforcement": "totalRatio === existingRatio + newRatio + otherCoOwnersTotal must be 100",
+      "location": "useConflictResolutionHook.ts:handleAddCoOwner"
+    },
+    {
+      "id": "BR-032",
+      "category": "conflict",
+      "rule": "Ownership transfer sets previous owner to TRANSFERRED if no remaining properties",
+      "enforcement": "Check remaining units with land_ownership_ratio > 0; if none, set user_status='TRANSFERRED'",
+      "location": "useConflictResolutionHook.ts:handleOwnershipTransfer"
+    },
+    {
+      "id": "BR-033",
+      "category": "conflict",
+      "rule": "All ownership changes are recorded in property_ownership_history",
+      "enforcement": "Insert into property_ownership_history for TRANSFER, RATIO_CHANGED, CO_OWNER_ADDED",
+      "location": "useConflictResolutionHook.ts"
+    },
+    {
+      "id": "BR-034",
+      "category": "conflict",
+      "rule": "Same-person resolution: transfers property units, auth links, merges notes, rejects duplicate user",
+      "enforcement": "handleSamePersonUpdate updates existing user, transfers user_property_units + user_auth_links, rejects pending",
+      "location": "useConflictResolutionHook.ts:handleSamePersonUpdate"
+    },
+    {
+      "id": "BR-035",
+      "category": "gis",
+      "rule": "Address-to-PNU matching uses normalized jibun address with fallback to partial jibun matching",
+      "enforcement": "matchAddressToPnu: normalizeJibunAddress -> full match -> extract jibun digits -> partial match",
+      "location": "memberMatching.ts:matchAddressToPnu"
+    },
+    {
+      "id": "BR-036",
+      "category": "gis",
+      "rule": "Pre-registered members are saved even without PNU match (manual matching later)",
+      "enforcement": "savePreRegisteredMembers saves with pnu=null if unmatched",
+      "location": "memberMatching.ts:savePreRegisteredMembers"
+    },
+    {
+      "id": "BR-037",
+      "category": "gis",
+      "rule": "Dong/Ho values are normalized before storage",
+      "enforcement": "normalizeDong() and normalizeHo() called before insert/update",
+      "location": "memberMatching.ts"
+    },
+    {
+      "id": "BR-038",
+      "category": "gis",
+      "rule": "Duplicate users by name+residence are auto-merged via RPC (merge_users_keep_new)",
+      "enforcement": "findDuplicateUserIds -> supabase.rpc('merge_users_keep_new')",
+      "location": "memberMatching.ts:savePreRegisteredMembers"
+    },
+    {
+      "id": "BR-039",
+      "category": "member_management",
+      "rule": "Only PRE_REGISTERED users can be deleted via deletePreRegisteredMember",
+      "enforcement": "Pre-check user_status === 'PRE_REGISTERED' before delete",
+      "location": "memberMatching.ts:deletePreRegisteredMember"
+    },
+    {
+      "id": "BR-040",
+      "category": "consent",
+      "rule": "Consent stages have required_rate (percentage) per business type",
+      "enforcement": "consent_stages table with required_rate field, default 75%",
+      "location": "useConsentStages.ts"
+    },
+    {
+      "id": "BR-041",
+      "category": "consent",
+      "rule": "Member consent status is mapped per stage (AGREED/DISAGREED/PENDING)",
+      "enforcement": "useMemberConsentStatus joins consent_stages with user_consents",
+      "location": "useMemberHook.ts:useMemberConsentStatus"
+    },
+    {
+      "id": "BR-042",
+      "category": "property",
+      "rule": "Total land price = land_area * official_price * (ownership_ratio/100)",
+      "enforcement": "Calculated client-side in useMyPropertyHook",
+      "location": "useMyPropertyHook.ts:useMyProperty"
+    },
+    {
+      "id": "BR-043",
+      "category": "search",
+      "rule": "LIKE wildcards in search queries are escaped to prevent injection",
+      "enforcement": "escapeLikeWildcards() applied to search terms before ILIKE queries",
+      "location": "useMemberHook.ts, useNoticeHook.ts, useQuestionHook.ts, useFreeBoardHook.ts"
+    },
+    {
+      "id": "BR-044",
+      "category": "content",
+      "rule": "Popup notices filter by is_popup=true and current time within start_date/end_date",
+      "enforcement": ".eq('is_popup', true).lte('start_date', now).gte('end_date', now)",
+      "location": "useNoticeHook.ts:usePopupNotices"
+    },
+    {
+      "id": "BR-045",
+      "category": "access",
+      "rule": "CSRF protection: POST/PUT/PATCH/DELETE require Origin header matching Host",
+      "enforcement": "Middleware validates origin header for non-localhost requests",
+      "location": "middleware.ts"
+    },
+    {
+      "id": "BR-046",
+      "category": "union",
+      "rule": "Union deletion cascade: hero_slides -> comments -> files -> notices -> storage -> union",
+      "enforcement": "Sequential deletion in useDeleteUnion mutation",
+      "location": "useUnionManagementHook.ts:useDeleteUnion"
+    },
+    {
+      "id": "BR-047",
+      "category": "member_management",
+      "rule": "Grouped members use DB RPC function (get_grouped_members) for pagination and co-owner grouping",
+      "enforcement": "supabase.rpc('get_grouped_members') with search, blocked filter, pagination",
+      "location": "useMemberHook.ts:useApprovedMembersInfinite"
+    },
+    {
+      "id": "BR-048",
+      "category": "member_management",
+      "rule": "Approved members list shows PRE_REGISTERED and APPROVED status together",
+      "enforcement": ".in('user_status', ['PRE_REGISTERED', 'APPROVED'])",
+      "location": "useMemberHook.ts:useApprovedMembers"
+    }
+  ],
+
+  "workflows": [
+    {
+      "id": "WF-001",
+      "name": "Member Registration (Self-Registration)",
+      "description": "User registers through union landing page with Kakao login",
+      "steps": [
+        "1. User visits /{slug} landing page",
+        "2. User clicks register, logs in via Kakao OAuth",
+        "3. RegisterModal collects: name, phone, birth_date, property_type, property_address (KakaoAddressSearch), dong/ho, resident_address",
+        "4. PNU is generated from address via generatePNU()",
+        "5. Property conflict check via /api/members/check-conflict",
+        "6. User record created with status=PENDING_APPROVAL, role=APPLICANT",
+        "7. user_property_units record created with is_primary=true",
+        "8. user_auth_links record created (Kakao auth_user_id -> application user_id)",
+        "9. Duplicate user check via checkAndMergeDuplicateUsers()",
+        "10. AlimTalk sent to admins notifying new registration",
+        "11. Admin reviews and approves/rejects via admin/members page"
+      ],
+      "actors": ["visitor", "admin"],
+      "triggers": ["user_action"],
+      "outcomes": ["user_created_pending_approval"]
+    },
+    {
+      "id": "WF-002",
+      "name": "Member Approval by Admin",
+      "description": "Admin approves or rejects pending members with conflict resolution",
+      "steps": [
+        "1. Admin views pending users at admin/members page (statusFilter=PENDING_APPROVAL)",
+        "2. Admin clicks Approve button",
+        "3. System checks for property conflicts (useConflictCheck)",
+        "4a. No conflict: user_status -> APPROVED, role -> USER, approved_at set",
+        "4b. Conflict exists: Admin chooses resolution (update/transfer/add_co_owner/add_proxy)",
+        "5. Rejection: user_status -> REJECTED, rejected_reason required, rejected_at set",
+        "6. Rejection cancellation: REJECTED -> PENDING_APPROVAL (clear rejected fields)"
+      ],
+      "actors": ["admin"],
+      "triggers": ["admin_action"],
+      "outcomes": ["user_approved", "user_rejected", "conflict_resolved"]
+    },
+    {
+      "id": "WF-003",
+      "name": "Member Pre-Registration (Excel Upload)",
+      "description": "Bulk member import via Excel with GIS matching",
+      "steps": [
+        "1. Admin uploads Excel file with member data (name, phone, address, dong, ho, area, ratio)",
+        "2. Server action normalizes addresses and dong/ho values",
+        "3. Each address matched against land_lots table for PNU (matchAddressToPnu)",
+        "4. Duplicate PNU+dong+ho check within union",
+        "5. User created with status=PRE_REGISTERED, role=USER",
+        "6. user_property_units created with is_primary=true",
+        "7. Auto-merge duplicates by name+residence (merge_users_keep_new RPC)",
+        "8. Unmatched users can later be manually matched via updateUnmatchedMember"
+      ],
+      "actors": ["admin"],
+      "triggers": ["excel_upload"],
+      "outcomes": ["pre_registered_members_created"]
+    },
+    {
+      "id": "WF-004",
+      "name": "Member Invite Flow",
+      "description": "Token-based member invitation via AlimTalk",
+      "steps": [
+        "1. Admin creates invites (manual or Excel sync)",
+        "2. Invite records created with status=PENDING, invite_token, expires_at",
+        "3. AlimTalk sent to invitees with invite link (/{slug}/member-invite/{token})",
+        "4. Invitee clicks link, registers via Kakao OAuth",
+        "5. Invite status updated to USED with user_id and used_at",
+        "6. Expired invites auto-detected on query (PENDING + now > expires_at -> EXPIRED)"
+      ],
+      "actors": ["admin", "invitee"],
+      "triggers": ["admin_action", "user_action"],
+      "outcomes": ["invite_accepted", "invite_expired"]
+    },
+    {
+      "id": "WF-005",
+      "name": "Content CRUD (Notice/FreeBoard/UnionInfo/Question)",
+      "description": "Standard content lifecycle with file attachments and notifications",
+      "steps": [
+        "1. Author creates post (title, content with rich editor)",
+        "2. Record inserted (ID obtained)",
+        "3. Editor images uploaded and blob URLs replaced with public URLs",
+        "4. Temp file attachments confirmed (temp -> permanent storage)",
+        "5. AlimTalk notification sent (notice: to members, question: to admins)",
+        "6. Post visible in list with file_count, comment_count",
+        "7. View count incremented via RPC on detail page view (sessionStorage dedup)",
+        "8. Author or admin can edit (re-upload images, update content)",
+        "9. Delete: cancel queries -> delete storage files -> delete DB files -> delete comments -> delete post"
+      ],
+      "actors": ["author", "admin", "viewer"],
+      "triggers": ["user_action"],
+      "outcomes": ["content_created", "content_updated", "content_deleted"]
+    },
+    {
+      "id": "WF-006",
+      "name": "Question & Answer Flow",
+      "description": "Member asks question, admin answers",
+      "steps": [
+        "1. Member creates question (optional: is_secret=true)",
+        "2. AlimTalk sent to union admins (template UE_3236)",
+        "3. Secret questions visible only to author + admins in list",
+        "4. My questions sorted to top of list",
+        "5. Admin answers: answer_content, answer_author_id, answered_at set",
+        "6. AlimTalk sent to question author (template UE_3000)",
+        "7. Admin can delete answer (nullify answer fields)"
+      ],
+      "actors": ["member", "admin"],
+      "triggers": ["user_action"],
+      "outcomes": ["question_answered", "answer_deleted"]
+    },
+    {
+      "id": "WF-007",
+      "name": "Property Conflict Resolution",
+      "description": "Admin resolves ownership conflicts during member approval",
+      "steps": [
+        "1. Conflict detected during approval (same building_unit_id or PNU)",
+        "2. Admin presented with conflict comparison data",
+        "3. Admin selects resolution action:",
+        "   a) Same person (update): existing user info updated, pending user REJECTED, property/auth links transferred",
+        "   b) Transfer: existing owner TRANSFERRED, new owner APPROVED with 100% ratio",
+        "   c) Co-owner: both APPROVED as CO_OWNER with specified ratios (must sum to 100%)",
+        "   d) Family/Proxy: new user APPROVED with FAMILY/PROXY type, 0% ownership, relationship recorded",
+        "4. Ownership history recorded in property_ownership_history table"
+      ],
+      "actors": ["admin"],
+      "triggers": ["approval_conflict"],
+      "outcomes": ["conflict_resolved"]
+    },
+    {
+      "id": "WF-008",
+      "name": "Guest Access via Token",
+      "description": "Unauthenticated users access union pages via access token",
+      "steps": [
+        "1. Admin creates access token with optional max_usage, expires_at, union_id restriction",
+        "2. Share URL with tokenKey query parameter",
+        "3. Middleware validates token (not deleted, not expired, usage < max_usage)",
+        "4. If token has union_id, verify slug matches",
+        "5. Record token usage (increment usage_count, log IP/userAgent)",
+        "6. Set guest_access cookie (httpOnly, 24h)",
+        "7. Subsequent requests use cookie (re-validated each request)"
+      ],
+      "actors": ["guest", "admin"],
+      "triggers": ["url_access"],
+      "outcomes": ["guest_access_granted", "access_denied"]
+    },
+    {
+      "id": "WF-009",
+      "name": "Consent Management",
+      "description": "Track member consent across development stages",
+      "steps": [
+        "1. System admin defines consent stages per business type",
+        "2. Each stage has required_rate (default 75%)",
+        "3. Members can be searched for consent management (by address, name, building)",
+        "4. Individual consent tracked: AGREED/DISAGREED/PENDING per stage",
+        "5. Consent status queryable per member across all stages"
+      ],
+      "actors": ["system_admin", "admin", "member"],
+      "triggers": ["admin_action"],
+      "outcomes": ["consent_recorded"]
+    },
+    {
+      "id": "WF-010",
+      "name": "Member Block/Unblock",
+      "description": "Admin blocks or unblocks a member",
+      "steps": [
+        "1. Admin navigates to member management (approved members list)",
+        "2. Admin selects member and clicks Block",
+        "3. BlockMemberModal collects reason",
+        "4. User updated: is_blocked=true, blocked_at, blocked_reason",
+        "5. User shows as 'blocked' in member list (filterable)",
+        "6. Admin can unblock: is_blocked=false, blocked_at=null, blocked_reason=null"
+      ],
+      "actors": ["admin"],
+      "triggers": ["admin_action"],
+      "outcomes": ["member_blocked", "member_unblocked"]
+    }
+  ],
+
+  "state_machines": [
+    {
+      "entity": "User (user_status)",
+      "states": ["PRE_REGISTERED", "PENDING_APPROVAL", "APPROVED", "REJECTED", "TRANSFERRED", "ARCHIVED"],
+      "transitions": [
+        {"from": "PRE_REGISTERED", "to": "PENDING_APPROVAL", "trigger": "user_registers_via_invite_or_self_registration", "guard": "valid Kakao auth"},
+        {"from": "PENDING_APPROVAL", "to": "APPROVED", "trigger": "admin_approves", "guard": "user_status === PENDING_APPROVAL"},
+        {"from": "PENDING_APPROVAL", "to": "REJECTED", "trigger": "admin_rejects", "guard": "reason required, user_status === PENDING_APPROVAL"},
+        {"from": "REJECTED", "to": "PENDING_APPROVAL", "trigger": "admin_cancels_rejection", "guard": "user_status === REJECTED"},
+        {"from": "APPROVED", "to": "TRANSFERRED", "trigger": "ownership_transfer_no_remaining_properties", "guard": "no remaining property units with ratio > 0"},
+        {"from": "PENDING_APPROVAL", "to": "REJECTED", "trigger": "same_person_conflict_resolved", "guard": "duplicate user merged into existing"},
+        {"from": "PRE_REGISTERED", "to": null, "trigger": "admin_deletes_pre_registered", "guard": "user_status === PRE_REGISTERED"}
+      ],
+      "notes": "PRE_REGISTERED is created by Excel upload. PENDING_APPROVAL is created by self-registration. is_blocked is an orthogonal flag on APPROVED users."
+    },
+    {
+      "entity": "User (is_blocked)",
+      "states": ["normal (is_blocked=false)", "blocked (is_blocked=true)"],
+      "transitions": [
+        {"from": "normal", "to": "blocked", "trigger": "admin_blocks", "guard": "must provide reason"},
+        {"from": "blocked", "to": "normal", "trigger": "admin_unblocks"}
+      ],
+      "notes": "Orthogonal to user_status. Only applies to APPROVED/PRE_REGISTERED users."
+    },
+    {
+      "entity": "MemberInvite (status)",
+      "states": ["PENDING", "USED", "EXPIRED"],
+      "transitions": [
+        {"from": "PENDING", "to": "USED", "trigger": "invitee_accepts", "guard": "valid token, not expired"},
+        {"from": "PENDING", "to": "EXPIRED", "trigger": "time_passes", "guard": "now > expires_at (auto-detected on query)"}
+      ],
+      "notes": "No transition back from USED or EXPIRED. Delete is a hard delete, not a state change."
+    },
+    {
+      "entity": "Question (answer state)",
+      "states": ["unanswered (answer_content=null)", "answered (answer_content set)"],
+      "transitions": [
+        {"from": "unanswered", "to": "answered", "trigger": "admin_answers", "guard": "admin role required"},
+        {"from": "answered", "to": "unanswered", "trigger": "admin_deletes_answer"}
+      ]
+    },
+    {
+      "entity": "UserConsent (per stage)",
+      "states": ["PENDING", "AGREED", "DISAGREED"],
+      "transitions": [
+        {"from": "PENDING", "to": "AGREED", "trigger": "consent_granted"},
+        {"from": "PENDING", "to": "DISAGREED", "trigger": "consent_refused"},
+        {"from": "AGREED", "to": "DISAGREED", "trigger": "consent_withdrawn"},
+        {"from": "DISAGREED", "to": "AGREED", "trigger": "consent_re_granted"}
+      ]
+    },
+    {
+      "entity": "OwnershipType",
+      "states": ["OWNER", "CO_OWNER", "FAMILY", "PROXY"],
+      "transitions": [
+        {"from": "OWNER", "to": "CO_OWNER", "trigger": "co_owner_added", "guard": "share ratios must sum to 100%"},
+        {"from": "OWNER", "to": "OWNER", "trigger": "ownership_transferred", "guard": "new owner gets 100%"},
+        {"from": null, "to": "FAMILY", "trigger": "family_member_added", "guard": "ratio = 0%"},
+        {"from": null, "to": "PROXY", "trigger": "proxy_added", "guard": "ratio = 0%"}
+      ]
+    },
+    {
+      "entity": "Union (is_active)",
+      "states": ["active (is_active=true)", "inactive (is_active=false)"],
+      "transitions": [
+        {"from": "active", "to": "inactive", "trigger": "admin_deactivates"},
+        {"from": "inactive", "to": "active", "trigger": "admin_activates"}
+      ]
+    },
+    {
+      "entity": "AccessToken lifecycle",
+      "states": ["valid", "expired", "max_usage_reached", "deleted"],
+      "transitions": [
+        {"from": "valid", "to": "expired", "trigger": "time_passes", "guard": "now > expires_at"},
+        {"from": "valid", "to": "max_usage_reached", "trigger": "usage_incremented", "guard": "usage_count >= max_usage"},
+        {"from": "valid", "to": "deleted", "trigger": "admin_deletes", "guard": "deleted_at set"}
+      ]
+    }
+  ]
+}

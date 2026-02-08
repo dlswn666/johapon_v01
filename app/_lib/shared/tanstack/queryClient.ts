@@ -99,7 +99,12 @@ export const queryClient = new QueryClient({
             gcTime: 10 * 60 * 1000, // 10분 (구 cacheTime)
             retry: shouldRetry,
             retryDelay: getRetryDelay, // Exponential backoff
-            refetchOnWindowFocus: false, // 탭 전환 시 자동 리페치 비활성화 (로딩 이슈 방지)
+            refetchOnWindowFocus: (query) => {
+                // 목록 쿼리만 탭 전환 시 재조회 (상세/단건 조회는 제외 — 로딩 이슈 방지)
+                const key = query.queryKey;
+                if (Array.isArray(key) && key.length <= 2) return true;
+                return false;
+            },
             refetchOnReconnect: true,
             refetchOnMount: true,
             // 네트워크 오프라인 시에도 캐시된 데이터 표시

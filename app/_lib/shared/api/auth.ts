@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { createClient } from '@/app/_lib/shared/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { User } from '@/app/_lib/shared/type/database.types';
@@ -79,6 +80,17 @@ export async function authenticateApiRequest(options?: {
         };
     }
 
+    // 3.5. 차단 사용자 접근 제어
+    if (user.is_blocked) {
+        return {
+            authenticated: false,
+            response: NextResponse.json(
+                { error: '차단된 사용자입니다.', code: 'USER_BLOCKED' },
+                { status: 403 }
+            ),
+        };
+    }
+
     // 4. 관리자 권한 검사
     if (options?.requireAdmin) {
         const isAdmin = user.role === 'SYSTEM_ADMIN' || user.role === 'ADMIN';
@@ -124,17 +136,22 @@ export async function authenticateServiceRequest(request: NextRequest): Promise<
     const internalApiKey = request.headers.get('x-internal-api-key');
     const expectedKey = process.env.INTERNAL_API_KEY;
 
-    if (internalApiKey && expectedKey && internalApiKey === expectedKey) {
-        // 내부 서비스 호출은 시스템 권한 부여
-        return {
-            authenticated: true,
-            user: {
-                id: 'system',
-                name: 'Internal Service',
-                role: 'SYSTEM_ADMIN',
-            } as User,
-            authUserId: 'system',
-        };
+    if (internalApiKey && expectedKey) {
+        const keyBuffer = Buffer.from(internalApiKey);
+        const expectedBuffer = Buffer.from(expectedKey);
+        if (keyBuffer.length === expectedBuffer.length &&
+            crypto.timingSafeEqual(keyBuffer, expectedBuffer)) {
+            // 내부 서비스 호출은 시스템 권한 부여
+            return {
+                authenticated: true,
+                user: {
+                    id: 'system',
+                    name: 'Internal Service',
+                    role: 'SYSTEM_ADMIN',
+                } as User,
+                authUserId: 'system',
+            };
+        }
     }
 
     // 일반 사용자 인증으로 폴백

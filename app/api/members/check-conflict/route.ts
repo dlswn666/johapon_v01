@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/app/_lib/shared/supabase/server';
 import { PropertyConflict, ConflictCheckResult } from '@/app/_lib/shared/type/conflict.types';
 import { User, OwnershipType } from '@/app/_lib/shared/type/database.types';
+import { authenticateApiRequest } from '@/app/_lib/shared/api/auth';
 
 /**
  * 조합원 승인 전 충돌 검사 API
@@ -9,6 +10,19 @@ import { User, OwnershipType } from '@/app/_lib/shared/type/database.types';
  */
 export async function GET(request: NextRequest) {
   try {
+    // ========== SECURITY: 인증 검사 ==========
+    const auth = await authenticateApiRequest({ requireAdmin: true });
+    if (!auth.authenticated) return auth.response;
+    // ==========================================
+
+    const adminUnionId = auth.user.union_id;
+    if (!adminUnionId) {
+      return NextResponse.json(
+        { error: '조합에 소속되지 않은 관리자입니다.' },
+        { status: 403 }
+      );
+    }
+
     const userId = request.nextUrl.searchParams.get('userId');
 
     if (!userId) {
@@ -25,6 +39,7 @@ export async function GET(request: NextRequest) {
       .from('users')
       .select('id, name, phone_number, property_address')
       .eq('id', userId)
+      .eq('union_id', adminUnionId)
       .single();
 
     if (userError || !pendingUser) {

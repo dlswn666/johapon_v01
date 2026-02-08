@@ -1,0 +1,273 @@
+{
+  "auth_type": "supabase_auth",
+  "auth_provider": ["kakao", "naver"],
+  "auth_flow": "PKCE (OAuth callback at /auth/callback)",
+  "permission_model": "RBAC",
+  "session_mechanism": "supabase_ssr_cookies",
+  "roles": [
+    {
+      "name": "SYSTEM_ADMIN",
+      "level": 1,
+      "description": "System-wide administrator. Full access to all unions, all admin APIs, system management pages (/systemAdmin/*). Can assign any role including SYSTEM_ADMIN.",
+      "user_ratio": 0.02,
+      "capabilities": [
+        "all_union_access",
+        "system_admin_pages",
+        "approve_reject_users",
+        "manage_member_invites",
+        "manage_access_tokens",
+        "delete_any_content",
+        "view_secret_questions",
+        "manage_consent",
+        "send_sms_alimtalk",
+        "role_management_all"
+      ]
+    },
+    {
+      "name": "ADMIN",
+      "level": 2,
+      "description": "Union-level administrator. Access to /[slug]/admin/* pages. Can approve/reject users, manage invites, manage access tokens, delete any content within their union, view secret questions, send alimtalk.",
+      "user_ratio": 0.08,
+      "capabilities": [
+        "own_union_admin_pages",
+        "approve_reject_users",
+        "manage_member_invites",
+        "manage_access_tokens",
+        "delete_any_content",
+        "view_secret_questions",
+        "manage_consent",
+        "send_sms_alimtalk",
+        "role_management_limited",
+        "block_unblock_users"
+      ]
+    },
+    {
+      "name": "USER",
+      "level": 3,
+      "description": "Approved union member. Can access all non-admin union pages. Can create/edit/delete own content (boards, comments, questions). Can view public questions and own secret questions. Cannot access admin pages or admin APIs.",
+      "user_ratio": 0.75,
+      "capabilities": [
+        "view_union_content",
+        "create_content",
+        "edit_own_content",
+        "delete_own_content",
+        "view_own_secret_questions",
+        "create_comments",
+        "delete_own_comments",
+        "view_dashboard",
+        "view_my_property"
+      ]
+    },
+    {
+      "name": "GUEST",
+      "level": 4,
+      "description": "Unauthenticated or access-token-based visitor. Can access public paths, union landing pages, and register pages. Access token holders (tokenKey or guest_access cookie) can access union pages without login for 24 hours. Cannot create or modify content.",
+      "user_ratio": 0.15,
+      "capabilities": [
+        "view_public_pages",
+        "view_union_landing",
+        "view_union_register",
+        "access_token_based_read"
+      ]
+    }
+  ],
+  "user_statuses": [
+    {
+      "status": "PRE_REGISTERED",
+      "description": "Pre-registered via Excel upload or manual invite, not yet logged in",
+      "access_level": "No login access"
+    },
+    {
+      "status": "PENDING_PROFILE",
+      "description": "OAuth login completed but profile info not yet submitted",
+      "access_level": "Redirected to landing page (modal auto-opens for registration)"
+    },
+    {
+      "status": "PENDING_APPROVAL",
+      "description": "Profile submitted, awaiting admin approval",
+      "access_level": "Redirected to status=pending page"
+    },
+    {
+      "status": "APPROVED",
+      "description": "Admin-approved member with full access",
+      "access_level": "Full union page access per role"
+    },
+    {
+      "status": "REJECTED",
+      "description": "Admin-rejected application",
+      "access_level": "Redirected to status=rejected page"
+    },
+    {
+      "status": "TRANSFERRED",
+      "description": "Property ownership transferred (sale/exit)",
+      "access_level": "Inactive member"
+    },
+    {
+      "status": "APPLICANT",
+      "description": "Applicant (pre-joining phase)",
+      "access_level": "Limited access"
+    }
+  ],
+  "permissions": [
+    { "action": "view_public_pages", "roles": ["SYSTEM_ADMIN", "ADMIN", "USER", "GUEST"] },
+    { "action": "view_union_landing", "roles": ["SYSTEM_ADMIN", "ADMIN", "USER", "GUEST"] },
+    { "action": "view_union_register", "roles": ["SYSTEM_ADMIN", "ADMIN", "USER", "GUEST"] },
+    { "action": "view_union_content", "roles": ["SYSTEM_ADMIN", "ADMIN", "USER"] },
+    { "action": "create_free_board_post", "roles": ["SYSTEM_ADMIN", "ADMIN", "USER"] },
+    { "action": "edit_free_board_post", "roles": ["SYSTEM_ADMIN", "ADMIN", "USER (own only)"] },
+    { "action": "delete_free_board_post", "roles": ["SYSTEM_ADMIN", "ADMIN (any)", "USER (own only)"] },
+    { "action": "create_notice", "roles": ["SYSTEM_ADMIN", "ADMIN"] },
+    { "action": "delete_notice", "roles": ["SYSTEM_ADMIN", "ADMIN"] },
+    { "action": "create_question", "roles": ["SYSTEM_ADMIN", "ADMIN", "USER"] },
+    { "action": "delete_question", "roles": ["SYSTEM_ADMIN", "ADMIN (any)", "USER (own only)"] },
+    { "action": "answer_question", "roles": ["SYSTEM_ADMIN", "ADMIN"] },
+    { "action": "view_secret_question", "roles": ["SYSTEM_ADMIN", "ADMIN", "USER (own only)"] },
+    { "action": "create_comment", "roles": ["SYSTEM_ADMIN", "ADMIN", "USER"] },
+    { "action": "delete_comment", "roles": ["SYSTEM_ADMIN", "ADMIN (any)", "USER (own only)"] },
+    { "action": "approve_user", "roles": ["SYSTEM_ADMIN", "ADMIN"] },
+    { "action": "reject_user", "roles": ["SYSTEM_ADMIN", "ADMIN"] },
+    { "action": "cancel_rejection", "roles": ["SYSTEM_ADMIN", "ADMIN"] },
+    { "action": "block_unblock_user", "roles": ["SYSTEM_ADMIN", "ADMIN"] },
+    { "action": "change_user_role", "roles": ["SYSTEM_ADMIN", "ADMIN"] },
+    { "action": "manage_member_invites", "roles": ["SYSTEM_ADMIN", "ADMIN"] },
+    { "action": "manage_access_tokens", "roles": ["SYSTEM_ADMIN", "ADMIN"] },
+    { "action": "send_sms_alimtalk", "roles": ["SYSTEM_ADMIN", "ADMIN"] },
+    { "action": "manage_consent", "roles": ["SYSTEM_ADMIN", "ADMIN"] },
+    { "action": "access_system_admin_pages", "roles": ["SYSTEM_ADMIN"] },
+    { "action": "access_token_based_view", "roles": ["GUEST (with valid tokenKey)"] }
+  ],
+  "protected_routes": [
+    { "path": "/[slug]/admin/*", "roles": ["SYSTEM_ADMIN", "ADMIN", "SUPER_ADMIN"], "guard": "middleware + client useEffect" },
+    { "path": "/[slug]/dashboard", "roles": ["SYSTEM_ADMIN", "ADMIN", "USER"], "guard": "middleware (auth required)" },
+    { "path": "/[slug]/free-board/*", "roles": ["SYSTEM_ADMIN", "ADMIN", "USER"], "guard": "middleware (auth required)" },
+    { "path": "/[slug]/news/notice/*", "roles": ["SYSTEM_ADMIN", "ADMIN", "USER"], "guard": "middleware (auth required)" },
+    { "path": "/[slug]/news/qna/*", "roles": ["SYSTEM_ADMIN", "ADMIN", "USER"], "guard": "middleware (auth required)" },
+    { "path": "/[slug]/communication/*", "roles": ["SYSTEM_ADMIN", "ADMIN", "USER"], "guard": "middleware (auth required)" },
+    { "path": "/[slug]/my-property", "roles": ["SYSTEM_ADMIN", "ADMIN", "USER"], "guard": "middleware (auth required)" },
+    { "path": "/systemAdmin/*", "roles": ["SYSTEM_ADMIN"], "guard": "middleware (auth required, no explicit role check beyond auth)" },
+    { "path": "/api/admin/*", "roles": ["SYSTEM_ADMIN", "ADMIN"], "guard": "authenticateApiRequest({ requireAdmin: true })" },
+    { "path": "/api/members/approve", "roles": ["SYSTEM_ADMIN", "ADMIN"], "guard": "authenticateApiRequest({ requireAdmin: true })" },
+    { "path": "/api/members/check-conflict", "roles": ["SYSTEM_ADMIN", "ADMIN"], "guard": "authenticateApiRequest({ requireAdmin: true })" },
+    { "path": "/api/member-invite/*", "roles": ["SYSTEM_ADMIN", "ADMIN"], "guard": "authenticateApiRequest({ requireAdmin: true })" },
+    { "path": "/api/consent/*", "roles": ["SYSTEM_ADMIN", "ADMIN"], "guard": "authenticateApiRequest({ requireAdmin: true })" },
+    { "path": "/api/sms/send", "roles": ["SYSTEM_ADMIN", "ADMIN"], "guard": "authenticateApiRequest({ requireAdmin: true })" }
+  ],
+  "public_routes": [
+    { "path": "/", "description": "Main landing page" },
+    { "path": "/contact", "description": "Contact page" },
+    { "path": "/privacy", "description": "Privacy policy" },
+    { "path": "/terms", "description": "Terms of service" },
+    { "path": "/auth/*", "description": "Auth callback, OAuth flows" },
+    { "path": "/invite/*", "description": "Invite flows" },
+    { "path": "/member-invite/*", "description": "Member invite flows" },
+    { "path": "/swagger", "description": "API documentation" },
+    { "path": "/systemAdmin/login", "description": "System admin login" },
+    { "path": "/[slug]", "description": "Union landing page (login page)" },
+    { "path": "/[slug]/register", "description": "Union registration page" },
+    { "path": "/api/auth/*", "description": "Auth API endpoints (Naver callback, verify-token)" },
+    { "path": "/api/docs", "description": "API docs" },
+    { "path": "/api/image/resize", "description": "Image resize endpoint" }
+  ],
+  "ownership_checks": [
+    {
+      "entity": "free_board",
+      "action": "delete",
+      "check": "Non-admin users: .eq('author_id', user.id) appended to delete query",
+      "location": "app/_lib/features/free-board/api/useFreeBoardHook.ts:419"
+    },
+    {
+      "entity": "comment",
+      "action": "delete",
+      "check": "Non-admin users: .eq('author_id', userId) appended to delete query",
+      "location": "app/_lib/features/comment/api/useCommentHook.ts:278"
+    },
+    {
+      "entity": "question",
+      "action": "delete",
+      "check": "Non-admin users: .eq('author_id', user.id) appended to delete query",
+      "location": "app/_lib/features/question/api/useQuestionHook.ts:388-389"
+    },
+    {
+      "entity": "question",
+      "action": "view (secret)",
+      "check": "Non-admin users: filter .or(is_secret.eq.false,author_id.eq.{userId}). Detail view: canAccess = isAdmin || author_id === user.id",
+      "location": "app/_lib/features/question/api/useQuestionHook.ts:45-48, 140-141"
+    },
+    {
+      "entity": "notice",
+      "action": "delete",
+      "check": "No ownership check - admin-only operation (only admins can create/delete notices)",
+      "location": "app/_lib/features/notice/api/useNoticeHook.ts:511"
+    }
+  ],
+  "special_access_patterns": [
+    {
+      "pattern": "access_token_guest_access",
+      "description": "Users with valid tokenKey URL parameter or guest_access cookie can bypass auth for union pages. Token validated against access_tokens table (expiry, usage count, deletion status, union restriction). Guest cookie set for 24h.",
+      "location": "middleware.ts:287-342"
+    },
+    {
+      "pattern": "blocked_user_denial",
+      "description": "Blocked users (is_blocked=true) are denied at API level via authenticateApiRequest (status 403, code USER_BLOCKED). UI shows BlockedUserModal.",
+      "location": "app/_lib/shared/api/auth.ts:83-91"
+    },
+    {
+      "pattern": "csrf_protection",
+      "description": "POST/PUT/PATCH/DELETE requests require matching Origin and Host headers (skipped on localhost in dev mode)",
+      "location": "middleware.ts:207-241"
+    },
+    {
+      "pattern": "internal_service_auth",
+      "description": "x-internal-api-key header matching INTERNAL_API_KEY env var grants SYSTEM_ADMIN level access",
+      "location": "app/_lib/shared/api/auth.ts:133-149"
+    },
+    {
+      "pattern": "dev_mode_bypass",
+      "description": "In development mode (NODE_ENV=development), localhost requests skip all auth checks in middleware",
+      "location": "middleware.ts:349-352"
+    },
+    {
+      "pattern": "user_status_redirect",
+      "description": "After OAuth callback, users are redirected based on user_status: PENDING_PROFILE -> landing (register modal), PENDING_APPROVAL -> ?status=pending, APPROVED -> union home, REJECTED -> ?status=rejected",
+      "location": "app/auth/callback/route.ts:391-413"
+    },
+    {
+      "pattern": "multi_union_membership",
+      "description": "Users can belong to multiple unions via user_auth_links table. Each membership is independent (separate users row per union).",
+      "location": "app/auth/callback/route.ts:109-152"
+    },
+    {
+      "pattern": "invite_token_prefill",
+      "description": "Admin invite (invite_token) and member invite (member_invite_token) provide prefill data for registration via cookie",
+      "location": "app/auth/callback/route.ts:206-246"
+    }
+  ],
+  "auth_chain": {
+    "middleware": {
+      "step1": "CSRF check (Origin == Host for state-changing methods)",
+      "step2": "Create Supabase SSR client, call getUser() to refresh tokens",
+      "step3": "Check tokenKey param -> validate access_token -> set guest_access cookie",
+      "step4": "Check guest_access cookie -> validate token validity",
+      "step5": "Public path check -> allow through",
+      "step6": "Dev localhost bypass",
+      "step7": "SystemAdmin path -> redirect unauthenticated to /systemAdmin/login",
+      "step8": "Union slug extraction -> landing/register pages pass through",
+      "step9": "Authenticated user required for all other union pages",
+      "step10": "Admin path check: user_auth_links -> users.role must be ADMIN/SUPER_ADMIN/SYSTEM_ADMIN"
+    },
+    "api_auth": {
+      "step1": "supabase.auth.getUser() - validates session",
+      "step2": "user_auth_links lookup (auth_user_id -> user_id)",
+      "step3": "users table lookup (full profile)",
+      "step4": "is_blocked check (denies blocked users)",
+      "step5": "requireAdmin check (role must be SYSTEM_ADMIN or ADMIN)",
+      "step6": "requireUnionId check (user.union_id must match or be SYSTEM_ADMIN)"
+    }
+  },
+  "recommended_team_allocation": {
+    "admin": 2,
+    "user": 7,
+    "guest": 1,
+    "rationale": "Admin testers (2): Cover SYSTEM_ADMIN + ADMIN roles, test admin pages, approval/rejection flows, member management, access token management, role changes. User testers (7): Cover the primary user journey - registration, content CRUD, comment CRUD, QnA (secret questions), dashboard, property views, ownership checks on delete. This is the dominant role. Guest tester (1): Cover public pages, access token flow, union landing, registration flow, unauthenticated redirects."
+  }
+}

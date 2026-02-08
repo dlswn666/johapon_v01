@@ -41,6 +41,7 @@ import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import { SelectBox } from '@/app/_lib/widgets/common/select-box';
 import { KakaoAddressSearch, AddressData } from '@/app/_lib/widgets/common/address/KakaoAddressSearch';
+import { useFocusTrap } from '@/app/_lib/shared/hooks/useFocusTrap';
 import {
     OwnershipType,
     OWNERSHIP_TYPE_LABELS,
@@ -91,6 +92,16 @@ export default function MemberEditModal({ member: initialMember, onClose, onBloc
     const { user } = useAuth();
     const { union } = useSlug();
     const unionId = union?.id;
+    const focusTrapRef = useFocusTrap(true);
+
+    // ESC key handler
+    useEffect(() => {
+        const handleEsc = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') onClose();
+        };
+        document.addEventListener('keydown', handleEsc);
+        return () => document.removeEventListener('keydown', handleEsc);
+    }, [onClose]);
 
     // 현재 표시 중인 조합원 (공동소유자 전환 시 변경됨)
     const [currentMember, setCurrentMember] = useState<MemberWithLandInfo | CoOwnerInfo>(initialMember);
@@ -226,6 +237,7 @@ export default function MemberEditModal({ member: initialMember, onClose, onBloc
         try {
             await updateMember({
                 memberId: currentMember.id,
+                unionId: unionId || '',
                 updates: {
                     name: memberName.trim(),
                     birth_date: birthDate || null,
@@ -293,6 +305,7 @@ export default function MemberEditModal({ member: initialMember, onClose, onBloc
         try {
             await updateMemberPnu({
                 memberId: currentMember.id,
+                unionId: unionId || '',
                 pnu: pnuToApply,
             });
 
@@ -390,13 +403,14 @@ export default function MemberEditModal({ member: initialMember, onClose, onBloc
     const currentMemberIsPnuMatched = 'isPnuMatched' in currentMember ? currentMember.isPnuMatched : true;
 
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div ref={focusTrapRef} role="dialog" aria-modal="true" aria-labelledby="member-edit-modal-title" className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
                 {/* 헤더 */}
                 <div className="p-6 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white z-10">
-                    <h3 className="text-[20px] font-bold text-gray-900">조합원 상세 정보</h3>
+                    <h3 id="member-edit-modal-title" className="text-[20px] font-bold text-gray-900">조합원 상세 정보</h3>
                     <button
                         onClick={onClose}
+                        aria-label="닫기"
                         className="p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
                     >
                         <X className="w-5 h-5 text-gray-500" />
@@ -446,12 +460,13 @@ export default function MemberEditModal({ member: initialMember, onClose, onBloc
                     {/* 생년월일, 전화번호 */}
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <label className="flex items-center gap-2 text-[14px] font-medium text-gray-700">
+                            <label htmlFor="member-edit-birth-date" className="flex items-center gap-2 text-[14px] font-medium text-gray-700">
                                 <Calendar className="w-4 h-4" />
                                 생년월일
                             </label>
                             {isEditMode ? (
                                 <Input
+                                    id="member-edit-birth-date"
                                     type="date"
                                     value={birthDate}
                                     onChange={(e) => setBirthDate(e.target.value)}
@@ -464,12 +479,13 @@ export default function MemberEditModal({ member: initialMember, onClose, onBloc
                             )}
                         </div>
                         <div className="space-y-2">
-                            <label className="flex items-center gap-2 text-[14px] font-medium text-gray-700">
+                            <label htmlFor="member-edit-phone" className="flex items-center gap-2 text-[14px] font-medium text-gray-700">
                                 <Phone className="w-4 h-4" />
                                 전화번호
                             </label>
                             {isEditMode ? (
                                 <Input
+                                    id="member-edit-phone"
                                     type="tel"
                                     value={phoneNumber}
                                     onChange={(e) => setPhoneNumber(e.target.value)}
@@ -600,13 +616,13 @@ export default function MemberEditModal({ member: initialMember, onClose, onBloc
                             <p className="text-[12px] text-gray-500 mb-2">토지</p>
                             <div className="grid grid-cols-2 gap-4 mb-3">
                                 <div>
-                                    <p className="text-[11px] text-gray-400">토지면적</p>
+                                    <p className="text-[11px] text-gray-500">토지면적</p>
                                     <p className="text-[14px] font-bold text-gray-900">
                                         {formatArea(landLotInfo?.area || totalLandArea)}
                                     </p>
                                 </div>
                                 <div>
-                                    <p className="text-[11px] text-gray-400">토지소유면적</p>
+                                    <p className="text-[11px] text-gray-500">토지소유면적</p>
                                     <p className="text-[14px] font-bold text-gray-900">
                                         {formatArea(landArea)}
                                     </p>
@@ -614,13 +630,13 @@ export default function MemberEditModal({ member: initialMember, onClose, onBloc
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <p className="text-[11px] text-gray-400">토지지분</p>
+                                    <p className="text-[11px] text-gray-500">토지지분</p>
                                     <p className="text-[14px] font-bold text-gray-900">
                                         {formatRatio(landOwnershipRatio)}
                                     </p>
                                 </div>
                                 <div>
-                                    <p className="text-[11px] text-gray-400">공시지가</p>
+                                    <p className="text-[11px] text-gray-500">공시지가</p>
                                     <div className="text-[14px] font-bold text-gray-900">
                                         <p>{formatUnitPrice(landLotInfo?.official_price)}</p>
                                         <p className="text-[12px] font-normal text-gray-500">
@@ -636,13 +652,13 @@ export default function MemberEditModal({ member: initialMember, onClose, onBloc
                             <p className="text-[12px] text-gray-500 mb-2">건물</p>
                             <div className="grid grid-cols-2 gap-4 mb-3">
                                 <div>
-                                    <p className="text-[11px] text-gray-400">건축물면적</p>
+                                    <p className="text-[11px] text-gray-500">건축물면적</p>
                                     <p className="text-[14px] font-bold text-gray-900">
                                         {formatArea(totalBuildingArea || propertyUnits.reduce((sum, pu) => sum + (pu.building_area || 0), 0))}
                                     </p>
                                 </div>
                                 <div>
-                                    <p className="text-[11px] text-gray-400">건축물소유면적</p>
+                                    <p className="text-[11px] text-gray-500">건축물소유면적</p>
                                     <p className="text-[14px] font-bold text-gray-900">
                                         {formatArea(buildingArea)}
                                     </p>
@@ -650,13 +666,13 @@ export default function MemberEditModal({ member: initialMember, onClose, onBloc
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <p className="text-[11px] text-gray-400">건축물지분</p>
+                                    <p className="text-[11px] text-gray-500">건축물지분</p>
                                     <p className="text-[14px] font-bold text-gray-900">
                                         {formatRatio(buildingOwnershipRatio)}
                                     </p>
                                 </div>
                                 <div>
-                                    <p className="text-[11px] text-gray-400">공시지가</p>
+                                    <p className="text-[11px] text-gray-500">공시지가</p>
                                     {(() => {
                                         // 건물 공시지가는 land_lots에서 별도 조회 필요 (현재는 표시하지 않음)
                                         return (
@@ -1040,7 +1056,7 @@ export default function MemberEditModal({ member: initialMember, onClose, onBloc
 
             {/* 저장 확인 모달 */}
             {showSaveConfirmModal && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60]">
+                <div role="dialog" aria-modal="true" aria-label="저장 확인" className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60]">
                     <div className="bg-white rounded-xl shadow-xl p-6 w-[320px]">
                         <p className="text-[16px] font-semibold text-gray-900 text-center mb-6">
                             저장하시겠습니까?
@@ -1071,7 +1087,7 @@ export default function MemberEditModal({ member: initialMember, onClose, onBloc
 
             {/* 저장 완료 모달 */}
             {showSaveSuccessModal && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60]">
+                <div role="dialog" aria-modal="true" aria-label="저장 완료" className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60]">
                     <div className="bg-white rounded-xl shadow-xl p-6 w-[320px]">
                         <div className="flex flex-col items-center mb-6">
                             <CheckCircle className="w-12 h-12 text-[#4E8C6D] mb-3" />

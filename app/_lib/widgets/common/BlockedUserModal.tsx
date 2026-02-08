@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Ban, Phone } from 'lucide-react';
+import { useFocusTrap } from '@/app/_lib/shared/hooks/useFocusTrap';
 
 interface BlockedUserModalProps {
     reason: string | null;
@@ -9,15 +10,17 @@ interface BlockedUserModalProps {
 }
 
 export default function BlockedUserModal({ reason, unionPhone }: BlockedUserModalProps) {
+    const focusTrapRef = useFocusTrap(true);
+
     return (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+        <div ref={focusTrapRef} role="alertdialog" aria-modal="true" aria-labelledby="blocked-modal-title" className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
             <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
                 {/* 헤더 */}
                 <div className="bg-red-500 p-6 text-center">
                     <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
                         <Ban className="w-8 h-8 text-white" />
                     </div>
-                    <h2 className="text-[22px] font-bold text-white">접근이 제한되었습니다</h2>
+                    <h2 id="blocked-modal-title" className="text-[22px] font-bold text-white">접근이 제한되었습니다</h2>
                 </div>
 
                 {/* 본문 */}

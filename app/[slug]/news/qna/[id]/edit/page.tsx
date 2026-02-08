@@ -77,6 +77,7 @@ const EditQuestionPage = () => {
         updateQuestion({
             id: questionId,
             updates: values,
+            updatedAt: question?.updated_at ?? undefined,
         });
     }
 

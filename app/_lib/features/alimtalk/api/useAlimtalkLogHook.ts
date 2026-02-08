@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import { supabase } from '@/app/_lib/shared/supabase/client';
 import useAlimtalkLogStore from '../model/useAlimtalkLogStore';
 import { AlimtalkLogWithUnion } from '@/app/_lib/shared/type/database.types';
+import { escapeLikeWildcards } from '@/app/_lib/shared/utils/escapeLike';
 
 // 조합별 알림톡 로그 조회 (조합 관리자용)
 export const useAlimtalkLogsByUnion = (unionId: string | undefined, enabled: boolean = true) => {
@@ -35,7 +36,8 @@ export const useAlimtalkLogsByUnion = (unionId: string | undefined, enabled: boo
 
             // 검색어 필터
             if (filters.searchTerm) {
-                query = query.or(`title.ilike.%${filters.searchTerm}%,template_name.ilike.%${filters.searchTerm}%`);
+                const escaped = escapeLikeWildcards(filters.searchTerm);
+                query = query.or(`title.ilike.%${escaped}%,template_name.ilike.%${escaped}%`);
             }
 
             const { data, error } = await query;
@@ -97,7 +99,8 @@ export const useAllAlimtalkLogs = (enabled: boolean = true) => {
 
             // 검색어 필터
             if (filters.searchTerm) {
-                query = query.or(`title.ilike.%${filters.searchTerm}%,template_name.ilike.%${filters.searchTerm}%`);
+                const escaped = escapeLikeWildcards(filters.searchTerm);
+                query = query.or(`title.ilike.%${escaped}%,template_name.ilike.%${escaped}%`);
             }
 
             const { data, error } = await query;

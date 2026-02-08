@@ -41,6 +41,7 @@ const QnAPage = () => {
         return (
             <div className="container mx-auto max-w-[1280px] px-4 py-8">
                 <Skeleton className="w-full h-[600px] rounded-[24px]" />
+                <p className="text-center text-gray-400 mt-4">로딩 중...</p>
             </div>
         );
     }

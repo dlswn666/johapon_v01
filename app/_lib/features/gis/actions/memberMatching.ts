@@ -2,8 +2,10 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { normalizeDong, normalizeHo } from '@/app/_lib/shared/utils/dong-ho-utils';
+import { normalizeJibunAddress } from '@/app/_lib/shared/utils/address-utils';
 // normalizeJibunAddress, normalizeName는 RPC 함수 내부에서 처리됨
 import { OwnershipType } from '@/app/_lib/shared/type/database.types';
+import { escapeLikeWildcards } from '@/app/_lib/shared/utils/escapeLike';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -56,21 +58,23 @@ export interface PreRegisterResult {
 
 /**
  * 소유지 지번 주소를 union_land_lots와 매칭하여 PNU를 찾습니다.
+ * TASK-S005: 정규화된 주소로 매칭 성공률 개선 (80% → 90% 이상)
  */
 export async function matchAddressToPnu(
     unionId: string,
     propertyAddress: string
 ): Promise<{ pnu: string | null; matchedAddress: string | null; error?: string }> {
     try {
-        // 주소 정규화 (공백 제거, 특수문자 제거)
-        const normalizedAddress = propertyAddress.trim().replace(/\s+/g, ' ');
+        // ✅ Step 1: 정규화된 주소로 1차 매칭 (괄호 제거, 특수문자 제거)
+        const normalizedAddress = normalizeJibunAddress(propertyAddress);
 
         // land_lots에서 주소 검색 (union_land_lots 병합됨)
+        const escapedAddress = escapeLikeWildcards(normalizedAddress);
         const { data, error } = await supabase
             .from('land_lots')
             .select('pnu, address_text, address')
             .eq('union_id', unionId)
-            .or(`address_text.ilike.%${normalizedAddress}%,address.ilike.%${normalizedAddress}%`)
+            .or(`address_text.ilike.%${escapedAddress}%,address.ilike.%${escapedAddress}%`)
             .limit(1);
 
         if (error) {
@@ -81,14 +85,16 @@ export async function matchAddressToPnu(
             return { pnu: data[0].pnu, matchedAddress: data[0].address_text || data[0].address };
         }
 
-        // 정확한 매칭이 없으면 부분 매칭 시도 (지번만 추출해서 검색)
+        // ✅ Step 2: 부분 매칭 (지번만 추출해서 검색)
         const jibunMatch = normalizedAddress.match(/(\d+(-\d+)?)/);
         if (jibunMatch) {
+
+            const escapedJibun = escapeLikeWildcards(jibunMatch[0]);
             const { data: partialData, error: partialError } = await supabase
                 .from('land_lots')
                 .select('pnu, address_text, address')
                 .eq('union_id', unionId)
-                .or(`address_text.ilike.%${jibunMatch[0]}%,address.ilike.%${jibunMatch[0]}%`)
+                .or(`address_text.ilike.%${escapedJibun}%,address.ilike.%${escapedJibun}%`)
                 .limit(1);
 
             if (!partialError && partialData && partialData.length > 0) {
@@ -98,6 +104,7 @@ export async function matchAddressToPnu(
 
         return { pnu: null, matchedAddress: null };
     } catch (error) {
+        console.error('[GIS] Address matching error:', error instanceof Error ? error.message : error);
         return { pnu: null, matchedAddress: null, error: String(error) };
     }
 }
@@ -464,7 +471,7 @@ export async function getPreRegisteredMembers(
 
         // 검색어가 있으면 검색 조건 추가 (users.property_address로 검색)
         if (searchTerm) {
-            const searchPattern = `%${searchTerm}%`;
+            const searchPattern = `%${escapeLikeWildcards(searchTerm)}%`;
             const searchFilter = `name.ilike.${searchPattern},phone_number.ilike.${searchPattern},property_address.ilike.${searchPattern}`;
             dataQuery = dataQuery.or(searchFilter);
         }

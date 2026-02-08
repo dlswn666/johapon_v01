@@ -12,6 +12,8 @@ import { FreeBoard, NewFreeBoard, UpdateFreeBoard } from '@/app/_lib/shared/type
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import { getUnionPath } from '@/app/_lib/shared/lib/utils/slug';
 import { fileApi } from '@/app/_lib/shared/hooks/file/fileApi';
+import { escapeLikeWildcards } from '@/app/_lib/shared/utils/escapeLike';
+import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 
 // ============================================
 // Query Hooks (조회)
@@ -24,14 +26,15 @@ export const useFreeBoards = (
     enabled: boolean = true,
     searchQuery: string = '',
     page: number = 1,
-    limit: number = 10
+    limit: number = 10,
+    sortBy: 'created_at' | 'views' = 'created_at'
 ) => {
     const setFreeBoards = useFreeBoardStore((state) => state.setFreeBoards);
     const setTotalCount = useFreeBoardStore((state) => state.setTotalCount);
     const { union } = useSlug();
 
     const queryResult = useQuery({
-        queryKey: ['freeBoards', union?.id, searchQuery, page, limit],
+        queryKey: ['freeBoards', union?.id, searchQuery, page, limit, sortBy],
         queryFn: async () => {
             if (!union?.id) return { data: [], count: 0 };
 
@@ -42,25 +45,26 @@ export const useFreeBoards = (
                 .from('free_boards')
                 .select('*, author:users!free_boards_author_id_fkey(id, name)', { count: 'exact' })
                 .eq('union_id', union.id)
-                .order('created_at', { ascending: false })
+                .order(sortBy || 'created_at', { ascending: false })
                 .range(offset, offset + limit - 1);
 
             // 검색어가 있으면 필터 추가 (제목, 내용, 작성자)
             if (searchQuery.trim()) {
+                const escaped = escapeLikeWildcards(searchQuery.trim());
                 // 작성자 이름으로 검색하기 위해 먼저 users에서 일치하는 author_id 조회
                 const { data: matchingAuthors } = await supabase
                     .from('users')
                     .select('id')
-                    .ilike('name', `%${searchQuery}%`);
+                    .ilike('name', `%${escaped}%`);
 
                 const authorIds = matchingAuthors?.map(a => a.id) || [];
 
                 if (authorIds.length > 0) {
                     // 제목, 내용, 또는 작성자 ID로 검색
-                    query = query.or(`title.ilike.%${searchQuery}%,content.ilike.%${searchQuery}%,author_id.in.(${authorIds.join(',')})`);
+                    query = query.or(`title.ilike.%${escaped}%,content.ilike.%${escaped}%,author_id.in.(${authorIds.join(',')})`);
                 } else {
                     // 일치하는 작성자가 없으면 제목, 내용으로만 검색
-                    query = query.or(`title.ilike.%${searchQuery}%,content.ilike.%${searchQuery}%`);
+                    query = query.or(`title.ilike.%${escaped}%,content.ilike.%${escaped}%`);
                 }
             }
 
@@ -207,6 +211,11 @@ const processEditorImages = async (
                 processedContent = processedContent.replace(new RegExp(blobUrl, 'g'), publicUrl);
             } catch (e) {
                 console.error(`Failed to upload editor image: ${file.name}`, e);
+                // Remove the broken blob URL from content
+                processedContent = processedContent.replace(
+                    new RegExp(`<img[^>]*src=["']${blobUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["'][^>]*\\/?>`, 'g'),
+                    ''
+                );
             }
         }
     }
@@ -313,7 +322,7 @@ export const useUpdateFreeBoard = () => {
     const { union, slug } = useSlug();
 
     return useMutation({
-        mutationFn: async ({ id, updates }: { id: number; updates: UpdateFreeBoard }) => {
+        mutationFn: async ({ id, updates, updatedAt }: { id: number; updates: UpdateFreeBoard; updatedAt?: string }) => {
             const finalUpdates = { ...updates };
 
             // 1. 에디터 이미지 업로드 및 본문 URL 치환
@@ -322,13 +331,21 @@ export const useUpdateFreeBoard = () => {
             }
 
             // 2. 게시글 업데이트
-            const { data, error } = await supabase
+            let query = supabase
                 .from('free_boards')
                 .update(finalUpdates)
                 .eq('id', id)
-                .select()
-                .single();
+                .eq('union_id', union!.id);
 
+            if (updatedAt) {
+                query = query.eq('updated_at', updatedAt);
+            }
+
+            const { data, error } = await query.select().single();
+
+            if (error?.code === 'PGRST116') {
+                throw new Error('CONFLICT: 다른 사용자가 이 게시글을 수정했습니다. 페이지를 새로고침하여 최신 내용을 확인해주세요.');
+            }
             if (error) throw error;
 
             // 3. 신규 첨부 파일이 있다면 이관
@@ -377,6 +394,7 @@ export const useDeleteFreeBoard = () => {
     const removeFreeBoard = useFreeBoardStore((state) => state.removeFreeBoard);
     const openAlertModal = useModalStore((state) => state.openAlertModal);
     const { union, slug } = useSlug();
+    const { user, isAdmin } = useAuth();
 
     return useMutation({
         mutationFn: async (freeBoardId: number) => {
@@ -384,11 +402,27 @@ export const useDeleteFreeBoard = () => {
             await queryClient.cancelQueries({ queryKey: ['freeBoards', union?.id, freeBoardId] });
             await queryClient.cancelQueries({ queryKey: ['freeBoards', union?.id] });
 
-            // 1. 폴더 및 하위 파일 전체 삭제 (Storage)
+            // 1. 소유권 사전 검증 (비관리자)
+            if (!isAdmin && user?.id) {
+                const { data: post, error: fetchError } = await supabase
+                    .from('free_boards')
+                    .select('author_id')
+                    .eq('id', freeBoardId)
+                    .single();
+
+                if (fetchError || !post) {
+                    throw new Error('게시글을 찾을 수 없습니다.');
+                }
+                if (post.author_id !== user.id) {
+                    throw new Error('삭제 권한이 없습니다.');
+                }
+            }
+
+            // 2. 폴더 및 하위 파일 전체 삭제 (Storage)
             const folderPath = `unions/${slug}/free-boards/${freeBoardId}`;
             await fileApi.deleteFolder(folderPath);
 
-            // 2. DB 파일 레코드 삭제 (다형성 연관 관계)
+            // 3. DB 파일 레코드 삭제 (다형성 연관 관계)
             const { error: fileError } = await supabase
                 .from('files')
                 .delete()
@@ -399,7 +433,7 @@ export const useDeleteFreeBoard = () => {
                 console.error('Failed to delete file records', fileError);
             }
 
-            // 3. 댓글 삭제
+            // 4. 댓글 삭제
             const { error: commentError } = await supabase
                 .from('comments')
                 .delete()
@@ -410,8 +444,12 @@ export const useDeleteFreeBoard = () => {
                 console.error('Failed to delete comments', commentError);
             }
 
-            // 4. 게시물 삭제
-            const { error } = await supabase.from('free_boards').delete().eq('id', freeBoardId);
+            // 5. 게시물 삭제 (비관리자는 본인 글만 삭제 가능 — 이중 안전장치)
+            let deleteQuery = supabase.from('free_boards').delete().eq('id', freeBoardId);
+            if (!isAdmin && user?.id) {
+                deleteQuery = deleteQuery.eq('author_id', user.id);
+            }
+            const { error } = await deleteQuery;
 
             if (error) {
                 throw error;

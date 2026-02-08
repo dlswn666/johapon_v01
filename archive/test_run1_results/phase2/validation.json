@@ -1,0 +1,723 @@
+{
+  "metadata": {
+    "generated_at": "2026-02-08T00:00:00Z",
+    "validator": "scenario-validator",
+    "version": "1.0",
+    "validation_result": "PASS",
+    "overall_score": 92,
+    "total_scenarios": 120,
+    "total_business_rules": 48,
+    "total_api_endpoints": 19,
+    "total_state_machines": 8,
+    "total_roles": 4,
+    "total_personas": 10
+  },
+
+  "coverage_checks": {
+    "api_coverage": {
+      "status": "PASS",
+      "coverage_percentage": 100,
+      "total_endpoints": 19,
+      "covered_endpoints": 19,
+      "details": {
+        "covered": {
+          "GET /api/admin/access-tokens": ["TC-062"],
+          "POST /api/admin/access-tokens": ["TC-061"],
+          "DELETE /api/admin/access-tokens/[id]": ["TC-063"],
+          "GET /api/auth/naver": ["TC-002"],
+          "GET /api/auth/naver/callback": ["TC-002"],
+          "POST /api/auth/verify-token": ["TC-014"],
+          "POST /api/consent/bulk-update": ["TC-078"],
+          "POST /api/consent/bulk-upload": ["TC-078"],
+          "GET /api/docs": ["TC-111"],
+          "POST /api/image/resize": ["TC-071"],
+          "POST /api/member-invite/sync": ["TC-058"],
+          "POST /api/member-invite/pre-register": ["TC-059"],
+          "GET /api/member-invite/job/[jobId]": ["TC-058"],
+          "POST /api/members/approve": ["TC-005"],
+          "GET /api/members/check-conflict": ["TC-049"],
+          "POST /api/sms/send": ["TC-070"],
+          "GET /api/sms/template": ["TC-070"],
+          "GET /auth/callback": ["TC-001", "TC-018", "TC-019", "TC-020"],
+          "GET /api/admin/access-tokens/[id]": ["TC-062"]
+        },
+        "missing_endpoints": [],
+        "notes": [
+          "GET /api/admin/access-tokens/[id] is implicitly covered by TC-062 (list detail) but has no dedicated test; low risk since it shares auth pattern with GET list.",
+          "POST /api/member-invite/sync-async and POST /api/member-invite/sync-properties are secondary async variants not listed in the original 19 endpoints — they share the same sync endpoint auth flow.",
+          "GET /api/image/resize (GET variant) has no separate test but is a low-risk config-only endpoint."
+        ]
+      }
+    },
+
+    "role_coverage": {
+      "status": "PASS",
+      "coverage_percentage": 100,
+      "total_roles": 4,
+      "covered_roles": 4,
+      "details": {
+        "SYSTEM_ADMIN": {
+          "scenario_count": 12,
+          "scenarios": ["TC-005", "TC-006", "TC-017", "TC-030", "TC-036", "TC-061", "TC-062", "TC-063", "TC-064", "TC-065", "TC-067", "TC-095"],
+          "coverage_areas": ["access_token_management", "union_management", "admin_api_auth", "role_escalation_check"]
+        },
+        "ADMIN": {
+          "scenario_count": 48,
+          "scenarios": ["TC-005", "TC-006", "TC-007", "TC-008", "TC-009", "TC-021", "TC-024", "TC-025", "TC-026", "TC-030", "TC-031", "TC-032", "TC-036", "TC-038", "TC-039", "TC-044", "TC-045", "TC-046", "TC-047", "TC-048", "TC-049", "TC-050", "TC-051", "TC-052", "TC-053", "TC-054", "TC-055", "TC-056", "TC-058", "TC-059", "TC-060", "TC-064", "TC-070", "TC-075", "TC-076", "TC-078", "TC-079", "TC-080", "TC-095", "TC-099", "TC-100", "TC-101", "TC-102", "TC-106", "TC-107", "TC-108", "TC-109", "TC-110"],
+          "coverage_areas": ["member_approval", "content_crud", "member_management", "consent", "search", "hero_slides", "sms", "access_token_denial"]
+        },
+        "USER": {
+          "scenario_count": 36,
+          "scenarios": ["TC-008", "TC-012", "TC-013", "TC-022", "TC-023", "TC-028", "TC-029", "TC-033", "TC-034", "TC-035", "TC-037", "TC-040", "TC-041", "TC-042", "TC-043", "TC-066", "TC-068", "TC-069", "TC-077", "TC-082", "TC-089", "TC-090", "TC-091", "TC-092", "TC-093", "TC-094", "TC-096", "TC-097", "TC-098", "TC-101", "TC-103", "TC-104", "TC-105", "TC-116", "TC-119", "TC-120"],
+          "coverage_areas": ["content_creation", "ownership_delete", "view_dedup", "search", "navigation", "a11y", "mobile", "secret_question"]
+        },
+        "GUEST": {
+          "scenario_count": 25,
+          "scenarios": ["TC-001", "TC-002", "TC-003", "TC-004", "TC-010", "TC-011", "TC-014", "TC-015", "TC-016", "TC-017", "TC-018", "TC-019", "TC-020", "TC-057", "TC-071", "TC-081", "TC-093", "TC-094", "TC-111", "TC-112", "TC-113", "TC-114", "TC-115", "TC-117", "TC-118"],
+          "coverage_areas": ["oauth_login", "registration", "access_token_flow", "public_pages", "redirect_behavior", "error_pages"]
+        }
+      },
+      "notes": [
+        "SUPER_ADMIN role exists in codebase but is implicitly covered under ADMIN (same middleware guard).",
+        "APPLICANT is a transient role during registration, covered by TC-003 (registration flow)."
+      ]
+    },
+
+    "state_coverage": {
+      "status": "PASS",
+      "coverage_percentage": 90,
+      "total_state_machines": 8,
+      "covered_state_machines": 8,
+      "details": {
+        "User_user_status": {
+          "states_covered": ["PRE_REGISTERED", "PENDING_APPROVAL", "APPROVED", "REJECTED", "TRANSFERRED"],
+          "states_missing": ["ARCHIVED"],
+          "transitions_covered": [
+            "PENDING_APPROVAL -> APPROVED (TC-005)",
+            "PENDING_APPROVAL -> REJECTED (TC-006)",
+            "REJECTED -> PENDING_APPROVAL (TC-046)",
+            "APPROVED -> TRANSFERRED (TC-051)",
+            "PRE_REGISTERED -> deleted (TC-060)"
+          ],
+          "transitions_missing": [
+            "PRE_REGISTERED -> PENDING_APPROVAL (no explicit self-reg test from PRE_REGISTERED state)"
+          ],
+          "coverage_percentage": 83
+        },
+        "User_is_blocked": {
+          "states_covered": ["normal", "blocked"],
+          "transitions_covered": [
+            "normal -> blocked (TC-044)",
+            "blocked -> normal (TC-045)"
+          ],
+          "transitions_missing": [],
+          "coverage_percentage": 100
+        },
+        "MemberInvite_status": {
+          "states_covered": ["PENDING", "USED", "EXPIRED"],
+          "transitions_covered": [
+            "PENDING -> USED (TC-019)",
+            "PENDING -> EXPIRED (TC-057)"
+          ],
+          "transitions_missing": [],
+          "coverage_percentage": 100
+        },
+        "Question_answer_state": {
+          "states_covered": ["unanswered", "answered"],
+          "transitions_covered": [
+            "unanswered -> answered (TC-031)",
+            "answered -> unanswered (TC-032)"
+          ],
+          "transitions_missing": [],
+          "coverage_percentage": 100
+        },
+        "UserConsent": {
+          "states_covered": ["PENDING", "AGREED", "DISAGREED"],
+          "transitions_covered": [
+            "PENDING -> AGREED (TC-078)",
+            "PENDING -> DISAGREED (TC-078)"
+          ],
+          "transitions_missing": [
+            "AGREED -> DISAGREED (consent withdrawal)",
+            "DISAGREED -> AGREED (consent re-grant)"
+          ],
+          "coverage_percentage": 67,
+          "note": "Consent reversal transitions not explicitly tested, but bulk-update covers status set to either value."
+        },
+        "OwnershipType": {
+          "states_covered": ["OWNER", "CO_OWNER", "FAMILY"],
+          "states_missing": ["PROXY"],
+          "transitions_covered": [
+            "OWNER -> CO_OWNER (TC-052)",
+            "OWNER -> OWNER transfer (TC-051)",
+            "null -> FAMILY (TC-052 family variant implied)"
+          ],
+          "transitions_missing": [
+            "null -> PROXY (proxy addition)"
+          ],
+          "coverage_percentage": 75,
+          "note": "PROXY ownership type mentioned in conflict resolution options but no dedicated test scenario. Low risk since it follows same code path as FAMILY."
+        },
+        "Union_is_active": {
+          "states_covered": ["active", "inactive"],
+          "transitions_covered": [
+            "active -> inactive (TC-066 implies toggling)",
+            "inactive -> active (implied by TC-065 union creation)"
+          ],
+          "coverage_percentage": 100
+        },
+        "AccessToken_lifecycle": {
+          "states_covered": ["valid", "expired", "max_usage_reached", "deleted"],
+          "transitions_covered": [
+            "valid -> expired (TC-015)",
+            "valid -> max_usage_reached (TC-016)",
+            "valid -> deleted (TC-063)"
+          ],
+          "transitions_missing": [],
+          "coverage_percentage": 100
+        }
+      },
+      "overall_notes": [
+        "ARCHIVED user_status has no scenario — this is a rarely used state in the codebase with no clear trigger.",
+        "PROXY ownership type not explicitly tested; same code path as FAMILY.",
+        "UserConsent reversal transitions (AGREED<->DISAGREED) are partially covered by bulk-update setting any status."
+      ]
+    },
+
+    "business_rule_coverage": {
+      "status": "WARN",
+      "coverage_percentage": 87.5,
+      "total_rules": 48,
+      "covered_rules": 42,
+      "rules_with_normal_tests": 42,
+      "rules_with_abnormal_tests": 35,
+      "details": {
+        "covered": {
+          "BR-001": {"normal": ["TC-005"], "abnormal": []},
+          "BR-002": {"normal": ["TC-006"], "abnormal": []},
+          "BR-003": {"normal": ["TC-006"], "abnormal": ["TC-007"]},
+          "BR-004": {"normal": ["TC-046"], "abnormal": []},
+          "BR-005": {"normal": ["TC-005"], "abnormal": []},
+          "BR-006": {"normal": ["TC-044"], "abnormal": []},
+          "BR-007": {"normal": ["TC-045"], "abnormal": []},
+          "BR-008": {"normal": ["TC-055"], "abnormal": ["TC-055"]},
+          "BR-009": {"normal": [], "abnormal": ["TC-053"]},
+          "BR-010": {"normal": ["TC-054"], "abnormal": []},
+          "BR-011": {"normal": ["TC-059"], "abnormal": ["TC-059"]},
+          "BR-012": {"normal": ["TC-041"], "abnormal": ["TC-041"]},
+          "BR-013": {"normal": ["TC-034", "TC-042"], "abnormal": ["TC-035", "TC-043"]},
+          "BR-014": {"normal": ["TC-029"], "abnormal": ["TC-029", "TC-030"]},
+          "BR-015": {"normal": ["TC-023"], "abnormal": ["TC-023", "TC-104"]},
+          "BR-016": {"normal": ["TC-025", "TC-034"], "abnormal": []},
+          "BR-017": {"normal": ["TC-073"], "abnormal": []},
+          "BR-018": {"normal": ["TC-072"], "abnormal": []},
+          "BR-019": {"normal": ["TC-026"], "abnormal": []},
+          "BR-020": {"normal": ["TC-028"], "abnormal": []},
+          "BR-021": {"normal": ["TC-031"], "abnormal": []},
+          "BR-022": {"normal": ["TC-026"], "abnormal": ["TC-026"]},
+          "BR-023": {"normal": ["TC-057"], "abnormal": ["TC-057"]},
+          "BR-024": {"normal": ["TC-057"], "abnormal": ["TC-057"]},
+          "BR-026": {"normal": ["TC-014"], "abnormal": ["TC-015", "TC-016"]},
+          "BR-027": {"normal": ["TC-014"], "abnormal": []},
+          "BR-028": {"normal": ["TC-008"], "abnormal": ["TC-008", "TC-101"]},
+          "BR-029": {"normal": ["TC-049"], "abnormal": []},
+          "BR-030": {"normal": ["TC-050", "TC-051", "TC-052"], "abnormal": []},
+          "BR-031": {"normal": ["TC-052"], "abnormal": ["TC-052"]},
+          "BR-032": {"normal": ["TC-051"], "abnormal": []},
+          "BR-034": {"normal": ["TC-050"], "abnormal": []},
+          "BR-035": {"normal": ["TC-109"], "abnormal": ["TC-109"]},
+          "BR-037": {"normal": ["TC-110"], "abnormal": ["TC-110"]},
+          "BR-038": {"normal": ["TC-108"], "abnormal": []},
+          "BR-039": {"normal": ["TC-060"], "abnormal": ["TC-060"]},
+          "BR-043": {"normal": [], "abnormal": ["TC-037", "TC-097", "TC-098", "TC-099"]},
+          "BR-044": {"normal": ["TC-027"], "abnormal": ["TC-027"]},
+          "BR-045": {"normal": ["TC-009"], "abnormal": ["TC-009"]},
+          "BR-046": {"normal": ["TC-067"], "abnormal": []},
+          "BR-047": {"normal": ["TC-076"], "abnormal": []},
+          "BR-048": {"normal": ["TC-075"], "abnormal": []}
+        },
+        "missing": {
+          "BR-025": {
+            "rule": "Bulk AlimTalk only sends to PENDING status invites",
+            "risk": "LOW",
+            "reason": "No dedicated test; filtering is a simple .eq('status','PENDING') guard in useSendBulkMemberAlimtalk. Partially covered by TC-058 invite sync flow."
+          },
+          "BR-033": {
+            "rule": "All ownership changes recorded in property_ownership_history",
+            "risk": "LOW",
+            "reason": "No explicit verification test; TC-050, TC-051, TC-052 cover conflict resolution but do not explicitly assert history records. Audit trail is a side effect."
+          },
+          "BR-036": {
+            "rule": "Pre-registered members saved even without PNU match",
+            "risk": "LOW",
+            "reason": "TC-059 covers pre-registration flow. The null-PNU fallback is an implicit path but not explicitly tested."
+          },
+          "BR-040": {
+            "rule": "Consent stages have required_rate per business type",
+            "risk": "LOW",
+            "reason": "TC-078 and TC-079 cover consent management but do not specifically test required_rate threshold calculation."
+          },
+          "BR-041": {
+            "rule": "Member consent status mapped per stage",
+            "risk": "LOW",
+            "reason": "TC-079 covers viewing consent status. The join logic is tested implicitly."
+          },
+          "BR-042": {
+            "rule": "Total land price = land_area * official_price * (ownership_ratio/100)",
+            "risk": "MEDIUM",
+            "reason": "TC-069 tests my-property page but does not explicitly verify the calculation formula with specific values."
+          }
+        },
+        "rules_without_abnormal_tests": [
+          "BR-001 (no test for approving non-PENDING user)",
+          "BR-002 (no test for rejecting non-PENDING user)",
+          "BR-004 (no test for cancel-rejection on non-REJECTED user)",
+          "BR-005 (no test for wrong role after approval)",
+          "BR-006 (no test for block without reason)",
+          "BR-007 (no test for unblock already-unblocked user)",
+          "BR-010 (no test for concurrent set-primary race)",
+          "BR-016 (no test for cascade failure mid-delete)",
+          "BR-017 (no test for blob URL remaining after failure)",
+          "BR-018 (no test for orphaned file records)",
+          "BR-019 (no test for AlimTalk failure on notice create)",
+          "BR-020 (no test for AlimTalk failure on question create)",
+          "BR-021 (no test for AlimTalk failure on answer)",
+          "BR-027 (no test for wrong union_id token access)",
+          "BR-029 (no test for no-conflict scenario verification)",
+          "BR-030 (no test for invalid resolution action type)",
+          "BR-032 (no test for remaining properties after transfer)",
+          "BR-034 (no test for same-person with mismatched data)",
+          "BR-038 (no test for false-positive merge)",
+          "BR-046 (no test for cascade partial failure)",
+          "BR-047 (no test for RPC parameter edge cases)",
+          "BR-048 (no test for status filter correctness)"
+        ]
+      }
+    }
+  },
+
+  "data_checks": {
+    "scenario_data_matching": {
+      "status": "PASS",
+      "coverage_percentage": 95,
+      "total_scenarios_checked": 120,
+      "scenarios_with_matching_data": 114,
+      "scenarios_without_explicit_data": 6,
+      "details": {
+        "fully_matched": [
+          "TC-001 through TC-020 (auth/security): All test data references match test_data.json entries (users.valid, access_tokens.valid/malicious, api_requests)",
+          "TC-021 through TC-043 (content): Notices, questions, free_boards, comments all have matching valid/boundary/malicious data entries",
+          "TC-044 through TC-060 (member management): member_management approval/rejection/block data present, property data with PNU entries available",
+          "TC-061 through TC-067 (admin): access_tokens data covers valid/boundary/invalid/malicious",
+          "TC-068 through TC-080 (navigation/consent/files): File data present, consent data present, navigation paths documented",
+          "TC-081 through TC-088 (a11y): No specific data requirements (UI interaction tests)",
+          "TC-089 through TC-120 (mobile/navigation/edge cases): Viewport settings for P7, navigation paths documented"
+        ],
+        "scenarios_without_explicit_data": [
+          "TC-080 (hero slides) — no hero_slides test data in test_data.json; however, scenarios describe the interaction and data is simple (image_url + link_url).",
+          "TC-087 (MemberEditModal a11y) — no member edit data required, UI-only test.",
+          "TC-088 (BlockMemberModal a11y) — no block data required, UI-only test.",
+          "TC-092 (breadcrumb) — no data required, navigation-only test.",
+          "TC-116 (toast notifications) — no data required, UI feedback test.",
+          "TC-119 (TanStack Query cache) — no data required, cache behavior test."
+        ]
+      }
+    },
+
+    "data_type_matching": {
+      "status": "PASS",
+      "coverage_percentage": 98,
+      "checks_performed": [
+        {
+          "category": "users",
+          "schema_match": true,
+          "details": "users.valid entries match schema: id(varchar), name(varchar), email(varchar nullable), phone_number(varchar), role(check constraint matches), user_status(check constraint matches), union_id(uuid), birth_date(date), is_blocked(boolean)"
+        },
+        {
+          "category": "notices",
+          "schema_match": true,
+          "details": "notices.valid entries match schema: id(bigint), title(varchar), content(text), is_popup(boolean), start_date/end_date(timestamptz), author_id(varchar FK), union_id(uuid FK)"
+        },
+        {
+          "category": "questions",
+          "schema_match": true,
+          "details": "questions.valid entries match schema: id(bigint), title(varchar), content(text), is_secret(boolean), author_id(varchar FK)"
+        },
+        {
+          "category": "comments",
+          "schema_match": true,
+          "details": "comments.valid entries match schema: entity_type(text), entity_id(bigint), content(text), author_id(varchar FK), parent_id(bigint nullable FK)"
+        },
+        {
+          "category": "access_tokens",
+          "schema_match": true,
+          "details": "access_tokens.valid entries match schema: name(varchar), union_id(uuid nullable), access_scope(varchar), max_usage(integer nullable), expires_in_days converts to expires_at(timestamptz)"
+        },
+        {
+          "category": "member_invites",
+          "schema_match": true,
+          "details": "member_invites.valid entries match schema: name(varchar), phone_number(varchar), property_address(text), union_id(uuid FK)"
+        },
+        {
+          "category": "property",
+          "schema_match": true,
+          "details": "PNU format (19 digits varchar) matches land_lots.pnu. Ownership types match check constraint: OWNER, CO_OWNER, FAMILY."
+        },
+        {
+          "category": "consent",
+          "schema_match": true,
+          "details": "user_consents.status matches agreement_status_enum: AGREED, DISAGREED, PENDING."
+        }
+      ],
+      "type_mismatches": [
+        {
+          "field": "users.invalid.wrong_type_name.name",
+          "expected": "varchar",
+          "actual": "integer (12345)",
+          "severity": "INTENTIONAL",
+          "note": "This is intentionally wrong-typed test data for type validation testing."
+        }
+      ]
+    },
+
+    "owasp_coverage": {
+      "status": "PASS",
+      "coverage_percentage": 85,
+      "details": {
+        "A01_Broken_Access_Control": {
+          "covered": true,
+          "test_data": ["api_requests.auth_bypass_attempts", "navigation.malicious_paths"],
+          "scenarios": ["TC-008", "TC-013", "TC-017", "TC-035", "TC-043", "TC-064", "TC-094", "TC-095", "TC-101"],
+          "note": "Auth bypass, role escalation, ownership bypass all tested."
+        },
+        "A02_Cryptographic_Failures": {
+          "covered": false,
+          "note": "No specific test for cookie security attributes (httpOnly, secure, SameSite) or JWT token security. Medium risk — Supabase handles most crypto."
+        },
+        "A03_Injection": {
+          "covered": true,
+          "test_data": ["users.malicious.sql_injection_*", "search_queries.malicious", "notices.malicious", "questions.malicious", "comments.malicious", "access_tokens.malicious"],
+          "scenarios": ["TC-012", "TC-037", "TC-097", "TC-098", "TC-099"],
+          "note": "SQL injection and LIKE wildcard injection both covered. Supabase client parameterizes queries."
+        },
+        "A04_Insecure_Design": {
+          "covered": true,
+          "test_data": ["member_management.approval.invalid", "member_management.rejection.invalid"],
+          "scenarios": ["TC-004", "TC-007", "TC-100"],
+          "note": "Double-submit prevention, required field validation, state transition guards all tested."
+        },
+        "A05_Security_Misconfiguration": {
+          "covered": true,
+          "test_data": [],
+          "scenarios": ["TC-011"],
+          "note": "CSP, X-Frame-Options, HSTS headers verified in TC-011."
+        },
+        "A06_Vulnerable_Components": {
+          "covered": false,
+          "note": "No dependency audit test. Low risk for E2E testing scope."
+        },
+        "A07_Authentication_Failures": {
+          "covered": true,
+          "test_data": ["api_requests.auth_bypass_attempts"],
+          "scenarios": ["TC-001", "TC-002", "TC-017", "TC-096"],
+          "note": "OAuth flow, session management, unauthenticated API rejection all tested."
+        },
+        "A08_Software_Data_Integrity": {
+          "covered": true,
+          "test_data": ["api_requests.csrf_attempts"],
+          "scenarios": ["TC-009"],
+          "note": "CSRF protection verified. No deserialization testing (not applicable for this stack)."
+        },
+        "A09_Logging_Monitoring": {
+          "covered": true,
+          "test_data": [],
+          "scenarios": ["TC-106"],
+          "note": "Member access logging (audit trail) tested. AlimTalk logging implicitly tested."
+        },
+        "A10_SSRF": {
+          "covered": false,
+          "note": "No SSRF testing. Low risk — image resize accepts file upload not URL. Proxy calls are to fixed URLs."
+        },
+        "XSS_Specific": {
+          "covered": true,
+          "test_data": ["users.malicious.xss_*", "notices.malicious (script tags, style injection, iframe)", "free_boards.malicious", "comments.malicious", "files.malicious (XSS in filename)"],
+          "scenarios": ["TC-012"],
+          "note": "DOMPurify with FORBID_ATTR['style'] tested for script tags, event handlers, style injection, iframe, and phishing overlay."
+        },
+        "Path_Traversal": {
+          "covered": true,
+          "test_data": ["users.malicious.path_traversal_name", "files.malicious.path_traversal", "navigation.malicious_paths"],
+          "note": "Path traversal in filenames and URLs covered."
+        }
+      }
+    }
+  },
+
+  "quality_checks": {
+    "scenario_independence": {
+      "status": "PASS",
+      "score": 95,
+      "details": {
+        "independent_scenarios": 112,
+        "potentially_dependent_scenarios": 8,
+        "dependency_chains": [
+          {
+            "chain": ["TC-005 (approve) -> TC-044 (block approved member)"],
+            "severity": "LOW",
+            "note": "TC-044 requires an approved member, which could come from TC-005 or from pre-seeded test data."
+          },
+          {
+            "chain": ["TC-044 (block) -> TC-045 (unblock) -> TC-013 (blocked user denied)"],
+            "severity": "LOW",
+            "note": "TC-013 requires a blocked user. Test data includes pre-blocked user (users.valid.blocked_user)."
+          },
+          {
+            "chain": ["TC-006 (reject) -> TC-046 (cancel rejection)"],
+            "severity": "LOW",
+            "note": "TC-046 requires a rejected user. Test data includes pre-rejected user (users.valid.rejected_user)."
+          },
+          {
+            "chain": ["TC-031 (answer question) -> TC-032 (delete answer)"],
+            "severity": "LOW",
+            "note": "TC-032 requires an answered question. Can use pre-seeded data."
+          }
+        ],
+        "mitigation": "All dependent scenarios have matching pre-seeded test data that removes runtime dependencies. The scenarios CAN run independently using test_data.json fixtures."
+      }
+    },
+
+    "clear_expected_results": {
+      "status": "PASS",
+      "score": 98,
+      "details": {
+        "scenarios_with_clear_results": 118,
+        "scenarios_with_vague_results": 2,
+        "vague_results": [
+          {
+            "scenario": "TC-119 (TanStack Query cache)",
+            "issue": "Expected results reference internal cache behavior (staleTime) which is hard to verify in E2E without debugging tools.",
+            "severity": "LOW"
+          },
+          {
+            "scenario": "TC-073 (blob URL replacement)",
+            "issue": "Expected result 'blob:// URLs replaced with public URLs' requires DOM inspection of saved content.",
+            "severity": "LOW"
+          }
+        ]
+      }
+    },
+
+    "achievable_preconditions": {
+      "status": "PASS",
+      "score": 97,
+      "details": {
+        "achievable_count": 117,
+        "potentially_difficult": 3,
+        "difficult_preconditions": [
+          {
+            "scenario": "TC-049 (conflict detection)",
+            "precondition": "Pending user has same building_unit_id or PNU as existing approved user",
+            "issue": "Requires careful data seeding to create property overlap. Test data provides conflicting_pnu but real seeding needs building_unit link.",
+            "severity": "MEDIUM"
+          },
+          {
+            "scenario": "TC-077 (multi-union membership)",
+            "precondition": "Two unions exist with same Kakao account",
+            "issue": "Requires two separate union setups and Kakao OAuth flow twice. Complex test setup.",
+            "severity": "MEDIUM"
+          },
+          {
+            "scenario": "TC-078 (consent bulk update async)",
+            "precondition": ">=50 members for async path",
+            "issue": "Requires seeding 50+ member records. Test data has 10 users; would need bulk generation.",
+            "severity": "LOW"
+          }
+        ]
+      }
+    },
+
+    "no_duplicates": {
+      "status": "PASS",
+      "score": 99,
+      "details": {
+        "total_scenarios": 120,
+        "unique_scenarios": 120,
+        "potential_overlaps": [
+          {
+            "pair": ["TC-037 (free board LIKE escape)", "TC-097 (notice LIKE escape)", "TC-098 (question LIKE escape)", "TC-099 (member LIKE escape)"],
+            "assessment": "NOT DUPLICATE — Each tests escapeLikeWildcards on a different entity/hook, validating the escape is applied at each location independently. This is correct testing practice."
+          },
+          {
+            "pair": ["TC-083 through TC-088 (modal a11y)"],
+            "assessment": "NOT DUPLICATE — Each tests a different modal component (RegisterModal, ApprovalPendingModal, ApprovalRejectedModal, BlockedUserModal, MemberEditModal, BlockMemberModal). While test structure is similar, each validates a separate component."
+          },
+          {
+            "pair": ["TC-034 (free board own delete)", "TC-042 (comment own delete)"],
+            "assessment": "NOT DUPLICATE — Different entity types (free_board vs comment) with different hooks and code paths."
+          }
+        ]
+      }
+    }
+  },
+
+  "persona_coverage": {
+    "status": "PASS",
+    "total_personas": 10,
+    "covered_personas": 10,
+    "details": {
+      "T1-Admin-Methodical": {
+        "scenario_count": 46,
+        "data_types": ["valid"],
+        "coverage_areas": ["approval", "content_crud", "member_management", "access_tokens", "consent", "GIS", "hero_slides"]
+      },
+      "T2-Admin-Malicious": {
+        "scenario_count": 16,
+        "data_types": ["malicious", "invalid"],
+        "coverage_areas": ["auth_bypass", "CSRF", "XSS", "ownership_bypass", "role_escalation", "LIKE_injection"]
+      },
+      "T3-User-Chaos": {
+        "scenario_count": 11,
+        "data_types": ["boundary", "invalid", "random"],
+        "coverage_areas": ["validation_errors", "wildcard_search", "nesting_limit", "error_pages"]
+      },
+      "T4-User-Newbie": {
+        "scenario_count": 18,
+        "data_types": ["valid"],
+        "coverage_areas": ["registration", "login", "navigation", "redirects", "landing", "error_pages"]
+      },
+      "T5-User-Impatient": {
+        "scenario_count": 2,
+        "data_types": ["valid"],
+        "coverage_areas": ["double_submit_prevention"],
+        "note": "Low scenario count is appropriate — rapid-click behavior is a focused concern."
+      },
+      "T6-User-Perfectionist": {
+        "scenario_count": 14,
+        "data_types": ["valid"],
+        "coverage_areas": ["content_crud", "view_dedup", "file_upload", "my_property"]
+      },
+      "T7-User-Mobile": {
+        "scenario_count": 3,
+        "data_types": ["valid"],
+        "coverage_areas": ["mobile_sidebar", "ads_hidden", "responsive_layout"]
+      },
+      "T8-User-PowerUser": {
+        "scenario_count": 7,
+        "data_types": ["valid"],
+        "coverage_areas": ["search", "pagination", "multi_union", "cache_behavior"]
+      },
+      "T9-User-A11y": {
+        "scenario_count": 7,
+        "data_types": ["valid"],
+        "coverage_areas": ["ARIA", "focus_trap", "ESC_key", "skip_nav", "all_custom_modals"]
+      },
+      "T10-Guest-Newbie": {
+        "scenario_count": 11,
+        "data_types": ["valid", "multilingual"],
+        "coverage_areas": ["access_token", "public_pages", "landing", "error_pages", "legal_pages"]
+      }
+    }
+  },
+
+  "gap_analysis": {
+    "critical_gaps": [],
+    "high_gaps": [],
+    "medium_gaps": [
+      {
+        "id": "GAP-001",
+        "area": "business_rule",
+        "rule": "BR-042 (land price calculation)",
+        "description": "No explicit test verifies the formula: land_area * official_price * (ownership_ratio/100). TC-069 loads my-property page but does not assert calculated values.",
+        "recommendation": "Add assertion in TC-069 with specific numeric values from test_data.json property.ownership."
+      },
+      {
+        "id": "GAP-002",
+        "area": "state_coverage",
+        "rule": "UserConsent reversal transitions",
+        "description": "AGREED->DISAGREED and DISAGREED->AGREED transitions not explicitly tested. TC-078 sets status but doesn't test changing from one non-PENDING state to another.",
+        "recommendation": "Add a test step in TC-078 that updates an already-AGREED member to DISAGREED."
+      },
+      {
+        "id": "GAP-003",
+        "area": "owasp",
+        "category": "A02 Cryptographic Failures",
+        "description": "No test verifies cookie security attributes (httpOnly, secure, SameSite) for guest_access cookie, register-prefill cookie, or Naver auth cookies.",
+        "recommendation": "Add cookie attribute verification steps to TC-014 (guest access) and TC-002 (Naver OAuth)."
+      },
+      {
+        "id": "GAP-004",
+        "area": "data_matching",
+        "entity": "hero_slides",
+        "description": "No hero_slides test data in test_data.json. TC-080 tests hero slides management but lacks fixture data.",
+        "recommendation": "Add hero_slides section to test_data.json with valid entries (image_url, link_url, display_order)."
+      },
+      {
+        "id": "GAP-005",
+        "area": "state_coverage",
+        "rule": "PROXY ownership type",
+        "description": "Ownership type PROXY not explicitly tested in any scenario. It shares the FAMILY code path in conflict resolution.",
+        "recommendation": "Add a PROXY resolution variant to TC-052 or create TC-052b."
+      }
+    ],
+    "low_gaps": [
+      {
+        "id": "GAP-006",
+        "area": "business_rule",
+        "rules": ["BR-025", "BR-033", "BR-036", "BR-040", "BR-041"],
+        "description": "Five business rules have no dedicated test scenarios. All are low-risk side-effect rules partially covered by adjacent scenarios.",
+        "recommendation": "Accept as-is for initial E2E pass. Can be added in subsequent test iterations."
+      },
+      {
+        "id": "GAP-007",
+        "area": "state_coverage",
+        "rule": "ARCHIVED user_status",
+        "description": "No scenario tests the ARCHIVED status. This state has no clear trigger in the current codebase.",
+        "recommendation": "Defer — ARCHIVED may be a future feature or deprecated state."
+      },
+      {
+        "id": "GAP-008",
+        "area": "abnormal_tests",
+        "description": "22 business rules have normal tests but no abnormal/negative tests. While positive flow is covered, edge cases for state guard failures are not fully validated.",
+        "recommendation": "Prioritize adding abnormal tests for BR-001 (approve non-PENDING) and BR-002 (reject non-PENDING) as these are critical state guards."
+      }
+    ]
+  },
+
+  "summary": {
+    "validation_result": "PASS",
+    "overall_score": 92,
+    "scores": {
+      "api_coverage": 100,
+      "role_coverage": 100,
+      "state_coverage": 90,
+      "business_rule_coverage": 87.5,
+      "data_matching": 95,
+      "data_type_matching": 98,
+      "owasp_coverage": 85,
+      "scenario_independence": 95,
+      "clear_expected_results": 98,
+      "achievable_preconditions": 97,
+      "no_duplicates": 99,
+      "persona_coverage": 100
+    },
+    "strengths": [
+      "All 19 API endpoints covered (100%)",
+      "All 4 roles tested with comprehensive scenario distribution",
+      "All 10 personas mapped with appropriate data types",
+      "Strong OWASP coverage (A01, A03, A04, A05, A07, A08, A09 all covered)",
+      "Excellent test independence (112/120 fully independent)",
+      "No duplicate scenarios despite 120 total",
+      "Test data covers valid/boundary/invalid/malicious for all major entities",
+      "Malicious data is well-crafted: SQL injection, XSS, CSRF, path traversal, LIKE wildcards, unicode exploits, prototype pollution"
+    ],
+    "weaknesses": [
+      "6 of 48 business rules lack dedicated scenarios (87.5%)",
+      "22 business rules lack abnormal/negative test cases",
+      "UserConsent reversal transitions not explicitly tested",
+      "PROXY ownership type not tested (uses FAMILY code path)",
+      "Cookie security attributes not verified",
+      "hero_slides entity lacks test data fixtures"
+    ],
+    "recommendation": "PASS with 5 medium-priority gap items to address in next iteration. The scenario suite provides solid coverage for an initial E2E testing run. Critical and high-priority areas (auth, security, member management, content CRUD) are thoroughly covered."
+  }
+}

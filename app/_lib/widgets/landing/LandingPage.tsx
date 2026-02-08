@@ -125,7 +125,7 @@ export function LandingPage({ unionName, onLoginSuccess, className }: LandingPag
     return (
         <div
             className={cn(
-                'relative min-h-screen w-full',
+                'relative min-h-dvh w-full',
                 'flex flex-col items-center justify-center',
                 'py-8 px-4',
                 className

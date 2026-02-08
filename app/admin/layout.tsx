@@ -21,6 +21,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
         return (
             <div className="container mx-auto px-4 py-8">
                 <Skeleton className="w-full h-[600px] rounded-[24px]" />
+                <p className="text-center text-gray-400 mt-4">로딩 중...</p>
             </div>
         );
     }

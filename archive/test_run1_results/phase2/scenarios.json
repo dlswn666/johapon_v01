@@ -1,0 +1,2041 @@
+{
+  "metadata": {
+    "generated_at": "2026-02-08T00:00:00Z",
+    "total_scenarios": 120,
+    "coverage": {
+      "api_endpoints": 19,
+      "business_rules": 48,
+      "state_transitions": 8,
+      "roles": ["SYSTEM_ADMIN", "ADMIN", "USER", "GUEST"],
+      "entities": ["notice", "question", "free_board", "union_info", "comment", "member", "property", "access_token", "member_invite", "union", "hero_slide", "advertisement"]
+    },
+    "priority_distribution": {
+      "P0": 20,
+      "P1": 40,
+      "P2": 35,
+      "P3": 25
+    },
+    "category_distribution": {
+      "auth": 15,
+      "member": 20,
+      "content": 30,
+      "admin": 15,
+      "security": 15,
+      "a11y": 10,
+      "mobile": 5,
+      "navigation": 10
+    }
+  },
+  "scenarios": [
+    {
+      "id": "TC-001",
+      "title": "Kakao OAuth login from union landing page",
+      "priority": "P0",
+      "category": "auth",
+      "preconditions": ["Union exists with valid slug", "User has Kakao account"],
+      "steps": [
+        {"action": "Navigate to /{slug} landing page", "expected": "Login form displayed with Kakao login button"},
+        {"action": "Click Kakao login button", "expected": "Redirect to Kakao OAuth authorization page"},
+        {"action": "Complete Kakao authentication", "expected": "Redirect back to /auth/callback with code"},
+        {"action": "Callback processes PKCE exchange", "expected": "Session created, user resolved via user_auth_links"}
+      ],
+      "postconditions": ["User session established", "Appropriate redirect based on user_status"],
+      "test_data_requirements": {"union_slug": "test-union", "kakao_account": "test@kakao.com"},
+      "applicable_roles": ["GUEST"],
+      "applicable_personas": ["T4-User-Newbie", "T10-Guest-Newbie"]
+    },
+    {
+      "id": "TC-002",
+      "title": "Naver OAuth login flow",
+      "priority": "P0",
+      "category": "auth",
+      "preconditions": ["Union exists with valid slug", "User has Naver account", "NAVER_CLIENT_ID configured"],
+      "steps": [
+        {"action": "Navigate to /{slug} and click Naver login", "expected": "Redirect to /api/auth/naver?slug={slug}"},
+        {"action": "Naver OAuth completes", "expected": "Callback to /api/auth/naver/callback with code and state"},
+        {"action": "Server exchanges code for token, fetches profile", "expected": "User resolved or created via user_auth_links"},
+        {"action": "Redirect based on user status", "expected": "Correct redirect (landing for new, dashboard for approved)"}
+      ],
+      "postconditions": ["Naver auth cookies set (naver-auth-user-id, naver-user-id)", "Session established"],
+      "test_data_requirements": {"naver_account": "test@naver.com"},
+      "applicable_roles": ["GUEST"],
+      "applicable_personas": ["T4-User-Newbie"]
+    },
+    {
+      "id": "TC-003",
+      "title": "User registration via RegisterModal after first login",
+      "priority": "P0",
+      "category": "auth",
+      "preconditions": ["User completed OAuth login", "No existing user record in union", "RegisterModal auto-opens"],
+      "steps": [
+        {"action": "Fill in name, phone, birth_date in RegisterModal", "expected": "Form fields accept valid input"},
+        {"action": "Select property_type and use KakaoAddressSearch for property_address", "expected": "Address selected, PNU generated via generatePNU()"},
+        {"action": "Enter dong and ho values", "expected": "Values accepted and normalized"},
+        {"action": "Submit registration form", "expected": "No double-submit (useRef guard active)"},
+        {"action": "Conflict check via /api/members/check-conflict", "expected": "No conflict: user created with PENDING_APPROVAL status"}
+      ],
+      "postconditions": ["User record created (status=PENDING_APPROVAL, role=APPLICANT)", "user_property_units created (is_primary=true)", "user_auth_links created", "AlimTalk sent to admins"],
+      "test_data_requirements": {"name": "Test User", "phone": "01012345678", "address": "Seoul test address"},
+      "applicable_roles": ["GUEST"],
+      "applicable_personas": ["T4-User-Newbie", "T10-Guest-Newbie"]
+    },
+    {
+      "id": "TC-004",
+      "title": "RegisterModal double-submit prevention",
+      "priority": "P0",
+      "category": "auth",
+      "preconditions": ["RegisterModal is open", "Form is filled with valid data"],
+      "steps": [
+        {"action": "Click submit button rapidly multiple times", "expected": "Only one submission occurs (useRef guard blocks subsequent clicks)"},
+        {"action": "Verify network requests", "expected": "Only one API call made for registration"}
+      ],
+      "postconditions": ["Exactly one user record created"],
+      "test_data_requirements": {},
+      "applicable_roles": ["GUEST"],
+      "applicable_personas": ["T5-User-Impatient"]
+    },
+    {
+      "id": "TC-005",
+      "title": "Admin approves pending member",
+      "priority": "P0",
+      "category": "member",
+      "preconditions": ["User exists with status PENDING_APPROVAL", "Admin logged in to union admin page"],
+      "steps": [
+        {"action": "Navigate to /{slug}/admin/members", "expected": "Admin members page loads with role guard check"},
+        {"action": "Filter by status PENDING_APPROVAL", "expected": "Pending users listed"},
+        {"action": "Click Approve button for target user", "expected": "Approval initiated, double-click prevention active"},
+        {"action": "System checks for property conflicts", "expected": "No conflict detected"},
+        {"action": "Confirm approval", "expected": "User status updated to APPROVED, role to USER, approved_at set"}
+      ],
+      "postconditions": ["User status = APPROVED", "User role = USER", "approved_at timestamp set", "Cache invalidated"],
+      "test_data_requirements": {"pending_user_id": "test-user-001"},
+      "applicable_roles": ["ADMIN", "SYSTEM_ADMIN"],
+      "applicable_personas": ["T1-Admin-Methodical"]
+    },
+    {
+      "id": "TC-006",
+      "title": "Admin rejects pending member with reason",
+      "priority": "P0",
+      "category": "member",
+      "preconditions": ["User exists with status PENDING_APPROVAL", "Admin logged in"],
+      "steps": [
+        {"action": "Navigate to admin members page, filter PENDING_APPROVAL", "expected": "Pending users listed"},
+        {"action": "Click Reject button for target user", "expected": "Rejection dialog appears"},
+        {"action": "Enter rejection reason (required)", "expected": "Reason field accepts text"},
+        {"action": "Submit rejection", "expected": "User status updated to REJECTED, rejected_reason and rejected_at set"}
+      ],
+      "postconditions": ["User status = REJECTED", "rejected_reason = provided reason", "rejected_at timestamp set"],
+      "test_data_requirements": {"pending_user_id": "test-user-002", "reason": "Insufficient documentation"},
+      "applicable_roles": ["ADMIN", "SYSTEM_ADMIN"],
+      "applicable_personas": ["T1-Admin-Methodical"]
+    },
+    {
+      "id": "TC-007",
+      "title": "Admin rejection without reason is prevented",
+      "priority": "P0",
+      "category": "member",
+      "preconditions": ["User exists with status PENDING_APPROVAL"],
+      "steps": [
+        {"action": "Click Reject button for user", "expected": "Rejection dialog appears"},
+        {"action": "Leave reason field empty and submit", "expected": "Validation error: reason is required"},
+        {"action": "Enter whitespace-only reason and submit", "expected": "Validation error: reason cannot be empty"}
+      ],
+      "postconditions": ["User status unchanged (still PENDING_APPROVAL)"],
+      "test_data_requirements": {},
+      "applicable_roles": ["ADMIN"],
+      "applicable_personas": ["T1-Admin-Methodical", "T3-User-Chaos"]
+    },
+    {
+      "id": "TC-008",
+      "title": "Admin role guard on /[slug]/admin/* pages",
+      "priority": "P0",
+      "category": "security",
+      "preconditions": ["User logged in with role USER"],
+      "steps": [
+        {"action": "Navigate directly to /{slug}/admin/members", "expected": "Middleware checks user_auth_links -> users.role"},
+        {"action": "Verify access denied", "expected": "Redirect to union home or forbidden page"}
+      ],
+      "postconditions": ["USER role cannot access admin pages"],
+      "test_data_requirements": {"user_role": "USER"},
+      "applicable_roles": ["USER"],
+      "applicable_personas": ["T2-Admin-Malicious", "T8-User-PowerUser"]
+    },
+    {
+      "id": "TC-009",
+      "title": "CSRF protection on state-changing requests",
+      "priority": "P0",
+      "category": "security",
+      "preconditions": ["User authenticated", "Not running on localhost"],
+      "steps": [
+        {"action": "Send POST request without Origin header", "expected": "Request rejected by middleware CSRF check"},
+        {"action": "Send POST request with mismatched Origin header", "expected": "Request rejected (403)"},
+        {"action": "Send POST request with matching Origin=Host", "expected": "Request allowed through"}
+      ],
+      "postconditions": ["Only requests with valid Origin header succeed"],
+      "test_data_requirements": {},
+      "applicable_roles": ["USER", "ADMIN"],
+      "applicable_personas": ["T2-Admin-Malicious"]
+    },
+    {
+      "id": "TC-010",
+      "title": "Middleware redirectTo validation prevents open redirect",
+      "priority": "P0",
+      "category": "security",
+      "preconditions": ["User not authenticated"],
+      "steps": [
+        {"action": "Access protected page with redirectTo=https://evil.com", "expected": "redirectTo parameter sanitized or rejected"},
+        {"action": "Access protected page with redirectTo=/{slug}/dashboard", "expected": "Valid internal redirect allowed after login"}
+      ],
+      "postconditions": ["No external redirect possible via redirectTo parameter"],
+      "test_data_requirements": {},
+      "applicable_roles": ["GUEST"],
+      "applicable_personas": ["T2-Admin-Malicious"]
+    },
+    {
+      "id": "TC-011",
+      "title": "CSP header prevents inline script injection",
+      "priority": "P0",
+      "category": "security",
+      "preconditions": ["Application deployed with next.config.ts CSP header"],
+      "steps": [
+        {"action": "Load any page and check response headers", "expected": "Content-Security-Policy header present with script-src, style-src, img-src, connect-src directives"},
+        {"action": "Verify X-Frame-Options: DENY header", "expected": "Header present"},
+        {"action": "Verify X-Content-Type-Options: nosniff", "expected": "Header present"},
+        {"action": "Verify Strict-Transport-Security", "expected": "Header present"}
+      ],
+      "postconditions": ["All security headers correctly set"],
+      "test_data_requirements": {},
+      "applicable_roles": ["GUEST"],
+      "applicable_personas": ["T2-Admin-Malicious"]
+    },
+    {
+      "id": "TC-012",
+      "title": "XSS prevention via DOMPurify sanitization",
+      "priority": "P0",
+      "category": "security",
+      "preconditions": ["User can create content with rich editor"],
+      "steps": [
+        {"action": "Create a notice with <script>alert('xss')</script> in content", "expected": "Script tags stripped by DOMPurify sanitize()"},
+        {"action": "Create content with style attribute injection", "expected": "Style attribute stripped (FORBID_ATTR: ['style'])"},
+        {"action": "Create content with <img onerror='alert(1)'> tag", "expected": "Event handlers stripped"}
+      ],
+      "postconditions": ["All malicious HTML/JS removed from rendered content"],
+      "test_data_requirements": {},
+      "applicable_roles": ["USER", "ADMIN"],
+      "applicable_personas": ["T2-Admin-Malicious", "T3-User-Chaos"]
+    },
+    {
+      "id": "TC-013",
+      "title": "Blocked user denied API access",
+      "priority": "P0",
+      "category": "security",
+      "preconditions": ["User exists with is_blocked=true"],
+      "steps": [
+        {"action": "Blocked user attempts to call authenticated API endpoint", "expected": "authenticateApiRequest returns 403 with code USER_BLOCKED"},
+        {"action": "Blocked user attempts to access union pages via UI", "expected": "BlockedUserModal displayed"}
+      ],
+      "postconditions": ["Blocked user cannot access any protected resources"],
+      "test_data_requirements": {"blocked_user": true},
+      "applicable_roles": ["USER"],
+      "applicable_personas": ["T2-Admin-Malicious"]
+    },
+    {
+      "id": "TC-014",
+      "title": "Access token guest access flow",
+      "priority": "P0",
+      "category": "auth",
+      "preconditions": ["Access token created with valid key", "Token not expired, not deleted, usage < max_usage"],
+      "steps": [
+        {"action": "Navigate to /{slug}?tokenKey={validKey}", "expected": "Middleware validates token against access_tokens table"},
+        {"action": "Token validated: not deleted, not expired, usage < max", "expected": "guest_access cookie set (httpOnly, 24h)"},
+        {"action": "Navigate to other union pages", "expected": "Cookie re-validated, access granted"},
+        {"action": "Access pages without tokenKey param", "expected": "guest_access cookie provides continued access"}
+      ],
+      "postconditions": ["usage_count incremented", "access_token_logs entry created", "Guest can browse union pages"],
+      "test_data_requirements": {"token_key": "valid-test-token"},
+      "applicable_roles": ["GUEST"],
+      "applicable_personas": ["T10-Guest-Newbie"]
+    },
+    {
+      "id": "TC-015",
+      "title": "Expired access token denied",
+      "priority": "P0",
+      "category": "auth",
+      "preconditions": ["Access token exists but expires_at is in the past"],
+      "steps": [
+        {"action": "Navigate to /{slug}?tokenKey={expiredKey}", "expected": "Token validation fails (expired)"},
+        {"action": "Verify access denied", "expected": "Redirect to login or forbidden page"}
+      ],
+      "postconditions": ["No guest_access cookie set"],
+      "test_data_requirements": {"expired_token": true},
+      "applicable_roles": ["GUEST"],
+      "applicable_personas": ["T10-Guest-Newbie"]
+    },
+    {
+      "id": "TC-016",
+      "title": "Max usage access token denied",
+      "priority": "P0",
+      "category": "auth",
+      "preconditions": ["Access token exists with usage_count >= max_usage"],
+      "steps": [
+        {"action": "Navigate to /{slug}?tokenKey={maxedKey}", "expected": "Token validation fails (max usage reached)"},
+        {"action": "Verify access denied", "expected": "Redirect to login or forbidden page"}
+      ],
+      "postconditions": ["No guest_access cookie set"],
+      "test_data_requirements": {"maxed_token": true},
+      "applicable_roles": ["GUEST"],
+      "applicable_personas": ["T10-Guest-Newbie"]
+    },
+    {
+      "id": "TC-017",
+      "title": "API authenticateApiRequest blocks unauthenticated requests",
+      "priority": "P0",
+      "category": "security",
+      "preconditions": ["No valid session"],
+      "steps": [
+        {"action": "Call POST /api/members/approve without auth", "expected": "401 Unauthorized response"},
+        {"action": "Call POST /api/sms/send without auth", "expected": "401 Unauthorized response"},
+        {"action": "Call POST /api/admin/access-tokens without auth", "expected": "401 Unauthorized response"}
+      ],
+      "postconditions": ["All protected API endpoints reject unauthenticated requests"],
+      "test_data_requirements": {},
+      "applicable_roles": ["GUEST"],
+      "applicable_personas": ["T2-Admin-Malicious"]
+    },
+    {
+      "id": "TC-018",
+      "title": "OAuth callback handles invite_token for admin invite",
+      "priority": "P0",
+      "category": "auth",
+      "preconditions": ["Admin invite exists with valid invite_token", "User completes OAuth"],
+      "steps": [
+        {"action": "Navigate to /auth/callback?code={code}&slug={slug}&invite_token={token}", "expected": "Callback looks up admin_invites by token"},
+        {"action": "Invite found and valid", "expected": "register-prefill cookie set with invite data"},
+        {"action": "Redirect to union page with RegisterModal", "expected": "Form pre-filled with invite data (name, phone)"}
+      ],
+      "postconditions": ["Registration data pre-filled from invite"],
+      "test_data_requirements": {"invite_token": "valid-admin-invite"},
+      "applicable_roles": ["GUEST"],
+      "applicable_personas": ["T4-User-Newbie"]
+    },
+    {
+      "id": "TC-019",
+      "title": "OAuth callback handles member_invite_token",
+      "priority": "P0",
+      "category": "auth",
+      "preconditions": ["Member invite exists with valid invite_token and status PENDING"],
+      "steps": [
+        {"action": "Navigate to /auth/callback?code={code}&slug={slug}&member_invite_token={token}", "expected": "Callback looks up member_invites by token"},
+        {"action": "Invite found, status=PENDING, not expired", "expected": "register-prefill cookie set with member data"},
+        {"action": "User registers successfully", "expected": "Invite status updated to USED"}
+      ],
+      "postconditions": ["Member invite status = USED", "user_id linked to invite"],
+      "test_data_requirements": {"member_invite_token": "valid-member-invite"},
+      "applicable_roles": ["GUEST"],
+      "applicable_personas": ["T4-User-Newbie"]
+    },
+    {
+      "id": "TC-020",
+      "title": "Post-login redirect based on user_status",
+      "priority": "P0",
+      "category": "auth",
+      "preconditions": ["User exists with various statuses in union"],
+      "steps": [
+        {"action": "Login with APPROVED user", "expected": "Redirect to /{slug}/dashboard or union home"},
+        {"action": "Login with PENDING_APPROVAL user", "expected": "Redirect to /{slug}?status=pending"},
+        {"action": "Login with REJECTED user", "expected": "Redirect to /{slug}?status=rejected"},
+        {"action": "Login with new user (no record)", "expected": "Redirect to /{slug} with RegisterModal auto-open"}
+      ],
+      "postconditions": ["Each status leads to correct destination"],
+      "test_data_requirements": {"users_per_status": true},
+      "applicable_roles": ["USER", "ADMIN"],
+      "applicable_personas": ["T4-User-Newbie"]
+    },
+    {
+      "id": "TC-021",
+      "title": "Notice CRUD - Create with file attachment",
+      "priority": "P1",
+      "category": "content",
+      "preconditions": ["Admin logged in to union"],
+      "steps": [
+        {"action": "Navigate to /{slug}/news/notice/new", "expected": "Notice creation form with TipTap editor"},
+        {"action": "Enter title and rich text content", "expected": "Content accepted in editor"},
+        {"action": "Upload file attachment via FileUploader", "expected": "File uploaded to temp storage"},
+        {"action": "Submit notice", "expected": "Notice inserted, editor images uploaded and blob URLs replaced, files confirmed"}
+      ],
+      "postconditions": ["Notice created with views=0", "Files moved from temp to permanent storage", "File records in files table (attachable_type='notice')"],
+      "test_data_requirements": {"title": "Test Notice", "content": "<p>Test content</p>", "file": "test.pdf"},
+      "applicable_roles": ["ADMIN", "SYSTEM_ADMIN"],
+      "applicable_personas": ["T1-Admin-Methodical"]
+    },
+    {
+      "id": "TC-022",
+      "title": "Notice CRUD - Read list with search",
+      "priority": "P1",
+      "category": "content",
+      "preconditions": ["Multiple notices exist in union"],
+      "steps": [
+        {"action": "Navigate to /{slug}/news/notice", "expected": "Notice list displayed with title, author, date, views, comment count"},
+        {"action": "Enter search term in search box", "expected": "Notices filtered by title/content (ILIKE with escapeLikeWildcards)"},
+        {"action": "Search for author name", "expected": "Client-side author name filter applied"}
+      ],
+      "postconditions": ["Filtered results displayed correctly"],
+      "test_data_requirements": {"notices_count": 5, "search_term": "test"},
+      "applicable_roles": ["USER", "ADMIN"],
+      "applicable_personas": ["T6-User-Perfectionist", "T8-User-PowerUser"]
+    },
+    {
+      "id": "TC-023",
+      "title": "Notice CRUD - Read detail with view count dedup",
+      "priority": "P1",
+      "category": "content",
+      "preconditions": ["Notice exists in union"],
+      "steps": [
+        {"action": "Navigate to notice detail page", "expected": "Notice content displayed, view count incremented via RPC"},
+        {"action": "Check sessionStorage for key 'viewed_notice_{id}'", "expected": "Key set after first view"},
+        {"action": "Navigate away and return to same notice", "expected": "View count NOT incremented again (sessionStorage dedup)"},
+        {"action": "Open in new session (clear sessionStorage)", "expected": "View count incremented again"}
+      ],
+      "postconditions": ["View count incremented once per session per notice"],
+      "test_data_requirements": {"notice_id": 1},
+      "applicable_roles": ["USER", "ADMIN"],
+      "applicable_personas": ["T6-User-Perfectionist"]
+    },
+    {
+      "id": "TC-024",
+      "title": "Notice CRUD - Update existing notice",
+      "priority": "P1",
+      "category": "content",
+      "preconditions": ["Notice exists, admin logged in"],
+      "steps": [
+        {"action": "Navigate to /{slug}/news/notice/{id}/edit", "expected": "Edit form pre-filled with existing data"},
+        {"action": "Modify title and content", "expected": "Changes accepted in form"},
+        {"action": "Submit update", "expected": "Notice updated, editor images processed, redirect to detail"}
+      ],
+      "postconditions": ["Notice updated with new content", "updated_at timestamp refreshed"],
+      "test_data_requirements": {"notice_id": 1},
+      "applicable_roles": ["ADMIN"],
+      "applicable_personas": ["T1-Admin-Methodical"]
+    },
+    {
+      "id": "TC-025",
+      "title": "Notice CRUD - Delete with cascade",
+      "priority": "P1",
+      "category": "content",
+      "preconditions": ["Notice exists with file attachments"],
+      "steps": [
+        {"action": "Click delete on notice detail page", "expected": "Confirmation dialog shown"},
+        {"action": "Confirm deletion", "expected": "Cascade: storage files deleted -> DB file records deleted -> notice deleted"},
+        {"action": "Verify notice removed from list", "expected": "Notice no longer in list, cache invalidated"}
+      ],
+      "postconditions": ["Notice deleted", "Associated files deleted from storage and DB", "Router navigates to list"],
+      "test_data_requirements": {"notice_with_files": true},
+      "applicable_roles": ["ADMIN"],
+      "applicable_personas": ["T1-Admin-Methodical"]
+    },
+    {
+      "id": "TC-026",
+      "title": "Notice AlimTalk notification on create",
+      "priority": "P1",
+      "category": "content",
+      "preconditions": ["Admin creating notice", "APPROVED members exist in union"],
+      "steps": [
+        {"action": "Create notice with AlimTalk option enabled", "expected": "Notice created successfully"},
+        {"action": "AlimTalk sent via sendAlimTalk server action", "expected": "Template UE_2827 sent to all APPROVED USER-role members"},
+        {"action": "AlimTalk failure case", "expected": "AlimTalk error is non-blocking (logged but notice still created)"}
+      ],
+      "postconditions": ["Notice created regardless of AlimTalk success", "alimtalk_logs entry created"],
+      "test_data_requirements": {"template": "UE_2827"},
+      "applicable_roles": ["ADMIN"],
+      "applicable_personas": ["T1-Admin-Methodical"]
+    },
+    {
+      "id": "TC-027",
+      "title": "Notice popup display based on date range",
+      "priority": "P2",
+      "category": "content",
+      "preconditions": ["Notice exists with is_popup=true, start_date <= now <= end_date"],
+      "steps": [
+        {"action": "Navigate to union home page", "expected": "NoticePopup displayed for active popup notices"},
+        {"action": "Check notice with future start_date", "expected": "Not displayed as popup"},
+        {"action": "Check notice with past end_date", "expected": "Not displayed as popup"}
+      ],
+      "postconditions": ["Only date-range-valid popup notices shown"],
+      "test_data_requirements": {"popup_notice": true},
+      "applicable_roles": ["USER"],
+      "applicable_personas": ["T4-User-Newbie"]
+    },
+    {
+      "id": "TC-028",
+      "title": "Question CRUD - Create with secret flag",
+      "priority": "P1",
+      "category": "content",
+      "preconditions": ["User logged in to union"],
+      "steps": [
+        {"action": "Navigate to /{slug}/news/qna/new", "expected": "Question creation form displayed"},
+        {"action": "Enter title and content", "expected": "Form accepts input"},
+        {"action": "Toggle is_secret=true", "expected": "Secret flag set"},
+        {"action": "Submit question", "expected": "Question created, AlimTalk sent to admins (template UE_3236)"}
+      ],
+      "postconditions": ["Question created with is_secret=true", "AlimTalk notification sent to union admins"],
+      "test_data_requirements": {"title": "Secret Question", "is_secret": true},
+      "applicable_roles": ["USER", "ADMIN"],
+      "applicable_personas": ["T6-User-Perfectionist"]
+    },
+    {
+      "id": "TC-029",
+      "title": "Secret question visibility - non-admin sees only own",
+      "priority": "P1",
+      "category": "content",
+      "preconditions": ["Multiple secret questions exist from different authors"],
+      "steps": [
+        {"action": "Login as regular USER, navigate to QnA list", "expected": "Only own secret questions visible, others' secrets hidden"},
+        {"action": "Server-side filter: .or(is_secret.eq.false,author_id.eq.{userId})", "expected": "Other users' secret questions excluded from response"},
+        {"action": "Try to access another user's secret question by direct URL", "expected": "Access denied (canAccess check: isAdmin || author_id === user.id)"}
+      ],
+      "postconditions": ["Non-admin users cannot see others' secret questions"],
+      "test_data_requirements": {"secret_question_from_other_user": true},
+      "applicable_roles": ["USER"],
+      "applicable_personas": ["T6-User-Perfectionist", "T2-Admin-Malicious"]
+    },
+    {
+      "id": "TC-030",
+      "title": "Secret question visibility - admin sees all",
+      "priority": "P1",
+      "category": "content",
+      "preconditions": ["Multiple secret questions exist", "Admin logged in"],
+      "steps": [
+        {"action": "Navigate to QnA list as admin", "expected": "All questions visible including secret ones"},
+        {"action": "Access any secret question detail", "expected": "Full content visible to admin"}
+      ],
+      "postconditions": ["Admin can view all secret questions"],
+      "test_data_requirements": {},
+      "applicable_roles": ["ADMIN", "SYSTEM_ADMIN"],
+      "applicable_personas": ["T1-Admin-Methodical"]
+    },
+    {
+      "id": "TC-031",
+      "title": "Question answer and AlimTalk to author",
+      "priority": "P1",
+      "category": "content",
+      "preconditions": ["Unanswered question exists", "Admin logged in"],
+      "steps": [
+        {"action": "Navigate to question detail as admin", "expected": "Answer form visible"},
+        {"action": "Enter answer content in editor", "expected": "Content accepted"},
+        {"action": "Submit answer", "expected": "answer_content, answer_author_id, answered_at set"},
+        {"action": "AlimTalk sent to question author", "expected": "Template UE_3000 sent to author's phone"}
+      ],
+      "postconditions": ["Question state: unanswered -> answered", "AlimTalk sent to author"],
+      "test_data_requirements": {"unanswered_question_id": 1},
+      "applicable_roles": ["ADMIN"],
+      "applicable_personas": ["T1-Admin-Methodical"]
+    },
+    {
+      "id": "TC-032",
+      "title": "Question answer delete",
+      "priority": "P1",
+      "category": "content",
+      "preconditions": ["Answered question exists", "Admin logged in"],
+      "steps": [
+        {"action": "Navigate to answered question detail", "expected": "Answer displayed with delete option"},
+        {"action": "Click delete answer", "expected": "Confirmation shown"},
+        {"action": "Confirm", "expected": "answer_content, answer_author_id, answered_at set to null"}
+      ],
+      "postconditions": ["Question state: answered -> unanswered"],
+      "test_data_requirements": {"answered_question_id": 1},
+      "applicable_roles": ["ADMIN"],
+      "applicable_personas": ["T1-Admin-Methodical"]
+    },
+    {
+      "id": "TC-033",
+      "title": "Free board CRUD - Create post",
+      "priority": "P1",
+      "category": "content",
+      "preconditions": ["Approved user logged in to union"],
+      "steps": [
+        {"action": "Navigate to /{slug}/free-board/new or /{slug}/communication/free-board/new", "expected": "Post creation form with TipTap editor"},
+        {"action": "Enter title and content", "expected": "Content accepted"},
+        {"action": "Upload file attachment", "expected": "File uploaded to temp storage"},
+        {"action": "Submit post", "expected": "Post inserted, images processed, files confirmed, redirect to list"}
+      ],
+      "postconditions": ["Free board post created", "Files confirmed in storage"],
+      "test_data_requirements": {"title": "Free Board Post"},
+      "applicable_roles": ["USER", "ADMIN"],
+      "applicable_personas": ["T6-User-Perfectionist"]
+    },
+    {
+      "id": "TC-034",
+      "title": "Free board - Delete own post (ownership check)",
+      "priority": "P1",
+      "category": "content",
+      "preconditions": ["User has created a free board post"],
+      "steps": [
+        {"action": "Navigate to own post detail", "expected": "Delete button visible"},
+        {"action": "Click delete and confirm", "expected": "Cascade: storage files -> DB files -> comments -> post deleted (with .eq('author_id', user.id))"},
+        {"action": "Verify post removed from list", "expected": "Post no longer in list"}
+      ],
+      "postconditions": ["Post and related data deleted", "Only own posts can be deleted"],
+      "test_data_requirements": {"own_post": true},
+      "applicable_roles": ["USER"],
+      "applicable_personas": ["T6-User-Perfectionist"]
+    },
+    {
+      "id": "TC-035",
+      "title": "Free board - Cannot delete other user's post",
+      "priority": "P1",
+      "category": "security",
+      "preconditions": ["Another user's free board post exists"],
+      "steps": [
+        {"action": "Navigate to another user's post detail as regular USER", "expected": "Delete button NOT visible or disabled"},
+        {"action": "Attempt delete via direct API call with other user's post ID", "expected": "Delete query has .eq('author_id', user.id) -> no rows affected -> post not deleted"}
+      ],
+      "postconditions": ["Other user's post remains intact"],
+      "test_data_requirements": {"other_users_post": true},
+      "applicable_roles": ["USER"],
+      "applicable_personas": ["T2-Admin-Malicious", "T3-User-Chaos"]
+    },
+    {
+      "id": "TC-036",
+      "title": "Free board - Admin can delete any post",
+      "priority": "P1",
+      "category": "content",
+      "preconditions": ["Free board post exists from regular user", "Admin logged in"],
+      "steps": [
+        {"action": "Navigate to any user's post detail as admin", "expected": "Delete button visible"},
+        {"action": "Click delete and confirm", "expected": "Post deleted (admin bypasses author_id check)"}
+      ],
+      "postconditions": ["Post deleted by admin regardless of author"],
+      "test_data_requirements": {},
+      "applicable_roles": ["ADMIN", "SYSTEM_ADMIN"],
+      "applicable_personas": ["T1-Admin-Methodical"]
+    },
+    {
+      "id": "TC-037",
+      "title": "Free board search with LIKE wildcard escape",
+      "priority": "P1",
+      "category": "content",
+      "preconditions": ["Free board posts exist"],
+      "steps": [
+        {"action": "Search for normal text term", "expected": "Results filtered by title/content ILIKE match"},
+        {"action": "Search for '%' character", "expected": "Escaped via escapeLikeWildcards, does not match all posts"},
+        {"action": "Search for '_' character", "expected": "Escaped, does not match single-char wildcard"}
+      ],
+      "postconditions": ["Special characters properly escaped in search"],
+      "test_data_requirements": {"search_terms": ["%", "_", "test%"]},
+      "applicable_roles": ["USER"],
+      "applicable_personas": ["T3-User-Chaos", "T8-User-PowerUser"]
+    },
+    {
+      "id": "TC-038",
+      "title": "Union info CRUD - Create",
+      "priority": "P1",
+      "category": "content",
+      "preconditions": ["Admin logged in"],
+      "steps": [
+        {"action": "Navigate to /{slug}/communication/union-info/new", "expected": "Creation form displayed"},
+        {"action": "Enter title, content, upload files", "expected": "Form accepts input"},
+        {"action": "Submit", "expected": "Post created, files confirmed, has_attachments flag set"}
+      ],
+      "postconditions": ["Union info post created", "has_attachments correctly reflects file presence"],
+      "test_data_requirements": {},
+      "applicable_roles": ["ADMIN"],
+      "applicable_personas": ["T1-Admin-Methodical"]
+    },
+    {
+      "id": "TC-039",
+      "title": "Union info - Delete individual file attachment",
+      "priority": "P2",
+      "category": "content",
+      "preconditions": ["Union info post exists with file attachments"],
+      "steps": [
+        {"action": "Navigate to union info edit page", "expected": "Existing files listed"},
+        {"action": "Delete one file attachment", "expected": "File removed from storage and DB"},
+        {"action": "Check remaining file count", "expected": "has_attachments flag updated correctly (false if no files remain)"}
+      ],
+      "postconditions": ["File deleted", "has_attachments flag accurate"],
+      "test_data_requirements": {"post_with_files": true},
+      "applicable_roles": ["ADMIN"],
+      "applicable_personas": ["T1-Admin-Methodical"]
+    },
+    {
+      "id": "TC-040",
+      "title": "Comment CRUD - Create comment on notice",
+      "priority": "P1",
+      "category": "content",
+      "preconditions": ["Notice exists", "User logged in"],
+      "steps": [
+        {"action": "Navigate to notice detail page", "expected": "Comment section visible"},
+        {"action": "Type comment content", "expected": "Content accepted"},
+        {"action": "Submit comment", "expected": "Comment created with entity_type='notice', entity_id=notice.id"}
+      ],
+      "postconditions": ["Comment created", "Comment count updated in list"],
+      "test_data_requirements": {"notice_id": 1},
+      "applicable_roles": ["USER", "ADMIN"],
+      "applicable_personas": ["T6-User-Perfectionist"]
+    },
+    {
+      "id": "TC-041",
+      "title": "Comment - Reply with max 1 level nesting",
+      "priority": "P1",
+      "category": "content",
+      "preconditions": ["Comment exists on a post"],
+      "steps": [
+        {"action": "Click reply on an existing comment", "expected": "Reply form appears"},
+        {"action": "Submit reply", "expected": "Reply created with parent_id set to original comment ID"},
+        {"action": "Try to reply to the reply", "expected": "Blocked: parent_id.parent_id is not null, max 1 level enforced"}
+      ],
+      "postconditions": ["Reply created at level 1", "Level 2+ nesting prevented"],
+      "test_data_requirements": {"comment_with_reply": true},
+      "applicable_roles": ["USER"],
+      "applicable_personas": ["T8-User-PowerUser", "T3-User-Chaos"]
+    },
+    {
+      "id": "TC-042",
+      "title": "Comment - Delete own comment (ownership check)",
+      "priority": "P1",
+      "category": "content",
+      "preconditions": ["User has created a comment"],
+      "steps": [
+        {"action": "Navigate to post with own comment", "expected": "Delete button visible on own comment"},
+        {"action": "Click delete", "expected": "Comment deleted with .eq('author_id', userId) for non-admin"},
+        {"action": "Verify comment removed", "expected": "Comment no longer displayed, count updated"}
+      ],
+      "postconditions": ["Own comment deleted"],
+      "test_data_requirements": {},
+      "applicable_roles": ["USER"],
+      "applicable_personas": ["T6-User-Perfectionist"]
+    },
+    {
+      "id": "TC-043",
+      "title": "Comment - Cannot delete other's comment as regular user",
+      "priority": "P1",
+      "category": "security",
+      "preconditions": ["Another user's comment exists"],
+      "steps": [
+        {"action": "View post with another user's comment", "expected": "No delete button on other's comment"},
+        {"action": "Attempt delete via API", "expected": "Delete query with .eq('author_id', userId) -> no rows affected"}
+      ],
+      "postconditions": ["Other user's comment remains"],
+      "test_data_requirements": {},
+      "applicable_roles": ["USER"],
+      "applicable_personas": ["T2-Admin-Malicious"]
+    },
+    {
+      "id": "TC-044",
+      "title": "Member management - Block member with reason",
+      "priority": "P1",
+      "category": "admin",
+      "preconditions": ["Approved member exists", "Admin logged in"],
+      "steps": [
+        {"action": "Navigate to admin members, select approved member", "expected": "Member details visible"},
+        {"action": "Click Block button", "expected": "BlockMemberModal opens"},
+        {"action": "Enter block reason", "expected": "Reason accepted"},
+        {"action": "Confirm block", "expected": "is_blocked=true, blocked_at timestamp set, blocked_reason saved"}
+      ],
+      "postconditions": ["Member blocked", "Shows as blocked in member list"],
+      "test_data_requirements": {"approved_member_id": "test-member"},
+      "applicable_roles": ["ADMIN"],
+      "applicable_personas": ["T1-Admin-Methodical"]
+    },
+    {
+      "id": "TC-045",
+      "title": "Member management - Unblock member",
+      "priority": "P1",
+      "category": "admin",
+      "preconditions": ["Blocked member exists", "Admin logged in"],
+      "steps": [
+        {"action": "Navigate to admin members, filter blocked", "expected": "Blocked members listed"},
+        {"action": "Click Unblock for target member", "expected": "Confirmation shown"},
+        {"action": "Confirm unblock", "expected": "is_blocked=false, blocked_at=null, blocked_reason=null"}
+      ],
+      "postconditions": ["Member unblocked", "Full access restored"],
+      "test_data_requirements": {"blocked_member_id": "test-blocked"},
+      "applicable_roles": ["ADMIN"],
+      "applicable_personas": ["T1-Admin-Methodical"]
+    },
+    {
+      "id": "TC-046",
+      "title": "Member management - Cancel rejection",
+      "priority": "P1",
+      "category": "admin",
+      "preconditions": ["Rejected member exists (status=REJECTED)"],
+      "steps": [
+        {"action": "Navigate to admin members, filter REJECTED", "expected": "Rejected users listed"},
+        {"action": "Click Cancel Rejection", "expected": "Confirmation shown"},
+        {"action": "Confirm", "expected": "Status reverted to PENDING_APPROVAL, rejected fields cleared"}
+      ],
+      "postconditions": ["User status = PENDING_APPROVAL", "rejected_reason, rejected_at cleared"],
+      "test_data_requirements": {"rejected_user": true},
+      "applicable_roles": ["ADMIN"],
+      "applicable_personas": ["T1-Admin-Methodical"]
+    },
+    {
+      "id": "TC-047",
+      "title": "Member management - Update member role",
+      "priority": "P1",
+      "category": "admin",
+      "preconditions": ["Approved member exists", "Admin logged in"],
+      "steps": [
+        {"action": "Navigate to admin users list", "expected": "Users listed with role column"},
+        {"action": "Change user role from USER to ADMIN", "expected": "Role update mutation called"},
+        {"action": "Verify role changed", "expected": "User now has ADMIN role"}
+      ],
+      "postconditions": ["User role updated", "New permissions take effect"],
+      "test_data_requirements": {"user_to_promote": "test-user"},
+      "applicable_roles": ["ADMIN", "SYSTEM_ADMIN"],
+      "applicable_personas": ["T1-Admin-Methodical"]
+    },
+    {
+      "id": "TC-048",
+      "title": "Member management - Update executive status and title",
+      "priority": "P2",
+      "category": "admin",
+      "preconditions": ["Approved member exists"],
+      "steps": [
+        {"action": "Set is_executive=true for member", "expected": "Executive status updated"},
+        {"action": "Set executive_title (e.g., 'Chairman')", "expected": "Title saved"},
+        {"action": "Set executive_sort_order", "expected": "Sort order saved"}
+      ],
+      "postconditions": ["Member marked as executive with title and sort order"],
+      "test_data_requirements": {},
+      "applicable_roles": ["ADMIN"],
+      "applicable_personas": ["T1-Admin-Methodical"]
+    },
+    {
+      "id": "TC-049",
+      "title": "Property conflict detection during approval",
+      "priority": "P1",
+      "category": "member",
+      "preconditions": ["Pending user has same building_unit_id or PNU as existing approved user"],
+      "steps": [
+        {"action": "Click Approve for pending user", "expected": "Conflict check API called (/api/members/check-conflict)"},
+        {"action": "Conflict detected", "expected": "Conflict comparison data presented to admin"},
+        {"action": "Admin reviews conflict details", "expected": "Four resolution options shown: update, transfer, co_owner, proxy"}
+      ],
+      "postconditions": ["Conflict detected and displayed", "Admin must choose resolution before proceeding"],
+      "test_data_requirements": {"conflicting_pnu": "1234567890123456789"},
+      "applicable_roles": ["ADMIN"],
+      "applicable_personas": ["T1-Admin-Methodical"]
+    },
+    {
+      "id": "TC-050",
+      "title": "Property conflict - Same person resolution",
+      "priority": "P1",
+      "category": "member",
+      "preconditions": ["Property conflict detected between pending and existing user"],
+      "steps": [
+        {"action": "Select 'Same person (update)' resolution", "expected": "Existing user info updated from pending user data"},
+        {"action": "Verify property units transferred", "expected": "user_property_units transferred to existing user"},
+        {"action": "Verify auth links transferred", "expected": "user_auth_links transferred"},
+        {"action": "Verify pending user rejected", "expected": "Pending user status set to REJECTED"}
+      ],
+      "postconditions": ["Existing user updated", "Pending user REJECTED", "Ownership history recorded"],
+      "test_data_requirements": {},
+      "applicable_roles": ["ADMIN"],
+      "applicable_personas": ["T1-Admin-Methodical"]
+    },
+    {
+      "id": "TC-051",
+      "title": "Property conflict - Ownership transfer",
+      "priority": "P1",
+      "category": "member",
+      "preconditions": ["Property conflict exists"],
+      "steps": [
+        {"action": "Select 'Transfer' resolution", "expected": "Previous owner status set to TRANSFERRED"},
+        {"action": "Verify new owner gets 100% ratio", "expected": "New owner APPROVED with full ownership"},
+        {"action": "Verify ownership history recorded", "expected": "property_ownership_history entry created with change_type=TRANSFER"}
+      ],
+      "postconditions": ["Previous owner TRANSFERRED", "New owner APPROVED at 100%"],
+      "test_data_requirements": {},
+      "applicable_roles": ["ADMIN"],
+      "applicable_personas": ["T1-Admin-Methodical"]
+    },
+    {
+      "id": "TC-052",
+      "title": "Property conflict - Co-owner with ratio validation",
+      "priority": "P1",
+      "category": "member",
+      "preconditions": ["Property conflict exists"],
+      "steps": [
+        {"action": "Select 'Add co-owner' resolution", "expected": "Ratio input fields shown"},
+        {"action": "Set ratios that sum to 100%", "expected": "Both users APPROVED as CO_OWNER"},
+        {"action": "Set ratios that DO NOT sum to 100%", "expected": "Validation error: ratios must sum to 100%"}
+      ],
+      "postconditions": ["Both users CO_OWNER", "Ratios sum to 100%", "Ownership history recorded"],
+      "test_data_requirements": {},
+      "applicable_roles": ["ADMIN"],
+      "applicable_personas": ["T1-Admin-Methodical"]
+    },
+    {
+      "id": "TC-053",
+      "title": "Property - Primary unit cannot be deleted",
+      "priority": "P1",
+      "category": "member",
+      "preconditions": ["User has primary property unit"],
+      "steps": [
+        {"action": "Attempt to delete primary property unit", "expected": "Pre-check fails: is_primary=true blocks deletion"},
+        {"action": "Verify error message", "expected": "Error: Cannot delete primary property unit"}
+      ],
+      "postconditions": ["Primary property unit remains"],
+      "test_data_requirements": {"user_with_primary_unit": true},
+      "applicable_roles": ["ADMIN"],
+      "applicable_personas": ["T1-Admin-Methodical", "T3-User-Chaos"]
+    },
+    {
+      "id": "TC-054",
+      "title": "Property - Set primary unit via atomic RPC",
+      "priority": "P2",
+      "category": "member",
+      "preconditions": ["User has multiple property units"],
+      "steps": [
+        {"action": "Select non-primary unit and set as primary", "expected": "supabase.rpc('set_primary_property_unit') called"},
+        {"action": "Verify old primary is no longer primary", "expected": "Previous primary unit is_primary=false"},
+        {"action": "Verify new primary is set", "expected": "Selected unit is_primary=true"}
+      ],
+      "postconditions": ["Exactly one primary unit per user", "Atomic operation prevents race"],
+      "test_data_requirements": {"user_with_multiple_units": true},
+      "applicable_roles": ["ADMIN"],
+      "applicable_personas": ["T1-Admin-Methodical"]
+    },
+    {
+      "id": "TC-055",
+      "title": "Property - PNU validation (19 digits)",
+      "priority": "P2",
+      "category": "member",
+      "preconditions": ["Admin editing member PNU"],
+      "steps": [
+        {"action": "Enter PNU with less than 19 digits", "expected": "Validation error"},
+        {"action": "Enter PNU with non-digit characters", "expected": "Validation error"},
+        {"action": "Enter valid 19-digit PNU", "expected": "PNU accepted and saved"}
+      ],
+      "postconditions": ["Only valid 19-digit PNUs saved"],
+      "test_data_requirements": {"valid_pnu": "1234567890123456789", "invalid_pnu": "123"},
+      "applicable_roles": ["ADMIN"],
+      "applicable_personas": ["T1-Admin-Methodical", "T3-User-Chaos"]
+    },
+    {
+      "id": "TC-056",
+      "title": "Member invite - Create and send AlimTalk",
+      "priority": "P1",
+      "category": "member",
+      "preconditions": ["Admin logged in"],
+      "steps": [
+        {"action": "Create member invite with name, phone, property_address", "expected": "Invite created with status=PENDING, token generated, expires_at set"},
+        {"action": "Send AlimTalk to invitee", "expected": "Invite link sent via AlimTalk"},
+        {"action": "Verify invite visible in list", "expected": "Invite shown with PENDING status"}
+      ],
+      "postconditions": ["Invite created in member_invites table"],
+      "test_data_requirements": {"invite_name": "Test Invitee", "phone": "01012345678"},
+      "applicable_roles": ["ADMIN"],
+      "applicable_personas": ["T1-Admin-Methodical"]
+    },
+    {
+      "id": "TC-057",
+      "title": "Member invite - Expired invite rejected",
+      "priority": "P1",
+      "category": "member",
+      "preconditions": ["Invite exists with expires_at in the past"],
+      "steps": [
+        {"action": "Access invite via /{slug}/member-invite/{token}", "expected": "Invite checked: now > expires_at"},
+        {"action": "Status auto-updated to EXPIRED", "expected": "Invite status changed to EXPIRED"},
+        {"action": "Registration blocked", "expected": "User cannot register with expired invite"}
+      ],
+      "postconditions": ["Invite status = EXPIRED", "No registration allowed"],
+      "test_data_requirements": {"expired_invite": true},
+      "applicable_roles": ["GUEST"],
+      "applicable_personas": ["T4-User-Newbie"]
+    },
+    {
+      "id": "TC-058",
+      "title": "Member invite - Bulk sync via Excel",
+      "priority": "P1",
+      "category": "admin",
+      "preconditions": ["Admin has Excel file with member data"],
+      "steps": [
+        {"action": "Upload Excel via /api/member-invite/sync", "expected": "API validates auth (requireAdmin + requireUnionId)"},
+        {"action": "Sync processes: insert new, delete removed", "expected": "New invites created, removed invites deleted"},
+        {"action": "Audit log created with batch_id", "expected": "member_access_logs entry with batch tracking"}
+      ],
+      "postconditions": ["Invites synced", "Audit trail created"],
+      "test_data_requirements": {"excel_data": "member list"},
+      "applicable_roles": ["ADMIN"],
+      "applicable_personas": ["T1-Admin-Methodical"]
+    },
+    {
+      "id": "TC-059",
+      "title": "Pre-registration via Excel upload with GIS matching",
+      "priority": "P1",
+      "category": "admin",
+      "preconditions": ["Admin has Excel with member addresses", "Land lots data loaded"],
+      "steps": [
+        {"action": "Upload Excel via pre-register flow", "expected": "Addresses normalized, jibun matching attempted"},
+        {"action": "matchAddressToPnu runs for each row", "expected": "PNU matched where possible, null for unmatched"},
+        {"action": "Duplicate PNU+dong+ho check", "expected": "Duplicates flagged"},
+        {"action": "Users created with PRE_REGISTERED status", "expected": "user_property_units created with matched PNU"}
+      ],
+      "postconditions": ["PRE_REGISTERED users created", "Property units linked"],
+      "test_data_requirements": {"excel_with_addresses": true},
+      "applicable_roles": ["ADMIN"],
+      "applicable_personas": ["T1-Admin-Methodical"]
+    },
+    {
+      "id": "TC-060",
+      "title": "Pre-registered member deletion guard",
+      "priority": "P2",
+      "category": "member",
+      "preconditions": ["PRE_REGISTERED user exists"],
+      "steps": [
+        {"action": "Attempt to delete PRE_REGISTERED user", "expected": "Status check passes, user deleted"},
+        {"action": "Attempt to delete non-PRE_REGISTERED user via same function", "expected": "Status check fails, deletion blocked"}
+      ],
+      "postconditions": ["Only PRE_REGISTERED users can be deleted via this function"],
+      "test_data_requirements": {"pre_registered_user": true},
+      "applicable_roles": ["ADMIN"],
+      "applicable_personas": ["T1-Admin-Methodical"]
+    },
+    {
+      "id": "TC-061",
+      "title": "Access token CRUD - Create token (SYSTEM_ADMIN only)",
+      "priority": "P1",
+      "category": "admin",
+      "preconditions": ["SYSTEM_ADMIN logged in"],
+      "steps": [
+        {"action": "POST /api/admin/access-tokens with name, optional union_id, expires_in_days, max_usage", "expected": "Token created with nanoid(32) key"},
+        {"action": "Verify response includes id, key, name, expires_at", "expected": "Token data returned"},
+        {"action": "Verify token in access_tokens table", "expected": "Record created with all fields"}
+      ],
+      "postconditions": ["Access token created"],
+      "test_data_requirements": {"name": "Test Token"},
+      "applicable_roles": ["SYSTEM_ADMIN"],
+      "applicable_personas": ["T1-Admin-Methodical"]
+    },
+    {
+      "id": "TC-062",
+      "title": "Access token - List tokens",
+      "priority": "P2",
+      "category": "admin",
+      "preconditions": ["SYSTEM_ADMIN logged in", "Tokens exist"],
+      "steps": [
+        {"action": "GET /api/admin/access-tokens", "expected": "Token list returned (soft-delete filtered: deleted_at IS NULL)"},
+        {"action": "Verify deleted tokens excluded", "expected": "Tokens with deleted_at set are not in response"}
+      ],
+      "postconditions": ["Only active tokens returned"],
+      "test_data_requirements": {},
+      "applicable_roles": ["SYSTEM_ADMIN"],
+      "applicable_personas": ["T1-Admin-Methodical"]
+    },
+    {
+      "id": "TC-063",
+      "title": "Access token - Soft delete",
+      "priority": "P2",
+      "category": "admin",
+      "preconditions": ["SYSTEM_ADMIN logged in", "Active token exists"],
+      "steps": [
+        {"action": "DELETE /api/admin/access-tokens/{id}", "expected": "Token soft-deleted (deleted_at set)"},
+        {"action": "Verify token no longer in list", "expected": "Excluded from GET response"},
+        {"action": "Verify token no longer valid for guest access", "expected": "Middleware rejects deleted token"}
+      ],
+      "postconditions": ["Token soft-deleted", "No longer usable for access"],
+      "test_data_requirements": {"token_id": "existing-token"},
+      "applicable_roles": ["SYSTEM_ADMIN"],
+      "applicable_personas": ["T1-Admin-Methodical"]
+    },
+    {
+      "id": "TC-064",
+      "title": "Access token - ADMIN role cannot manage tokens",
+      "priority": "P1",
+      "category": "security",
+      "preconditions": ["ADMIN (not SYSTEM_ADMIN) logged in"],
+      "steps": [
+        {"action": "Call GET /api/admin/access-tokens as ADMIN", "expected": "Rejected: SYSTEM_ADMIN role required"},
+        {"action": "Call POST /api/admin/access-tokens as ADMIN", "expected": "Rejected: SYSTEM_ADMIN role required"}
+      ],
+      "postconditions": ["Only SYSTEM_ADMIN can manage access tokens"],
+      "test_data_requirements": {},
+      "applicable_roles": ["ADMIN"],
+      "applicable_personas": ["T2-Admin-Malicious"]
+    },
+    {
+      "id": "TC-065",
+      "title": "Union CRUD - Create union",
+      "priority": "P1",
+      "category": "admin",
+      "preconditions": ["SYSTEM_ADMIN logged in"],
+      "steps": [
+        {"action": "Navigate to /systemAdmin/unions/new or /admin/unions/new", "expected": "Union creation form"},
+        {"action": "Fill in name, slug (unique), business_type, address", "expected": "Form accepts input"},
+        {"action": "Submit", "expected": "Union created with is_active=true"}
+      ],
+      "postconditions": ["Union record created", "Unique slug enforced"],
+      "test_data_requirements": {"name": "Test Union", "slug": "test-union"},
+      "applicable_roles": ["SYSTEM_ADMIN"],
+      "applicable_personas": ["T1-Admin-Methodical"]
+    },
+    {
+      "id": "TC-066",
+      "title": "Union - Inactive union blocks access",
+      "priority": "P1",
+      "category": "admin",
+      "preconditions": ["Union exists with is_active=false"],
+      "steps": [
+        {"action": "Navigate to /{slug}", "expected": "Inactive union display shown instead of normal landing"},
+        {"action": "Navigate to /{slug}/dashboard", "expected": "Access blocked for inactive union"}
+      ],
+      "postconditions": ["Inactive union pages show blocked state"],
+      "test_data_requirements": {"inactive_union": true},
+      "applicable_roles": ["USER"],
+      "applicable_personas": ["T4-User-Newbie"]
+    },
+    {
+      "id": "TC-067",
+      "title": "Union delete cascade",
+      "priority": "P2",
+      "category": "admin",
+      "preconditions": ["Union exists with hero_slides, comments, files, notices, storage"],
+      "steps": [
+        {"action": "Trigger union deletion", "expected": "Sequential cascade: hero_slides -> comments -> files -> notices -> storage -> union"},
+        {"action": "Verify all related data removed", "expected": "No orphaned records in child tables"}
+      ],
+      "postconditions": ["Union and all related data deleted"],
+      "test_data_requirements": {"union_with_data": true},
+      "applicable_roles": ["SYSTEM_ADMIN"],
+      "applicable_personas": ["T1-Admin-Methodical"]
+    },
+    {
+      "id": "TC-068",
+      "title": "Dashboard access for approved user",
+      "priority": "P1",
+      "category": "navigation",
+      "preconditions": ["Approved user logged in"],
+      "steps": [
+        {"action": "Navigate to /{slug}/dashboard", "expected": "Dashboard page loads with union content"},
+        {"action": "Verify recent notices section", "expected": "useRecentNotices loads latest 5 notices"},
+        {"action": "Verify home sections rendered", "expected": "HomeBoardSection, HomeCommunitySection visible"}
+      ],
+      "postconditions": ["Dashboard fully rendered"],
+      "test_data_requirements": {},
+      "applicable_roles": ["USER", "ADMIN"],
+      "applicable_personas": ["T4-User-Newbie"]
+    },
+    {
+      "id": "TC-069",
+      "title": "My property page displays correct data",
+      "priority": "P2",
+      "category": "content",
+      "preconditions": ["Approved user with property units"],
+      "steps": [
+        {"action": "Navigate to /{slug}/my-property", "expected": "Property information displayed"},
+        {"action": "Verify property details: PNU, dong, ho, area, ownership ratio", "expected": "Data matches user_property_units + building_units"},
+        {"action": "Verify total land price calculation", "expected": "land_area * official_price * (ownership_ratio/100)"}
+      ],
+      "postconditions": ["Property data correctly calculated and displayed"],
+      "test_data_requirements": {"user_with_property": true},
+      "applicable_roles": ["USER"],
+      "applicable_personas": ["T6-User-Perfectionist"]
+    },
+    {
+      "id": "TC-070",
+      "title": "SMS send via admin API",
+      "priority": "P1",
+      "category": "admin",
+      "preconditions": ["Admin logged in", "SMS proxy configured"],
+      "steps": [
+        {"action": "POST /api/sms/send with unionId, recipients, message, msgType", "expected": "Auth validated (requireAdmin + requireUnionId)"},
+        {"action": "JWT generated (5min expiry) for proxy auth", "expected": "Proxy receives JWT-authenticated request"},
+        {"action": "SMS sent via proxy", "expected": "Response with success_cnt, error_cnt"}
+      ],
+      "postconditions": ["SMS sent to recipients", "Response logged"],
+      "test_data_requirements": {"recipients": [{"name": "Test", "phone": "01012345678"}]},
+      "applicable_roles": ["ADMIN"],
+      "applicable_personas": ["T1-Admin-Methodical"]
+    },
+    {
+      "id": "TC-071",
+      "title": "Image resize endpoint (public, no auth)",
+      "priority": "P2",
+      "category": "content",
+      "preconditions": ["Application running"],
+      "steps": [
+        {"action": "POST /api/image/resize with file and imageType", "expected": "Image resized via Sharp library"},
+        {"action": "Verify response includes dataUrl, originalSize, resizedSize", "expected": "Resized image returned as base64"}
+      ],
+      "postconditions": ["Image resized successfully"],
+      "test_data_requirements": {"image_file": "test.jpg"},
+      "applicable_roles": ["GUEST", "USER"],
+      "applicable_personas": ["T6-User-Perfectionist"]
+    },
+    {
+      "id": "TC-072",
+      "title": "File upload - Temp upload and confirm flow",
+      "priority": "P1",
+      "category": "content",
+      "preconditions": ["User creating/editing content"],
+      "steps": [
+        {"action": "Upload file via FileUploader", "expected": "File uploaded to temp/{tempId}/{safeFileName} in storage"},
+        {"action": "Submit post form", "expected": "confirmFiles() moves file to unions/{slug}/{type}/{id}/"},
+        {"action": "Verify file record in files table", "expected": "Record with attachable_type, attachable_id, path"}
+      ],
+      "postconditions": ["File moved from temp to permanent", "DB record created"],
+      "test_data_requirements": {"file": "test.pdf"},
+      "applicable_roles": ["USER", "ADMIN"],
+      "applicable_personas": ["T6-User-Perfectionist"]
+    },
+    {
+      "id": "TC-073",
+      "title": "Editor image blob URL replacement",
+      "priority": "P2",
+      "category": "content",
+      "preconditions": ["User inserting images in TipTap editor"],
+      "steps": [
+        {"action": "Insert image in editor (creates blob URL)", "expected": "Image displayed in editor with blob:// URL"},
+        {"action": "Submit post", "expected": "processEditorImages() uploads image to storage"},
+        {"action": "Content updated", "expected": "blob:// URLs replaced with public URLs in content HTML"}
+      ],
+      "postconditions": ["No blob URLs in saved content", "Images accessible via public URLs"],
+      "test_data_requirements": {"editor_image": "inline.jpg"},
+      "applicable_roles": ["USER", "ADMIN"],
+      "applicable_personas": ["T6-User-Perfectionist"]
+    },
+    {
+      "id": "TC-074",
+      "title": "File download via signed URL",
+      "priority": "P2",
+      "category": "content",
+      "preconditions": ["File attachment exists on a post"],
+      "steps": [
+        {"action": "Click download link on post detail", "expected": "fileApi.getDownloadUrl() creates signed URL (1hr expiry)"},
+        {"action": "Download file", "expected": "File downloaded with original filename"}
+      ],
+      "postconditions": ["File downloaded successfully"],
+      "test_data_requirements": {"file_attachment": true},
+      "applicable_roles": ["USER"],
+      "applicable_personas": ["T4-User-Newbie"]
+    },
+    {
+      "id": "TC-075",
+      "title": "Approved members list with search and filter",
+      "priority": "P1",
+      "category": "admin",
+      "preconditions": ["Multiple members exist with various statuses"],
+      "steps": [
+        {"action": "Navigate to admin members page", "expected": "Approved + PRE_REGISTERED members listed"},
+        {"action": "Search by name", "expected": "Filtered by name.ilike (with escapeLikeWildcards)"},
+        {"action": "Filter by blocked status", "expected": "Blocked/non-blocked filter applied"},
+        {"action": "Search by property address", "expected": "property_address.ilike filter applied"}
+      ],
+      "postconditions": ["Correct members displayed based on filters"],
+      "test_data_requirements": {"members_count": 10},
+      "applicable_roles": ["ADMIN"],
+      "applicable_personas": ["T1-Admin-Methodical"]
+    },
+    {
+      "id": "TC-076",
+      "title": "Approved members infinite scroll (RPC pagination)",
+      "priority": "P2",
+      "category": "admin",
+      "preconditions": ["Many approved members exist (>20)"],
+      "steps": [
+        {"action": "Load admin members with infinite scroll", "expected": "First page loaded via get_grouped_members RPC"},
+        {"action": "Scroll down to trigger next page", "expected": "Next page loaded via useInfiniteQuery"},
+        {"action": "Verify co-owner grouping", "expected": "Members with same building_unit_id grouped together"}
+      ],
+      "postconditions": ["Paginated results loaded", "Co-owner grouping correct"],
+      "test_data_requirements": {"many_members": true},
+      "applicable_roles": ["ADMIN"],
+      "applicable_personas": ["T1-Admin-Methodical"]
+    },
+    {
+      "id": "TC-077",
+      "title": "Multi-union membership - Same social account",
+      "priority": "P1",
+      "category": "auth",
+      "preconditions": ["User has Kakao account", "Two unions exist"],
+      "steps": [
+        {"action": "Register in Union A via Kakao OAuth", "expected": "User created in Union A, user_auth_links entry created"},
+        {"action": "Navigate to Union B and login with same Kakao", "expected": "Auth callback checks user_auth_links for Union B"},
+        {"action": "No existing membership in Union B", "expected": "RegisterModal shown for Union B registration"},
+        {"action": "Complete registration in Union B", "expected": "Second users row created with union_id=B, second user_auth_links entry"}
+      ],
+      "postconditions": ["One Kakao auth -> two app users (one per union)", "Each with independent user_auth_links"],
+      "test_data_requirements": {"two_unions": true},
+      "applicable_roles": ["USER"],
+      "applicable_personas": ["T8-User-PowerUser"]
+    },
+    {
+      "id": "TC-078",
+      "title": "Consent management - Bulk update",
+      "priority": "P2",
+      "category": "admin",
+      "preconditions": ["Consent stages defined", "Members exist", "Admin logged in"],
+      "steps": [
+        {"action": "POST /api/consent/bulk-update with unionId, stageId, memberIds, status", "expected": "Auth validated (requireAdmin + requireUnionId)"},
+        {"action": "For <50 members: sync update", "expected": "user_consents updated directly"},
+        {"action": "For >=50 members: async queue", "expected": "Job created in sync_jobs, proxy handles queue"}
+      ],
+      "postconditions": ["Consent status updated for all specified members"],
+      "test_data_requirements": {"stage_id": "test-stage", "member_ids": ["m1", "m2"]},
+      "applicable_roles": ["ADMIN"],
+      "applicable_personas": ["T1-Admin-Methodical"]
+    },
+    {
+      "id": "TC-079",
+      "title": "Consent management - View member consent status",
+      "priority": "P2",
+      "category": "admin",
+      "preconditions": ["Consent stages defined for business_type", "Member has consent records"],
+      "steps": [
+        {"action": "Query useMemberConsentStatus for member", "expected": "consent_stages joined with user_consents"},
+        {"action": "Verify status per stage (AGREED/DISAGREED/PENDING)", "expected": "Correct status mapped for each stage"}
+      ],
+      "postconditions": ["Consent status accurately displayed per stage"],
+      "test_data_requirements": {"member_with_consents": true},
+      "applicable_roles": ["ADMIN"],
+      "applicable_personas": ["T1-Admin-Methodical"]
+    },
+    {
+      "id": "TC-080",
+      "title": "Hero slides management",
+      "priority": "P2",
+      "category": "admin",
+      "preconditions": ["Admin logged in"],
+      "steps": [
+        {"action": "Navigate to /{slug}/admin/slides", "expected": "Hero slides list displayed"},
+        {"action": "Create new slide with image_url, link_url", "expected": "Slide created with display_order"},
+        {"action": "Create 5 active slides", "expected": "Max 5 active slides constraint enforced"},
+        {"action": "Reorder slides", "expected": "display_order updated"}
+      ],
+      "postconditions": ["Slides managed with ordering", "Max 5 active constraint respected"],
+      "test_data_requirements": {},
+      "applicable_roles": ["ADMIN"],
+      "applicable_personas": ["T1-Admin-Methodical"]
+    },
+    {
+      "id": "TC-081",
+      "title": "Landing page renders correctly for union",
+      "priority": "P1",
+      "category": "navigation",
+      "preconditions": ["Union exists with active slug"],
+      "steps": [
+        {"action": "Navigate to /{slug}", "expected": "Union landing page rendered"},
+        {"action": "Verify LandingPage or LandingPageNew component loads", "expected": "Hero slider, login form, content visible"},
+        {"action": "Verify login form buttons (Kakao, Naver)", "expected": "OAuth login buttons present and functional"}
+      ],
+      "postconditions": ["Landing page fully rendered"],
+      "test_data_requirements": {"active_union": true},
+      "applicable_roles": ["GUEST"],
+      "applicable_personas": ["T10-Guest-Newbie"]
+    },
+    {
+      "id": "TC-082",
+      "title": "Union layout - Skip navigation link",
+      "priority": "P2",
+      "category": "a11y",
+      "preconditions": ["Union page loaded"],
+      "steps": [
+        {"action": "Press Tab key on page load", "expected": "Skip navigation link becomes visible/focused"},
+        {"action": "Press Enter on skip nav link", "expected": "Focus moves to main content area, skipping header/nav"}
+      ],
+      "postconditions": ["Skip navigation accessible and functional"],
+      "test_data_requirements": {},
+      "applicable_roles": ["USER"],
+      "applicable_personas": ["T9-User-A11y"]
+    },
+    {
+      "id": "TC-083",
+      "title": "RegisterModal - ARIA accessibility",
+      "priority": "P2",
+      "category": "a11y",
+      "preconditions": ["RegisterModal is open"],
+      "steps": [
+        {"action": "Verify ARIA role='dialog'", "expected": "Role attribute present"},
+        {"action": "Verify aria-modal='true'", "expected": "Attribute present"},
+        {"action": "Verify input labels", "expected": "All input fields have associated labels"},
+        {"action": "Press ESC key", "expected": "Modal closes"},
+        {"action": "Verify focus trap", "expected": "Tab key cycles within modal (useFocusTrap)"}
+      ],
+      "postconditions": ["Modal fully accessible"],
+      "test_data_requirements": {},
+      "applicable_roles": ["GUEST"],
+      "applicable_personas": ["T9-User-A11y"]
+    },
+    {
+      "id": "TC-084",
+      "title": "ApprovalPendingModal - ARIA accessibility",
+      "priority": "P2",
+      "category": "a11y",
+      "preconditions": ["User with PENDING_APPROVAL status triggers modal"],
+      "steps": [
+        {"action": "Verify ARIA role='dialog'", "expected": "Role attribute present"},
+        {"action": "Verify aria-modal='true'", "expected": "Attribute present"},
+        {"action": "Press ESC key", "expected": "Modal closes"},
+        {"action": "Verify focus trap", "expected": "Focus trapped within modal"}
+      ],
+      "postconditions": ["Modal accessible"],
+      "test_data_requirements": {},
+      "applicable_roles": ["USER"],
+      "applicable_personas": ["T9-User-A11y"]
+    },
+    {
+      "id": "TC-085",
+      "title": "ApprovalRejectedModal - ARIA accessibility",
+      "priority": "P2",
+      "category": "a11y",
+      "preconditions": ["User with REJECTED status triggers modal"],
+      "steps": [
+        {"action": "Verify ARIA role='dialog'", "expected": "Role attribute present"},
+        {"action": "Verify aria-modal='true'", "expected": "Attribute present"},
+        {"action": "Verify rejection reason displayed", "expected": "Reason text visible"},
+        {"action": "Press ESC key", "expected": "Modal closes"},
+        {"action": "Verify focus trap", "expected": "Focus trapped within modal"}
+      ],
+      "postconditions": ["Modal accessible with rejection info"],
+      "test_data_requirements": {},
+      "applicable_roles": ["USER"],
+      "applicable_personas": ["T9-User-A11y"]
+    },
+    {
+      "id": "TC-086",
+      "title": "BlockedUserModal - ARIA accessibility",
+      "priority": "P2",
+      "category": "a11y",
+      "preconditions": ["Blocked user triggers modal"],
+      "steps": [
+        {"action": "Verify ARIA role='dialog'", "expected": "Role attribute present"},
+        {"action": "Verify aria-modal='true'", "expected": "Attribute present"},
+        {"action": "Verify block reason displayed", "expected": "Reason text visible"},
+        {"action": "Press ESC key", "expected": "Modal closes"},
+        {"action": "Verify focus trap", "expected": "Focus trapped within modal"}
+      ],
+      "postconditions": ["Modal accessible"],
+      "test_data_requirements": {},
+      "applicable_roles": ["USER"],
+      "applicable_personas": ["T9-User-A11y"]
+    },
+    {
+      "id": "TC-087",
+      "title": "MemberEditModal - ARIA accessibility",
+      "priority": "P3",
+      "category": "a11y",
+      "preconditions": ["Admin editing member details"],
+      "steps": [
+        {"action": "Open MemberEditModal", "expected": "Modal opens with member data"},
+        {"action": "Verify ARIA attributes", "expected": "role='dialog', aria-modal='true'"},
+        {"action": "Verify focus trap and ESC key", "expected": "Keyboard navigation works correctly"}
+      ],
+      "postconditions": ["Modal accessible"],
+      "test_data_requirements": {},
+      "applicable_roles": ["ADMIN"],
+      "applicable_personas": ["T9-User-A11y"]
+    },
+    {
+      "id": "TC-088",
+      "title": "BlockMemberModal - ARIA accessibility",
+      "priority": "P3",
+      "category": "a11y",
+      "preconditions": ["Admin blocking a member"],
+      "steps": [
+        {"action": "Open BlockMemberModal", "expected": "Modal opens with reason field"},
+        {"action": "Verify ARIA attributes", "expected": "role='dialog', aria-modal='true'"},
+        {"action": "Verify focus trap and ESC key", "expected": "Keyboard navigation works correctly"}
+      ],
+      "postconditions": ["Modal accessible"],
+      "test_data_requirements": {},
+      "applicable_roles": ["ADMIN"],
+      "applicable_personas": ["T9-User-A11y"]
+    },
+    {
+      "id": "TC-089",
+      "title": "Mobile sidebar navigation",
+      "priority": "P2",
+      "category": "mobile",
+      "preconditions": ["Mobile viewport", "User logged in"],
+      "steps": [
+        {"action": "Open mobile sidebar (hamburger menu)", "expected": "UnionMobileSidebar opens"},
+        {"action": "Navigate through menu items", "expected": "All menu items accessible via touch"},
+        {"action": "Close sidebar", "expected": "Sidebar closes, focus returns to main content"}
+      ],
+      "postconditions": ["Mobile navigation functional"],
+      "test_data_requirements": {},
+      "applicable_roles": ["USER"],
+      "applicable_personas": ["T7-User-Mobile"]
+    },
+    {
+      "id": "TC-090",
+      "title": "Mobile - Ads hidden on mobile viewport",
+      "priority": "P2",
+      "category": "mobile",
+      "preconditions": ["Mobile viewport", "Ads exist for union"],
+      "steps": [
+        {"action": "Load union page on mobile", "expected": "Side ads hidden (ads hidden on mobile via UnionLayoutContent)"},
+        {"action": "Verify main content is full-width", "expected": "No 3-column layout on mobile"},
+        {"action": "Resize to desktop", "expected": "Ads visible in side columns"}
+      ],
+      "postconditions": ["Ads properly hidden/shown based on viewport"],
+      "test_data_requirements": {},
+      "applicable_roles": ["USER"],
+      "applicable_personas": ["T7-User-Mobile"]
+    },
+    {
+      "id": "TC-091",
+      "title": "Header navigation for authenticated user",
+      "priority": "P2",
+      "category": "navigation",
+      "preconditions": ["Approved user logged in"],
+      "steps": [
+        {"action": "Verify UnionHomeHeader rendered", "expected": "Header with logo, navigation links, user menu"},
+        {"action": "Click news/notice link", "expected": "Navigate to /{slug}/news/notice"},
+        {"action": "Click free-board link", "expected": "Navigate to /{slug}/free-board or /{slug}/communication/free-board"},
+        {"action": "Click my property link", "expected": "Navigate to /{slug}/my-property"}
+      ],
+      "postconditions": ["All navigation links functional"],
+      "test_data_requirements": {},
+      "applicable_roles": ["USER"],
+      "applicable_personas": ["T4-User-Newbie"]
+    },
+    {
+      "id": "TC-092",
+      "title": "Breadcrumb navigation on union pages",
+      "priority": "P3",
+      "category": "navigation",
+      "preconditions": ["User on nested union page"],
+      "steps": [
+        {"action": "Navigate to /{slug}/news/notice/{id}", "expected": "Breadcrumb shows: Home > News > Notice > {title}"},
+        {"action": "Click breadcrumb 'Home' link", "expected": "Navigate to /{slug}"},
+        {"action": "Click breadcrumb 'Notice' link", "expected": "Navigate to /{slug}/news/notice"}
+      ],
+      "postconditions": ["Breadcrumb navigation functional"],
+      "test_data_requirements": {},
+      "applicable_roles": ["USER"],
+      "applicable_personas": ["T4-User-Newbie"]
+    },
+    {
+      "id": "TC-093",
+      "title": "Public pages accessible without auth",
+      "priority": "P1",
+      "category": "navigation",
+      "preconditions": ["No auth session"],
+      "steps": [
+        {"action": "Navigate to / (main landing)", "expected": "Page loads without redirect"},
+        {"action": "Navigate to /contact", "expected": "Page loads"},
+        {"action": "Navigate to /privacy", "expected": "Page loads"},
+        {"action": "Navigate to /terms", "expected": "Page loads"},
+        {"action": "Navigate to /swagger", "expected": "API docs page loads"}
+      ],
+      "postconditions": ["All public pages accessible"],
+      "test_data_requirements": {},
+      "applicable_roles": ["GUEST"],
+      "applicable_personas": ["T10-Guest-Newbie"]
+    },
+    {
+      "id": "TC-094",
+      "title": "Protected pages redirect unauthenticated users",
+      "priority": "P1",
+      "category": "security",
+      "preconditions": ["No auth session"],
+      "steps": [
+        {"action": "Navigate to /{slug}/dashboard", "expected": "Redirect to /{slug} (login page)"},
+        {"action": "Navigate to /{slug}/news/notice", "expected": "Redirect to login"},
+        {"action": "Navigate to /{slug}/admin/members", "expected": "Redirect to login"}
+      ],
+      "postconditions": ["All protected pages redirect to auth"],
+      "test_data_requirements": {},
+      "applicable_roles": ["GUEST"],
+      "applicable_personas": ["T10-Guest-Newbie"]
+    },
+    {
+      "id": "TC-095",
+      "title": "System admin pages protected",
+      "priority": "P1",
+      "category": "security",
+      "preconditions": ["Non-system-admin user logged in"],
+      "steps": [
+        {"action": "Navigate to /systemAdmin", "expected": "Redirect to /systemAdmin/login or forbidden"},
+        {"action": "Navigate to /systemAdmin/unions", "expected": "Access denied (not SYSTEM_ADMIN)"}
+      ],
+      "postconditions": ["Only SYSTEM_ADMIN can access /systemAdmin/* pages"],
+      "test_data_requirements": {},
+      "applicable_roles": ["USER", "ADMIN"],
+      "applicable_personas": ["T2-Admin-Malicious"]
+    },
+    {
+      "id": "TC-096",
+      "title": "Logout clears session",
+      "priority": "P1",
+      "category": "auth",
+      "preconditions": ["User logged in"],
+      "steps": [
+        {"action": "Click logout button", "expected": "AuthProvider.logout() called"},
+        {"action": "Verify session cleared", "expected": "Supabase session destroyed, cookies cleared"},
+        {"action": "Navigate to protected page", "expected": "Redirect to login"}
+      ],
+      "postconditions": ["Session fully cleared", "Cannot access protected pages"],
+      "test_data_requirements": {},
+      "applicable_roles": ["USER", "ADMIN"],
+      "applicable_personas": ["T4-User-Newbie"]
+    },
+    {
+      "id": "TC-097",
+      "title": "Notice search escapes LIKE wildcards",
+      "priority": "P1",
+      "category": "security",
+      "preconditions": ["Notices exist"],
+      "steps": [
+        {"action": "Search for '%' in notice search", "expected": "escapeLikeWildcards('%') -> '\\%', only notices containing literal '%' matched"},
+        {"action": "Search for 'test_value'", "expected": "'_' escaped, searches for literal 'test_value'"}
+      ],
+      "postconditions": ["Wildcard characters properly escaped"],
+      "test_data_requirements": {},
+      "applicable_roles": ["USER"],
+      "applicable_personas": ["T3-User-Chaos"]
+    },
+    {
+      "id": "TC-098",
+      "title": "Question search escapes LIKE wildcards",
+      "priority": "P1",
+      "category": "security",
+      "preconditions": ["Questions exist"],
+      "steps": [
+        {"action": "Search for '%_%' in question search", "expected": "All wildcards escaped, literal search performed"}
+      ],
+      "postconditions": ["LIKE injection prevented"],
+      "test_data_requirements": {},
+      "applicable_roles": ["USER"],
+      "applicable_personas": ["T3-User-Chaos"]
+    },
+    {
+      "id": "TC-099",
+      "title": "Member search escapes LIKE wildcards",
+      "priority": "P1",
+      "category": "security",
+      "preconditions": ["Members exist with various names"],
+      "steps": [
+        {"action": "Search for '%%' in member search", "expected": "Escaped, does not return all members"}
+      ],
+      "postconditions": ["LIKE injection prevented in member search"],
+      "test_data_requirements": {},
+      "applicable_roles": ["ADMIN"],
+      "applicable_personas": ["T2-Admin-Malicious"]
+    },
+    {
+      "id": "TC-100",
+      "title": "Approval double-click prevention on admin members page",
+      "priority": "P1",
+      "category": "admin",
+      "preconditions": ["Pending users exist", "Admin logged in"],
+      "steps": [
+        {"action": "Click Approve button rapidly multiple times", "expected": "Only first click processed, subsequent clicks blocked"},
+        {"action": "Verify only one approval API call made", "expected": "No duplicate approvals"}
+      ],
+      "postconditions": ["User approved exactly once"],
+      "test_data_requirements": {},
+      "applicable_roles": ["ADMIN"],
+      "applicable_personas": ["T5-User-Impatient"]
+    },
+    {
+      "id": "TC-101",
+      "title": "Client role guard on admin members page",
+      "priority": "P1",
+      "category": "security",
+      "preconditions": ["USER role user accesses page directly"],
+      "steps": [
+        {"action": "Navigate to /{slug}/admin/members as USER role", "expected": "Client-side role guard redirects away"},
+        {"action": "Verify admin-only UI not rendered", "expected": "No admin controls visible"}
+      ],
+      "postconditions": ["Client role guard prevents access"],
+      "test_data_requirements": {},
+      "applicable_roles": ["USER"],
+      "applicable_personas": ["T2-Admin-Malicious"]
+    },
+    {
+      "id": "TC-102",
+      "title": "Scheduled AlimTalk for notice",
+      "priority": "P2",
+      "category": "content",
+      "preconditions": ["Admin creating notice with schedule option"],
+      "steps": [
+        {"action": "Create notice with scheduled AlimTalk time", "expected": "scheduled_alimtalks record created"},
+        {"action": "Verify schedule entry", "expected": "status='pending', scheduled_at set to future time"}
+      ],
+      "postconditions": ["Scheduled notification saved"],
+      "test_data_requirements": {"scheduled_time": "future datetime"},
+      "applicable_roles": ["ADMIN"],
+      "applicable_personas": ["T1-Admin-Methodical"]
+    },
+    {
+      "id": "TC-103",
+      "title": "Communication free-board (duplicate path)",
+      "priority": "P2",
+      "category": "content",
+      "preconditions": ["User logged in"],
+      "steps": [
+        {"action": "Navigate to /{slug}/communication/free-board", "expected": "Free board list renders (same data as /{slug}/free-board)"},
+        {"action": "Create post from communication path", "expected": "Post created in same free_boards table"},
+        {"action": "View post detail from communication path", "expected": "Detail page renders with view count dedup key 'viewed_comm_free_board_{id}'"}
+      ],
+      "postconditions": ["Both paths share same data but use different sessionStorage keys"],
+      "test_data_requirements": {},
+      "applicable_roles": ["USER"],
+      "applicable_personas": ["T8-User-PowerUser"]
+    },
+    {
+      "id": "TC-104",
+      "title": "Union info view count (no sessionStorage dedup)",
+      "priority": "P2",
+      "category": "content",
+      "preconditions": ["Union info post exists"],
+      "steps": [
+        {"action": "Navigate to union info detail page", "expected": "View count incremented"},
+        {"action": "Navigate away and return", "expected": "View count incremented AGAIN (no sessionStorage dedup)"},
+        {"action": "Refresh page", "expected": "View count incremented again"}
+      ],
+      "postconditions": ["View count inflated on repeated visits (known issue DFI-001)"],
+      "test_data_requirements": {"union_info_id": 1},
+      "applicable_roles": ["USER"],
+      "applicable_personas": ["T6-User-Perfectionist"]
+    },
+    {
+      "id": "TC-105",
+      "title": "Question list - My posts first sort",
+      "priority": "P2",
+      "category": "content",
+      "preconditions": ["Multiple questions exist from current user and others"],
+      "steps": [
+        {"action": "Navigate to QnA list", "expected": "Current user's questions appear at top of list"},
+        {"action": "Verify sort order", "expected": "Own questions first, then others (client-side sort)"}
+      ],
+      "postconditions": ["User's questions prioritized in list"],
+      "test_data_requirements": {"own_questions": 3, "other_questions": 5},
+      "applicable_roles": ["USER"],
+      "applicable_personas": ["T6-User-Perfectionist"]
+    },
+    {
+      "id": "TC-106",
+      "title": "Member access log creation",
+      "priority": "P2",
+      "category": "admin",
+      "preconditions": ["Admin viewing member list"],
+      "steps": [
+        {"action": "Admin views member list", "expected": "LIST_VIEW access log created in member_access_logs"},
+        {"action": "Admin views member detail", "expected": "DETAIL_VIEW access log created"},
+        {"action": "Admin updates member", "expected": "MEMBER_UPDATE access log created"},
+        {"action": "Admin blocks member", "expected": "MEMBER_BLOCK access log created"}
+      ],
+      "postconditions": ["Audit trail maintained for privacy compliance"],
+      "test_data_requirements": {},
+      "applicable_roles": ["ADMIN"],
+      "applicable_personas": ["T1-Admin-Methodical"]
+    },
+    {
+      "id": "TC-107",
+      "title": "Co-owner query for member",
+      "priority": "P2",
+      "category": "member",
+      "preconditions": ["Multiple users share same building_unit_id"],
+      "steps": [
+        {"action": "Query useCoOwners for member", "expected": "All users with same building_unit_id returned"},
+        {"action": "Verify co-owner details include property units and user info", "expected": "Complete co-owner data returned"}
+      ],
+      "postconditions": ["Co-owners correctly identified"],
+      "test_data_requirements": {"co_owners": true},
+      "applicable_roles": ["ADMIN"],
+      "applicable_personas": ["T1-Admin-Methodical"]
+    },
+    {
+      "id": "TC-108",
+      "title": "Duplicate user auto-merge on pre-registration",
+      "priority": "P2",
+      "category": "member",
+      "preconditions": ["Pre-registration data contains duplicate name+residence"],
+      "steps": [
+        {"action": "Upload Excel with duplicate entries", "expected": "savePreRegisteredMembers detects duplicates"},
+        {"action": "RPC merge_users_keep_new called", "expected": "Duplicate users merged, newer data kept"}
+      ],
+      "postconditions": ["No duplicate users after merge"],
+      "test_data_requirements": {"duplicate_entries": true},
+      "applicable_roles": ["ADMIN"],
+      "applicable_personas": ["T1-Admin-Methodical"]
+    },
+    {
+      "id": "TC-109",
+      "title": "Address normalization for PNU matching",
+      "priority": "P2",
+      "category": "member",
+      "preconditions": ["Land lots loaded for union"],
+      "steps": [
+        {"action": "Provide address in various formats", "expected": "normalizeJibunAddress standardizes format"},
+        {"action": "Full address match against land_lots", "expected": "Exact PNU returned if found"},
+        {"action": "Partial jibun matching as fallback", "expected": "Partial match attempted with jibun digits"}
+      ],
+      "postconditions": ["Address correctly matched to PNU"],
+      "test_data_requirements": {"addresses": ["Seoul Gangnam-gu test 123", "123 test"]},
+      "applicable_roles": ["ADMIN"],
+      "applicable_personas": ["T1-Admin-Methodical"]
+    },
+    {
+      "id": "TC-110",
+      "title": "Dong/Ho value normalization",
+      "priority": "P3",
+      "category": "member",
+      "preconditions": ["Member registration or pre-registration with dong/ho input"],
+      "steps": [
+        {"action": "Enter dong='101동'", "expected": "Normalized to '101'"},
+        {"action": "Enter ho='502호'", "expected": "Normalized to '502'"},
+        {"action": "Enter dong='A동 1호'", "expected": "Correctly normalized"}
+      ],
+      "postconditions": ["Dong/Ho values consistently normalized"],
+      "test_data_requirements": {},
+      "applicable_roles": ["ADMIN", "USER"],
+      "applicable_personas": ["T3-User-Chaos"]
+    },
+    {
+      "id": "TC-111",
+      "title": "Swagger API documentation accessible",
+      "priority": "P3",
+      "category": "navigation",
+      "preconditions": ["Application running"],
+      "steps": [
+        {"action": "Navigate to /swagger", "expected": "Swagger UI page loads"},
+        {"action": "GET /api/docs", "expected": "OpenAPI 3.0 JSON spec returned"}
+      ],
+      "postconditions": ["API documentation accessible"],
+      "test_data_requirements": {},
+      "applicable_roles": ["GUEST"],
+      "applicable_personas": ["T8-User-PowerUser"]
+    },
+    {
+      "id": "TC-112",
+      "title": "Error page - Not found",
+      "priority": "P3",
+      "category": "navigation",
+      "preconditions": ["User navigates to non-existent page"],
+      "steps": [
+        {"action": "Navigate to /nonexistent-page", "expected": "Not found page displayed"},
+        {"action": "Navigate to /{invalid-slug}", "expected": "Not found page (SlugProvider redirects on invalid union)"}
+      ],
+      "postconditions": ["Appropriate error page shown"],
+      "test_data_requirements": {},
+      "applicable_roles": ["GUEST"],
+      "applicable_personas": ["T3-User-Chaos"]
+    },
+    {
+      "id": "TC-113",
+      "title": "Error page - Forbidden",
+      "priority": "P3",
+      "category": "navigation",
+      "preconditions": ["User attempts unauthorized access"],
+      "steps": [
+        {"action": "Navigate to /forbidden", "expected": "Forbidden page rendered"}
+      ],
+      "postconditions": ["Forbidden page displayed"],
+      "test_data_requirements": {},
+      "applicable_roles": ["GUEST"],
+      "applicable_personas": ["T4-User-Newbie"]
+    },
+    {
+      "id": "TC-114",
+      "title": "Auth error page",
+      "priority": "P3",
+      "category": "auth",
+      "preconditions": ["OAuth error occurs"],
+      "steps": [
+        {"action": "Navigate to /auth/error", "expected": "Auth error page rendered with error info"}
+      ],
+      "postconditions": ["Error page displayed"],
+      "test_data_requirements": {},
+      "applicable_roles": ["GUEST"],
+      "applicable_personas": ["T3-User-Chaos"]
+    },
+    {
+      "id": "TC-115",
+      "title": "Invalid token page",
+      "priority": "P3",
+      "category": "auth",
+      "preconditions": ["User accesses with invalid token"],
+      "steps": [
+        {"action": "Navigate to /invalid-token", "expected": "Invalid token page rendered with message"}
+      ],
+      "postconditions": ["Error page displayed"],
+      "test_data_requirements": {},
+      "applicable_roles": ["GUEST"],
+      "applicable_personas": ["T10-Guest-Newbie"]
+    },
+    {
+      "id": "TC-116",
+      "title": "Toast notifications on success/error",
+      "priority": "P3",
+      "category": "navigation",
+      "preconditions": ["User performing mutations"],
+      "steps": [
+        {"action": "Successfully create a post", "expected": "Success toast notification displayed"},
+        {"action": "Trigger an API error", "expected": "Error toast notification displayed"},
+        {"action": "Delete a post", "expected": "AlertModal shows success message"}
+      ],
+      "postconditions": ["Appropriate notifications shown"],
+      "test_data_requirements": {},
+      "applicable_roles": ["USER"],
+      "applicable_personas": ["T4-User-Newbie"]
+    },
+    {
+      "id": "TC-117",
+      "title": "Privacy policy pages (Korean and English)",
+      "priority": "P3",
+      "category": "navigation",
+      "preconditions": ["Application running"],
+      "steps": [
+        {"action": "Navigate to /privacy", "expected": "Korean privacy policy page loads"},
+        {"action": "Navigate to /privacy/en", "expected": "English privacy policy page loads"},
+        {"action": "Navigate to /terms", "expected": "Korean terms page loads"},
+        {"action": "Navigate to /terms/en", "expected": "English terms page loads"}
+      ],
+      "postconditions": ["Legal pages accessible in both languages"],
+      "test_data_requirements": {},
+      "applicable_roles": ["GUEST"],
+      "applicable_personas": ["T10-Guest-Newbie"]
+    },
+    {
+      "id": "TC-118",
+      "title": "Marketing header and footer rendering",
+      "priority": "P3",
+      "category": "navigation",
+      "preconditions": ["Marketing pages loaded"],
+      "steps": [
+        {"action": "Navigate to / (marketing landing)", "expected": "MarketingHeader and MarketingFooter rendered"},
+        {"action": "Verify all marketing page links work", "expected": "Contact, Privacy, Terms links functional"}
+      ],
+      "postconditions": ["Marketing layout correct"],
+      "test_data_requirements": {},
+      "applicable_roles": ["GUEST"],
+      "applicable_personas": ["T10-Guest-Newbie"]
+    },
+    {
+      "id": "TC-119",
+      "title": "TanStack Query cache behavior",
+      "priority": "P3",
+      "category": "content",
+      "preconditions": ["User browsing content"],
+      "steps": [
+        {"action": "Load notice list", "expected": "Data fetched and cached (staleTime=0, refetch on mount)"},
+        {"action": "Navigate to detail and back", "expected": "List refetched on return (staleTime=0)"},
+        {"action": "Load popup notices", "expected": "Cached for 5 minutes (staleTime=300000)"},
+        {"action": "Detail page with retry=false", "expected": "No retry on error (deleted items gracefully handled)"}
+      ],
+      "postconditions": ["Cache behavior correct per query configuration"],
+      "test_data_requirements": {},
+      "applicable_roles": ["USER"],
+      "applicable_personas": ["T8-User-PowerUser"]
+    },
+    {
+      "id": "TC-120",
+      "title": "Mobile responsive layout for content pages",
+      "priority": "P2",
+      "category": "mobile",
+      "preconditions": ["Mobile viewport"],
+      "steps": [
+        {"action": "View notice list on mobile", "expected": "List cards stack vertically, readable on small screen"},
+        {"action": "View notice detail on mobile", "expected": "Content readable, images responsive"},
+        {"action": "View free board on mobile", "expected": "Board cards adapt to mobile layout"},
+        {"action": "Use TipTap editor on mobile", "expected": "Editor toolbar accessible, content editable"}
+      ],
+      "postconditions": ["All content pages mobile-friendly"],
+      "test_data_requirements": {},
+      "applicable_roles": ["USER"],
+      "applicable_personas": ["T7-User-Mobile"]
+    }
+  ],
+  "persona_scenario_mapping": {
+    "T1-Admin-Methodical": ["TC-005", "TC-006", "TC-007", "TC-021", "TC-024", "TC-025", "TC-026", "TC-030", "TC-031", "TC-032", "TC-036", "TC-038", "TC-039", "TC-044", "TC-045", "TC-046", "TC-047", "TC-048", "TC-049", "TC-050", "TC-051", "TC-052", "TC-053", "TC-054", "TC-055", "TC-056", "TC-058", "TC-059", "TC-060", "TC-061", "TC-062", "TC-063", "TC-065", "TC-067", "TC-070", "TC-075", "TC-076", "TC-078", "TC-079", "TC-080", "TC-100", "TC-102", "TC-106", "TC-107", "TC-108", "TC-109"],
+    "T2-Admin-Malicious": ["TC-008", "TC-009", "TC-010", "TC-011", "TC-012", "TC-013", "TC-017", "TC-029", "TC-035", "TC-043", "TC-064", "TC-095", "TC-097", "TC-098", "TC-099", "TC-101"],
+    "T3-User-Chaos": ["TC-007", "TC-012", "TC-035", "TC-037", "TC-041", "TC-053", "TC-055", "TC-097", "TC-110", "TC-112", "TC-114"],
+    "T4-User-Newbie": ["TC-001", "TC-002", "TC-003", "TC-018", "TC-019", "TC-020", "TC-027", "TC-057", "TC-066", "TC-068", "TC-074", "TC-081", "TC-091", "TC-092", "TC-093", "TC-096", "TC-113", "TC-116"],
+    "T5-User-Impatient": ["TC-004", "TC-100"],
+    "T6-User-Perfectionist": ["TC-022", "TC-023", "TC-028", "TC-029", "TC-033", "TC-034", "TC-040", "TC-042", "TC-069", "TC-071", "TC-072", "TC-073", "TC-104", "TC-105"],
+    "T7-User-Mobile": ["TC-089", "TC-090", "TC-120"],
+    "T8-User-PowerUser": ["TC-008", "TC-037", "TC-041", "TC-077", "TC-103", "TC-111", "TC-119"],
+    "T9-User-A11y": ["TC-082", "TC-083", "TC-084", "TC-085", "TC-086", "TC-087", "TC-088"],
+    "T10-Guest-Newbie": ["TC-001", "TC-003", "TC-014", "TC-015", "TC-016", "TC-081", "TC-093", "TC-094", "TC-115", "TC-117", "TC-118"]
+  },
+  "role_coverage": {
+    "SYSTEM_ADMIN": ["TC-005", "TC-006", "TC-017", "TC-030", "TC-036", "TC-061", "TC-062", "TC-063", "TC-064", "TC-065", "TC-067", "TC-095"],
+    "ADMIN": ["TC-005", "TC-006", "TC-007", "TC-008", "TC-009", "TC-021", "TC-024", "TC-025", "TC-026", "TC-030", "TC-031", "TC-032", "TC-036", "TC-038", "TC-039", "TC-044", "TC-045", "TC-046", "TC-047", "TC-048", "TC-049", "TC-050", "TC-051", "TC-052", "TC-053", "TC-054", "TC-055", "TC-056", "TC-058", "TC-059", "TC-060", "TC-064", "TC-070", "TC-075", "TC-076", "TC-078", "TC-079", "TC-080", "TC-095", "TC-099", "TC-100", "TC-101", "TC-102", "TC-106", "TC-107", "TC-108", "TC-109"],
+    "USER": ["TC-008", "TC-012", "TC-013", "TC-022", "TC-023", "TC-028", "TC-029", "TC-033", "TC-034", "TC-035", "TC-037", "TC-040", "TC-041", "TC-042", "TC-043", "TC-066", "TC-068", "TC-069", "TC-077", "TC-082", "TC-089", "TC-090", "TC-091", "TC-092", "TC-093", "TC-094", "TC-096", "TC-097", "TC-098", "TC-101", "TC-103", "TC-104", "TC-105", "TC-116", "TC-119", "TC-120"],
+    "GUEST": ["TC-001", "TC-002", "TC-003", "TC-004", "TC-010", "TC-011", "TC-014", "TC-015", "TC-016", "TC-017", "TC-018", "TC-019", "TC-020", "TC-057", "TC-071", "TC-081", "TC-093", "TC-094", "TC-111", "TC-112", "TC-113", "TC-114", "TC-115", "TC-117", "TC-118"]
+  },
+  "entity_coverage": {
+    "notice": ["TC-021", "TC-022", "TC-023", "TC-024", "TC-025", "TC-026", "TC-027", "TC-097", "TC-102"],
+    "question": ["TC-028", "TC-029", "TC-030", "TC-031", "TC-032", "TC-098", "TC-105"],
+    "free_board": ["TC-033", "TC-034", "TC-035", "TC-036", "TC-037", "TC-103"],
+    "union_info": ["TC-038", "TC-039", "TC-104"],
+    "comment": ["TC-040", "TC-041", "TC-042", "TC-043"],
+    "member": ["TC-003", "TC-005", "TC-006", "TC-007", "TC-044", "TC-045", "TC-046", "TC-047", "TC-048", "TC-049", "TC-050", "TC-051", "TC-052", "TC-059", "TC-060", "TC-075", "TC-076", "TC-077", "TC-099", "TC-100", "TC-106", "TC-107", "TC-108", "TC-109", "TC-110"],
+    "property": ["TC-049", "TC-050", "TC-051", "TC-052", "TC-053", "TC-054", "TC-055", "TC-069"],
+    "access_token": ["TC-014", "TC-015", "TC-016", "TC-061", "TC-062", "TC-063", "TC-064"],
+    "member_invite": ["TC-018", "TC-019", "TC-056", "TC-057", "TC-058"],
+    "union": ["TC-065", "TC-066", "TC-067", "TC-081"],
+    "hero_slide": ["TC-080"],
+    "file": ["TC-072", "TC-073", "TC-074"]
+  },
+  "api_endpoint_coverage": {
+    "GET /api/admin/access-tokens": ["TC-062"],
+    "POST /api/admin/access-tokens": ["TC-061"],
+    "DELETE /api/admin/access-tokens/[id]": ["TC-063"],
+    "GET /api/auth/naver": ["TC-002"],
+    "GET /api/auth/naver/callback": ["TC-002"],
+    "POST /api/auth/verify-token": ["TC-014"],
+    "POST /api/consent/bulk-update": ["TC-078"],
+    "POST /api/consent/bulk-upload": ["TC-078"],
+    "GET /api/docs": ["TC-111"],
+    "POST /api/image/resize": ["TC-071"],
+    "POST /api/member-invite/sync": ["TC-058"],
+    "POST /api/member-invite/pre-register": ["TC-059"],
+    "GET /api/member-invite/job/[jobId]": ["TC-058"],
+    "POST /api/members/approve": ["TC-005"],
+    "POST /api/members/check-conflict": ["TC-049"],
+    "POST /api/sms/send": ["TC-070"],
+    "GET /api/sms/template": ["TC-070"],
+    "GET /auth/callback": ["TC-001", "TC-018", "TC-019", "TC-020"]
+  },
+  "business_rule_coverage": {
+    "BR-001 (only PENDING_APPROVAL can be approved)": ["TC-005"],
+    "BR-002 (only PENDING_APPROVAL can be rejected)": ["TC-006"],
+    "BR-003 (rejection reason required)": ["TC-007"],
+    "BR-004 (REJECTED can be reverted)": ["TC-046"],
+    "BR-005 (approval sets USER role)": ["TC-005"],
+    "BR-006 (block requires reason)": ["TC-044"],
+    "BR-007 (unblock clears fields)": ["TC-045"],
+    "BR-008 (PNU 19 digits)": ["TC-055"],
+    "BR-009 (primary unit cannot be deleted)": ["TC-053"],
+    "BR-010 (set primary via RPC)": ["TC-054"],
+    "BR-011 (duplicate PNU+dong+ho blocked)": ["TC-059"],
+    "BR-012 (comment max 1 level nesting)": ["TC-041"],
+    "BR-013 (ownership check on delete)": ["TC-034", "TC-035", "TC-042", "TC-043"],
+    "BR-014 (secret question visibility)": ["TC-029", "TC-030"],
+    "BR-015 (view count RPC + sessionStorage dedup)": ["TC-023", "TC-104"],
+    "BR-016 (content deletion cascade)": ["TC-025", "TC-034"],
+    "BR-017 (editor blob URL replacement)": ["TC-073"],
+    "BR-018 (polymorphic file attachments)": ["TC-072"],
+    "BR-019 (notice AlimTalk to members)": ["TC-026"],
+    "BR-020 (question AlimTalk to admins)": ["TC-028"],
+    "BR-021 (answer AlimTalk to author)": ["TC-031"],
+    "BR-022 (AlimTalk non-blocking)": ["TC-026"],
+    "BR-023 (invite token expiry)": ["TC-057"],
+    "BR-024 (only PENDING invites accepted)": ["TC-057"],
+    "BR-026 (access token max_usage + expiry)": ["TC-015", "TC-016"],
+    "BR-027 (access token union restriction)": ["TC-014"],
+    "BR-028 (admin routes require ADMIN role)": ["TC-008", "TC-101"],
+    "BR-029 (conflict detection)": ["TC-049"],
+    "BR-030 (conflict resolution actions)": ["TC-050", "TC-051", "TC-052"],
+    "BR-031 (co-owner ratios sum to 100%)": ["TC-052"],
+    "BR-032 (transfer sets TRANSFERRED)": ["TC-051"],
+    "BR-034 (same person resolution)": ["TC-050"],
+    "BR-035 (address PNU matching)": ["TC-109"],
+    "BR-037 (dong/ho normalization)": ["TC-110"],
+    "BR-038 (duplicate user auto-merge)": ["TC-108"],
+    "BR-039 (only PRE_REGISTERED deletable)": ["TC-060"],
+    "BR-043 (LIKE wildcard escape)": ["TC-037", "TC-097", "TC-098", "TC-099"],
+    "BR-044 (popup notice date filter)": ["TC-027"],
+    "BR-045 (CSRF protection)": ["TC-009"],
+    "BR-046 (union delete cascade)": ["TC-067"],
+    "BR-047 (grouped members RPC)": ["TC-076"],
+    "BR-048 (approved+pre_registered list)": ["TC-075"]
+  }
+}

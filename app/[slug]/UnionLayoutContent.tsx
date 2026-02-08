@@ -14,6 +14,17 @@ import { UserStatusModal } from '@/app/_lib/widgets/modal';
 import { SideAdWidget } from '@/app/_lib/features/advertisement/ui/SideAdWidget';
 import { MainBannerWidget } from '@/app/_lib/features/advertisement/ui/MainBannerWidget';
 
+function SkipNavLink() {
+    return (
+        <a
+            href="#main-content"
+            className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[200] focus:px-4 focus:py-2 focus:bg-[#4E8C6D] focus:text-white focus:rounded-lg focus:text-sm focus:font-medium focus:shadow-lg"
+        >
+            본문 바로가기
+        </a>
+    );
+}
+
 interface UnionLayoutContentProps {
     children: React.ReactNode;
 }
@@ -38,6 +49,7 @@ export default function UnionLayoutContent({ children }: UnionLayoutContentProps
             <div className="min-h-screen bg-gray-50">
                 <div className="container mx-auto max-w-[1280px] px-4 py-8">
                     <Skeleton className="w-full h-[600px] rounded-[24px]" />
+                    <p className="text-center text-gray-400 mt-4">로딩 중...</p>
                 </div>
             </div>
         );
@@ -75,8 +87,9 @@ export default function UnionLayoutContent({ children }: UnionLayoutContentProps
     if (isLandingPage) {
         return (
             <div className="min-h-screen bg-gray-50 flex flex-col">
+                <SkipNavLink />
                 <MainBannerWidget />
-                <main className="flex-1">{children}</main>
+                <main id="main-content" className="flex-1">{children}</main>
                 {union && <UnionInfoFooter union={union} />}
                 <UserStatusModal />
             </div>
@@ -87,6 +100,7 @@ export default function UnionLayoutContent({ children }: UnionLayoutContentProps
     if (isAdminPage) {
         return (
             <div className="min-h-[1080px] bg-gray-50 flex flex-col">
+                <SkipNavLink />
                 <MainBannerWidget />
                 {/* Header - 모든 페이지에서 공통 렌더링 */}
                 <UnionHomeHeader />
@@ -95,7 +109,7 @@ export default function UnionLayoutContent({ children }: UnionLayoutContentProps
                 <UnionBreadcrumb />
 
                 {/* 전체 너비 메인 콘텐츠 (광고 영역 없음) */}
-                <main className="flex-1 min-h-[1200px]">{children}</main>
+                <main id="main-content" className="flex-1 min-h-[1200px]">{children}</main>
 
                 {/* Footer 표시 */}
                 {union && <UnionInfoFooter union={union} />}
@@ -110,12 +124,13 @@ export default function UnionLayoutContent({ children }: UnionLayoutContentProps
     if (isHomePage) {
         return (
             <div className="min-h-[1080px] bg-white flex flex-col">
+                <SkipNavLink />
                 <MainBannerWidget />
                 {/* Header */}
                 <UnionHomeHeader />
 
                 {/* 홈 페이지 메인 콘텐츠 (전체 너비) */}
-                <main className="flex-1">{children}</main>
+                <main id="main-content" className="flex-1">{children}</main>
 
                 {/* Footer 표시 */}
                 {union && <UnionInfoFooter union={union} />}
@@ -129,6 +144,7 @@ export default function UnionLayoutContent({ children }: UnionLayoutContentProps
     // 일반 레이아웃 (로그인 상태, 홈이 아닌 다른 페이지)
     return (
         <div className="min-h-[1080px] bg-gray-50 flex flex-col">
+            <SkipNavLink />
             <MainBannerWidget />
             {/* Header - 모든 페이지에서 공통 렌더링 */}
             <UnionHomeHeader />
@@ -140,17 +156,17 @@ export default function UnionLayoutContent({ children }: UnionLayoutContentProps
             {/* Desktop: 가로 배치 (20% / 60% / 20%), Mobile: 세로 쌓기 (A → B → C) */}
             <div className="flex-1 flex flex-col md:flex-row min-h-[1200px]">
                 {/* A 영역 - 왼쪽 광고 */}
-                <aside className="w-full md:w-[20%] bg-gray-100 p-4 order-1">
+                <aside className="hidden md:block w-full md:w-[20%] bg-gray-100 p-4 order-2 md:order-1">
                     <div className="sticky top-24 md:h-[50vh]">
                         <SideAdWidget />
                     </div>
                 </aside>
 
                 {/* B 영역 - 메인 콘텐츠 */}
-                <main className="w-full md:w-[60%] order-2 min-h-[1200px]">{children}</main>
+                <main id="main-content" className="w-full md:w-[60%] order-1 md:order-2 min-h-[1200px]">{children}</main>
 
                 {/* C 영역 - 오른쪽 광고 */}
-                <aside className="w-full md:w-[20%] bg-gray-100 p-4 order-3">
+                <aside className="hidden md:block w-full md:w-[20%] bg-gray-100 p-4 order-3">
                     <div className="sticky top-24 md:h-[50vh]">
                         <SideAdWidget />
                     </div>

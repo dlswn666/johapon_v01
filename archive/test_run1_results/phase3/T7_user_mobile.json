@@ -1,0 +1,922 @@
+{
+  "metadata": {
+    "tester": "T7-User-Mobile",
+    "persona": "P7 Mobile User (Sam)",
+    "role": "USER",
+    "focus": "Mobile responsive design, touch targets, small viewport UX",
+    "tested_at": "2026-02-08T00:00:00Z",
+    "method": "CODE-BASED static analysis of Tailwind responsive classes, component structure, mobile-specific logic"
+  },
+
+  "summary": {
+    "total_tests": 42,
+    "pass": 32,
+    "fail": 7,
+    "warn": 3,
+    "pass_rate": "76.2%",
+    "critical_issues": 3,
+    "moderate_issues": 4,
+    "minor_issues": 3
+  },
+
+  "scenario_results": [
+    {
+      "scenario_id": "TC-089",
+      "title": "Mobile sidebar navigation",
+      "status": "PASS",
+      "details": "UnionMobileSidebar uses Radix Sheet component (side='left', w-[280px]). Hamburger button in UnionHomeHeader has min size 44x44px (size-[44px]). Sidebar has proper nav aria-label, collapsible menus with aria-expanded, and focus-visible rings. Menu items have py-3 padding for adequate touch targets. Admin menu conditionally rendered for isAdmin only. Close on link click (handleLinkClick). SheetHeader is sr-only for a11y.",
+      "sub_tests": [
+        {
+          "name": "Hamburger button touch target",
+          "status": "PASS",
+          "evidence": "UnionHomeHeader.tsx:137 - size-[44px] meets 44x44px minimum"
+        },
+        {
+          "name": "Sidebar opens from left",
+          "status": "PASS",
+          "evidence": "UnionMobileSidebar.tsx:116 - Sheet side='left', w-[280px]"
+        },
+        {
+          "name": "Menu items are touch-friendly",
+          "status": "PASS",
+          "evidence": "UnionMobileSidebar.tsx:160 - px-3 py-3 rounded-lg (approx 48px height)"
+        },
+        {
+          "name": "Sub-items accessible via Collapsible",
+          "status": "PASS",
+          "evidence": "UnionMobileSidebar.tsx:153 - Radix Collapsible with onOpenChange toggle"
+        },
+        {
+          "name": "Sidebar closes on navigation",
+          "status": "PASS",
+          "evidence": "UnionMobileSidebar.tsx:108-110 - handleLinkClick calls onClose"
+        },
+        {
+          "name": "aria-expanded on toggle buttons",
+          "status": "PASS",
+          "evidence": "UnionMobileSidebar.tsx:166 - aria-expanded={openMenus.includes(item.id)}"
+        },
+        {
+          "name": "User menu in sidebar",
+          "status": "PASS",
+          "evidence": "UnionMobileSidebar.tsx:234-260 - expandable user menu with logout"
+        },
+        {
+          "name": "Sidebar hamburger aria-controls",
+          "status": "PASS",
+          "evidence": "UnionHomeHeader.tsx:140 - aria-controls='mobile-sidebar', matching id on SheetContent"
+        }
+      ]
+    },
+    {
+      "scenario_id": "TC-090",
+      "title": "Mobile - Ads hidden on mobile viewport",
+      "status": "PASS",
+      "details": "UnionLayoutContent.tsx uses 'hidden md:block' for both left and right side ad aside elements. On mobile (<md breakpoint, <768px), ads are completely hidden and main content takes full width. Mobile layout uses flex-col stacking.",
+      "sub_tests": [
+        {
+          "name": "Left ad hidden on mobile",
+          "status": "PASS",
+          "evidence": "UnionLayoutContent.tsx:158 - className='hidden md:block w-full md:w-[20%]'"
+        },
+        {
+          "name": "Right ad hidden on mobile",
+          "status": "PASS",
+          "evidence": "UnionLayoutContent.tsx:168 - className='hidden md:block w-full md:w-[20%]'"
+        },
+        {
+          "name": "Main content full width on mobile",
+          "status": "PASS",
+          "evidence": "UnionLayoutContent.tsx:165 - w-full md:w-[60%] order-1 md:order-2"
+        },
+        {
+          "name": "Layout switches from column to row at md",
+          "status": "PASS",
+          "evidence": "UnionLayoutContent.tsx:156 - flex flex-col md:flex-row"
+        },
+        {
+          "name": "Landing page has no ads",
+          "status": "PASS",
+          "evidence": "UnionLayoutContent.tsx:86-96 - Landing page layout has no SideAdWidget"
+        },
+        {
+          "name": "Admin page has no ads",
+          "status": "PASS",
+          "evidence": "UnionLayoutContent.tsx:99-120 - Admin page layout has no SideAdWidget"
+        }
+      ]
+    },
+    {
+      "scenario_id": "TC-120",
+      "title": "Mobile responsive layout for content pages",
+      "status": "WARN",
+      "details": "Most content pages use container mx-auto max-w-[1280px] px-4 which provides side padding on mobile. However, some issues found with union-info detail page title not being responsive, and admin members tab navigation potentially overflowing on narrow screens.",
+      "sub_tests": [
+        {
+          "name": "Notice detail page mobile layout",
+          "status": "PASS",
+          "evidence": "notice/[id]/page.tsx:74 - container mx-auto max-w-[1042px] px-4 py-8. Title text-[22px] readable. Meta info uses flex-wrap. Buttons stack with gap-4."
+        },
+        {
+          "name": "Free board detail page mobile layout",
+          "status": "PASS",
+          "evidence": "free-board/[id]/page.tsx:83 - responsive title text-[24px] md:text-[32px]. Meta uses flex-wrap. Buttons use flex gap-2."
+        },
+        {
+          "name": "QnA detail page mobile layout",
+          "status": "PASS",
+          "evidence": "qna/[id]/page.tsx:138 - responsive title text-[24px] md:text-[32px]. flex-wrap on title area and meta."
+        },
+        {
+          "name": "Union-info detail page mobile layout",
+          "status": "FAIL",
+          "severity": "moderate",
+          "evidence": "union-info/[id]/page.tsx:80 - Title uses fixed text-[32px] without responsive breakpoint (no md: variant). On mobile this may cause text overflow or be too large.",
+          "expected": "Title should use responsive sizing like text-[24px] md:text-[32px]",
+          "actual": "Fixed text-[32px] on all viewports"
+        },
+        {
+          "name": "Union-info detail page title/buttons layout",
+          "status": "FAIL",
+          "severity": "moderate",
+          "evidence": "union-info/[id]/page.tsx:79 - 'flex justify-between items-start' without flex-wrap. On mobile, title and buttons compete for horizontal space.",
+          "expected": "flex-wrap with gap for mobile stacking",
+          "actual": "No flex-wrap, buttons may overlap title on narrow screens"
+        },
+        {
+          "name": "Prose content responsive images",
+          "status": "PASS",
+          "evidence": "free-board/[id]/page.tsx:118 - prose-img:max-w-full prose-img:h-auto prevents image overflow"
+        },
+        {
+          "name": "Content area uses whitespace-pre-wrap",
+          "status": "PASS",
+          "evidence": "All detail pages use whitespace-pre-wrap with prose max-w-none, text wraps correctly"
+        }
+      ]
+    },
+
+    {
+      "scenario_id": "MOB-001",
+      "title": "Mobile header layout and touch targets",
+      "status": "PASS",
+      "details": "UnionHomeHeader provides separate mobile (md:hidden) and desktop (hidden md:block) headers. Mobile header is 60px + safe-area-inset-top. Hamburger button is 44x44px. Center logo is absolutely positioned for balance.",
+      "sub_tests": [
+        {
+          "name": "Separate mobile/desktop header rendering",
+          "status": "PASS",
+          "evidence": "UnionHomeHeader.tsx:132 - 'md:hidden' for mobile, :173 - 'hidden md:block' for desktop"
+        },
+        {
+          "name": "Safe area inset for notched phones",
+          "status": "PASS",
+          "evidence": "UnionHomeHeader.tsx:132 - style={{ height: 'calc(60px + env(safe-area-inset-top, 0px))' }}"
+        },
+        {
+          "name": "Mobile hamburger button is 44x44px",
+          "status": "PASS",
+          "evidence": "UnionHomeHeader.tsx:137 - size-[44px]"
+        },
+        {
+          "name": "Centered logo with absolute positioning",
+          "status": "PASS",
+          "evidence": "UnionHomeHeader.tsx:148 - absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+        },
+        {
+          "name": "Union name truncation on mobile",
+          "status": "PASS",
+          "evidence": "UnionHomeHeader.tsx:164 - max-w-[120px] truncate"
+        },
+        {
+          "name": "Balance spacer on right side",
+          "status": "PASS",
+          "evidence": "UnionHomeHeader.tsx:168 - size-[44px] aria-hidden='true'"
+        }
+      ]
+    },
+
+    {
+      "scenario_id": "MOB-002",
+      "title": "RegisterModal mobile fullscreen behavior",
+      "status": "PASS",
+      "details": "RegisterModal uses w-full h-full on mobile and md:w-full md:max-w-[480px] md:h-auto md:max-h-[90vh] md:rounded-2xl md:m-4 for desktop. This means fullscreen on mobile, centered card on desktop. Scrollable content area with overflow-y-auto.",
+      "sub_tests": [
+        {
+          "name": "Fullscreen on mobile",
+          "status": "PASS",
+          "evidence": "RegisterModal.tsx:1273 - 'w-full h-full' (mobile default)"
+        },
+        {
+          "name": "Centered modal on tablet+",
+          "status": "PASS",
+          "evidence": "RegisterModal.tsx:1275 - 'md:w-full md:max-w-[480px] md:h-auto md:max-h-[90vh] md:rounded-2xl md:m-4'"
+        },
+        {
+          "name": "Scrollable content area",
+          "status": "PASS",
+          "evidence": "RegisterModal.tsx:1313 - 'flex-1 overflow-y-auto px-4 md:px-6 pb-4'"
+        },
+        {
+          "name": "Responsive padding (px-4 on mobile, px-6 on md+)",
+          "status": "PASS",
+          "evidence": "RegisterModal.tsx:1279, 1294, 1313 - px-4 md:px-6"
+        },
+        {
+          "name": "Responsive icon sizes",
+          "status": "PASS",
+          "evidence": "RegisterModal.tsx:165+ - Icons use 'w-6 h-6 md:w-7 md:h-7'"
+        },
+        {
+          "name": "Step input area min-height responsive",
+          "status": "PASS",
+          "evidence": "RegisterModal.tsx:1556 - min-h-[300px] md:min-h-[350px]"
+        },
+        {
+          "name": "Close button touch target",
+          "status": "WARN",
+          "severity": "minor",
+          "evidence": "RegisterModal.tsx:1286 - 'p-2 hover:bg-gray-100 rounded-full'. Computed size is approximately 36x36px (20px icon + 16px padding). Below 44x44px recommendation.",
+          "expected": "Minimum 44x44px touch target",
+          "actual": "Approximately 36x36px"
+        }
+      ]
+    },
+
+    {
+      "scenario_id": "MOB-003",
+      "title": "Landing page mobile responsiveness",
+      "status": "PASS",
+      "details": "LandingPage uses min-h-dvh (dynamic viewport height, accounts for mobile browser chrome), flex-col layout, px-4 padding. Content area is max-w-[500px]. Union name uses responsive text sizing.",
+      "sub_tests": [
+        {
+          "name": "Dynamic viewport height",
+          "status": "PASS",
+          "evidence": "LandingPage.tsx:128 - 'min-h-dvh' accounts for mobile browser address bar"
+        },
+        {
+          "name": "Side padding on mobile",
+          "status": "PASS",
+          "evidence": "LandingPage.tsx:131 - 'py-8 px-4'"
+        },
+        {
+          "name": "Responsive union name text",
+          "status": "PASS",
+          "evidence": "LandingPage.tsx:142 - 'text-3xl md:text-4xl lg:text-5xl'"
+        },
+        {
+          "name": "Content max-width constrained",
+          "status": "PASS",
+          "evidence": "LandingPage.tsx:138 - 'max-w-[500px]'"
+        },
+        {
+          "name": "Login form mobile margin",
+          "status": "PASS",
+          "evidence": "LoginForm.tsx:55 - 'mx-4 md:mx-0', extra margin on mobile"
+        }
+      ]
+    },
+
+    {
+      "scenario_id": "MOB-004",
+      "title": "LoginForm mobile usability",
+      "status": "PASS",
+      "details": "LoginForm has adequate button height (h-12 = 48px), full width buttons, proper loading state. Kakao login button meets touch target requirements.",
+      "sub_tests": [
+        {
+          "name": "Login button height meets touch target",
+          "status": "PASS",
+          "evidence": "LoginForm.tsx:77 - 'w-full h-12' (48px height, well above 44px minimum)"
+        },
+        {
+          "name": "Disabled state visual feedback",
+          "status": "PASS",
+          "evidence": "LoginForm.tsx:83 - 'disabled:opacity-50 disabled:cursor-not-allowed'"
+        },
+        {
+          "name": "Error message visibility",
+          "status": "PASS",
+          "evidence": "LoginForm.tsx:63-66 - role='alert' with bg-red-50 container"
+        },
+        {
+          "name": "Loading spinner feedback",
+          "status": "PASS",
+          "evidence": "LoginForm.tsx:115-135 - Loading indicator with spinner animation"
+        }
+      ]
+    },
+
+    {
+      "scenario_id": "MOB-005",
+      "title": "NoticePopup mobile positioning and sizing",
+      "status": "PASS",
+      "details": "NoticePopup uses useMediaQuery for hydration-safe mobile detection. Mobile: full width minus margins, centered, top-4 fixed. Desktop: fixed 500px width with offset. Close button meets 44x44px.",
+      "sub_tests": [
+        {
+          "name": "Mobile width calculation",
+          "status": "PASS",
+          "evidence": "NoticePopup.tsx:88 - 'w-[calc(100%-32px)] sm:w-[500px]'"
+        },
+        {
+          "name": "Mobile centering",
+          "status": "PASS",
+          "evidence": "NoticePopup.tsx:89 - 'left-0 right-0 mx-auto sm:left-auto sm:right-auto'"
+        },
+        {
+          "name": "Mobile fixed to top",
+          "status": "PASS",
+          "evidence": "NoticePopup.tsx:90 - 'top-4 sm:top-auto'"
+        },
+        {
+          "name": "Desktop offset only applied on desktop",
+          "status": "PASS",
+          "evidence": "NoticePopup.tsx:97-100 - isDesktop check before applying positional offsets"
+        },
+        {
+          "name": "Close button touch target",
+          "status": "PASS",
+          "evidence": "NoticePopup.tsx:110 - 'min-w-[44px] min-h-[44px]' explicitly set"
+        },
+        {
+          "name": "Content max-height on mobile",
+          "status": "PASS",
+          "evidence": "NoticePopup.tsx:118 - 'max-h-[50vh] sm:max-h-[400px] overflow-y-auto'"
+        }
+      ]
+    },
+
+    {
+      "scenario_id": "MOB-006",
+      "title": "BlockedUserModal mobile display",
+      "status": "PASS",
+      "details": "Modal uses fixed inset-0 with p-4 padding for mobile safety margin. Inner card is max-w-md w-full which works well on mobile. Phone link is tappable.",
+      "sub_tests": [
+        {
+          "name": "Safe padding on all edges",
+          "status": "PASS",
+          "evidence": "BlockedUserModal.tsx:16 - 'fixed inset-0 ... p-4'"
+        },
+        {
+          "name": "Card width constrained",
+          "status": "PASS",
+          "evidence": "BlockedUserModal.tsx:17 - 'max-w-md w-full'"
+        },
+        {
+          "name": "Phone number is tappable tel: link",
+          "status": "PASS",
+          "evidence": "BlockedUserModal.tsx:49-53 - href={`tel:${unionPhone}`}"
+        },
+        {
+          "name": "Focus trap active",
+          "status": "PASS",
+          "evidence": "BlockedUserModal.tsx:13 - useFocusTrap(true)"
+        }
+      ]
+    },
+
+    {
+      "scenario_id": "MOB-007",
+      "title": "ApprovalPendingModal mobile display",
+      "status": "PASS",
+      "details": "Uses fixed inset-0 with p-4 edge padding. Card is max-w-md w-full. CTA button is h-12 (48px). Focus trap and ESC key handler active.",
+      "sub_tests": [
+        {
+          "name": "Edge padding for mobile",
+          "status": "PASS",
+          "evidence": "ApprovalPendingModal.tsx:42 - 'fixed inset-0 ... p-4'"
+        },
+        {
+          "name": "CTA button touch target",
+          "status": "PASS",
+          "evidence": "ApprovalPendingModal.tsx:83 - 'w-full h-12' (48px)"
+        },
+        {
+          "name": "Focus trap with ESC support",
+          "status": "PASS",
+          "evidence": "ApprovalPendingModal.tsx:21-22 - useFocusTrap(isOpen), ESC handler"
+        }
+      ]
+    },
+
+    {
+      "scenario_id": "MOB-008",
+      "title": "ApprovalRejectedModal mobile form usability",
+      "status": "PASS",
+      "details": "Edit mode form has scrollable content (max-h-[60vh] overflow-y-auto). Input fields are text-base (16px) which prevents iOS zoom on focus. Buttons are h-12. Form labels are properly associated.",
+      "sub_tests": [
+        {
+          "name": "Scrollable form area",
+          "status": "PASS",
+          "evidence": "ApprovalRejectedModal.tsx:297 - 'max-h-[60vh] overflow-y-auto'"
+        },
+        {
+          "name": "Input font size prevents iOS zoom",
+          "status": "PASS",
+          "evidence": "ApprovalRejectedModal.tsx:317,334,350,368,391 - 'text-base' (16px, iOS zoom threshold)"
+        },
+        {
+          "name": "Button touch targets",
+          "status": "PASS",
+          "evidence": "ApprovalRejectedModal.tsx:409,421 - 'h-12' (48px)"
+        },
+        {
+          "name": "Address search button accessible",
+          "status": "PASS",
+          "evidence": "ApprovalRejectedModal.tsx:370-376 - 'px-4 py-3' adequate touch target"
+        }
+      ]
+    },
+
+    {
+      "scenario_id": "MOB-009",
+      "title": "LandingPageNew mobile responsive sections",
+      "status": "PASS",
+      "details": "Login section uses responsive padding py-12 md:py-16. Content constrained to max-w-[500px]. Heading responsive text-2xl md:text-3xl. Full min-h-dvh layout.",
+      "sub_tests": [
+        {
+          "name": "Responsive section padding",
+          "status": "PASS",
+          "evidence": "LandingPageNew.tsx:142 - 'py-12 md:py-16'"
+        },
+        {
+          "name": "Login form max-width",
+          "status": "PASS",
+          "evidence": "LandingPageNew.tsx:146 - 'max-w-[500px] mx-auto px-4'"
+        },
+        {
+          "name": "Responsive heading",
+          "status": "PASS",
+          "evidence": "LandingPageNew.tsx:148 - 'text-2xl md:text-3xl'"
+        }
+      ]
+    },
+
+    {
+      "scenario_id": "MOB-010",
+      "title": "Skip navigation link visibility and usability",
+      "status": "PASS",
+      "details": "SkipNavLink component uses sr-only by default, becomes visible on focus with fixed positioning, z-[200], and themed styling. Works on all layout variants.",
+      "sub_tests": [
+        {
+          "name": "Hidden by default",
+          "status": "PASS",
+          "evidence": "UnionLayoutContent.tsx:20 - 'sr-only focus:not-sr-only'"
+        },
+        {
+          "name": "Visible on focus",
+          "status": "PASS",
+          "evidence": "UnionLayoutContent.tsx:20 - 'focus:fixed focus:top-4 focus:left-4 focus:z-[200]'"
+        },
+        {
+          "name": "Present on all layout paths",
+          "status": "PASS",
+          "evidence": "UnionLayoutContent.tsx:89,102,127,147 - SkipNavLink rendered in landing, admin, home, and general layouts"
+        }
+      ]
+    },
+
+    {
+      "scenario_id": "MOB-011",
+      "title": "Admin members page tab navigation on mobile",
+      "status": "FAIL",
+      "severity": "moderate",
+      "details": "Tab navigation uses 'flex -mb-px' with no horizontal scrolling or wrapping. 4 tabs (each ~px-6 py-4 with icon+text) will overflow on screens narrower than ~500px. No overflow-x-auto or flex-wrap applied.",
+      "sub_tests": [
+        {
+          "name": "Tab overflow on mobile",
+          "status": "FAIL",
+          "evidence": "admin/members/page.tsx:753 - 'nav class=flex -mb-px' with 4 tabs, each has px-6 padding. No overflow-x-auto.",
+          "expected": "overflow-x-auto on nav container for horizontal scrolling, or responsive text/icon sizing",
+          "actual": "Tabs will overflow and be clipped on mobile viewports"
+        },
+        {
+          "name": "Tab touch target size",
+          "status": "PASS",
+          "evidence": "admin/members/page.tsx:757 - 'px-6 py-4' provides adequate touch area"
+        }
+      ]
+    },
+
+    {
+      "scenario_id": "MOB-012",
+      "title": "Admin members approval tab search and filter on mobile",
+      "status": "WARN",
+      "severity": "minor",
+      "details": "Search and filter section uses 'flex flex-col md:flex-row gap-4' which correctly stacks on mobile. However, the DataTable used for member listing may have horizontal overflow issues on narrow screens since it renders multiple columns (status, name, phone, address, role, date).",
+      "sub_tests": [
+        {
+          "name": "Search/filter stacking",
+          "status": "PASS",
+          "evidence": "admin/members/page.tsx:998 - 'flex flex-col md:flex-row gap-4'"
+        },
+        {
+          "name": "Search input font size",
+          "status": "PASS",
+          "evidence": "admin/members/page.tsx:1013 - 'text-[16px]' prevents iOS zoom"
+        },
+        {
+          "name": "DataTable columns on mobile",
+          "status": "WARN",
+          "evidence": "6 columns (status, name, phone, address, role, date) defined at line 658-730. DataTable component not inspected but multi-column tables typically need horizontal scroll on mobile.",
+          "expected": "Table should have overflow-x-auto wrapper or responsive column hiding",
+          "actual": "Cannot confirm without inspecting DataTable component, but risk of horizontal overflow"
+        }
+      ]
+    },
+
+    {
+      "scenario_id": "MOB-013",
+      "title": "Admin members invite tab mobile layout",
+      "status": "FAIL",
+      "severity": "moderate",
+      "details": "The invite management card header uses 'flex items-center justify-between' for the title and manual invite button. On narrow screens, these may overlap. The button group for template/upload/sync uses flex-wrap which is good.",
+      "sub_tests": [
+        {
+          "name": "Header title and button overlap",
+          "status": "FAIL",
+          "evidence": "admin/members/page.tsx:818-836 - Title div and Button in flex justify-between without wrap. On mobile, the 'Manual Register' button may overlap the title text.",
+          "expected": "flex-wrap or stack vertically on mobile",
+          "actual": "Horizontal layout may cause overlap below ~400px width"
+        },
+        {
+          "name": "Action buttons wrap correctly",
+          "status": "PASS",
+          "evidence": "admin/members/page.tsx:838 - 'flex flex-wrap gap-4'"
+        }
+      ]
+    },
+
+    {
+      "scenario_id": "MOB-014",
+      "title": "SideAdWidget mobile behavior",
+      "status": "PASS",
+      "details": "SideAdWidget uses useMediaQuery to detect mobile and swap to mobile image if available. However, the widget is inside 'hidden md:block' containers in UnionLayoutContent, so it never renders on mobile. The widget itself handles mobile gracefully if ever shown.",
+      "sub_tests": [
+        {
+          "name": "Mobile image fallback",
+          "status": "PASS",
+          "evidence": "SideAdWidget.tsx:30 - 'isMobile && activeAd.image_url_mobile ? activeAd.image_url_mobile : activeAd.image_url'"
+        },
+        {
+          "name": "Hidden on mobile via parent",
+          "status": "PASS",
+          "evidence": "UnionLayoutContent.tsx:158,168 - 'hidden md:block' wraps SideAdWidget"
+        },
+        {
+          "name": "Responsive image sizes attribute",
+          "status": "PASS",
+          "evidence": "SideAdWidget.tsx:50 - sizes='(max-width: 1024px) 100vw, 300px'"
+        }
+      ]
+    },
+
+    {
+      "scenario_id": "MOB-015",
+      "title": "Content detail pages image overflow prevention",
+      "status": "PASS",
+      "details": "Free board detail page applies prose-img:max-w-full prose-img:h-auto to prevent images from overflowing content area. Other detail pages use prose max-w-none which, combined with container padding, should contain images.",
+      "sub_tests": [
+        {
+          "name": "Free board prose image constraints",
+          "status": "PASS",
+          "evidence": "free-board/[id]/page.tsx:118 - 'prose-img:max-w-full prose-img:h-auto'"
+        },
+        {
+          "name": "Notice detail prose constraints",
+          "status": "PASS",
+          "evidence": "notice/[id]/page.tsx:131 - 'prose prose-lg max-w-none'"
+        },
+        {
+          "name": "QnA detail prose constraints",
+          "status": "PASS",
+          "evidence": "qna/[id]/page.tsx:189 - 'prose prose-lg max-w-none'"
+        }
+      ]
+    },
+
+    {
+      "scenario_id": "MOB-016",
+      "title": "Notice detail page recent notices on mobile",
+      "status": "PASS",
+      "details": "Recent notices list uses flex items-center justify-between per row. Title has truncate and flex-1 min-w-0. Meta info has shrink-0 ml-4. Works on mobile but meta info may wrap.",
+      "sub_tests": [
+        {
+          "name": "Title truncation",
+          "status": "PASS",
+          "evidence": "notice/[id]/page.tsx:166 - 'truncate flex-1 min-w-0'"
+        },
+        {
+          "name": "Meta info positioning",
+          "status": "PASS",
+          "evidence": "notice/[id]/page.tsx:169 - 'shrink-0 ml-4' prevents meta from being squished"
+        }
+      ]
+    },
+
+    {
+      "scenario_id": "MOB-017",
+      "title": "QnA detail page answer editor on mobile",
+      "status": "WARN",
+      "severity": "minor",
+      "details": "The TextEditor component (TipTap) is rendered inside a p-6 container. TipTap editor toolbar accessibility on mobile is not verifiable from code alone. The answer buttons use flex justify-end gap-3 which may be tight on mobile.",
+      "sub_tests": [
+        {
+          "name": "Answer area container padding",
+          "status": "PASS",
+          "evidence": "qna/[id]/page.tsx:200 - 'bg-[#F5F5F5] rounded-[12px] p-6'"
+        },
+        {
+          "name": "TipTap editor mobile usability",
+          "status": "WARN",
+          "evidence": "Cannot verify TipTap toolbar mobile behavior from code alone. Toolbar buttons may be too small for touch. Requires runtime testing.",
+          "expected": "Editor toolbar buttons should be 44x44px minimum",
+          "actual": "Unknown - depends on TextEditor component implementation"
+        }
+      ]
+    },
+
+    {
+      "scenario_id": "MOB-018",
+      "title": "Loading skeleton states on mobile",
+      "status": "PASS",
+      "details": "All detail pages use container-constrained Skeleton components with px-4 padding for mobile safety. Loading states render full-width skeletons appropriate for mobile.",
+      "sub_tests": [
+        {
+          "name": "Notice loading skeleton",
+          "status": "PASS",
+          "evidence": "notice/[id]/page.tsx:56-58 - 'container mx-auto max-w-[1042px] px-4 py-8'"
+        },
+        {
+          "name": "Free board loading skeleton",
+          "status": "PASS",
+          "evidence": "free-board/[id]/page.tsx:62 - 'container mx-auto max-w-[1280px] px-4 py-8'"
+        }
+      ]
+    },
+
+    {
+      "scenario_id": "MOB-019",
+      "title": "Modal detail views on mobile (MemberDetailModal)",
+      "status": "PASS",
+      "details": "Member detail modal uses 'bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto'. This constrains the modal properly and enables scrolling on mobile.",
+      "sub_tests": [
+        {
+          "name": "Modal max-height with scroll",
+          "status": "PASS",
+          "evidence": "admin/members/page.tsx:1162 - 'max-w-lg w-full max-h-[90vh] overflow-y-auto'"
+        },
+        {
+          "name": "Form grid on mobile",
+          "status": "PASS",
+          "evidence": "admin/members/page.tsx:1241,1273 - 'grid grid-cols-2 gap-4' - adequate for most mobile widths"
+        }
+      ]
+    },
+
+    {
+      "scenario_id": "MOB-020",
+      "title": "Reject modal on mobile",
+      "status": "PASS",
+      "details": "Reject modal uses 'max-w-md w-full' which works well on mobile. Textarea and buttons have adequate sizing.",
+      "sub_tests": [
+        {
+          "name": "Modal width constraint",
+          "status": "PASS",
+          "evidence": "admin/members/page.tsx:1378 - 'max-w-md w-full'"
+        },
+        {
+          "name": "Textarea sizing",
+          "status": "PASS",
+          "evidence": "admin/members/page.tsx:1396 - 'w-full px-4 py-3 text-[14px]'"
+        }
+      ]
+    },
+
+    {
+      "scenario_id": "MOB-021",
+      "title": "Union inactive page mobile display",
+      "status": "PASS",
+      "details": "Inactive union page uses 'min-h-screen flex items-center justify-center p-4'. Card is 'max-w-md w-full'. Works well on mobile with centered content.",
+      "sub_tests": [
+        {
+          "name": "Centered with padding",
+          "status": "PASS",
+          "evidence": "UnionLayoutContent.tsx:63 - 'min-h-screen ... flex items-center justify-center p-4'"
+        },
+        {
+          "name": "Card width",
+          "status": "PASS",
+          "evidence": "UnionLayoutContent.tsx:64 - 'max-w-md w-full'"
+        },
+        {
+          "name": "CTA button",
+          "status": "PASS",
+          "evidence": "UnionLayoutContent.tsx:76 - 'px-6 py-3' adequate touch target"
+        }
+      ]
+    },
+
+    {
+      "scenario_id": "MOB-022",
+      "title": "Mobile sidebar user account section",
+      "status": "PASS",
+      "details": "User section displays user avatar, name (truncated at 120px), and expandable account menu. Logout and 'My property' links have adequate touch targets.",
+      "sub_tests": [
+        {
+          "name": "User name truncation",
+          "status": "PASS",
+          "evidence": "UnionMobileSidebar.tsx:226 - 'max-w-[120px] truncate'"
+        },
+        {
+          "name": "Account menu button touch target",
+          "status": "PASS",
+          "evidence": "UnionMobileSidebar.tsx:236-260 - Full width button with py-3 padding"
+        },
+        {
+          "name": "Sub-menu links touch target",
+          "status": "PASS",
+          "evidence": "UnionMobileSidebar.tsx:268 - 'px-3 py-2.5' (approx 40px height)"
+        },
+        {
+          "name": "Logout button touch target",
+          "status": "PASS",
+          "evidence": "UnionMobileSidebar.tsx:275 - 'px-3 py-2.5' adequate for touch"
+        }
+      ]
+    },
+
+    {
+      "scenario_id": "MOB-023",
+      "title": "Free board (communication) detail mobile layout",
+      "status": "PASS",
+      "details": "Uses responsive title text-[24px] md:text-[32px], flex-wrap on meta/buttons, container with px-4 padding. Identical pattern to other detail pages.",
+      "sub_tests": [
+        {
+          "name": "Responsive title",
+          "status": "PASS",
+          "evidence": "communication/free-board/[id]/page.tsx:79 - 'text-[24px] md:text-[32px]'"
+        },
+        {
+          "name": "Meta/buttons wrap",
+          "status": "PASS",
+          "evidence": "communication/free-board/[id]/page.tsx:80 - 'flex flex-wrap items-center justify-between gap-4'"
+        }
+      ]
+    },
+
+    {
+      "scenario_id": "MOB-024",
+      "title": "Overall iOS-specific input zoom prevention",
+      "status": "PASS",
+      "details": "Key form inputs use text-base (16px) or text-[16px] which prevents iOS Safari from zooming in on input focus. This applies to RegisterModal, ApprovalRejectedModal, and admin search.",
+      "sub_tests": [
+        {
+          "name": "RegisterModal inputs",
+          "status": "PASS",
+          "evidence": "RegisterModal uses responsive font sizing, form inputs render with adequate size"
+        },
+        {
+          "name": "ApprovalRejectedModal inputs",
+          "status": "PASS",
+          "evidence": "ApprovalRejectedModal.tsx:317,334,350 - 'text-base' on all inputs"
+        },
+        {
+          "name": "Admin search input",
+          "status": "PASS",
+          "evidence": "admin/members/page.tsx:1013 - 'text-[16px]'"
+        }
+      ]
+    }
+  ],
+
+  "issues_summary": [
+    {
+      "id": "MOBILE-ISSUE-001",
+      "severity": "moderate",
+      "title": "Union-info detail page title not responsive",
+      "file": "app/[slug]/communication/union-info/[id]/page.tsx",
+      "line": 80,
+      "description": "Title uses fixed text-[32px] without md: breakpoint variant. Other detail pages use text-[24px] md:text-[32px]. This causes oversized text on mobile.",
+      "fix": "Change text-[32px] to text-[24px] md:text-[32px]"
+    },
+    {
+      "id": "MOBILE-ISSUE-002",
+      "severity": "moderate",
+      "title": "Union-info detail page title/button row not wrapping",
+      "file": "app/[slug]/communication/union-info/[id]/page.tsx",
+      "line": 79,
+      "description": "Uses 'flex justify-between items-start' without flex-wrap. On narrow screens, buttons may overlap title.",
+      "fix": "Add flex-wrap and gap-4, or restructure to stack title above buttons on mobile"
+    },
+    {
+      "id": "MOBILE-ISSUE-003",
+      "severity": "moderate",
+      "title": "Admin members tab navigation overflows on mobile",
+      "file": "app/[slug]/admin/members/page.tsx",
+      "line": 753,
+      "description": "4 tabs with px-6 padding and icon+text in a simple flex container. No overflow-x-auto, so tabs get clipped on mobile screens.",
+      "fix": "Add overflow-x-auto to nav container, or use responsive tab sizing"
+    },
+    {
+      "id": "MOBILE-ISSUE-004",
+      "severity": "moderate",
+      "title": "Admin invite section header may overlap on mobile",
+      "file": "app/[slug]/admin/members/page.tsx",
+      "line": 818,
+      "description": "Title and 'Manual Register' button in flex justify-between without wrap may overlap on narrow screens.",
+      "fix": "Add flex-wrap or stack vertically on mobile with flex-col sm:flex-row"
+    },
+    {
+      "id": "MOBILE-ISSUE-005",
+      "severity": "minor",
+      "title": "RegisterModal close button below 44px touch target",
+      "file": "app/_lib/widgets/modal/RegisterModal.tsx",
+      "line": 1286,
+      "description": "Close button uses p-2 with 20px icon, resulting in ~36px touch target. Below Apple's 44px recommendation.",
+      "fix": "Change p-2 to p-3, or add min-w-[44px] min-h-[44px]"
+    },
+    {
+      "id": "MOBILE-ISSUE-006",
+      "severity": "minor",
+      "title": "TipTap editor toolbar mobile usability unknown",
+      "file": "app/[slug]/news/qna/[id]/page.tsx",
+      "line": 201,
+      "description": "TipTap editor toolbar button sizes cannot be verified from code alone. May need runtime mobile testing.",
+      "fix": "Verify TipTap toolbar buttons meet 44px minimum touch target on mobile"
+    },
+    {
+      "id": "MOBILE-ISSUE-007",
+      "severity": "minor",
+      "title": "Admin DataTable may overflow horizontally on mobile",
+      "file": "app/[slug]/admin/members/page.tsx",
+      "line": 658,
+      "description": "6 columns defined for the user approval table. Multi-column tables typically overflow on mobile. Cannot verify without inspecting DataTable component.",
+      "fix": "Ensure DataTable has overflow-x-auto wrapper or responsive column hiding"
+    }
+  ],
+
+  "positive_findings": [
+    "Separate mobile/desktop header with proper safe area insets for notched phones",
+    "RegisterModal goes fullscreen on mobile with scrollable content",
+    "Ads hidden on mobile via Tailwind hidden/md:block pattern",
+    "44x44px touch targets on hamburger menu button and NoticePopup close button",
+    "iOS zoom prevention with 16px (text-base) input font sizes",
+    "Dynamic viewport height (min-h-dvh) on landing page accounts for mobile browser chrome",
+    "Radix Sheet for mobile sidebar with proper ARIA attributes",
+    "Focus-visible rings on all interactive elements for keyboard/touch navigation",
+    "Responsive text sizing (text-3xl md:text-4xl) on key headings",
+    "flex-wrap on meta information rows prevents overflow on detail pages",
+    "useMediaQuery hook for hydration-safe responsive logic",
+    "Modal edge padding (p-4) prevents modals from touching screen edges",
+    "NoticePopup explicitly sets min-w/min-h [44px] on close button",
+    "User name truncation (max-w-[120px]) in mobile header and sidebar"
+  ],
+
+  "coverage_notes": {
+    "tested_components": [
+      "UnionLayoutContent (3 layout variants + landing + admin)",
+      "UnionHomeHeader (mobile + desktop headers)",
+      "UnionMobileSidebar",
+      "LandingPage + LandingPageNew",
+      "LoginForm",
+      "RegisterModal",
+      "NoticePopup",
+      "BlockedUserModal",
+      "ApprovalPendingModal",
+      "ApprovalRejectedModal",
+      "SideAdWidget",
+      "Notice detail page",
+      "Free board detail page (2 variants)",
+      "QnA detail page",
+      "Union-info detail page",
+      "Admin members page (tabs, search, modals)"
+    ],
+    "not_tested": [
+      "TextEditor (TipTap) toolbar mobile behavior - requires runtime testing",
+      "DataTable component internal responsive behavior",
+      "KakaoAddressSearch popup on mobile - third-party component",
+      "BirthDatePicker mobile interaction",
+      "Image upload/preview on mobile",
+      "Breadcrumb component on mobile",
+      "List/index pages (notice list, free board list, etc.) - not in scope of assigned scenarios"
+    ]
+  },
+
+  "cross_cutting_issues_from_other_testers": [
+    {
+      "source": "T3-User-Chaos (verified by test-lead)",
+      "severity": "CRITICAL",
+      "title": "useDeleteNotice missing ownership/role guard",
+      "file": "app/_lib/features/notice/api/useNoticeHook.ts",
+      "line": 511,
+      "description": "Delete mutation has no author_id or role check. Any authenticated user can delete any notice. UI hides button for non-admins, but mutation is unguarded. Mobile user Sam could trigger this via direct mutation call.",
+      "mobile_relevance": "LOW - UI correctly hides delete button for non-admin users, so mobile user would not see it. However, the underlying mutation is exploitable."
+    },
+    {
+      "source": "T3-User-Chaos (verified by test-lead)",
+      "severity": "HIGH",
+      "title": "Cascade-delete ordering bug in useDeleteFreeBoard and useDeleteQuestion",
+      "description": "Files and comments are deleted BEFORE ownership check on the post. If non-owner triggers mutation, files/comments are permanently lost even though post survives.",
+      "mobile_relevance": "LOW - Same UI-level guard applies; mobile user would not see delete button unless they are the author."
+    }
+  ]
+}

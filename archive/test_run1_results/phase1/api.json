@@ -1,0 +1,503 @@
+{
+  "api_type": "REST",
+  "base_url": "/api",
+  "auth_module": {
+    "path": "app/_lib/shared/api/auth.ts",
+    "functions": [
+      {
+        "name": "authenticateApiRequest",
+        "description": "Primary API auth: Supabase Auth session -> user_auth_links -> users table lookup. Checks blocked status, admin role, union access.",
+        "options": {
+          "requireAdmin": "boolean - checks role SYSTEM_ADMIN | ADMIN",
+          "requireUnionId": "boolean - checks user.union_id matches or SYSTEM_ADMIN",
+          "unionId": "string - target union ID for access check"
+        },
+        "flow": [
+          "1. supabase.auth.getUser() - verify session",
+          "2. user_auth_links.select(user_id).eq(auth_user_id) - resolve user",
+          "3. users.select(*).eq(id, user_id) - get profile",
+          "3.5. Check is_blocked -> 403 USER_BLOCKED",
+          "4. If requireAdmin: check role in [SYSTEM_ADMIN, ADMIN]",
+          "5. If requireUnionId: check SYSTEM_ADMIN or user.union_id === unionId"
+        ],
+        "returns": "{ authenticated: true, user: User, authUserId } | { authenticated: false, response: NextResponse }"
+      },
+      {
+        "name": "authenticateServiceRequest",
+        "description": "Internal service auth: x-internal-api-key header check, falls back to authenticateApiRequest",
+        "used_by": "None currently (available for proxy server calls)"
+      }
+    ]
+  },
+  "middleware": {
+    "path": "app/_lib/shared/supabase/middleware.ts",
+    "function": "updateSession",
+    "features": [
+      "CSRF validation (POST/PUT/PATCH/DELETE): Origin vs Host header check (skipped on localhost)",
+      "Supabase Auth session refresh via getUser()",
+      "Access token validation (tokenKey query param or guest_access cookie)",
+      "Public paths bypass: /, /contact, /privacy, /terms, /auth, /invite, /member-invite, /swagger",
+      "System admin paths: /systemAdmin/* (requires login, redirects to /systemAdmin/login)",
+      "Union pages: /[slug]/* (landing + register public, subpages require auth)",
+      "Admin path guard: /[slug]/admin/* requires role ADMIN | SUPER_ADMIN | SYSTEM_ADMIN via user_auth_links -> users.role",
+      "Localhost dev bypass: skips auth checks entirely in development"
+    ]
+  },
+  "endpoints": [
+    {
+      "method": "GET",
+      "path": "/api/admin/access-tokens",
+      "auth": "authenticateApiRequest({ requireAdmin: true }) + SYSTEM_ADMIN role check",
+      "description": "List all access tokens (soft-delete filtered)",
+      "request_body": null,
+      "response": { "data": "AccessTokenListItem[]" },
+      "supabase_tables": ["access_tokens", "unions"],
+      "notes": "Double admin check: authenticateApiRequest + explicit SYSTEM_ADMIN"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/access-tokens",
+      "auth": "authenticateApiRequest({ requireAdmin: true }) + SYSTEM_ADMIN role check",
+      "description": "Create new access token with nanoid(32)",
+      "request_body": {
+        "name": "string (required)",
+        "union_id": "string? (optional scope)",
+        "access_scope": "string? (default: 'all')",
+        "allowed_pages": "string[]? (optional page restriction)",
+        "expires_in_days": "number? (optional expiry)",
+        "max_usage": "number? (optional usage limit)"
+      },
+      "response": { "data": { "id": "string", "key": "string", "name": "string", "expires_at": "string?" } },
+      "supabase_tables": ["access_tokens"]
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/access-tokens/[id]",
+      "auth": "Manual: supabase.auth.getUser() + users.role === SYSTEM_ADMIN",
+      "description": "Get access token details by ID",
+      "request_body": null,
+      "response": { "data": "AccessToken & { unions: { name, slug } }" },
+      "supabase_tables": ["access_tokens", "unions"],
+      "notes": "Does NOT use authenticateApiRequest - uses manual auth pattern"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/admin/access-tokens/[id]",
+      "auth": "Manual: supabase.auth.getUser() + users.role === SYSTEM_ADMIN",
+      "description": "Soft-delete access token (set deleted_at)",
+      "request_body": null,
+      "response": { "success": true },
+      "supabase_tables": ["access_tokens"],
+      "notes": "Does NOT use authenticateApiRequest - uses manual auth pattern"
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/naver",
+      "auth": "None (public)",
+      "description": "Initiate Naver OAuth flow - redirects to nid.naver.com",
+      "request_body": null,
+      "query_params": { "slug": "string? (union slug for redirect)" },
+      "response": "302 Redirect to Naver OAuth",
+      "external_apis": ["https://nid.naver.com/oauth2.0/authorize"],
+      "env_vars": ["NAVER_CLIENT_ID", "NEXT_PUBLIC_APP_URL"]
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/naver/callback",
+      "auth": "None (OAuth callback)",
+      "description": "Naver OAuth callback: exchange code for token, create/find user, set cookies, redirect",
+      "query_params": { "code": "string", "state": "string (base64 JSON with slug)" },
+      "response": "302 Redirect based on user status",
+      "external_apis": [
+        "https://nid.naver.com/oauth2.0/token",
+        "https://openapi.naver.com/v1/nid/me"
+      ],
+      "supabase_tables": ["user_auth_links", "users", "unions"],
+      "supabase_auth": ["admin.listUsers()", "admin.createUser()", "admin.generateLink()"],
+      "env_vars": ["NAVER_CLIENT_ID", "NAVER_CLIENT_SECRET", "SUPABASE_SERVICE_ROLE_KEY"],
+      "cookies_set": ["naver-auth-user-id", "naver-user-id", "register-prefill"],
+      "notes": "Uses Supabase Admin client with service role key. Lists ALL auth users to find by email (performance concern)."
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/verify-token",
+      "auth": "None (token self-validates)",
+      "description": "Validate access token and increment usage count",
+      "request_body": { "tokenKey": "string", "path": "string?" },
+      "response": "TokenValidationResult { valid: boolean, reason?: string, token?: AccessToken }",
+      "supabase_tables": ["access_tokens", "access_token_logs"],
+      "notes": "TOCTOU race: reads usage_count then updates non-atomically"
+    },
+    {
+      "method": "POST",
+      "path": "/api/consent/bulk-update",
+      "auth": "authenticateApiRequest({ requireAdmin: true, requireUnionId: true, unionId })",
+      "description": "Bulk update consent status for members (sync <50, async >=50)",
+      "request_body": {
+        "unionId": "string",
+        "stageId": "string",
+        "memberIds": "string[]",
+        "status": "'AGREED' | 'DISAGREED'"
+      },
+      "response": "{ successCount, failCount } or { jobId, message } (async)",
+      "supabase_tables": ["user_consents", "sync_jobs"],
+      "external_apis": ["ALIMTALK_PROXY_URL/api/consent/queue"],
+      "notes": "Uses service role key directly (module-level createClient). Async fallback if proxy unreachable."
+    },
+    {
+      "method": "POST",
+      "path": "/api/consent/bulk-upload",
+      "auth": "authenticateApiRequest({ requireAdmin: true, requireUnionId: true, unionId })",
+      "description": "Bulk upload consent data from Excel (name+address matching)",
+      "request_body": {
+        "unionId": "string",
+        "stageId": "string",
+        "data": "ConsentUploadRow[] ({ rowNumber, name, address, dong?, ho?, status })"
+      },
+      "response": "{ successCount, failCount, errors } or { jobId, message } (async)",
+      "supabase_tables": ["users", "user_property_units", "user_consents", "sync_jobs"],
+      "external_apis": ["ALIMTALK_PROXY_URL/api/consent/upload-queue"],
+      "notes": "Complex member matching: name + address + dong/ho. Uses ilike without escape for address search."
+    },
+    {
+      "method": "GET",
+      "path": "/api/docs",
+      "auth": "None (public)",
+      "description": "Swagger/OpenAPI documentation endpoint",
+      "request_body": null,
+      "response": "OpenAPI 3.0 JSON spec"
+    },
+    {
+      "method": "GET",
+      "path": "/api/image/resize",
+      "auth": "None (public)",
+      "description": "Get image resize configuration",
+      "query_params": { "type": "ImageType?" },
+      "response": "{ success: true, data: ImageConfig | ImageConfigs }"
+    },
+    {
+      "method": "POST",
+      "path": "/api/image/resize",
+      "auth": "None (public)",
+      "description": "Resize image using Sharp library",
+      "request_body": "FormData { file: File, imageType: ImageType, useHighRes?: 'true' }",
+      "response": "{ success: true, data: { dataUrl, buffer, mimeType, format, originalSize, resizedSize, config } }",
+      "notes": "No auth - anyone can resize images. Returns base64 data URL."
+    },
+    {
+      "method": "POST",
+      "path": "/api/member-invite/sync",
+      "auth": "authenticateApiRequest({ requireAdmin: true, requireUnionId: true, unionId })",
+      "description": "Sync member invites from Excel data (insert new, delete removed). Handles auth.users deletion for USED invites.",
+      "request_body": {
+        "unionId": "string",
+        "expiresHours": "number (default: 24)",
+        "members": "array of member invite data"
+      },
+      "response": "{ success, inserted, deleted_pending, deleted_used, deleted_auth_users, batchId, duration_ms }",
+      "supabase_tables": ["member_invites", "member_access_logs"],
+      "supabase_rpc": ["sync_member_invites"],
+      "supabase_auth": ["admin.deleteUser()"],
+      "env_vars": ["SUPABASE_SERVICE_ROLE_KEY"],
+      "notes": "Audit logging with batch_id. 207 Multi-Status on partial auth user deletion failure."
+    },
+    {
+      "method": "POST",
+      "path": "/api/member-invite/sync-async",
+      "auth": "authenticateApiRequest({ requireAdmin: true, requireUnionId: true, unionId })",
+      "description": "Async version of member invite sync via proxy server queue",
+      "request_body": {
+        "unionId": "string",
+        "expiresHours": "number (default: 8760)",
+        "members": "array"
+      },
+      "response": "{ success, jobId, jobType, status, totalCount, message }",
+      "external_apis": ["ALIMTALK_PROXY_URL/api/member/invite-sync"]
+    },
+    {
+      "method": "POST",
+      "path": "/api/member-invite/pre-register",
+      "auth": "authenticateApiRequest({ requireAdmin: true, requireUnionId: true, unionId })",
+      "description": "Async pre-registration of members via proxy server queue",
+      "request_body": {
+        "unionId": "string",
+        "members": "array"
+      },
+      "response": "{ success, jobId, jobType, status, totalCount, message }",
+      "external_apis": ["ALIMTALK_PROXY_URL/api/member/pre-register"]
+    },
+    {
+      "method": "GET",
+      "path": "/api/member-invite/job/[jobId]",
+      "auth": "authenticateApiRequest({ requireAdmin: true })",
+      "description": "Get job status (proxy server first, then direct DB fallback)",
+      "response": "{ success, data: { jobId, jobType, status, progress, totalCount, processedCount, result, error } }",
+      "external_apis": [
+        "ALIMTALK_PROXY_URL/api/member/job/[jobId]",
+        "ALIMTALK_PROXY_URL/api/member/job/[jobId]/db"
+      ],
+      "supabase_tables": ["sync_jobs"],
+      "notes": "Triple fallback: proxy in-memory -> proxy DB -> direct DB query"
+    },
+    {
+      "method": "POST",
+      "path": "/api/member-invite/sync-properties",
+      "auth": "authenticateApiRequest({ requireAdmin: true, requireUnionId: true, unionId })",
+      "description": "Sync GIS data with member property units via proxy server",
+      "request_body": { "unionId": "string" },
+      "response": "{ success, jobId, jobType, status, totalCount, message }",
+      "external_apis": ["ALIMTALK_PROXY_URL/api/member/sync-properties"]
+    },
+    {
+      "method": "GET",
+      "path": "/api/members/check-conflict",
+      "auth": "authenticateApiRequest({ requireAdmin: true })",
+      "description": "Check property ownership conflicts before member approval",
+      "query_params": { "userId": "string (required)" },
+      "response": "ConflictCheckResult { hasConflict, conflicts: PropertyConflict[], pendingUser }",
+      "supabase_tables": ["users", "user_property_units"]
+    },
+    {
+      "method": "POST",
+      "path": "/api/members/approve",
+      "auth": "authenticateApiRequest({ requireAdmin: true, requireUnionId: true, unionId })",
+      "description": "Approve a pending member (PENDING_APPROVAL -> APPROVED)",
+      "request_body": { "unionId": "string", "memberId": "string" },
+      "response": "{ success: true, message }",
+      "supabase_tables": ["users", "member_access_logs"],
+      "supabase_auth": ["admin client for audit logging"],
+      "notes": "Full audit logging on success/failure. Double-checks user_status === PENDING_APPROVAL."
+    },
+    {
+      "method": "POST",
+      "path": "/api/sms/send",
+      "auth": "authenticateApiRequest({ requireAdmin: true, requireUnionId: true, unionId })",
+      "description": "Send SMS via proxy server with JWT auth",
+      "request_body": {
+        "unionId": "string",
+        "recipients": "Recipient[] ({ name, phone })",
+        "message": "string",
+        "msgType": "'SMS' | 'LMS' | 'MMS'",
+        "title": "string? (for LMS/MMS)"
+      },
+      "response": "{ success, msg_id, success_cnt, error_cnt, message }",
+      "external_apis": ["ALIMTALK_PROXY_URL/api/sms/send"],
+      "env_vars": ["JWT_SECRET", "ALIMTALK_PROXY_URL"],
+      "notes": "Generates short-lived JWT (5min) with jose library for proxy auth"
+    },
+    {
+      "method": "GET",
+      "path": "/api/sms/template",
+      "auth": "None (public)",
+      "description": "Download SMS recipient Excel template",
+      "response": "application/xlsx file (sms_recipients_template.xlsx)"
+    }
+  ],
+  "auth_callback_routes": [
+    {
+      "method": "GET",
+      "path": "/auth/callback",
+      "auth": "None (Supabase OAuth callback)",
+      "description": "Kakao OAuth callback: exchange code for session, find/create user membership per union, handle invite tokens",
+      "query_params": {
+        "code": "string (authorization code)",
+        "slug": "string? (union slug)",
+        "invite_token": "string? (admin invite)",
+        "member_invite_token": "string? (member invite)"
+      },
+      "flow": [
+        "1. Exchange code for session (PKCE)",
+        "2. Get current union's union_id from slug",
+        "3. Check user_auth_links + users for existing membership in current union",
+        "4. If existing: redirect by user_status (APPROVED/PENDING/REJECTED)",
+        "5. If invite_token: lookup admin_invites, set register-prefill cookie",
+        "6. If member_invite_token: lookup member_invites, set register-prefill cookie",
+        "7. Otherwise: redirect to main page (registration modal auto-shows)"
+      ],
+      "supabase_tables": ["unions", "user_auth_links", "users", "admin_invites", "member_invites"],
+      "cookies_set": ["register-prefill (httpOnly: false)"]
+    }
+  ],
+  "supabase_client_operations": [
+    {
+      "hook": "useCommentHook.ts",
+      "table": "comments",
+      "operations": {
+        "read": ["select with author join, filter by entity_type/entity_id", "count query"],
+        "create": ["insert with union_id, nested reply validation (max 1 level)"],
+        "update": ["update by id"],
+        "delete": ["delete by id, ownership check (author_id for non-admin)"]
+      }
+    },
+    {
+      "hook": "useFreeBoardHook.ts",
+      "table": "free_boards",
+      "operations": {
+        "read": ["select with author join, search (ilike with escapeLikeWildcards), pagination", "file/comment count aggregation"],
+        "create": ["insert, then editor image upload, then file confirmation"],
+        "update": ["update by id, editor image processing"],
+        "delete": ["delete storage folder, delete file records, delete comments, delete post (author_id check for non-admin)"],
+        "rpc": ["increment_free_board_views"]
+      },
+      "related_tables": ["files", "comments", "users"]
+    },
+    {
+      "hook": "useNoticeHook.ts",
+      "table": "notices",
+      "operations": {
+        "read": ["select with author join + alimtalk_logs count, search (ilike with escapeLikeWildcards)", "popup notices (is_popup + date range)", "recent notices (lightweight)"],
+        "create": ["insert, editor image upload, file confirmation, optional AlimTalk send (immediate or scheduled)"],
+        "update": ["update by id, editor image processing"],
+        "delete": ["delete storage folder, delete file records, delete post"],
+        "rpc": ["increment_notice_views"]
+      },
+      "related_tables": ["files", "comments", "users", "scheduled_alimtalks", "alimtalk_logs"]
+    },
+    {
+      "hook": "useQuestionHook.ts",
+      "table": "questions",
+      "operations": {
+        "read": ["select with author/answer_author join, secret question filter (non-admin: is_secret=false OR own), search", "detail with access control"],
+        "create": ["insert, editor image upload, admin AlimTalk notification"],
+        "update": ["update by id, editor image processing"],
+        "delete": ["delete storage folder, delete post (author_id check for non-admin)"],
+        "answer": ["update answer_content/answer_author_id/answered_at, AlimTalk to questioner"],
+        "delete_answer": ["null out answer fields"],
+        "rpc": ["increment_question_views"]
+      },
+      "related_tables": ["users"]
+    },
+    {
+      "hook": "useMemberHook.ts",
+      "table": "users",
+      "operations": {
+        "read": [
+          "approved members list with property units (paginated)",
+          "approved members infinite scroll via RPC get_grouped_members",
+          "member detail by id",
+          "admin users list (multi-filter: status, role, search)",
+          "co-owners query (same building_unit_id)",
+          "member consent status (consent_stages + user_consents)"
+        ],
+        "update": [
+          "update member profile (name, birth_date, phone, address, notes)",
+          "block member (is_blocked, blocked_reason)",
+          "unblock member",
+          "update PNU (property_pnu)",
+          "approve user (PENDING_APPROVAL -> APPROVED)",
+          "reject user (PENDING_APPROVAL -> REJECTED, with reason)",
+          "cancel rejection (REJECTED -> PENDING_APPROVAL)",
+          "update role",
+          "update executive status/title/sort_order"
+        ],
+        "rpc": ["get_grouped_members", "set_primary_property_unit"]
+      },
+      "related_tables": ["user_property_units", "building_units", "buildings", "land_lots", "consent_stages", "user_consents"]
+    }
+  ],
+  "external_apis": [
+    {
+      "name": "Naver OAuth",
+      "urls": [
+        "https://nid.naver.com/oauth2.0/authorize",
+        "https://nid.naver.com/oauth2.0/token",
+        "https://openapi.naver.com/v1/nid/me"
+      ],
+      "used_in": "/api/auth/naver, /api/auth/naver/callback"
+    },
+    {
+      "name": "AlimTalk Proxy Server",
+      "base_url": "ALIMTALK_PROXY_URL (default: http://localhost:3100 or :3005)",
+      "endpoints": [
+        "/api/sms/send",
+        "/api/consent/queue",
+        "/api/consent/upload-queue",
+        "/api/member/invite-sync",
+        "/api/member/pre-register",
+        "/api/member/sync-properties",
+        "/api/member/job/[jobId]",
+        "/api/member/job/[jobId]/db"
+      ],
+      "auth": "JWT (jose, HS256, 5min expiry) for SMS; no auth for other endpoints",
+      "used_in": "SMS send, consent bulk update/upload, member invite sync, pre-register, property sync, job status"
+    },
+    {
+      "name": "Supabase Auth Admin",
+      "operations": ["listUsers", "createUser", "deleteUser", "generateLink"],
+      "used_in": "/api/auth/naver/callback, /api/member-invite/sync"
+    },
+    {
+      "name": "AlimTalk (via sendAlimTalk action)",
+      "template_codes": ["UE_2827 (notice notification)", "UE_3236 (question notification)", "UE_3000 (answer notification)"],
+      "used_in": "useNoticeHook, useQuestionHook (client-side)"
+    }
+  ],
+  "supabase_rpc_functions": [
+    { "name": "sync_member_invites", "params": ["p_union_id", "p_created_by", "p_expires_hours", "p_members"], "used_in": "/api/member-invite/sync" },
+    { "name": "increment_notice_views", "params": ["notice_id"], "used_in": "useNoticeHook" },
+    { "name": "increment_free_board_views", "params": ["free_board_id"], "used_in": "useFreeBoardHook" },
+    { "name": "increment_question_views", "params": ["question_id"], "used_in": "useQuestionHook" },
+    { "name": "get_grouped_members", "params": ["p_union_id", "p_search_query", "p_blocked_filter", "p_page", "p_page_size"], "used_in": "useMemberHook" },
+    { "name": "set_primary_property_unit", "params": ["p_user_id", "p_property_unit_id"], "used_in": "useMemberHook" }
+  ],
+  "security_observations": [
+    {
+      "severity": "HIGH",
+      "issue": "access-tokens/[id] GET and DELETE do not use authenticateApiRequest - manual auth pattern inconsistent",
+      "location": "app/api/admin/access-tokens/[id]/route.ts"
+    },
+    {
+      "severity": "HIGH",
+      "issue": "verify-token POST has no auth - TOCTOU race on usage_count (read-then-update non-atomically)",
+      "location": "app/api/auth/verify-token/route.ts"
+    },
+    {
+      "severity": "HIGH",
+      "issue": "Image resize endpoints have no auth - anyone can resize images, potential DoS vector",
+      "location": "app/api/image/resize/route.ts"
+    },
+    {
+      "severity": "MEDIUM",
+      "issue": "consent/bulk-upload uses module-level Supabase admin client (service role key) - persists across requests",
+      "location": "app/api/consent/bulk-update/route.ts, app/api/consent/bulk-upload/route.ts"
+    },
+    {
+      "severity": "MEDIUM",
+      "issue": "Naver callback lists ALL auth users to find by email - O(n) scan, no pagination",
+      "location": "app/api/auth/naver/callback/route.ts:117"
+    },
+    {
+      "severity": "MEDIUM",
+      "issue": "Proxy server calls (consent, member-invite) have no auth headers - rely on internal network security",
+      "location": "Multiple proxy call sites"
+    },
+    {
+      "severity": "MEDIUM",
+      "issue": "useAdminUsers search does not escape LIKE wildcards (searchQuery used directly)",
+      "location": "app/_lib/features/member-management/api/useMemberHook.ts:991"
+    },
+    {
+      "severity": "LOW",
+      "issue": "SMS template download has no auth",
+      "location": "app/api/sms/template/route.ts"
+    },
+    {
+      "severity": "LOW",
+      "issue": "Docs endpoint (Swagger) has no auth - exposes API structure",
+      "location": "app/api/docs/route.ts"
+    },
+    {
+      "severity": "INFO",
+      "issue": "Middleware skips all auth on localhost in development mode",
+      "location": "app/_lib/shared/supabase/middleware.ts:350-352"
+    }
+  ],
+  "tables_accessed": [
+    "access_tokens", "access_token_logs", "admin_invites", "alimtalk_logs",
+    "building_units", "buildings", "comments", "consent_stages",
+    "files", "free_boards", "land_lots", "member_access_logs",
+    "member_invites", "notices", "questions", "scheduled_alimtalks",
+    "sync_jobs", "unions", "user_auth_links", "user_consents",
+    "user_property_units", "users"
+  ]
+}
