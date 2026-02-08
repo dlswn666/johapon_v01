@@ -90,67 +90,57 @@ export function KakaoAddressSearch({
         });
     }, []);
 
-    // 주소 검색 팝업 열기
-    const handleOpenPostcode = useCallback(async () => {
+    // 주소 검색 오버레이 열기
+    const handleOpenPostcode = useCallback(() => {
         if (disabled) return;
 
-        try {
-            await loadDaumPostcodeScript();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const daum = (window as any).daum;
 
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const daum = (window as any).daum;
-
-            if (!daum || !daum.Postcode) {
-                console.error('Daum Postcode API를 로드할 수 없습니다.');
-                return;
-            }
-
-            new daum.Postcode({
-                oncomplete: (data: {
-                    zonecode: string;
-                    roadAddress: string;
-                    jibunAddress: string;
-                    autoRoadAddress: string;
-                    autoJibunAddress: string;
-                    buildingName: string;
-                    address: string;
-                    addressType: string;
-                    bcode: string;
-                    main_address_no: string;
-                    sub_address_no: string;
-                    mountain: string;
-                }) => {
-                    // 도로명 주소와 지번 주소 추출
-                    const roadAddress = data.roadAddress || data.autoRoadAddress || '';
-                    const jibunAddress = data.jibunAddress || data.autoJibunAddress || '';
-
-                    // 기본 주소는 도로명이 있으면 도로명, 없으면 지번
-                    const address = roadAddress || jibunAddress;
-
-                    const addressData: AddressData = {
-                        zonecode: data.zonecode,
-                        roadAddress,
-                        jibunAddress,
-                        buildingName: data.buildingName || '',
-                        address,
-                        bcode: data.bcode || '',
-                        main_address_no: data.main_address_no || '',
-                        sub_address_no: data.sub_address_no || '',
-                        mountain_yn: data.mountain === 'Y' ? 'Y' : 'N',
-                    };
-
-                    onAddressSelect(addressData);
-                },
-                width: '100%',
-                height: '100%',
-            }).open({
-                // 팝업 위치 지정 (화면 중앙)
-                popupKey: 'kakaoAddressPopup',
-                autoClose: true,
-            });
-        } catch (error) {
-            console.error('주소 검색 오류:', error);
+        if (!daum || !daum.Postcode) {
+            console.error('Daum Postcode API를 로드할 수 없습니다.');
+            return;
         }
+
+        new daum.Postcode({
+            oncomplete: (data: {
+                zonecode: string;
+                roadAddress: string;
+                jibunAddress: string;
+                autoRoadAddress: string;
+                autoJibunAddress: string;
+                buildingName: string;
+                address: string;
+                addressType: string;
+                bcode: string;
+                main_address_no: string;
+                sub_address_no: string;
+                mountain: string;
+            }) => {
+                // 도로명 주소와 지번 주소 추출
+                const roadAddress = data.roadAddress || data.autoRoadAddress || '';
+                const jibunAddress = data.jibunAddress || data.autoJibunAddress || '';
+
+                // 기본 주소는 도로명이 있으면 도로명, 없으면 지번
+                const address = roadAddress || jibunAddress;
+
+                const addressData: AddressData = {
+                    zonecode: data.zonecode,
+                    roadAddress,
+                    jibunAddress,
+                    buildingName: data.buildingName || '',
+                    address,
+                    bcode: data.bcode || '',
+                    main_address_no: data.main_address_no || '',
+                    sub_address_no: data.sub_address_no || '',
+                    mountain_yn: data.mountain === 'Y' ? 'Y' : 'N',
+                };
+
+                onAddressSelect(addressData);
+            },
+            width: '100%',
+            height: '100%',
+        }).open();
     }, [disabled, onAddressSelect]);
 
     return (
