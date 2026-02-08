@@ -31,7 +31,7 @@ interface UnionLayoutContentProps {
 
 export default function UnionLayoutContent({ children }: UnionLayoutContentProps) {
     const { union, slug, isLoading: isUnionLoading } = useSlug();
-    const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
+    const { isAuthenticated, isLoading: isAuthLoading, isUserFetching, authUser, user } = useAuth();
     const pathname = usePathname();
 
     // 홈 페이지 여부 확인
@@ -40,11 +40,14 @@ export default function UnionLayoutContent({ children }: UnionLayoutContentProps
     // 관리자 페이지 여부 확인 (admin 경로)
     const isAdminPage = pathname.startsWith(`/${slug}/admin`);
 
-    // 랜딩 페이지 여부 확인 (비로그인 + 홈페이지)
-    const isLandingPage = isHomePage && !isAuthenticated;
+    // 신규 사용자: authUser는 있지만 user가 없는 경우 (회원가입 필요)
+    const needsRegistration = !!authUser && !user;
+
+    // 랜딩 페이지 여부 확인 (비로그인 또는 회원가입 필요 + 홈페이지)
+    const isLandingPage = isHomePage && (!isAuthenticated || needsRegistration);
 
     // 로딩 중
-    if (isUnionLoading || isAuthLoading) {
+    if (isUnionLoading || isAuthLoading || isUserFetching) {
         return (
             <div className="min-h-screen bg-gray-50">
                 <div className="container mx-auto max-w-[1280px] px-4 py-8">

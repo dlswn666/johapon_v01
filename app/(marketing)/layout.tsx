@@ -18,18 +18,6 @@ function MarketingHeader() {
                 >
                     조합온
                 </Link>
-                {/* 데스크톱 네비게이션 */}
-                <nav className="hidden md:flex items-center gap-8">
-                    {!isLoading && isSystemAdmin && (
-                        <Link
-                            href="/admin/unions"
-                            className="flex items-center gap-1.5 text-[14px] font-medium text-[#4E8C6D] hover:text-[#4E8C6D]/80 px-4 py-2 bg-[#F5F5F5] hover:bg-[#E6E6E6] rounded-lg transition-colors cursor-pointer"
-                        >
-                            <Settings className="w-4 h-4" />
-                            조합 관리
-                        </Link>
-                    )}
-                </nav>
             </div>
         </header>
     );
