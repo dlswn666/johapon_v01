@@ -35,14 +35,15 @@ export default function SystemAdminLoginPage() {
             const result = await loginWithEmail(email, password);
 
             if (result.success) {
-                router.push('/systemAdmin');
+                // router.push는 useEffect에서 isSystemAdmin이 true가 된 후 처리
+                // 여기서 바로 push하면 프로필 해석 전에 페이지 이동되어 "접근 권한 없음" 표시됨
             } else {
                 setError(result.error || '로그인에 실패했습니다.');
+                setIsLoading(false);
             }
         } catch (err) {
             console.error('Login error:', err);
             setError('로그인 중 오류가 발생했습니다.');
-        } finally {
             setIsLoading(false);
         }
     };
