@@ -52,10 +52,13 @@ export default function ConsentManagementTab() {
     const [searchName, setSearchName] = useState('');
     const [searchBuilding, setSearchBuilding] = useState('');
     const [isSearching, setIsSearching] = useState(false);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const [hasMore, setHasMore] = useState(false);
     const [searchResults, setSearchResults] = useState<MemberSearchResult[]>([]);
     const [focusedIndex, setFocusedIndex] = useState(-1);
     const [isResultFocused, setIsResultFocused] = useState(false);
     const [lastFocusedInput, setLastFocusedInput] = useState<'address' | 'name' | 'building'>('name');
+    const PAGE_SIZE = 100;
 
     // 선택된 조합원 리스트 상태
     const [selectedMembers, setSelectedMembers] = useState<MemberSearchResult[]>([]);
@@ -65,7 +68,7 @@ export default function ConsentManagementTab() {
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
 
-    // 검색 결과 리스트 ref
+    // 검색 결과 리스트 ref + 무한 스크롤 처리
     const searchResultsRef = useRef<HTMLDivElement>(null);
     const searchAddressInputRef = useRef<HTMLInputElement>(null);
     const searchNameInputRef = useRef<HTMLInputElement>(null);
@@ -130,10 +133,13 @@ export default function ConsentManagementTab() {
                 searchAddress: searchAddress || undefined,
                 searchName: searchName || undefined,
                 searchBuilding: searchBuilding || undefined,
+                offset: 0,
+                limit: PAGE_SIZE,
             });
 
             if (results.length === 0) {
                 setSearchResults([]);
+                setHasMore(false);
                 if (searchBuilding) {
                     toast.error('해당 건물이름으로 검색된 조합원이 없습니다.');
                 } else {
@@ -143,6 +149,7 @@ export default function ConsentManagementTab() {
             }
 
             setSearchResults(results);
+            setHasMore(results.length >= PAGE_SIZE);
 
             // 조회 완료 후 첫 번째 미선택 항목으로 포커스 이동
             const firstUnselectedIndex = results.findIndex(
@@ -151,12 +158,10 @@ export default function ConsentManagementTab() {
             if (firstUnselectedIndex >= 0) {
                 setFocusedIndex(firstUnselectedIndex);
                 setIsResultFocused(true);
-                // 조회 결과 테이블에 포커스 이동
                 setTimeout(() => {
                     searchResultsTableRef.current?.focus();
                 }, 0);
             } else {
-                // 모든 항목이 이미 선택된 경우
                 setFocusedIndex(-1);
                 setIsResultFocused(false);
             }
@@ -167,6 +172,42 @@ export default function ConsentManagementTab() {
             setIsSearching(false);
         }
     }, [unionId, selectedStageId, searchAddress, searchName, searchBuilding, selectedMembers]);
+
+    // 추가 데이터 로드 (무한 스크롤)
+    const handleLoadMore = useCallback(async () => {
+        if (!unionId || !selectedStageId || isLoadingMore || !hasMore) return;
+
+        setIsLoadingMore(true);
+        try {
+            const results = await searchMembersForConsent({
+                unionId,
+                stageId: selectedStageId,
+                searchAddress: searchAddress || undefined,
+                searchName: searchName || undefined,
+                searchBuilding: searchBuilding || undefined,
+                offset: searchResults.length,
+                limit: PAGE_SIZE,
+            });
+
+            if (results.length > 0) {
+                setSearchResults((prev) => [...prev, ...results]);
+            }
+            setHasMore(results.length >= PAGE_SIZE);
+        } catch (error) {
+            console.error('추가 로드 오류:', error);
+        } finally {
+            setIsLoadingMore(false);
+        }
+    }, [unionId, selectedStageId, searchAddress, searchName, searchBuilding, searchResults.length, isLoadingMore, hasMore]);
+
+    // 검색 결과 스크롤 시 하단 근처에서 추가 로드
+    const handleSearchResultsScroll = useCallback(() => {
+        const el = searchResultsRef.current;
+        if (!el || isLoadingMore || !hasMore) return;
+        if (el.scrollHeight - el.scrollTop - el.clientHeight < 100) {
+            handleLoadMore();
+        }
+    }, [isLoadingMore, hasMore, handleLoadMore]);
 
     // 첫 번째 미선택 항목 인덱스 찾기
     const findFirstUnselectedIndex = useCallback(
@@ -658,7 +699,8 @@ export default function ConsentManagementTab() {
                         {/* 검색 결과 */}
                         <div
                             ref={searchResultsRef}
-                            className="border border-gray-200 rounded-lg max-h-[350px] min-h-[200px] overflow-y-auto flex-grow"
+                            onScroll={handleSearchResultsScroll}
+                            className="border border-gray-200 rounded-lg max-h-[350px] min-h-[200px] overflow-y-auto flex-grow overscroll-contain"
                         >
                             {searchResults.length === 0 ? (
                                 <div className="p-8 text-center text-gray-400">
@@ -666,79 +708,84 @@ export default function ConsentManagementTab() {
                                     <p className="text-sm">검색 결과가 없습니다</p>
                                 </div>
                             ) : (
-                                <table
-                                    ref={searchResultsTableRef}
-                                    className="w-full text-sm outline-none"
-                                    tabIndex={0}
-                                    onKeyDown={handleResultKeyDown}
-                                    onFocus={() => setIsResultFocused(true)}
-                                    onBlur={() => setIsResultFocused(false)}
-                                >
-                                    <thead className="bg-gray-50 sticky top-0">
-                                        <tr>
-                                            <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">
-                                                번호
-                                            </th>
-                                            <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">
-                                                이름
-                                            </th>
-                                            <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">
-                                                지번
-                                            </th>
-                                            <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">
-                                                동/호
-                                            </th>
-                                            <th className="px-3 py-2 text-center text-xs font-semibold text-gray-600">
-                                                상태
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-100">
-                                        {searchResults.map((member, index) => {
-                                            const isSelected = !!selectedMembers.find((m) => m.id === member.id);
-                                            const isFocused = focusedIndex === index && isResultFocused;
-                                            return (
-                                                <tr
-                                                    key={member.id}
-                                                    className={cn(
-                                                        'cursor-pointer transition-all',
-                                                        // 기본 hover 스타일
-                                                        !isSelected && !isFocused && 'hover:bg-primary/5',
-                                                        // 선택된 항목 스타일 (포커스 불가)
-                                                        isSelected && 'bg-green-50 opacity-60 cursor-not-allowed',
-                                                        // 포커스된 항목 스타일 (프라이머리 컬러 border)
-                                                        isFocused &&
-                                                            !isSelected &&
-                                                            'bg-primary/10 ring-2 ring-[#4E8C6D] ring-inset'
-                                                    )}
-                                                    onClick={() => !isSelected && handleSelectMember(member)}
-                                                    onMouseEnter={() => {
-                                                        if (!isSelected) {
-                                                            setFocusedIndex(index);
-                                                        }
-                                                    }}
-                                                >
-                                                    <td className="px-3 py-2 text-gray-500">{index + 1}</td>
-                                                    <td className="px-3 py-2 font-medium text-gray-900">
-                                                        {member.name}
-                                                    </td>
-                                                    <td className="px-3 py-2 text-gray-600 truncate max-w-[200px]" title={formatPropertyAddressDisplay(member.property_address_jibun, member.property_address_road, member.property_dong, member.property_ho) || member.property_address || '-'}>
-                                                        {formatPropertyAddressDisplay(member.property_address_jibun, member.property_address_road, member.property_dong, member.property_ho) || member.property_address || '-'}
-                                                    </td>
-                                                    <td className="px-3 py-2 text-center">
-                                                        {getConsentStatusBadge(member.current_consent_status)}
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })}
-                                    </tbody>
-                                </table>
+                                <>
+                                    <table
+                                        ref={searchResultsTableRef}
+                                        className="w-full text-sm outline-none"
+                                        tabIndex={0}
+                                        onKeyDown={handleResultKeyDown}
+                                        onFocus={() => setIsResultFocused(true)}
+                                        onBlur={() => setIsResultFocused(false)}
+                                    >
+                                        <thead className="bg-gray-50 sticky top-0">
+                                            <tr>
+                                                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">
+                                                    번호
+                                                </th>
+                                                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">
+                                                    이름
+                                                </th>
+                                                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">
+                                                    지번
+                                                </th>
+                                                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">
+                                                    동/호
+                                                </th>
+                                                <th className="px-3 py-2 text-center text-xs font-semibold text-gray-600">
+                                                    상태
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-100">
+                                            {searchResults.map((member, index) => {
+                                                const isSelected = !!selectedMembers.find((m) => m.id === member.id);
+                                                const isFocused = focusedIndex === index && isResultFocused;
+                                                return (
+                                                    <tr
+                                                        key={member.id}
+                                                        className={cn(
+                                                            'cursor-pointer transition-all',
+                                                            !isSelected && !isFocused && 'hover:bg-primary/5',
+                                                            isSelected && 'bg-green-50 opacity-60 cursor-not-allowed',
+                                                            isFocused &&
+                                                                !isSelected &&
+                                                                'bg-primary/10 ring-2 ring-[#4E8C6D] ring-inset'
+                                                        )}
+                                                        onClick={() => !isSelected && handleSelectMember(member)}
+                                                        onMouseEnter={() => {
+                                                            if (!isSelected) {
+                                                                setFocusedIndex(index);
+                                                            }
+                                                        }}
+                                                    >
+                                                        <td className="px-3 py-2 text-gray-500">{index + 1}</td>
+                                                        <td className="px-3 py-2 font-medium text-gray-900">
+                                                            {member.name}
+                                                        </td>
+                                                        <td className="px-3 py-2 text-gray-600 truncate max-w-[200px]" title={formatPropertyAddressDisplay(member.property_address_jibun, member.property_address_road, member.property_dong, member.property_ho) || member.property_address || '-'}>
+                                                            {formatPropertyAddressDisplay(member.property_address_jibun, member.property_address_road, member.property_dong, member.property_ho) || member.property_address || '-'}
+                                                        </td>
+                                                        <td className="px-3 py-2 text-center">
+                                                            {getConsentStatusBadge(member.current_consent_status)}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                    {isLoadingMore && (
+                                        <div className="flex items-center justify-center py-3 text-gray-500">
+                                            <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                                            <span className="text-xs">추가 로딩 중...</span>
+                                        </div>
+                                    )}
+                                </>
                             )}
                         </div>
 
                         {searchResults.length > 0 && (
                             <p className="text-xs text-gray-500">
-                                💡 클릭하여 오른쪽 목록에 추가 | 화살표 키로 이동, 엔터로 선택
+                                검색 결과: {searchResults.length}명{hasMore ? '+' : ''} | 클릭하여 오른쪽 목록에 추가
                             </p>
                         )}
                     </div>
@@ -763,7 +810,7 @@ export default function ConsentManagementTab() {
                         </div>
 
                         {/* 선택된 조합원 목록 */}
-                        <div className="border border-gray-200 rounded-lg max-h-[350px] min-h-[200px] overflow-y-auto flex-grow">
+                        <div className="border border-gray-200 rounded-lg max-h-[350px] min-h-[200px] overflow-y-auto flex-grow overscroll-contain">
                             {selectedMembers.length === 0 ? (
                                 <div className="p-8 text-center text-gray-400">
                                     <p className="text-sm">조합원을 선택하세요</p>

@@ -177,6 +177,8 @@ export interface SearchMembersParams {
     searchAddress?: string;
     searchName?: string;
     searchBuilding?: string;
+    offset?: number;
+    limit?: number;
 }
 
 // 조합원 검색 (동의 관리용)
@@ -264,7 +266,10 @@ export const searchMembersForConsent = async (params: SearchMembersParams): Prom
         }
     }
 
-    const { data: members, error } = await query.limit(100);
+    // 페이지네이션 적용
+    const offset = params.offset ?? 0;
+    const limit = params.limit ?? 100;
+    const { data: members, error } = await query.range(offset, offset + limit - 1);
 
     if (error) throw error;
 

@@ -1019,6 +1019,9 @@ export function useAdminUsers({
 
             if (statusFilter !== 'ALL') {
                 query = query.eq('user_status', statusFilter);
+            } else {
+                // 승인 관리에서는 사전등록(PRE_REGISTERED) 사용자 제외
+                query = query.neq('user_status', 'PRE_REGISTERED');
             }
 
             if (roleFilter !== 'ALL') {

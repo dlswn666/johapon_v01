@@ -69,7 +69,7 @@ export default function SlidesPage() {
     }
 
     return (
-        <div className="container mx-auto px-4 py-8 space-y-6">
+        <div className="space-y-6">
             {/* 페이지 타이틀 */}
             <div>
                 <h1 className="text-2xl font-bold text-gray-900">슬라이드 관리</h1>

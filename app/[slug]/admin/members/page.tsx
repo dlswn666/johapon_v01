@@ -741,8 +741,7 @@ export default function MemberManagementPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 py-8 px-4">
-            <div className="max-w-[1800px] mx-auto space-y-6">
+        <div className="space-y-6">
                 {/* 페이지 헤더 */}
                 <div className="mb-8">
                     <h1 className="text-2xl font-bold text-gray-900 mb-2">조합원 관리</h1>
@@ -1478,7 +1477,6 @@ export default function MemberManagementPage() {
                         }
                     }}
                 />
-            </div>
         </div>
     );
 }

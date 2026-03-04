@@ -116,8 +116,7 @@ export default function UnionAlimtalkPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 py-8 px-4">
-            <div className="max-w-6xl mx-auto space-y-6">
+        <div className="space-y-6">
                 {/* 페이지 헤더 */}
                 <div className="mb-8">
                     <h1 className="text-2xl font-bold text-gray-900 mb-2">알림톡 발송 내역</h1>
@@ -344,7 +343,6 @@ export default function UnionAlimtalkPage() {
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
-            </div>
         </div>
     );
 }

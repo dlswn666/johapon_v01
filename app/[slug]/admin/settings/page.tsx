@@ -95,7 +95,7 @@ export default function UnionSettingsPage() {
     }
 
     return (
-        <div className="container mx-auto max-w-[1280px] px-4 py-8">
+        <div className="space-y-6">
             <div className="mb-8 flex items-center justify-between">
                 <div>
                     <h1 className="text-[32px] font-bold text-[#4e8c6d] flex items-center gap-3">

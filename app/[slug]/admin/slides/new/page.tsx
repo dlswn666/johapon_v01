@@ -79,7 +79,7 @@ export default function NewSlidePage() {
     // 로딩 중
     if (isUnionLoading || isAuthLoading) {
         return (
-            <div className="container mx-auto px-4 py-8">
+            <div>
                 <Skeleton className="w-full h-[600px] rounded-[24px]" />
             </div>
         );
