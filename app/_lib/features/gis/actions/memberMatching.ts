@@ -317,7 +317,6 @@ export async function savePreRegisteredMembers(
                     if (mergeError) {
                         console.error(`[사전등록] 중복 병합 실패 (${row.name}):`, mergeError.message);
                     } else if (mergeResult?.merged_count > 0) {
-                        console.log(`[사전등록] ${row.name}: 중복 ${mergeResult.merged_count}명 병합 완료`);
                     }
                 } catch (mergeErr) {
                     console.error(`[사전등록] 중복 병합 오류 (${row.name}):`, mergeErr);
@@ -487,7 +486,7 @@ export async function getPreRegisteredMembers(
         type PropertyUnit = { pnu: string | null; property_address_jibun: string | null; dong: string | null; ho: string | null; is_primary: boolean | null };
         const mappedData = (rawData || []).map((user) => {
             const primaryUnit = (user.user_property_units as PropertyUnit[] | null)?.find((u) => u.is_primary) ||
-                                (user.user_property_units as PropertyUnit[] | null)?.[0] || null;
+                (user.user_property_units as PropertyUnit[] | null)?.[0] || null;
             return {
                 id: user.id,
                 name: user.name,
@@ -657,10 +656,10 @@ export async function updateUnmatchedMember(
 /**
  * 조합의 사전 등록된 조합원을 모두 삭제합니다. (데이터 초기화)
  */
-export async function deleteAllPreRegisteredMembers(unionId: string): Promise<{ 
-    success: boolean; 
+export async function deleteAllPreRegisteredMembers(unionId: string): Promise<{
+    success: boolean;
     deletedCount: number;
-    error?: string 
+    error?: string
 }> {
     try {
         // 먼저 삭제할 조합원 수 확인

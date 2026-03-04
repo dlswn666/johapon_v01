@@ -97,7 +97,7 @@ export async function searchAddress(address: string): Promise<AddressSearchResul
         return { success: false, error: '로그인이 필요합니다.' };
     }
 
-    console.log(`[Manual Search] Searching address: "${address}"`);
+
 
     try {
         // JWT 토큰 생성
@@ -126,7 +126,7 @@ export async function searchAddress(address: string): Promise<AddressSearchResul
         }
 
         if (result.success && result.data) {
-            console.log(`[Manual Search] Found: ${result.data.pnu}`);
+
             return {
                 success: true,
                 data: result.data,
@@ -178,7 +178,7 @@ export async function manualAddAddress(data: ManualInputData): Promise<AddressAd
         return { success: false, error: '로그인이 필요합니다.' };
     }
 
-    console.log(`[Manual Input] Adding: unionId=${unionId}, pnu=${pnu}`);
+
 
     try {
         // JWT 토큰 생성
@@ -213,7 +213,7 @@ export async function manualAddAddress(data: ManualInputData): Promise<AddressAd
         }
 
         if (result.success && result.data) {
-            console.log(`[Manual Input] Success: PNU=${pnu}`);
+
             return {
                 success: true,
                 data: result.data,
@@ -256,7 +256,7 @@ export async function addAddressToUnion(unionId: string, address: string, pnu: s
         return { success: false, error: '로그인이 필요합니다.' };
     }
 
-    console.log(`[Manual Add] Adding address: unionId=${unionId}, pnu=${pnu}`);
+
 
     try {
         // JWT 토큰 생성
@@ -287,9 +287,7 @@ export async function addAddressToUnion(unionId: string, address: string, pnu: s
         }
 
         if (result.success && result.data) {
-            console.log(
-                `[Manual Add] Success: PNU=${pnu}, price=${result.data.officialPrice}, owners=${result.data.ownerCount}`
-            );
+
             return {
                 success: true,
                 data: result.data,

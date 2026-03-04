@@ -91,11 +91,7 @@ export async function GET(request: NextRequest) {
 
     const naverUser = userData.response;
 
-    console.log('Naver user info:', {
-        id: naverUser.id,
-        email: naverUser.email,
-        name: naverUser.name,
-    });
+
 
     // 3. Supabase Admin 클라이언트 생성
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;

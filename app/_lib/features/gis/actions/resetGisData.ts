@@ -56,7 +56,7 @@ export async function resetUnionGisData(unionId: string): Promise<ResetGisDataRe
         return { success: false, error: '인증되지 않은 사용자입니다.' };
     }
 
-    console.log(`[GIS Reset] Starting reset for unionId=${unionId}, userId=${user.id}`);
+
 
     try {
         const deletedCounts = {
@@ -79,7 +79,7 @@ export async function resetUnionGisData(unionId: string): Promise<ResetGisDataRe
         }
 
         const pnuList = landLots?.map((lot) => lot.pnu) || [];
-        console.log(`[GIS Reset] Found ${pnuList.length} PNUs to process`);
+
 
         // 2. sync_jobs 삭제 (GIS_MAP 타입만)
         const { error: syncJobsError, count: syncJobsCount } = await supabase
@@ -93,7 +93,7 @@ export async function resetUnionGisData(unionId: string): Promise<ResetGisDataRe
             throw new Error(`동기화 작업 기록 삭제 실패: ${syncJobsError.message}`);
         }
         deletedCounts.syncJobs = syncJobsCount || 0;
-        console.log(`[GIS Reset] Deleted ${deletedCounts.syncJobs} sync_jobs`);
+
 
         // 3. 관련 데이터 삭제 (PNU 목록 기준)
         if (pnuList.length > 0) {
@@ -110,7 +110,7 @@ export async function resetUnionGisData(unionId: string): Promise<ResetGisDataRe
             }
 
             const buildingIds = [...new Set(buildingMappings?.map((m) => m.building_id) || [])];
-            console.log(`[GIS Reset] Found ${buildingIds.length} buildings linked to these PNUs`);
+
 
             // 3-2. building_units 삭제 (buildings에 연결된 것)
             if (buildingIds.length > 0) {
@@ -129,7 +129,7 @@ export async function resetUnionGisData(unionId: string): Promise<ResetGisDataRe
                     }
                 }
                 deletedCounts.buildingUnits = totalUnitsDeleted;
-                console.log(`[GIS Reset] Deleted ${deletedCounts.buildingUnits} building_units`);
+
             }
 
             // 3-3. building_land_lots 매핑 삭제
@@ -148,7 +148,7 @@ export async function resetUnionGisData(unionId: string): Promise<ResetGisDataRe
                 }
             }
             deletedCounts.buildingLandLots = totalMappingsDeleted;
-            console.log(`[GIS Reset] Deleted ${deletedCounts.buildingLandLots} building_land_lots`);
+
 
             // 3-4. buildings 삭제 (다른 PNU에서 참조하지 않는 것만)
             if (buildingIds.length > 0) {
@@ -176,7 +176,7 @@ export async function resetUnionGisData(unionId: string): Promise<ResetGisDataRe
                     }
                 }
                 deletedCounts.buildings = totalBuildingsDeleted;
-                console.log(`[GIS Reset] Deleted ${deletedCounts.buildings} buildings`);
+
             }
 
             // 3-5. land_lots 삭제 (union_id 기준)
@@ -190,10 +190,10 @@ export async function resetUnionGisData(unionId: string): Promise<ResetGisDataRe
                 throw new Error(`필지 정보 삭제 실패: ${landLotsError.message}`);
             }
             deletedCounts.landLots = landLotsCount || 0;
-            console.log(`[GIS Reset] Deleted ${deletedCounts.landLots} land_lots`);
+
         }
 
-        console.log(`[GIS Reset] Reset completed successfully for unionId=${unionId}`);
+
 
         return {
             success: true,

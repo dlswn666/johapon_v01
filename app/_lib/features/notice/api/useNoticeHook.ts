@@ -312,6 +312,7 @@ export const useAddNotice = () => {
                 targetType: 'NOTICE',
                 unionSlug: slug,
                 uploaderId: newNotice.author_id,
+                unionId: union.id,
             });
 
             // 5. 알림톡 발송 로직
@@ -334,7 +335,7 @@ export const useAddNotice = () => {
                         if (scheduleError) {
                             console.error('알림톡 예약 저장 실패:', scheduleError);
                         } else {
-                            console.log(`[공지사항 알림톡] 예약 발송 등록 완료 - ${scheduled_at}`);
+
                         }
                     } catch (scheduleError) {
                         console.error('알림톡 예약 실패:', scheduleError);
@@ -369,7 +370,7 @@ export const useAddNotice = () => {
                                 })),
                                 noticeId: noticeData.id,
                             });
-                            console.log(`[공지사항 알림톡] ${approvedMembers.length}명에게 발송 요청 완료`);
+
                         }
                     } catch (alimTalkError) {
                         console.error('알림톡 발송 실패 (공지사항 등록):', alimTalkError);
@@ -453,11 +454,12 @@ export const useUpdateNotice = () => {
                 targetId: String(id),
                 targetType: 'NOTICE',
                 unionSlug: slug,
+                unionId: union!.id,
             });
 
             // 4. 알림톡 발송 로직 (Placeholder) - 수정 시에도 발송할지 여부는 기획에 따라 다름 (보통 수정 시엔 안 보냄, 하지만 체크박스가 있다면 보냄)
             if (send_alimtalk) {
-                console.log('TODO: Send AlimTalk for updated notice', id);
+
             }
 
             return data as Notice;

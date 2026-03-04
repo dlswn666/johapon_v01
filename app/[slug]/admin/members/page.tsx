@@ -90,6 +90,7 @@ const USER_STATUS_LABELS: Record<UserStatus, string> = {
     REJECTED: '반려됨',
     TRANSFERRED: '매매탈퇴',  // FEAT-008: 소유권 이전으로 인한 탈퇴
     APPLICANT: '신청자',
+    MERGED: '병합됨',
 };
 
 const USER_STATUS_COLORS: Record<UserStatus, string> = {
@@ -100,6 +101,7 @@ const USER_STATUS_COLORS: Record<UserStatus, string> = {
     REJECTED: 'bg-red-100 text-red-700',
     TRANSFERRED: 'bg-orange-100 text-orange-700',  // FEAT-008: 소유권 이전으로 인한 탈퇴
     APPLICANT: 'bg-blue-100 text-blue-700',
+    MERGED: 'bg-gray-200 text-gray-500',
 };
 
 const USER_ROLE_LABELS: Record<string, string> = {
@@ -264,7 +266,7 @@ export default function MemberManagementPage() {
         setIsApproving(true);
         try {
             // 1. 충돌 검사 수행
-            const conflictCheckResponse = await fetch(`/api/members/check-conflict?userId=${userId}`);
+            const conflictCheckResponse = await fetch(`/api/members/check-conflict?userId=${userId}${unionId ? `&unionId=${unionId}` : ''}`);
             const conflictResult = await conflictCheckResponse.json();
 
             if (conflictResult.hasConflict && conflictResult.conflicts.length > 0) {

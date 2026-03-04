@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
             return auth.response;
         }
 
-        console.log(`[Consent Bulk Update] User ${auth.user.id} (${auth.user.name}) updating consents`);
+
         // ==========================================
 
         // 유효성 검사

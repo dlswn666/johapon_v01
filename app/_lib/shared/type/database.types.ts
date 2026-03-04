@@ -1886,7 +1886,8 @@ export type UserStatus =
     | 'PRE_REGISTERED'
     | 'PENDING_PROFILE'
     | 'PENDING_APPROVAL'
-    | 'APPLICANT';
+    | 'APPLICANT'
+    | 'MERGED';
 
 // 물건지 정보
 export interface MemberPropertyUnitInfo {

@@ -277,6 +277,7 @@ export const useAddFreeBoard = () => {
                 targetType: 'FREE_BOARD',
                 unionSlug: slug,
                 uploaderId: newFreeBoard.author_id,
+                unionId: union.id,
             });
 
             return freeBoardData as FreeBoard;
@@ -353,6 +354,7 @@ export const useUpdateFreeBoard = () => {
                 targetId: String(id),
                 targetType: 'FREE_BOARD',
                 unionSlug: slug,
+                unionId: union!.id,
             });
 
             return data as FreeBoard;

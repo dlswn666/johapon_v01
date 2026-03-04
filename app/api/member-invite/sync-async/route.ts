@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
         // createdBy를 인증된 사용자로 강제 설정 (위조 방지)
         const createdBy = auth.user.id;
 
-        console.log(`[Member Sync Async] User ${auth.user.id} (${auth.user.name}) starting async sync`);
+
         // ==========================================
 
         // 필수 파라미터 검증
@@ -40,13 +40,13 @@ export async function POST(request: NextRequest) {
         }
 
         if (members.length === 0) {
-            return NextResponse.json({ 
+            return NextResponse.json({
                 success: false,
-                error: '멤버 목록이 비어있습니다.' 
+                error: '멤버 목록이 비어있습니다.'
             }, { status: 400 });
         }
 
-        console.log(`[Member Sync Async] Starting async sync for union: ${unionId}, members: ${members.length}`);
+
 
         // 프록시 서버로 비동기 작업 요청
         const response = await fetch(`${PROXY_SERVER_URL}/api/member/invite-sync`, {
@@ -65,15 +65,15 @@ export async function POST(request: NextRequest) {
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
             console.error('[Member Sync Async] Proxy server error:', errorData);
-            return NextResponse.json({ 
+            return NextResponse.json({
                 success: false,
-                error: errorData.error || '프록시 서버 오류가 발생했습니다.' 
+                error: errorData.error || '프록시 서버 오류가 발생했습니다.'
             }, { status: response.status });
         }
 
         const result = await response.json();
 
-        console.log(`[Member Sync Async] Job created: ${result.jobId}`);
+
 
         return NextResponse.json({
             success: true,
@@ -86,9 +86,9 @@ export async function POST(request: NextRequest) {
 
     } catch (error) {
         console.error('[Member Sync Async] API error:', error);
-        return NextResponse.json({ 
+        return NextResponse.json({
             success: false,
-            error: '비동기 동기화 요청 중 오류가 발생했습니다.' 
+            error: '비동기 동기화 요청 중 오류가 발생했습니다.'
         }, { status: 500 });
     }
 }

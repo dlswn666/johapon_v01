@@ -177,6 +177,11 @@ export default function ConflictResolutionModal({
               <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
                 <User className="w-4 h-4" />
                 기존 등록 정보
+                {conflict.existing.status === 'PRE_REGISTERED' && (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-purple-100 text-purple-700">
+                    사전등록
+                  </span>
+                )}
               </h3>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
@@ -213,16 +218,22 @@ export default function ConflictResolutionModal({
             <h3 className="font-semibold text-gray-800 mb-4">관리자 결정</h3>
 
             <div className="grid grid-cols-2 gap-3">
-              {/* 동일인입니다 */}
+              {/* 동일인입니다 / 사전등록자 본인입니다 */}
               <Button
                 variant="outline"
                 className="h-auto py-4 flex flex-col items-start text-left hover:bg-blue-50 hover:border-blue-300"
                 onClick={() => handleActionSelect('update')}
                 disabled={isSubmitting}
               >
-                <span className="font-medium text-gray-900">동일인입니다</span>
+                <span className="font-medium text-gray-900">
+                  {conflict.existing.status === 'PRE_REGISTERED'
+                    ? '사전등록자 본인입니다'
+                    : '동일인입니다'}
+                </span>
                 <span className="text-xs text-gray-500 mt-1">
-                  정보 덮어쓰기 (개명, 전화번호 변경 등)
+                  {conflict.existing.status === 'PRE_REGISTERED'
+                    ? '사전등록 데이터에 가입 정보를 병합합니다'
+                    : '정보 덮어쓰기 (개명, 전화번호 변경 등)'}
                 </span>
               </Button>
 
@@ -267,6 +278,23 @@ export default function ConflictResolutionModal({
                 </span>
               </Button>
             </div>
+
+            {/* 별도 인물입니다 (PRE_REGISTERED 충돌 시에만 표시) */}
+            {conflict.existing.status === 'PRE_REGISTERED' && (
+              <div className="mt-3 pt-3 border-t border-gray-200">
+                <Button
+                  variant="outline"
+                  className="w-full h-auto py-4 flex flex-col items-start text-left hover:bg-gray-100"
+                  onClick={() => handleActionSelect('approve_separate')}
+                  disabled={isSubmitting}
+                >
+                  <span className="font-medium text-gray-900">별도 인물입니다</span>
+                  <span className="text-xs text-gray-500 mt-1">
+                    동명이인 등 - 신규 사용자를 그대로 승인 (기존 사전등록 유지)
+                  </span>
+                </Button>
+              </div>
+            )}
           </div>
 
           <DialogFooter className="mt-4">

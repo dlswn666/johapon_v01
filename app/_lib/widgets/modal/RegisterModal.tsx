@@ -35,7 +35,6 @@ import {
     isBasementHo,
     extractHoNumber,
 } from '@/app/_lib/shared/utils/dong-ho-utils';
-import { checkAndMergeDuplicateUsers } from '@/app/_lib/features/user-dedup/actions/mergeUsers';
 import { FloorIndicator } from '@/components/ui/FloorIndicator';
 import { useFocusTrap } from '@/app/_lib/shared/hooks/useFocusTrap';
 
@@ -1159,21 +1158,6 @@ export function RegisterModal({
             if (propertyUnitError) {
                 console.error('user_property_units insert error:', propertyUnitError);
                 // 실패해도 계속 진행 (critical하지 않음)
-            }
-
-            // 이름 + 거주지 지번 기준으로 중복 사용자 검사 및 병합 (새 사용자가 keeper)
-            if (unionId && formData.resident_address_jibun) {
-                try {
-                    await checkAndMergeDuplicateUsers(
-                        newUserId,
-                        unionId,
-                        formData.name,
-                        formData.resident_address_jibun
-                    );
-                } catch (mergeError) {
-                    // 병합 실패는 치명적이지 않으므로 로깅만 수행
-                    console.error('[회원가입] 중복 사용자 병합 실패:', mergeError);
-                }
             }
 
             // user_auth_links에 연결 추가

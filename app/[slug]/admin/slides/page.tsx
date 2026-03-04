@@ -39,9 +39,7 @@ export default function SlidesPage() {
     };
 
     const handleConfirmDelete = async (slideId: string) => {
-        console.log('삭제 진행중...');
         try {
-            console.log('삭제 성공...');
             await deleteMutation.mutateAsync(slideId);
         } catch (error) {
             console.error('Delete error:', error);

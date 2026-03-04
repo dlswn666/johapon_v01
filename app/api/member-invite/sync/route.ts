@@ -16,8 +16,8 @@ export async function POST(request: NextRequest) {
     const batchId = crypto.randomUUID();
     const startTime = Date.now();
     const clientIp = request.headers.get('x-forwarded-for') ||
-                    request.headers.get('x-real-ip') ||
-                    'unknown';
+        request.headers.get('x-real-ip') ||
+        'unknown';
     const userAgent = request.headers.get('user-agent') || 'unknown';
 
     // 초기화: catch 블록에서 사용 가능하도록
@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
         // createdBy를 인증된 사용자로 강제 설정 (위조 방지)
         const createdBy = auth.user.id;
 
-        console.log(`[Member Invite Sync] Batch ${batchId} - User ${auth.user.id} (${auth.user.name}) syncing ${members.length} member invites`);
+
         // ==========================================
 
         // 필수 파라미터 검증
@@ -132,7 +132,7 @@ export async function POST(request: NextRequest) {
         const failedAuthUserIds: { userId: string; error: string }[] = [];
 
         if (result.deleted_auth_user_ids && result.deleted_auth_user_ids.length > 0) {
-            console.log(`[Member Invite Sync] Batch ${batchId} - Deleting ${result.deleted_auth_user_ids.length} auth users`);
+
 
             for (const authUserId of result.deleted_auth_user_ids) {
                 try {
@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
                         });
                     } else {
                         deletedAuthUserIds.push(authUserId);
-                        console.log(`[Member Invite Sync] Batch ${batchId} - Successfully deleted auth user ${authUserId}`);
+
                     }
                 } catch (error) {
                     console.error(`[Member Invite Sync] Batch ${batchId} - Error deleting auth user ${authUserId}:`, error);
@@ -187,15 +187,7 @@ export async function POST(request: NextRequest) {
             console.error('[감사 로그 기록 오류] COMPLETE:', err);
         });
 
-        console.log(`[Member Invite Sync] Batch ${batchId} completed:`, {
-            unionId,
-            inserted: result.inserted,
-            deleted_pending: result.deleted_pending,
-            deleted_used: result.deleted_used,
-            deleted_auth_users_success: deletedAuthUserIds.length,
-            deleted_auth_users_failed: failedAuthUserIds.length,
-            duration_ms: durationMs
-        });
+
 
         // 부분 실패 처리: 207 Multi-Status 반환
         if (failedAuthUserIds.length > 0) {
@@ -216,7 +208,7 @@ export async function POST(request: NextRequest) {
 
         // 테스트용: 생성된 초대 URL들을 콘솔에 출력
         if ((result.inserted || 0) > 0) {
-            // 새로 추가된 초대들 조회
+            // 새로 추가된 초대들 조회 (응답 데이터용)
             const { data: newInvites, error: fetchError } = await supabaseAdmin
                 .from('member_invites')
                 .select('id, name, phone_number, property_address, invite_token, expires_at')
@@ -224,27 +216,6 @@ export async function POST(request: NextRequest) {
                 .eq('status', 'PENDING')
                 .order('created_at', { ascending: false })
                 .limit(result.inserted || 0);
-
-            if (!fetchError && newInvites && newInvites.length > 0) {
-                const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-
-                console.log('\n' + '='.repeat(70));
-                console.log('Generated Invitation URLs for Batch:', batchId);
-                console.log('='.repeat(70));
-                console.log(`Total ${newInvites.length} invitations created.\n`);
-
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                newInvites.forEach((invite: any, index: number) => {
-                    const inviteUrl = `${baseUrl}/member-invite/${invite.invite_token}`;
-                    console.log(`[${index + 1}] ${invite.name} (${invite.phone_number})`);
-                    console.log(`    Address: ${invite.property_address}`);
-                    console.log(`    Expires: ${new Date(invite.expires_at).toLocaleString('ko-KR')}`);
-                    console.log(`    URL: ${inviteUrl}`);
-                    console.log('-'.repeat(70));
-                });
-
-                console.log('='.repeat(70) + '\n');
-            }
         }
 
         return NextResponse.json({

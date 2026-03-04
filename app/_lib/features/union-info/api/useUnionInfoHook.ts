@@ -271,6 +271,7 @@ export const useAddUnionInfo = () => {
                 targetType: 'UNION_INFO',
                 unionSlug: slug,
                 uploaderId: user.id,
+                unionId: union.id,
             });
 
             // 4. 본문 업데이트
@@ -347,6 +348,7 @@ export const useUpdateUnionInfo = () => {
                 targetType: 'UNION_INFO',
                 unionSlug: slug,
                 uploaderId: user?.id,
+                unionId: union!.id,
             });
 
             // Note: has_attachments flag could be updated via a trigger or manually if needed, 

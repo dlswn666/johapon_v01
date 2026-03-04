@@ -40,8 +40,9 @@ export default function AlertModal() {
                 </DialogHeader>
                 <DialogFooter>
                     <Button onClick={() => {
+                        const onOk = alertModal.onOk;
                         closeAlertModal();
-                        if (alertModal.onOk) alertModal.onOk();
+                        onOk?.();
                     }}>확인</Button>
                 </DialogFooter>
             </DialogContent>

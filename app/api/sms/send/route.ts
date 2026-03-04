@@ -109,12 +109,7 @@ export async function POST(request: NextRequest) {
 
     const proxyResult = await proxyResponse.json();
 
-    console.log('[SMS 발송 결과 - 프록시]', {
-      unionId,
-      recipientCount: recipients.length,
-      status: proxyResponse.status,
-      result: proxyResult,
-    });
+
 
     if (proxyResponse.ok && proxyResult.success) {
       return NextResponse.json({

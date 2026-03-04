@@ -96,9 +96,7 @@ export default function RecipientUploader() {
 
       // 중복 개수 계산
       const duplicateCount = parsedRecipients.length - uniqueRecipients.length;
-      if (duplicateCount > 0) {
-        console.log(`중복 제거: ${duplicateCount}건`);
-      }
+
 
       setRecipients(uniqueRecipients);
     } catch (error) {

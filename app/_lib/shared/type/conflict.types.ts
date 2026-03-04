@@ -21,7 +21,8 @@ export type ConflictResolutionAction =
   | 'update'        // 동일인 - 정보 덮어쓰기
   | 'transfer'      // 소유권 이전 - 기존 소유자 ARCHIVED
   | 'add_co_owner'  // 공동 소유자 추가
-  | 'add_proxy';    // 가족/대리인 추가
+  | 'add_proxy'     // 가족/대리인 추가
+  | 'approve_separate';  // 별도 인물 - 신규 사용자 그대로 승인
 
 // 확장된 소유권 유형 (PROXY 추가)
 export type ExtendedOwnershipType = OwnershipType | 'PROXY';

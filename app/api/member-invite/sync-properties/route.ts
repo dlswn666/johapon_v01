@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
             return auth.response;
         }
 
-        console.log(`[Sync Properties] User ${auth.user.id} (${auth.user.name}) syncing properties`);
+
         // ==========================================
 
         // 필수 파라미터 검증
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
             }, { status: 400 });
         }
 
-        console.log(`[Sync Properties] Starting sync for union: ${unionId}`);
+
 
         // 프록시 서버로 동기화 요청
         const response = await fetch(`${PROXY_SERVER_URL}/api/member/sync-properties`, {
@@ -51,15 +51,15 @@ export async function POST(request: NextRequest) {
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
             console.error('[Sync Properties] Proxy server error:', errorData);
-            return NextResponse.json({ 
+            return NextResponse.json({
                 success: false,
-                error: errorData.error || '프록시 서버 오류가 발생했습니다.' 
+                error: errorData.error || '프록시 서버 오류가 발생했습니다.'
             }, { status: response.status });
         }
 
         const result = await response.json();
 
-        console.log(`[Sync Properties] Job created: ${result.jobId}`);
+
 
         return NextResponse.json({
             success: true,
@@ -72,9 +72,9 @@ export async function POST(request: NextRequest) {
 
     } catch (error) {
         console.error('[Sync Properties] API error:', error);
-        return NextResponse.json({ 
+        return NextResponse.json({
             success: false,
-            error: 'GIS 동기화 요청 중 오류가 발생했습니다.' 
+            error: 'GIS 동기화 요청 중 오류가 발생했습니다.'
         }, { status: 500 });
     }
 }

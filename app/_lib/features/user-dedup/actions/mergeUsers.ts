@@ -114,7 +114,7 @@ export async function mergeUsersKeepNew(keeperId: string, duplicateIds: string[]
             return { success: true, keeper_id: keeperId, merged_count: 0, affected: {} };
         }
 
-        console.log(`[mergeUsersKeepNew] Merging ${filteredDuplicates.length} duplicates into keeper ${keeperId}`);
+
 
         // DB RPC 함수 호출
         const { data, error } = await supabase.rpc('merge_users_keep_new', {
@@ -127,7 +127,7 @@ export async function mergeUsersKeepNew(keeperId: string, duplicateIds: string[]
             return { success: false, error: error.message };
         }
 
-        console.log('[mergeUsersKeepNew] Result:', data);
+
 
         return {
             success: data?.success ?? false,
@@ -142,6 +142,9 @@ export async function mergeUsersKeepNew(keeperId: string, duplicateIds: string[]
 }
 
 /**
+ * @deprecated RegisterModal에서의 자동 병합이 제거됨.
+ * 사전등록자 매칭은 ConflictResolutionModal에서 관리자가 수동 처리.
+ *
  * 새 사용자 생성 후 중복 검사 및 병합을 수행합니다
  * 이름 + 거주지 지번 기준으로 기존 중복 사용자를 찾아 새 사용자로 이관합니다
  *
@@ -168,13 +171,11 @@ export async function checkAndMergeDuplicateUsers(
         }
 
         if (findResult.duplicates.length === 0) {
-            console.log('[checkAndMergeDuplicateUsers] No duplicates found');
+
             return { success: true, keeper_id: newUserId, merged_count: 0, affected: {} };
         }
 
-        console.log(
-            `[checkAndMergeDuplicateUsers] Found ${findResult.duplicates.length} duplicate(s) for user ${name}`
-        );
+
 
         // 2. 중복 사용자 병합 (새 사용자가 keeper)
         const duplicateIds = findResult.duplicates.map((d) => d.id);

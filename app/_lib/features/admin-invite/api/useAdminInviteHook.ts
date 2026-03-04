@@ -123,24 +123,6 @@ export const useCreateAdminInvite = () => {
             return data as AdminInviteWithUnion;
         },
         onSuccess: (data) => {
-            // 테스트용: 생성된 초대 URL을 콘솔에 출력
-            const inviteUrl =
-                typeof window !== 'undefined'
-                    ? `${window.location.origin}/invite/admin?token=${data.invite_token}`
-                    : `/invite/admin?token=${data.invite_token}`;
-
-            console.log('='.repeat(60));
-            console.log('🔗 [관리자 초대] 초대 URL이 생성되었습니다');
-            console.log('='.repeat(60));
-            console.log('조합명:', data.union?.name);
-            console.log('초대 대상:', data.name);
-            if (data.email) console.log('이메일:', data.email);
-            console.log('전화번호:', data.phone_number);
-            console.log('만료 시간:', new Date(data.expires_at).toLocaleString('ko-KR'));
-            console.log('-'.repeat(60));
-            console.log('📌 초대 URL:', inviteUrl);
-            console.log('='.repeat(60));
-
             queryClient.invalidateQueries({ queryKey: ['admin-invites', data.union_id] });
         },
     });

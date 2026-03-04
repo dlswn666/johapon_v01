@@ -27,18 +27,7 @@ function AdminInviteContent() {
     const router = useRouter();
     const token = searchParams.get('token');
 
-    // [DEBUG] 초대 페이지 마운트
-    console.log('[DEBUG] 🎫 관리자 초대 페이지 마운트 (쿼리 파라미터 방식)');
-    console.log('[DEBUG] token:', token);
-
     const { data: invite, isLoading, error } = useAdminInviteByToken(token || '');
-
-    // [DEBUG] 초대 정보 로드 상태
-    console.log('[DEBUG] 초대 정보:', {
-        isLoading,
-        error: error?.message || null,
-        invite: invite ? { id: invite.id, name: invite.name, status: invite.status } : null,
-    });
 
     const handleKakaoLogin = async () => {
         if (!token) return;
@@ -46,9 +35,7 @@ function AdminInviteContent() {
         // 카카오 로그인 시 state에 invite_token 포함
         const redirectTo = `${window.location.origin}/auth/callback?invite_token=${token}`;
 
-        // [DEBUG] 카카오 로그인 시작
-        console.log('[DEBUG] 🔑 카카오 로그인 시작');
-        console.log('[DEBUG] redirectTo:', redirectTo);
+
 
         const { error } = await supabase.auth.signInWithOAuth({
             provider: 'kakao',
@@ -64,7 +51,7 @@ function AdminInviteContent() {
         if (error) {
             console.error('[DEBUG] ❌ Kakao login error:', error);
         } else {
-            console.log('[DEBUG] ✅ 카카오 OAuth 리다이렉트 시작...');
+
         }
     };
 

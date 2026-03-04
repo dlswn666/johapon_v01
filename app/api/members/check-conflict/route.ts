@@ -15,7 +15,13 @@ export async function GET(request: NextRequest) {
     if (!auth.authenticated) return auth.response;
     // ==========================================
 
-    const adminUnionId = auth.user.union_id;
+    // SYSTEM_ADMIN은 unionId 쿼리 파라미터로 조합 지정 가능
+    const paramUnionId = request.nextUrl.searchParams.get('unionId');
+    const adminUnionId =
+      auth.user.role === 'SYSTEM_ADMIN' && paramUnionId
+        ? paramUnionId
+        : auth.user.union_id;
+
     if (!adminUnionId) {
       return NextResponse.json(
         { error: '조합에 소속되지 않은 관리자입니다.' },

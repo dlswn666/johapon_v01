@@ -33,13 +33,13 @@ export default function SlugProvider({ children, slug }: SlugProviderProps) {
 
     useEffect(() => {
         const fetchUnion = async () => {
-            console.log('[SlugProvider] 🔍 Fetching union for slug:', slug);
+
             setIsLoading(true);
             setLoading(true);
             try {
                 const data = await getUnionBySlug(slug);
-                console.log('[SlugProvider] 📦 Union data result:', data ? { id: data.id, name: data.name, slug: data.slug } : 'null');
-                
+
+
                 if (!data) {
                     console.error('[SlugProvider] ❌ Union not found for slug:', slug);
                     // 유효하지 않은 slug인 경우 404 페이지로 리다이렉트
@@ -47,7 +47,7 @@ export default function SlugProvider({ children, slug }: SlugProviderProps) {
                     router.replace('/not-found');
                     return;
                 }
-                
+
                 setLocalUnion(data);
                 setCurrentUnion(data);
                 setError(null);

@@ -163,7 +163,7 @@ export function useResolveConflict() {
       switch (action) {
         case 'update':
           // 동일인 - 기존 사용자 정보를 신규 정보로 업데이트하고 승인
-          return await handleSamePersonUpdate(pendingUserId, existingUserId);
+          return await handleSamePersonUpdate(pendingUserId, existingUserId, conflictedPropertyUnitId);
 
         case 'transfer':
           // 소유권 이전 - 기존 소유자 ARCHIVED, 신규 소유자 승인
@@ -188,6 +188,10 @@ export function useResolveConflict() {
             conflictedPropertyUnitId,
             request.relationshipType || 'FAMILY'
           );
+
+        case 'approve_separate':
+          // 별도 인물 - 신규 사용자 그대로 승인
+          return await handleApproveSeparate(pendingUserId, existingUserId);
 
         default:
           throw new Error('Invalid action');
@@ -274,7 +278,8 @@ export async function fetchExistingCoOwners(
  */
 async function handleSamePersonUpdate(
   pendingUserId: string,
-  existingUserId: string
+  existingUserId: string,
+  conflictedPropertyUnitId: string
 ): Promise<ConflictResolutionResult> {
   // 1. 승인 대기 사용자 정보 조회 (BUG-018: 거주지 주소 필드 추가)
   const { data: pendingUser, error: pendingError } = await supabase
@@ -293,12 +298,17 @@ async function handleSamePersonUpdate(
     return { success: false, message: '승인 대기 사용자 정보를 찾을 수 없습니다.' };
   }
 
-  // BUG-017: 기존 사용자의 notes 조회 (병합용)
+  // 기존 사용자의 notes, user_status 조회 (PRE_REGISTERED 분기 + 병합용)
   const { data: existingUser } = await supabase
     .from('users')
-    .select('notes')
+    .select('notes, user_status')
     .eq('id', existingUserId)
     .single();
+
+  // PRE_REGISTERED인 경우 별도 함수로 분기
+  if (existingUser?.user_status === 'PRE_REGISTERED') {
+    return await handlePreRegisteredMatch(pendingUserId, existingUserId, conflictedPropertyUnitId, pendingUser, existingUser);
+  }
 
   // notes 병합 로직: 기존 + 신규 (중복 제거)
   let mergedNotes = existingUser?.notes || '';
@@ -310,7 +320,21 @@ async function handleSamePersonUpdate(
     }
   }
 
-  // 2. 기존 사용자 정보 업데이트 (BUG-017, BUG-018 반영)
+  // 2. pendingUser의 email/phone을 먼저 NULL로 초기화 (UNIQUE 제약 충돌 방지)
+  const { error: clearUniqueError } = await supabase
+    .from('users')
+    .update({
+      email: null,
+      phone_number: null,
+    })
+    .eq('id', pendingUserId);
+
+  if (clearUniqueError) {
+    console.error('Failed to clear pending user unique fields:', clearUniqueError);
+    return { success: false, message: '사용자 정보 통합 준비에 실패했습니다.' };
+  }
+
+  // 3. 기존 사용자 정보 업데이트 (BUG-017, BUG-018 반영)
   const { error: updateError } = await supabase
     .from('users')
     .update({
@@ -353,7 +377,6 @@ async function handleSamePersonUpdate(
     .from('user_auth_links')
     .update({
       user_id: existingUserId,
-      updated_at: new Date().toISOString(),
     })
     .eq('user_id', pendingUserId);
 
@@ -381,6 +404,212 @@ async function handleSamePersonUpdate(
     success: true,
     message: '동일인으로 처리되어 기존 정보가 업데이트되었습니다.',
     resolvedUserId: existingUserId,
+  };
+}
+
+/**
+ * 사전등록자 매칭 처리 - 동일인 확인
+ * 신규 가입자 데이터를 사전등록 레코드에 병합
+ * 물건지(property)는 사전등록 유지, 개인정보는 신규 우선
+ */
+async function handlePreRegisteredMatch(
+  pendingUserId: string,
+  existingUserId: string,
+  conflictedPropertyUnitId: string,
+  pendingUser: {
+    name: string | null;
+    phone_number: string | null;
+    email: string | null;
+    birth_date: string | null;
+    resident_address: string | null;
+    resident_address_detail: string | null;
+    resident_address_road: string | null;
+    resident_address_jibun: string | null;
+    resident_zonecode: string | null;
+    notes: string | null;
+  },
+  existingUser: { notes: string | null; user_status: string | null }
+): Promise<ConflictResolutionResult> {
+  // 1. notes 병합 (기존 패턴과 동일)
+  let mergedNotes = existingUser.notes || '';
+  if (pendingUser.notes) {
+    if (mergedNotes && !mergedNotes.includes(pendingUser.notes)) {
+      mergedNotes = `${mergedNotes}\n---\n${pendingUser.notes}`;
+    } else if (!mergedNotes) {
+      mergedNotes = pendingUser.notes;
+    }
+  }
+
+  // 2. pendingUser의 email/phone을 먼저 NULL로 초기화 (UNIQUE 제약 충돌 방지)
+  const { error: clearUniqueError } = await supabase
+    .from('users')
+    .update({
+      email: null,
+      phone_number: null,
+    })
+    .eq('id', pendingUserId);
+
+  if (clearUniqueError) {
+    console.error('Failed to clear pending user unique fields:', clearUniqueError);
+    return { success: false, message: '사전등록자 매칭 준비에 실패했습니다.' };
+  }
+
+  // 3. existingUser 업데이트 (신규 우선 필드만 + APPROVED 전환)
+  // 주의: property_address 등 물건지 관련 필드는 업데이트하지 않음 (사전등록 유지)
+  const { error: updateError } = await supabase
+    .from('users')
+    .update({
+      name: pendingUser.name,
+      phone_number: pendingUser.phone_number,
+      email: pendingUser.email,
+      birth_date: pendingUser.birth_date,
+      resident_address: pendingUser.resident_address,
+      resident_address_detail: pendingUser.resident_address_detail,
+      resident_address_road: pendingUser.resident_address_road,
+      resident_address_jibun: pendingUser.resident_address_jibun,
+      resident_zonecode: pendingUser.resident_zonecode,
+      notes: mergedNotes || null,
+      user_status: 'APPROVED',
+      role: 'USER',
+      approved_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', existingUserId);
+
+  if (updateError) {
+    return { success: false, message: '사전등록자 정보 업데이트에 실패했습니다.' };
+  }
+
+  // 4. 충돌 물건지만 삭제 (사전등록 물건지가 정본, 비충돌 물건지는 유지)
+  const { error: deletePropertyError } = await supabase
+    .from('user_property_units')
+    .delete()
+    .eq('user_id', pendingUserId)
+    .eq('id', conflictedPropertyUnitId);
+
+  if (deletePropertyError) {
+    console.error('Failed to delete pending user property units:', deletePropertyError);
+  }
+
+  // 5. 남은 물건지 확인 — PNU 단위 매칭이므로 비충돌 물건지가 남아있을 수 있음
+  const { data: remainingProperties } = await supabase
+    .from('user_property_units')
+    .select('id')
+    .eq('user_id', pendingUserId);
+
+  const hasRemainingProperties = remainingProperties && remainingProperties.length > 0;
+
+  if (hasRemainingProperties) {
+    // 남은 물건지가 있으면: pendingUser를 PENDING_APPROVAL 유지 (다음 승인 사이클에서 처리)
+    // auth_link도 이관하지 않음 (pendingUser가 계속 로그인 필요)
+    const { error: noteError } = await supabase
+      .from('users')
+      .update({
+        notes: `사전등록자 본인 확인으로 PNU 매칭 완료 (대상: ${existingUserId}), 잔여 물건지 ${remainingProperties.length}건 승인 대기`,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', pendingUserId);
+
+    if (noteError) {
+      console.error('Failed to update pending user notes:', noteError);
+    }
+  } else {
+    // 남은 물건지 없음: auth_link 이관 + MERGED (기존 로직)
+    const { data: existingAuthLinks } = await supabase
+      .from('user_auth_links')
+      .select('id')
+      .eq('user_id', existingUserId);
+
+    const { error: authLinkTransferError } = await supabase
+      .from('user_auth_links')
+      .update({
+        user_id: existingUserId,
+      })
+      .eq('user_id', pendingUserId);
+
+    if (authLinkTransferError) {
+      console.error('Failed to transfer auth links:', authLinkTransferError);
+      if (!existingAuthLinks || existingAuthLinks.length === 0) {
+        return { success: false, message: '인증 링크 이관에 실패했습니다. 로그인이 불가능할 수 있습니다.' };
+      }
+    }
+
+    const { error: mergeError } = await supabase
+      .from('users')
+      .update({
+        user_status: 'MERGED',
+        notes: `사전등록자 본인 확인으로 병합됨 (대상: ${existingUserId})`,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', pendingUserId);
+
+    if (mergeError) {
+      console.error('Failed to mark pending user as MERGED:', mergeError);
+    }
+  }
+
+  // 6. 이력 기록 (property_ownership_history)
+  const { data: existingPropertyUnit } = await supabase
+    .from('user_property_units')
+    .select('id')
+    .eq('user_id', existingUserId)
+    .limit(1)
+    .single();
+
+  if (existingPropertyUnit) {
+    await supabase
+      .from('property_ownership_history')
+      .insert({
+        property_unit_id: existingPropertyUnit.id,
+        from_user_id: pendingUserId,
+        to_user_id: existingUserId,
+        change_type: 'MERGED',
+        previous_ratio: 0,
+        new_ratio: 100,
+        change_reason: '사전등록자 본인 확인으로 PNU 매칭',
+      });
+  }
+
+  return {
+    success: true,
+    message: hasRemainingProperties
+      ? `사전등록자 본인 확인이 완료되었습니다. 잔여 물건지 ${remainingProperties!.length}건은 별도 승인이 필요합니다.`
+      : '사전등록자 본인 확인이 완료되어 정보가 병합되었습니다.',
+    resolvedUserId: existingUserId,
+  };
+}
+
+/**
+ * 별도 인물 처리 - 신규 사용자 그대로 승인
+ * 동명이인 등 사전등록자와 다른 인물인 경우
+ */
+async function handleApproveSeparate(
+  pendingUserId: string,
+  existingUserId: string
+): Promise<ConflictResolutionResult> {
+  // 1. pendingUser → APPROVED
+  const { error: approveError } = await supabase
+    .from('users')
+    .update({
+      user_status: 'APPROVED',
+      role: 'USER',
+      approved_at: new Date().toISOString(),
+      notes: `별도 인물로 승인됨 (PNU 충돌 기존 사용자: ${existingUserId})`,
+      rejected_reason: null,
+      rejected_at: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', pendingUserId);
+
+  if (approveError) {
+    return { success: false, message: '별도 인물 승인에 실패했습니다.' };
+  }
+
+  // 기존 사용자 변경 없음
+  return {
+    success: true,
+    message: '별도 인물로 승인되었습니다.',
+    resolvedUserId: pendingUserId,
   };
 }
 
@@ -795,7 +1024,7 @@ async function sendProxyRegistrationNotification(params: {
 }): Promise<void> {
   // 프록시 서버가 없거나 알림톡 템플릿이 없으면 스킵
   // 이 함수는 선택적이며 실패해도 대리인 등록에 영향 없음
-  console.log('[FEAT-011] Proxy registration notification:', params);
+  // TODO: 프록시 서버에 알림톡 템플릿 등록 후 실제 발송 구현
   // TODO: 프록시 서버에 알림톡 템플릿 등록 후 실제 발송 구현
   // const proxyUrl = process.env.NEXT_PUBLIC_PROXY_SERVER_URL;
   // if (!proxyUrl) return;

@@ -96,7 +96,7 @@ export async function startGisSync(params: GisSyncParams): Promise<GisSyncResult
         return { success: false, error: 'User is not authenticated.' };
     }
 
-    console.log(`[GIS Sync] Starting sync for unionId=${unionId}, addresses=${addresses.length}`);
+
 
     try {
         // JWT 토큰 생성
@@ -125,7 +125,7 @@ export async function startGisSync(params: GisSyncParams): Promise<GisSyncResult
             };
         }
 
-        console.log(`[GIS Sync] Job created: jobId=${result.jobId}`);
+
 
         return {
             success: true,

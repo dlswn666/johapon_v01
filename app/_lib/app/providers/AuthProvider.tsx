@@ -18,8 +18,8 @@ export type UserRole = 'SYSTEM_ADMIN' | 'ADMIN' | 'USER' | 'APPLICANT';
  * localhost 개발 환경에서만 사용됨
  */
 const DEV_SYSTEM_ADMIN_USER: User = {
-    id: 'systemAdmin',
-    name: '개발용 시스템관리자',
+    id: 'd58babef-1a73-4da0-961c-09457667a07d',
+    name: '시스템 관리자',
     email: 'dev-admin@localhost.dev',
     phone_number: '010-0000-0000',
     role: 'SYSTEM_ADMIN',

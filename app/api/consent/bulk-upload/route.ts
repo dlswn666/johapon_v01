@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
             return auth.response;
         }
 
-        console.log(`[Consent Bulk Upload] User ${auth.user.id} (${auth.user.name}) uploading consent data`);
+
         // ==========================================
 
         // 유효성 검사
@@ -190,7 +190,7 @@ async function processConsentUploadSync(unionId: string, stageId: string, data: 
                     // 주소 매칭 (property_address_jibun 또는 users.property_address)
                     if (row.address) {
                         addressMatch = (unit.property_address_jibun?.includes(row.address) ?? false) ||
-                                       (member.property_address?.includes(row.address) ?? false);
+                            (member.property_address?.includes(row.address) ?? false);
                     }
 
                     // 동 매칭
@@ -323,7 +323,7 @@ async function processConsentUpload(jobId: string, unionId: string, stageId: str
 
                     if (row.address) {
                         addressMatch = (unit.property_address_jibun?.includes(row.address) ?? false) ||
-                                       (member.property_address?.includes(row.address) ?? false);
+                            (member.property_address?.includes(row.address) ?? false);
                     }
                     if (row.dong) {
                         dongMatch = unit.dong?.toLowerCase().includes(row.dong.toLowerCase()) ?? false;

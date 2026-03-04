@@ -114,7 +114,7 @@ export async function sendAlimTalk(params: SendAlimTalkParams): Promise<AlimTalk
         return { success: false, error: '인증되지 않은 사용자입니다.' };
     }
 
-    console.log(`[알림톡 발송] 템플릿=${templateCode}, 수신자=${recipients.length}명`);
+
 
     try {
         // JWT 토큰 생성
@@ -140,7 +140,7 @@ export async function sendAlimTalk(params: SendAlimTalkParams): Promise<AlimTalk
 
         // 비동기 처리 응답 (202 Accepted)
         if (response.status === 202 && result.data?.jobId) {
-            console.log(`[알림톡 발송] 작업 등록됨: jobId=${result.data.jobId}`);
+
             return {
                 success: true,
                 message: result.data.message || '발송 요청이 접수되었습니다.',
@@ -158,7 +158,7 @@ export async function sendAlimTalk(params: SendAlimTalkParams): Promise<AlimTalk
             };
         }
 
-        console.log(`[알림톡 발송 완료] 성공=${result.data.kakaoSuccessCount}, 실패=${result.data.failCount}`);
+
 
         return {
             success: true,

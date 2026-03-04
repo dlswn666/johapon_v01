@@ -87,12 +87,14 @@ export const fileApi = {
         targetType, // 'NOTICE' | 'UNION' | 'UNION_INFO' | 'FREE_BOARD'
         unionSlug,
         uploaderId,
+        unionId,
     }: {
         files: { path: string; name: string; size: number; type: string }[];
         targetId: string;
         targetType: 'NOTICE' | 'UNION' | 'UNION_INFO' | 'FREE_BOARD';
         unionSlug: string;
         uploaderId?: string;
+        unionId?: string;
     }): Promise<void> => {
         for (const file of files) {
             // 1. Storage Move
@@ -132,7 +134,7 @@ export const fileApi = {
                 type: file.type,
                 bucket_id: BUCKET_NAME,
                 uploader_id: uploaderId || null,
-                union_id: null,
+                union_id: unionId || null,
                 attachable_type: attachableType,
                 attachable_id: Number(targetId),
             };

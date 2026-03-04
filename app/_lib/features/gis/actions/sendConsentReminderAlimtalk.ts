@@ -99,15 +99,15 @@ export async function sendConsentReminderAlimtalk(
             phone: string | null;
             unit_id: string;
             building_units:
-                | {
-                      pnu: string;
-                      land_lots: { address: string } | { address: string }[] | null;
-                  }
-                | {
-                      pnu: string;
-                      land_lots: { address: string } | { address: string }[] | null;
-                  }[]
-                | null;
+            | {
+                pnu: string;
+                land_lots: { address: string } | { address: string }[] | null;
+            }
+            | {
+                pnu: string;
+                land_lots: { address: string } | { address: string }[] | null;
+            }[]
+            | null;
         };
 
         const { data: owners, error: ownersError } = await supabase
@@ -185,16 +185,7 @@ export async function sendConsentReminderAlimtalk(
 
         // 6. 프록시 서버 API 호출 (실제 발송)
         // TODO: 프록시 서버 엔드포인트 구현 후 연동
-        console.log('[알림톡 발송] 발송 준비 완료:', {
-            templateCode,
-            unionId,
-            targetType,
-            recipientCount: recipients.length,
-            recipients: recipients.map((r) => ({
-                phone: r.phone?.substring(0, 7) + '****',
-                variables: r.variables,
-            })),
-        });
+
 
         // 현재는 스텁 응답 반환 (프록시 서버 연동 시 실제 발송)
         return {
@@ -290,9 +281,9 @@ export async function getNonConsentOwners(params: {
                         name: string;
                         phone: string | null;
                         owner_consents:
-                            | Array<{ status: string; stage_id: string }>
-                            | { status: string; stage_id: string }
-                            | null;
+                        | Array<{ status: string; stage_id: string }>
+                        | { status: string; stage_id: string }
+                        | null;
                     }) => {
                         if (!owner) return;
 
