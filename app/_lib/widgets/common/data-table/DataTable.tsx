@@ -344,10 +344,10 @@ export function DataTable<T extends object>({
                     </div>
                 </div>
 
-                {/* 하단 고정 가짜 가로 스크롤바 */}
+                {/* 하단 고정 가로 스크롤바 */}
                 <div
                     ref={fakeScrollbarRef}
-                    className="overflow-x-auto bg-gray-50 border-t border-gray-200"
+                    className="sticky bottom-0 overflow-x-auto bg-gray-50 border-t border-gray-200 z-10"
                     style={{ height: '17px' }}
                     onScroll={handleFakeScrollbarScroll}
                 >
