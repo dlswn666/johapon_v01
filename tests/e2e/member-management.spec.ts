@@ -3,7 +3,6 @@ import {
   navigateTo,
   waitForPageLoad,
   saveScreenshot,
-  clickDialogButton,
 } from './test-helpers';
 
 /**
@@ -365,7 +364,7 @@ test.describe.serial('조합원 관리 탭 E2E 테스트', () => {
 
 // ===== 테스트 데이터 정리 =====
 test.describe('테스트 데이터 정리', () => {
-  test('E2E 테스트 데이터 삭제', async ({ request }) => {
+  test('E2E 테스트 데이터 삭제', async ({ }) => {
     // 테스트 후 cleanup은 별도 SQL로 처리
     // 여기서는 테스트 데이터 존재 여부만 확인
     console.log('테스트 데이터 정리는 수동으로 진행: DELETE FROM users WHERE id LIKE \'test_%\'');

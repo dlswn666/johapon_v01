@@ -1014,7 +1014,7 @@ async function handleAddProxy(
 /**
  * FEAT-011: 대리인 등록 알림 발송 (프록시 서버 경유)
  */
-async function sendProxyRegistrationNotification(params: {
+async function sendProxyRegistrationNotification(_params: {
   ownerName: string;
   ownerPhone: string;
   proxyName: string;

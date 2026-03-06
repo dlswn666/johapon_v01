@@ -206,17 +206,6 @@ export async function POST(request: NextRequest) {
             }, { status: 207 }); // 207: Multi-Status
         }
 
-        // 테스트용: 생성된 초대 URL들을 콘솔에 출력
-        if ((result.inserted || 0) > 0) {
-            // 새로 추가된 초대들 조회 (응답 데이터용)
-            const { data: newInvites, error: fetchError } = await supabaseAdmin
-                .from('member_invites')
-                .select('id, name, phone_number, property_address, invite_token, expires_at')
-                .eq('union_id', unionId)
-                .eq('status', 'PENDING')
-                .order('created_at', { ascending: false })
-                .limit(result.inserted || 0);
-        }
 
         return NextResponse.json({
             success: true,

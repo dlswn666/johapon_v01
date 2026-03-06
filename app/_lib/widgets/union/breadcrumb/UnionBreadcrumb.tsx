@@ -31,6 +31,9 @@ const menuStructure: Record<string, { parent?: { label: string; href?: string };
     'admin/members': { parent: { label: '관리자' }, label: '조합원 관리' },
     'admin/users': { parent: { label: '관리자' }, label: '사용자 관리' },
 
+    // 총회 관리
+    'admin/assembly': { parent: { label: '관리자' }, label: '총회 관리' },
+
     // 알림톡 관리
     dashboard: { label: '알림톡 관리' },
 };

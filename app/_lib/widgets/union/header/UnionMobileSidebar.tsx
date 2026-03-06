@@ -70,6 +70,7 @@ export default function UnionMobileSidebar({ isOpen, onClose }: UnionMobileSideb
                 { label: '문자 발송', href: `/${union?.slug || ''}/admin/sms` },
                 { label: '조합원 관리', href: `/${union?.slug || ''}/admin/members` },
                 { label: '동의율 관리', href: `/${union?.slug || ''}/admin/land-lots` },
+                { label: '총회 관리', href: `/${union?.slug || ''}/admin/assembly` },
             ],
         });
     }

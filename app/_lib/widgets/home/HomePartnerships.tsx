@@ -23,12 +23,12 @@ export function HomePartnerships() {
                     <Skeleton className="h-[12px] md:h-[14px] w-[150px]" />
                 </div>
                 {/* 카드 스켈레톤 */}
-                <div className="flex gap-[12px] md:gap-[16px]">
-                    {[...Array(3)].map((_, i) => (
-                        <div key={i} className="flex-shrink-0 w-[160px] md:w-[200px]">
-                            <Skeleton className="w-[80px] h-[80px] rounded-[8px] md:rounded-[12px] mb-[8px] md:mb-[12px]" />
-                            <Skeleton className="h-[14px] md:h-[16px] w-[100px] mb-[4px] md:mb-[6px]" />
-                            <Skeleton className="h-[12px] md:h-[14px] w-[140px]" />
+                <div className="flex gap-[20px] md:gap-[45px]">
+                    {[...Array(5)].map((_, i) => (
+                        <div key={i} className="flex-shrink-0 w-[137px] flex flex-col items-center gap-[10px]">
+                            <Skeleton className="w-[50px] h-[50px] rounded-full" />
+                            <Skeleton className="h-[14px] w-[80px]" />
+                            <Skeleton className="h-[12px] w-[120px]" />
                         </div>
                     ))}
                 </div>
@@ -60,10 +60,10 @@ export function HomePartnerships() {
                 </Link>
             </div>
 
-            {/* 카드 컨테이너 - 가로 스크롤 */}
+            {/* 카드 컨테이너 - Figma: 137px per card, 45px gap */}
             <div
                 className={cn(
-                    'flex gap-[12px] md:gap-[16px] overflow-x-auto snap-x snap-mandatory',
+                    'flex gap-[20px] md:gap-[45px] overflow-x-auto snap-x snap-mandatory',
                     'scrollbar-hide pb-[4px]',
                     'touch-pan-x'
                 )}
@@ -74,38 +74,39 @@ export function HomePartnerships() {
                         key={partner.id}
                         href={`/${slug}/communication/partner/${partner.id}`}
                         className={cn(
-                            'flex-shrink-0 w-[160px] md:w-[200px] snap-start',
+                            'flex-shrink-0 w-[137px] snap-start',
+                            'flex flex-col items-center gap-[10px]',
                             'group cursor-pointer',
                             'outline-none focus-visible:ring-2 focus-visible:ring-[#4E8C6D] focus-visible:ring-offset-2 rounded-[8px]'
                         )}
                     >
-                        {/* 썸네일 */}
-                        <div className="relative w-[80px] h-[80px] rounded-[8px] md:rounded-[12px] overflow-hidden bg-gray-100 mb-[8px] md:mb-[12px]">
+                        {/* 썸네일 - Figma: 50px */}
+                        <div className="relative w-[50px] h-[50px] rounded-full overflow-hidden bg-gray-100">
                             {partner.image_url ? (
                                 <Image
                                     src={partner.image_url}
                                     alt={partner.title || partner.business_name}
                                     fill
-                                    className="object-cover group-hover:scale-105 transition-transform duration-300"
-                                    sizes="80px"
+                                    className="object-cover group-hover:scale-110 transition-transform duration-300"
+                                    sizes="50px"
                                 />
                             ) : (
                                 <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#4E8C6D]/20 to-[#4E8C6D]/5">
-                                    <span className="text-[24px] md:text-[28px] font-bold text-[#4E8C6D]/40">
+                                    <span className="text-[18px] font-bold text-[#4E8C6D]/40">
                                         {(partner.title || partner.business_name).charAt(0)}
                                     </span>
                                 </div>
                             )}
                         </div>
 
-                        {/* 제목 */}
-                        <h4 className="font-medium text-[14px] md:text-[16px] text-black truncate group-hover:text-[#4E8C6D] transition-colors">
+                        {/* 제목 - Figma: Semibold 14px, center */}
+                        <h4 className="font-semibold text-[14px] text-black text-center truncate w-full group-hover:text-[#4E8C6D] transition-colors">
                             {partner.title || partner.business_name}
                         </h4>
 
-                        {/* 설명 */}
+                        {/* 설명 - Figma: Light 12px, 2줄 */}
                         {partner.content && (
-                            <p className="text-[12px] md:text-[14px] text-gray-500 line-clamp-2 mt-[2px] md:mt-[4px]">
+                            <p className="text-[12px] font-light text-[#8a949e] line-clamp-2 text-center w-full">
                                 {partner.content}
                             </p>
                         )}

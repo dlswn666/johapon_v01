@@ -390,3 +390,13 @@
         animation: none !important;
     }
 }
+
+/* 슬라이더 프로그레스 바 애니메이션 */
+@keyframes progress-fill {
+    from {
+        transform: scaleX(0);
+    }
+    to {
+        transform: scaleX(1);
+    }
+}

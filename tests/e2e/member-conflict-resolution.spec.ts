@@ -284,15 +284,7 @@ async function approveUser(page: Page, name: string) {
 
   // 상세 패널 내 승인 버튼 (고정 오버레이, role 없음)
   // "승인 처리 중 오류" toast가 뜨면 실패로 간주
-  const detailPanel = page.locator('[aria-labelledby="member-approval-detail"]')
-    .or(page.locator('div').filter({ hasText: '사용자 상세 정보' }).filter({ has: page.locator('button', { hasText: '승인' }) }))
-    .first();
-
   // 더 직접적인 방법: 페이지에서 승인 버튼을 바로 찾기 (상세 패널 열린 후)
-  const approveBtn = page.locator('button', { hasText: '승인' }).filter({
-    has: page.locator('svg') // 아이콘 있는 버튼
-  }).last();
-
   // fallback: 단순히 "승인" 텍스트의 버튼을 exact match로
   const approveBtnExact = page.getByRole('button', { name: '승인', exact: true }).last();
 
@@ -819,8 +811,6 @@ test.describe.serial('[P2-H] 역할 변경 및 임원 설정', () => {
 
     // 상세 패널 (조합원 관리 탭) — role="dialog"가 없는 오른쪽 패널
     // 패널 내 combobox(조합원)로 역할 변경
-    const detailPanel = page.locator('h3', { hasText: '사용자 상세 정보' }).locator('../..');
-
     // 등급 combobox 클릭 (현재 '조합원' 선택된 상태)
     const gradeCombobox = page.locator('combobox, [role="combobox"]')
       .filter({ hasText: '조합원' }).first();

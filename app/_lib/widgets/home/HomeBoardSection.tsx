@@ -194,32 +194,37 @@ export function HomeBoardSection() {
     return (
         <section className="flex flex-col lg:flex-row gap-[16px] lg:gap-[24px] lg:h-[294px]">
             {/* 좌측: 세로 탭 버튼 - Figma: w-155px, h-294px */}
-            <div
-                className="flex lg:flex-col gap-[8px] lg:gap-0 lg:justify-between lg:w-[155px] h-full overflow-x-auto lg:overflow-visible scrollbar-hide shrink-0"
-                role="tablist"
-                aria-label="게시판 카테고리"
-            >
-                {TABS.map((tab) => (
-                    <button
-                        key={tab.id}
-                        onClick={() => setActiveTab(tab.id)}
-                        role="tab"
-                        aria-selected={activeTab === tab.id}
-                        aria-controls={`tabpanel-${tab.id}`}
-                        id={`tab-${tab.id}`}
-                        className={cn(
-                            'px-[16px] lg:px-[20px] py-[12px] lg:py-[20px] rounded-[50px] transition-colors cursor-pointer whitespace-nowrap',
-                            'text-[14px] lg:text-[20px] font-semibold tracking-[1px]',
-                            'outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
-                            'min-w-[100px] lg:w-full text-center',
-                            activeTab === tab.id
-                                ? 'bg-[#2f7f5f] text-white focus-visible:ring-white focus-visible:ring-offset-[#2f7f5f]'
-                                : 'bg-white border-[2px] border-[#bfd7cd] text-[#2f7f5f] hover:bg-[#f0f7f4] focus-visible:ring-[#2f7f5f]'
-                        )}
-                    >
-                        {tab.label}
-                    </button>
-                ))}
+            <div className="relative shrink-0 lg:w-[155px] h-full">
+                {/* 모바일 스크롤 페이드 힌트 */}
+                <div className="absolute right-0 top-0 bottom-0 w-[24px] bg-gradient-to-l from-white to-transparent pointer-events-none z-10 lg:hidden" />
+                <div
+                    className="flex lg:flex-col gap-[10px] lg:gap-0 lg:justify-between h-full overflow-x-auto lg:overflow-visible scrollbar-hide pr-[24px] lg:pr-0"
+                    role="tablist"
+                    aria-label="게시판 카테고리"
+                >
+                    {TABS.map((tab) => (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+                            role="tab"
+                            aria-selected={activeTab === tab.id}
+                            aria-controls={`tabpanel-${tab.id}`}
+                            id={`tab-${tab.id}`}
+                            className={cn(
+                                'px-[18px] lg:px-[20px] py-[14px] lg:py-[20px] rounded-[50px] cursor-pointer whitespace-nowrap',
+                                'text-[14px] lg:text-[20px] font-semibold tracking-[1px]',
+                                'outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
+                                'min-w-[110px] lg:w-full text-center',
+                                'transition-all duration-200',
+                                activeTab === tab.id
+                                    ? 'bg-[#2f7f5f] text-white shadow-md focus-visible:ring-white focus-visible:ring-offset-[#2f7f5f]'
+                                    : 'bg-white border-[2px] border-[#2f7f5f] text-[#2f7f5f] hover:bg-[#f0f7f4] hover:shadow-sm focus-visible:ring-[#2f7f5f]'
+                            )}
+                        >
+                            {tab.label}
+                        </button>
+                    ))}
+                </div>
             </div>
 
             {/* 우측: 게시글 목록 - Figma: bg-[#f4f5f6], rounded-[16px], p-[20px] */}
@@ -288,11 +293,11 @@ export function HomeBoardSection() {
                                     <div key={(item as Record<string, unknown>).id as number}>
                                         <button
                                             onClick={getItemClickHandler((item as Record<string, unknown>).id as number)}
-                                            className="w-full flex items-center justify-between py-[4px] hover:bg-white/50 rounded-md transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[#2f7f5f] focus-visible:ring-offset-2"
+                                            className="w-full flex items-center justify-between py-[6px] px-[8px] hover:bg-white/60 rounded-[8px] transition-all duration-150 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[#2f7f5f] focus-visible:ring-offset-2 group"
                                         >
                                             {/* 제목 + 댓글수 */}
                                             <div className="flex items-center gap-[10px] flex-1 min-w-0">
-                                                <span className="text-[14px] lg:text-[18px] font-semibold text-[#33363d] tracking-[1px] truncate">
+                                                <span className="text-[14px] lg:text-[18px] font-semibold text-[#33363d] tracking-[1px] truncate group-hover:text-[#2f7f5f] transition-colors">
                                                     {(item as Record<string, unknown>).title as string}
                                                 </span>
                                                 {/* 댓글 수 */}

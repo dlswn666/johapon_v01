@@ -47,7 +47,8 @@ export function HeroSlider({ slides, autoPlayInterval = 4000, className }: HeroS
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isTransitioning, setIsTransitioning] = useState(false);
     const sliderRef = useRef<HTMLDivElement>(null);
-    const autoPlayRef = useRef<NodeJS.Timeout | null>(null);
+    const [isPaused, setIsPaused] = useState(false);
+    const [progressKey, setProgressKey] = useState(0);
     const reducedMotion = useReducedMotion();
 
     // 터치 스와이프 관련 상태
@@ -67,8 +68,8 @@ export function HeroSlider({ slides, autoPlayInterval = 4000, className }: HeroS
     const extendedSlides = hasMultipleSlides
         ? [activeSlides[activeSlides.length - 1], ...activeSlides, activeSlides[0]]
         : hasSlides
-        ? activeSlides
-        : [];
+            ? activeSlides
+            : [];
 
     // 실제 인덱스 (확장 배열 기준)
     const actualIndex = hasMultipleSlides ? currentIndex + 1 : currentIndex;
@@ -95,6 +96,7 @@ export function HeroSlider({ slides, autoPlayInterval = 4000, className }: HeroS
             if (isTransitioning || index === currentIndex) return;
             setIsTransitioning(true);
             setCurrentIndex(index);
+            setProgressKey((prev) => prev + 1);
         },
         [currentIndex, isTransitioning]
     );
@@ -109,10 +111,12 @@ export function HeroSlider({ slides, autoPlayInterval = 4000, className }: HeroS
             // 마지막 복제본에서 첫 번째로 점프
             if (currentIndex >= activeSlides.length) {
                 setCurrentIndex(0);
+                setProgressKey((prev) => prev + 1);
             }
             // 첫 번째 복제본에서 마지막으로 점프
             else if (currentIndex < 0) {
                 setCurrentIndex(activeSlides.length - 1);
+                setProgressKey((prev) => prev + 1);
             }
         }, 500); // transition duration과 일치
 
@@ -121,29 +125,21 @@ export function HeroSlider({ slides, autoPlayInterval = 4000, className }: HeroS
 
     // 자동 슬라이드 (reduced-motion이 활성화되면 자동 슬라이드 비활성화)
     useEffect(() => {
-        if (!hasMultipleSlides || reducedMotion) return;
+        if (!hasMultipleSlides || reducedMotion || isPaused) return;
 
-        const startAutoPlay = () => {
-            autoPlayRef.current = setInterval(goToNext, autoPlayInterval);
-        };
-
-        startAutoPlay();
+        const timerId = setInterval(goToNext, autoPlayInterval);
 
         return () => {
-            if (autoPlayRef.current) {
-                clearInterval(autoPlayRef.current);
-            }
+            clearInterval(timerId);
         };
-    }, [hasMultipleSlides, autoPlayInterval, goToNext, reducedMotion]);
+    }, [hasMultipleSlides, autoPlayInterval, goToNext, reducedMotion, isPaused]);
 
     // 터치 스와이프 핸들러
     const handleTouchStart = useCallback((e: React.TouchEvent) => {
         touchStartX.current = e.touches[0].clientX;
         isSwiping.current = true;
         // 스와이프 시작 시 자동 슬라이드 일시 정지
-        if (autoPlayRef.current) {
-            clearInterval(autoPlayRef.current);
-        }
+        setIsPaused(true);
     }, []);
 
     const handleTouchMove = useCallback((e: React.TouchEvent) => {
@@ -154,6 +150,7 @@ export function HeroSlider({ slides, autoPlayInterval = 4000, className }: HeroS
     const handleTouchEnd = useCallback(() => {
         if (!isSwiping.current || !hasMultipleSlides) {
             isSwiping.current = false;
+            setIsPaused(false);
             return;
         }
 
@@ -171,14 +168,12 @@ export function HeroSlider({ slides, autoPlayInterval = 4000, className }: HeroS
         }
 
         // 터치 끝나면 자동 슬라이드 재시작
-        if (hasMultipleSlides) {
-            autoPlayRef.current = setInterval(goToNext, autoPlayInterval);
-        }
+        setIsPaused(false);
 
         isSwiping.current = false;
         touchStartX.current = 0;
         touchEndX.current = 0;
-    }, [hasMultipleSlides, goToNext, goToPrev, autoPlayInterval]);
+    }, [hasMultipleSlides, goToNext, goToPrev]);
 
     // 슬라이드 클릭 핸들러
     const handleSlideClick = (slide: HeroSlide) => {
@@ -189,15 +184,11 @@ export function HeroSlider({ slides, autoPlayInterval = 4000, className }: HeroS
 
     // 마우스 호버 시 자동 슬라이드 일시 정지
     const handleMouseEnter = () => {
-        if (autoPlayRef.current) {
-            clearInterval(autoPlayRef.current);
-        }
+        setIsPaused(true);
     };
 
     const handleMouseLeave = () => {
-        if (hasMultipleSlides) {
-            autoPlayRef.current = setInterval(goToNext, autoPlayInterval);
-        }
+        setIsPaused(false);
     };
 
     return (
@@ -216,7 +207,7 @@ export function HeroSlider({ slides, autoPlayInterval = 4000, className }: HeroS
             <div
                 ref={sliderRef}
                 className={cn(
-                    'flex h-[400px] md:h-[500px] lg:h-[600px]',
+                    'flex h-[300px] md:h-[500px] lg:h-[700px]',
                     isTransitioning && !reducedMotion ? 'transition-transform duration-500 ease-in-out' : ''
                 )}
                 style={{
@@ -237,7 +228,7 @@ export function HeroSlider({ slides, autoPlayInterval = 4000, className }: HeroS
                             alt={slide.link_url ? `슬라이드 ${index + 1} - 클릭하여 자세히 보기` : `슬라이드 ${index + 1}`}
                             fill
                             sizes="100vw"
-                            className="object-contain"
+                            className="object-cover"
                             draggable={false}
                             priority={index === 0}
                         />
@@ -250,24 +241,24 @@ export function HeroSlider({ slides, autoPlayInterval = 4000, className }: HeroS
                 <>
                     <button
                         onClick={goToPrev}
-                        className="absolute left-[16px] md:left-[36px] top-1/2 -translate-y-1/2 bg-[rgba(255,255,255,0.3)] hover:bg-[rgba(255,255,255,0.4)] text-white rounded-full transition-colors z-20 w-[32px] h-[32px] md:w-[63px] md:h-[63px] flex items-center justify-center cursor-pointer focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-gray-800 outline-none"
+                        className="absolute left-[16px] md:left-[36px] top-1/2 -translate-y-1/2 bg-[rgba(0,0,0,0.25)] hover:bg-[rgba(0,0,0,0.4)] text-white rounded-full transition-all duration-200 z-20 w-[44px] h-[44px] md:w-[63px] md:h-[63px] flex items-center justify-center cursor-pointer focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-gray-800 outline-none backdrop-blur-[2px]"
                         aria-label="이전 슬라이드"
                     >
-                        <ChevronLeft className="w-4 h-4 md:w-6 md:h-6" aria-hidden="true" />
+                        <ChevronLeft className="w-5 h-5 md:w-6 md:h-6" aria-hidden="true" />
                     </button>
                     <button
                         onClick={goToNext}
-                        className="absolute right-[16px] md:right-[36px] top-1/2 -translate-y-1/2 bg-[rgba(255,255,255,0.3)] hover:bg-[rgba(255,255,255,0.4)] text-white rounded-full transition-colors z-20 w-[32px] h-[32px] md:w-[63px] md:h-[63px] flex items-center justify-center cursor-pointer focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-gray-800 outline-none"
+                        className="absolute right-[16px] md:right-[36px] top-1/2 -translate-y-1/2 bg-[rgba(0,0,0,0.25)] hover:bg-[rgba(0,0,0,0.4)] text-white rounded-full transition-all duration-200 z-20 w-[44px] h-[44px] md:w-[63px] md:h-[63px] flex items-center justify-center cursor-pointer focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-gray-800 outline-none backdrop-blur-[2px]"
                         aria-label="다음 슬라이드"
                     >
-                        <ChevronRight className="w-4 h-4 md:w-6 md:h-6" aria-hidden="true" />
+                        <ChevronRight className="w-5 h-5 md:w-6 md:h-6" aria-hidden="true" />
                     </button>
                 </>
             )}
 
-            {/* 인디케이터 (슬라이드가 2개 이상일 때만) */}
+            {/* 프로그레스 바 인디케이터 (슬라이드가 2개 이상일 때만) */}
             {hasMultipleSlides && (
-                <div className="absolute bottom-[20px] md:bottom-[50px] left-1/2 -translate-x-1/2 flex gap-[8px] md:gap-[13.5px] z-20">
+                <div className="absolute bottom-[20px] md:bottom-[50px] left-[16px] md:left-[164px] z-20 flex gap-0 w-[calc(100%-32px)] md:w-[728px] h-[8px] md:h-[13px] bg-[rgba(255,255,255,0.3)] rounded-full overflow-hidden backdrop-blur-[2px]">
                     {activeSlides.map((_, index) => {
                         const isActive =
                             currentIndex === index ||
@@ -277,15 +268,23 @@ export function HeroSlider({ slides, autoPlayInterval = 4000, className }: HeroS
                             <button
                                 key={index}
                                 onClick={() => goToSlide(index)}
-                                className={cn(
-                                    'rounded-full transition-[background-color] duration-300 cursor-pointer focus-visible:ring-2 focus-visible:ring-white outline-none',
-                                    isActive
-                                        ? 'bg-white w-[10px] h-[10px] md:w-[13.5px] md:h-[13.5px]'
-                                        : 'bg-[rgba(255,255,255,0.5)] w-[10px] h-[10px] md:w-[13.5px] md:h-[13.5px] hover:bg-[rgba(255,255,255,0.7)]'
-                                )}
+                                className="flex-1 relative cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-inset"
                                 aria-label={`슬라이드 ${index + 1}로 이동`}
                                 aria-current={isActive ? 'true' : undefined}
-                            />
+                            >
+                                {isActive && (
+                                    <div
+                                        key={progressKey}
+                                        className="absolute inset-0 bg-[#2f7f5f] rounded-full origin-left"
+                                        style={{
+                                            animation: isPaused || reducedMotion
+                                                ? 'none'
+                                                : `progress-fill ${autoPlayInterval}ms linear forwards`,
+                                            animationPlayState: isPaused ? 'paused' : 'running',
+                                        }}
+                                    />
+                                )}
+                            </button>
                         );
                     })}
                 </div>

@@ -94,10 +94,6 @@ export default function RecipientUploader() {
           index === self.findIndex((r) => r.phone === recipient.phone)
       );
 
-      // 중복 개수 계산
-      const duplicateCount = parsedRecipients.length - uniqueRecipients.length;
-
-
       setRecipients(uniqueRecipients);
     } catch (error) {
       console.error('엑셀 파싱 오류:', error);
