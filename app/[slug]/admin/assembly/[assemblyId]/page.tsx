@@ -16,6 +16,7 @@ import useModalStore from '@/app/_lib/shared/stores/modal/useModalStore';
 import { ArrowLeft, Settings, FileText, Vote, Users, QrCode, ClipboardList, BarChart2 } from 'lucide-react';
 import { getUnionPath } from '@/app/_lib/shared/lib/utils/slug';
 import QuorumDashboard from '@/app/_lib/features/assembly/ui/QuorumDashboard';
+import AdminLiveDashboard from '@/app/_lib/features/assembly/ui/admin/AdminLiveDashboard';
 
 // 상태 전이 버튼 설정
 const STATUS_ACTIONS: Record<string, { nextStatus: AssemblyStatus; label: string; variant: 'default' | 'destructive' | 'outline' }[]> = {
@@ -59,6 +60,9 @@ const STATUS_COLORS: Record<string, string> = {
 
 // 정족수 대시보드를 표시할 총회 상태
 const QUORUM_VISIBLE_STATUSES = ['IN_PROGRESS', 'VOTING', 'VOTING_CLOSED'];
+
+// 통합 라이브 대시보드를 표시할 총회 상태
+const LIVE_DASHBOARD_STATUSES = ['IN_PROGRESS', 'VOTING', 'VOTING_CLOSED'];
 
 export default function AssemblyDashboardPage({ params }: { params: Promise<{ assemblyId: string }> }) {
   const { assemblyId } = use(params);
@@ -116,6 +120,30 @@ export default function AssemblyDashboardPage({ params }: { params: Promise<{ as
   const statusActions = STATUS_ACTIONS[assembly.status] || [];
   const isEditable = ['DRAFT', 'NOTICE_SENT'].includes(assembly.status);
   const showQuorum = QUORUM_VISIBLE_STATUSES.includes(assembly.status);
+  const showLiveDashboard = LIVE_DASHBOARD_STATUSES.includes(assembly.status);
+
+  // 총회 진행 중에는 통합 라이브 대시보드 표시
+  if (showLiveDashboard) {
+    return (
+      <div className="space-y-6">
+        {/* 헤더 (뒤로가기) */}
+        <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => router.push(getUnionPath(slug, '/admin/assembly'))}
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <p className="text-sm text-gray-500">
+            {ASSEMBLY_TYPE_LABELS[assembly.assembly_type]} | {new Date(assembly.scheduled_at).toLocaleDateString('ko-KR')}
+          </p>
+        </div>
+
+        <AdminLiveDashboard assemblyId={assemblyId} assembly={assembly} />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

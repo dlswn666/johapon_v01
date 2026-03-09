@@ -7,6 +7,7 @@ import {
   Poll,
   PollOption,
   AssemblyMemberSnapshotPublic,
+  HallFeatureFlags,
 } from '@/app/_lib/shared/type/assembly.types';
 
 // 안건 + 투표 세션 + 선택지 포함
@@ -24,12 +25,30 @@ interface VoteState {
   receiptTokens: Record<string, string>; // pollId → receipt_token
   votedPolls: Record<string, boolean>; // pollId → 투표 완료 여부
 
+  // 세션 상태
+  sessionId: string | null;
+  logId: string | null;
+  entryAt: string | null;
+  lastSeenAt: string | null;
+  sessionStatus: 'INACTIVE' | 'STARTING' | 'ACTIVE' | 'IDLE' | 'RECONNECTING' | 'ENDED';
+  isBootstrapped: boolean;
+  featureFlags: HallFeatureFlags | null;
+
   // Actions
   setSnapshot: (snapshot: AssemblyMemberSnapshotPublic | null) => void;
   setAssembly: (assembly: Assembly) => void;
   setAgendaItems: (items: AgendaItemWithPollOptions[]) => void;
   setReceiptToken: (pollId: string, token: string) => void;
   markPollVoted: (pollId: string) => void;
+
+  // 세션 Actions
+  setSession: (data: { sessionId: string; logId: string; entryAt: string }) => void;
+  updateLastSeen: (lastSeenAt: string) => void;
+  setSessionStatus: (status: VoteState['sessionStatus']) => void;
+  setFeatureFlags: (flags: HallFeatureFlags) => void;
+  setBootstrapped: (value: boolean) => void;
+  endSession: () => void;
+
   reset: () => void;
 }
 
@@ -39,6 +58,13 @@ const createInitialState = () => ({
   agendaItems: [] as AgendaItemWithPollOptions[],
   receiptTokens: {} as Record<string, string>,
   votedPolls: {} as Record<string, boolean>,
+  sessionId: null as string | null,
+  logId: null as string | null,
+  entryAt: null as string | null,
+  lastSeenAt: null as string | null,
+  sessionStatus: 'INACTIVE' as VoteState['sessionStatus'],
+  isBootstrapped: false,
+  featureFlags: null as HallFeatureFlags | null,
 });
 
 const useVoteStore = create<VoteState>((set) => ({
@@ -60,6 +86,25 @@ const useVoteStore = create<VoteState>((set) => ({
     set((state) => ({
       votedPolls: { ...state.votedPolls, [pollId]: true },
     })),
+
+  // 세션 Actions
+  setSession: (data) =>
+    set({
+      sessionId: data.sessionId,
+      logId: data.logId,
+      entryAt: data.entryAt,
+    }),
+
+  updateLastSeen: (lastSeenAt) => set({ lastSeenAt }),
+
+  setSessionStatus: (status) => set({ sessionStatus: status }),
+
+  setFeatureFlags: (flags) => set({ featureFlags: flags }),
+
+  setBootstrapped: (value) => set({ isBootstrapped: value }),
+
+  endSession: () =>
+    set({ sessionStatus: 'ENDED' }),
 
   reset: () => set(createInitialState()),
 }));

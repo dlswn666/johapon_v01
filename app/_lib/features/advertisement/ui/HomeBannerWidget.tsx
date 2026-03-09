@@ -100,13 +100,13 @@ function BannerCard({ ad, isMobile }: { ad: Advertisement; isMobile: boolean }) 
                     />
                     {/* 텍스트 오버레이 */}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent flex flex-col justify-end p-3">
-                        <span className="text-[8px] font-bold text-emerald-400 uppercase tracking-widest mb-0.5">
+                        <span className="text-[10px] font-bold text-[#2f7f5f] uppercase tracking-widest mb-0.5">
                             Partnership
                         </span>
-                        <h4 className="text-white font-bold text-[11px] leading-tight line-clamp-1">
+                        <h4 className="text-white font-bold text-[13px] leading-tight line-clamp-1">
                             {ad.title}
                         </h4>
-                        <p className="text-white/70 text-[9px] font-medium line-clamp-1">{ad.business_name}</p>
+                        <p className="text-white/70 text-[11px] font-medium line-clamp-1">{ad.business_name}</p>
                     </div>
                 </>
             ) : (
@@ -151,7 +151,7 @@ export function HomeBannerWidget() {
                     <BannerCard key={ad.id} ad={ad} isMobile={isMobile} />
                 ))}
             </div>
-            <p className="text-[9px] text-slate-400 text-center font-medium uppercase tracking-widest">
+            <p className="text-[11px] text-slate-400 text-center font-medium uppercase tracking-widest">
                 Advertisement
             </p>
         </div>

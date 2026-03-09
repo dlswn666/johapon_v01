@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
@@ -25,6 +25,12 @@ export default function UnionHomePage() {
 
     // 신규 사용자: authUser는 있지만 user가 없는 경우 (회원가입 필요)
     const needsRegistration = !!authUser && !user;
+
+    // 커뮤니티 링크 존재 여부 (PC 레이아웃 결정용)
+    const hasCommunityLinks = useMemo(() => {
+        const links = union?.community_links as Array<{ platform: string; active: boolean }> | null;
+        return links?.some((l) => l.active && (l.platform === 'naver_cafe' || l.platform === 'youtube')) ?? false;
+    }, [union?.community_links]);
 
     if (isUnionLoading || isAuthLoading || isUserFetching) {
         return (
@@ -89,23 +95,25 @@ export default function UnionHomePage() {
                             </div>
 
                             {/* 모바일: 커뮤니티 + 조합정보 2열 그리드 */}
-                            <div className="grid grid-cols-2 md:hidden gap-[8px]">
+                            <div className="grid grid-cols-2 gap-[8px] md:hidden">
                                 <HomeCommunitySection />
                                 <HomeUnionCard />
                             </div>
 
-                            {/* PC: 재개발 커뮤니티 + 재개발 정보 (같은 행) */}
-                            <div className="hidden md:flex gap-[22px]">
-                                <div className="w-[282px] shrink-0">
-                                    <HomeCommunitySection />
-                                </div>
-                                <div className="flex-1">
+                            {/* PC: 재개발 정보 + 커뮤니티 가로 배치 (커뮤니티 없으면 정보가 전체 너비) */}
+                            <div className="hidden md:flex md:gap-[24px]">
+                                <div className="flex-1 min-w-0">
                                     <HomeInfoSection />
                                 </div>
+                                {hasCommunityLinks && (
+                                    <div className="w-[282px] shrink-0">
+                                        <HomeCommunitySection />
+                                    </div>
+                                )}
                             </div>
 
-                            {/* 모바일: 재개발 정보 별도 행 */}
-                            <div className="block md:hidden">
+                            {/* 모바일: 재개발 정보 */}
+                            <div className="md:hidden">
                                 <HomeInfoSection />
                             </div>
 

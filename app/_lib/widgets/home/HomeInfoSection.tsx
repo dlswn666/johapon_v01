@@ -56,12 +56,12 @@ function StatItem({ icon, label, value }: StatItemProps) {
     const displayValue = value !== null && value !== undefined && value !== '' ? value : '-';
 
     return (
-        <div className="flex items-center justify-between gap-[6px] lg:gap-[10px] h-[22px] lg:h-[24px]">
-            <div className="flex items-center gap-[4px] lg:gap-[10px]">
-                <div className="text-[#33363d]">{icon}</div>
-                <span className="text-[11px] lg:text-[14px] font-light text-[#33363d] whitespace-nowrap">{label}</span>
+        <div className="flex items-center justify-between gap-[6px] lg:gap-[12px] h-[28px] lg:h-[32px]">
+            <div className="flex items-center gap-[6px] lg:gap-[10px]">
+                <div className="text-[#1e2124]">{icon}</div>
+                <span className="text-[13px] lg:text-[16px] font-medium text-[#1e2124] whitespace-nowrap">{label}</span>
             </div>
-            <span className="text-[11px] lg:text-[12px] font-light text-[#33363d]">{displayValue}</span>
+            <span className="text-[13px] lg:text-[16px] font-semibold text-[#2f7f5f]">{displayValue}</span>
         </div>
     );
 }
@@ -87,11 +87,11 @@ export function HomeInfoSection() {
 
     // 동의율, 접속자 수 (임시)
     const consentRate = null;
-    const visitorCount = 3;
+    const visitorCount = null;
 
     return (
         <section
-            className="bg-white border border-[#cdd1d5] rounded-[5px] lg:rounded-[12px] p-[12px] lg:p-[24px] overflow-hidden"
+            className="bg-white border border-[#cdd1d5] rounded-[6px] lg:rounded-[10px] p-[12px] lg:p-[24px] overflow-hidden"
             aria-labelledby="info-section-title"
         >
             {/* 섹션 제목 */}
@@ -102,11 +102,11 @@ export function HomeInfoSection() {
                 재개발 정보
             </h3>
 
-            {/* 콘텐츠: 2x2 그리드 + 조합 정보 카드 */}
-            <div className="flex gap-[16px] lg:gap-[20px]">
-                {/* 2x2 그리드 - Figma: min-w-[500px], grid */}
+            {/* 콘텐츠: 2x2 배너(유동) + 조합 정보(고정, 1열 5행) */}
+            <div className="flex flex-col-reverse lg:flex-row gap-[16px] lg:gap-[20px]">
+                {/* 2x2 배너 그리드 - 유동 너비 (커뮤니티 섹션 유무에 따라 줄어듦) */}
                 <nav
-                    className="flex-1 grid grid-cols-2 grid-rows-2 gap-[8px] lg:gap-[20px] min-w-0 lg:min-w-[500px]"
+                    className="grid grid-cols-2 gap-[8px] lg:gap-[12px] flex-1 min-w-0"
                     aria-label="외부 재개발 정보 링크"
                 >
                     {INFO_LINKS.map((link) => (
@@ -115,50 +115,50 @@ export function HomeInfoSection() {
                             href={link.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="h-[60px] lg:h-[74px] rounded-[6px] lg:rounded-[8px] border border-[#e6e8ea] overflow-hidden flex items-center justify-center transition-all duration-200 hover:border-[#2f7f5f] hover:shadow-sm focus-visible:ring-2 focus-visible:ring-[#2f7f5f] focus-visible:ring-offset-2 outline-none group"
+                            className="relative h-full rounded-[6px] lg:rounded-[6px] border border-[#e6e8ea] overflow-hidden flex items-center justify-center transition-[border-color,box-shadow] duration-200 hover:border-[#2f7f5f] hover:shadow-sm focus-visible:ring-2 focus-visible:ring-[#2f7f5f] focus-visible:ring-offset-2 outline-none group"
                             style={{ backgroundColor: link.bgColor }}
                             aria-label={`${link.label} (새 창에서 열림)`}
                         >
                             <Image
                                 src={link.icon}
                                 alt=""
-                                width={140}
-                                height={34}
-                                className="object-contain w-[80px] lg:w-[120px] h-auto group-hover:scale-105 transition-transform duration-200"
+                                fill
+                                className="object-contain p-[10px] lg:p-[12px] group-hover:scale-105 transition-transform duration-200"
                                 aria-hidden="true"
                             />
                         </a>
                     ))}
                 </nav>
 
-                {/* 조합 정보 카드 - Figma: w-166px, bg-[#f4f5f6], rounded-[8px] */}
-                {/* 모바일: 그리드 2열, PC: 세로 리스트 */}
-                <div className="grid grid-cols-2 gap-[6px] lg:flex lg:flex-col lg:gap-[8px] lg:w-[166px] bg-[#f4f5f6] rounded-[8px] px-[12px] py-[8px] lg:px-[15px] lg:py-[10px] justify-center shrink-0">
-                    <StatItem
-                        icon={<Eye className="w-[16px] h-[16px] lg:w-[20px] lg:h-[20px]" />}
-                        label="접속자 수"
-                        value={visitorCount ? `${visitorCount}명` : null}
-                    />
-                    <StatItem
-                        icon={<Users className="w-[16px] h-[16px] lg:w-[20px] lg:h-[20px]" />}
-                        label="조합원 수"
-                        value={union?.member_count ? `${union.member_count}명` : null}
-                    />
-                    <StatItem
-                        icon={<Square className="w-[16px] h-[16px] lg:w-[20px] lg:h-[20px]" />}
-                        label="면적"
-                        value={union?.area_size ? `${union.area_size}평` : null}
-                    />
-                    <StatItem
-                        icon={<Layers className="w-[16px] h-[16px] lg:w-[20px] lg:h-[20px]" />}
-                        label="단계"
-                        value={currentStage?.stage_name}
-                    />
-                    <StatItem
-                        icon={<BarChart3 className="w-[16px] h-[16px] lg:w-[20px] lg:h-[20px]" />}
-                        label="동의율"
-                        value={consentRate ? `${consentRate}%` : null}
-                    />
+                {/* 조합 정보 - 고정 너비, 1열 5행 */}
+                <div className="lg:w-[240px] shrink-0 bg-[#f4f5f6] rounded-[10px] lg:rounded-[12px] px-[16px] py-[12px] lg:px-[20px] lg:py-[16px]">
+                    <div className="flex flex-col gap-y-[8px] lg:gap-y-[10px]">
+                        <StatItem
+                            icon={<Eye className="w-[18px] h-[18px] lg:w-[22px] lg:h-[22px]" />}
+                            label="접속자 수"
+                            value={visitorCount ? `${visitorCount}명` : null}
+                        />
+                        <StatItem
+                            icon={<Users className="w-[18px] h-[18px] lg:w-[22px] lg:h-[22px]" />}
+                            label="조합원 수"
+                            value={union?.member_count ? `${union.member_count}명` : null}
+                        />
+                        <StatItem
+                            icon={<Square className="w-[18px] h-[18px] lg:w-[22px] lg:h-[22px]" />}
+                            label="면적"
+                            value={union?.area_size ? `${union.area_size}평` : null}
+                        />
+                        <StatItem
+                            icon={<Layers className="w-[18px] h-[18px] lg:w-[22px] lg:h-[22px]" />}
+                            label="단계"
+                            value={currentStage?.stage_name}
+                        />
+                        <StatItem
+                            icon={<BarChart3 className="w-[18px] h-[18px] lg:w-[22px] lg:h-[22px]" />}
+                            label="동의율"
+                            value={consentRate ? `${consentRate}%` : null}
+                        />
+                    </div>
                 </div>
             </div>
         </section>

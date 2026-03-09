@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/app/_lib/shared/supabase/server';
 import { authenticateApiRequest } from '@/app/_lib/shared/api/auth';
+import { isSessionMode } from '@/app/_lib/shared/utils/featureFlags';
 import crypto from 'crypto';
 
 // 입장 허용 총회 상태
@@ -39,7 +40,7 @@ export async function POST(request: NextRequest) {
     // 총회 상태 검증
     const { data: assemblyCheck } = await supabase
       .from('assemblies')
-      .select('status')
+      .select('status, session_mode')
       .eq('id', assemblyId)
       .eq('union_id', unionId)
       .single();
@@ -120,40 +121,42 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // 출석 기록 생성
-    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || null;
-    const userAgent = request.headers.get('user-agent') || null;
+    // 출석 기록 생성 (SESSION 모드에서는 online-session/start에서 처리)
+    if (!isSessionMode(assemblyCheck)) {
+      const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || null;
+      const userAgent = request.headers.get('user-agent') || null;
 
-    const { error: attendanceError } = await supabase
-      .from('assembly_attendance_logs')
-      .insert({
-        assembly_id: assemblyId,
-        union_id: unionId,
-        snapshot_id: snapshot.id,
-        user_id: auth.user.id,
-        // 대리인 접근 시 WRITTEN_PROXY로 기록, 본인 접근 시 ONLINE
-        attendance_type: isProxy ? 'WRITTEN_PROXY' : 'ONLINE',
-        entry_at: now,
-        identity_verified: true,
-        identity_method: 'KAKAO_LOGIN',
-        identity_verified_at: now,
-        ip_address: ip,
-        user_agent: userAgent,
-      });
-
-    if (attendanceError) {
-      // DEF-002: UNIQUE 제약 위반 시 이미 처리된 것으로 간주
-      if (attendanceError.code === '23505') {
-        const assemblyData = await getAssemblyWithAgendas(supabase, assemblyId, unionId);
-        return NextResponse.json({
-          data: {
-            snapshot: { ...snapshot, identity_verified_at: now },
-            ...assemblyData,
-            isReentry: true,
-          },
+      const { error: attendanceError } = await supabase
+        .from('assembly_attendance_logs')
+        .insert({
+          assembly_id: assemblyId,
+          union_id: unionId,
+          snapshot_id: snapshot.id,
+          user_id: auth.user.id,
+          // 대리인 접근 시 WRITTEN_PROXY로 기록, 본인 접근 시 ONLINE
+          attendance_type: isProxy ? 'WRITTEN_PROXY' : 'ONLINE',
+          entry_at: now,
+          identity_verified: true,
+          identity_method: 'KAKAO_LOGIN',
+          identity_verified_at: now,
+          ip_address: ip,
+          user_agent: userAgent,
         });
+
+      if (attendanceError) {
+        // DEF-002: UNIQUE 제약 위반 시 이미 처리된 것으로 간주
+        if (attendanceError.code === '23505') {
+          const assemblyData = await getAssemblyWithAgendas(supabase, assemblyId, unionId);
+          return NextResponse.json({
+            data: {
+              snapshot: { ...snapshot, identity_verified_at: now },
+              ...assemblyData,
+              isReentry: true,
+            },
+          });
+        }
+        console.error('출석 기록 생성 실패:', attendanceError);
       }
-      console.error('출석 기록 생성 실패:', attendanceError);
     }
 
     // 총회 정보 + 안건 조회
@@ -251,7 +254,7 @@ async function getAssemblyWithAgendas(
       id, union_id, title, description, assembly_type, status,
       scheduled_at, opened_at, venue_address, stream_type,
       zoom_meeting_id, youtube_video_id, notice_content,
-      quorum_total_members, legal_basis
+      quorum_total_members, legal_basis, session_mode
     `)
     .eq('id', assemblyId)
     .eq('union_id', unionId)

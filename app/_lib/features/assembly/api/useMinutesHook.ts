@@ -7,6 +7,14 @@ import useModalStore from '@/app/_lib/shared/stores/modal/useModalStore';
 export interface MinutesDraft {
   minutes_draft: string | null;
   minutes_finalized_at: string | null;
+  minutes_confirmed_by: Array<{
+    user_id: string;
+    name: string;
+    role: 'chair' | 'member';
+    confirmed_at: string;
+    ip: string;
+  }> | null;
+  minutes_content_hash: string | null;
 }
 
 /**
@@ -112,6 +120,52 @@ export const useUpdateMinutes = (assemblyId: string) => {
     onError: (error: Error) => {
       openAlertModal({
         title: '저장 실패',
+        message: error.message,
+        type: 'error',
+      });
+    },
+  });
+};
+
+/**
+ * 의사록 전자서명
+ */
+export const useConfirmMinutes = (assemblyId: string) => {
+  const queryClient = useQueryClient();
+  const openAlertModal = useModalStore((state) => state.openAlertModal);
+  const { union } = useSlug();
+
+  return useMutation({
+    mutationFn: async (role: 'chair' | 'member') => {
+      const res = await fetch(`/api/assemblies/${assemblyId}/minutes/confirm`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role }),
+      });
+      if (!res.ok) {
+        let errorMessage = '의사록 서명에 실패했습니다.';
+        try {
+          const err = await res.json();
+          errorMessage = err.error || errorMessage;
+        } catch {
+          // JSON 파싱 실패 시 기본 메시지 사용
+        }
+        throw new Error(errorMessage);
+      }
+      const { data } = await res.json();
+      return data as MinutesDraft;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['minutesDraft', union?.id, assemblyId] });
+      openAlertModal({
+        title: '서명 완료',
+        message: '의사록에 서명하였습니다.',
+        type: 'success',
+      });
+    },
+    onError: (error: Error) => {
+      openAlertModal({
+        title: '서명 실패',
         message: error.message,
         type: 'error',
       });

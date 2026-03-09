@@ -10,6 +10,7 @@ export type AttendanceType = 'ONLINE' | 'ONSITE' | 'WRITTEN_PROXY';
 export type QuestionVisibility = 'PUBLIC' | 'ADMIN_ONLY' | 'AFTER_APPROVAL';
 export type SpeakerRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'COMPLETED' | 'CANCELLED';
 export type WrittenBallotStatus = 'PENDING_VERIFICATION' | 'VERIFIED' | 'DISPUTED' | 'CANCELLED';
+export type SessionMode = 'LEGACY' | 'SESSION';
 
 export interface Assembly {
   id: string;
@@ -34,6 +35,9 @@ export interface Assembly {
   evidence_package_url: string | null;
   evidence_packaged_at: string | null;
   legal_basis: string | null;
+  session_mode: SessionMode;
+  minutes_confirmed_by: Record<string, unknown>[] | null;
+  minutes_content_hash: string | null;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -212,11 +216,73 @@ export interface AssemblyAttendanceLog {
   checkin_by: string | null;
   ip_address: string | null;
   user_agent: string | null;
+  last_seen_at: string | null;
   device_info: Record<string, unknown> | null;
   identity_verified: boolean;
   identity_method: string | null;
   identity_verified_at: string | null;
   created_at: string;
+}
+
+// 온라인 세션 device_info 구조
+export interface OnlineSessionDeviceInfo {
+  channel?: string;
+  client_session_id?: string;
+  player_mode?: string;
+  last_player_state?: string;
+  current_seconds?: number;
+  is_reentry?: boolean;
+  exit_reason?: string;
+}
+
+// 세션 상태 (클라이언트 상태 관리용)
+export type SessionStatus = 'ACTIVE' | 'IDLE' | 'RECONNECTING' | 'ENDED';
+
+export interface SessionState {
+  sessionId: string;
+  logId: string;
+  entryAt: string;
+  lastSeenAt: string | null;
+  sessionStatus: SessionStatus;
+  isBootstrapped: boolean;
+  featureFlags: HallFeatureFlags;
+}
+
+// hall bootstrap API 응답
+export interface HallBootstrapData {
+  assembly: Assembly;
+  snapshot: AssemblyMemberSnapshotPublic;
+  attendanceSession: Pick<AssemblyAttendanceLog, 'id' | 'session_id' | 'entry_at' | 'last_seen_at' | 'attendance_type'> | null;
+  agendaItems: (AgendaItem & { polls?: (Poll & { poll_options?: PollOption[] })[] })[];
+  documents: AgendaDocument[];
+  myQuestions: AssemblyQuestion[];
+  mySpeakerRequests: SpeakerRequest[];
+  featureFlags: HallFeatureFlags;
+}
+
+// heartbeat API 응답
+export interface HeartbeatResponse {
+  ok: boolean;
+  lastSeenAt: string;
+  assemblyStatus: AssemblyStatus;
+  activePollIds: string[];
+}
+
+// session start API 응답
+export interface SessionStartResponse {
+  logId: string;
+  sessionId: string;
+  entryAt: string;
+  attendanceType: AttendanceType;
+  isReentry: boolean;
+}
+
+// 총회장 기능 플래그
+export interface HallFeatureFlags {
+  canAskQuestion: boolean;
+  canRequestSpeaker: boolean;
+  canVote: boolean;
+  isSessionMode: boolean;
 }
 
 // 클라이언트 전달용 스냅샷 (access_token_hash 제외)

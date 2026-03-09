@@ -12,10 +12,14 @@ const SPEAKER_ALLOWED_STATUSES = ['IN_PROGRESS', 'VOTING'];
 /**
  * 발언 요청 목록 조회
  * GET /api/assemblies/[assemblyId]/speakers
+ * - admin=true: 관리자용 — 모든 발언 요청 반환
+ * - 기본: 참여자용 — 내 요청만
  */
 export async function GET(request: NextRequest, context: RouteContext) {
   try {
-    const auth = await authenticateApiRequest();
+    const isAdmin = request.nextUrl.searchParams.get('admin') === 'true';
+
+    const auth = await authenticateApiRequest(isAdmin ? { requireAdmin: true } : undefined);
     if (!auth.authenticated) return auth.response;
 
     const { assemblyId } = await context.params;
@@ -27,7 +31,26 @@ export async function GET(request: NextRequest, context: RouteContext) {
     const unionId = auth.user.union_id;
     const supabase = await createClient();
 
-    // 내 요청만 조회 (다른 사람의 발언요청은 관리자만)
+    const selectFields = 'id, assembly_id, agenda_item_id, snapshot_id, user_id, status, approved_by, approved_at, queue_position, requested_at';
+
+    if (isAdmin) {
+      // 관리자 모드: 모든 발언 요청 (snapshot JOIN으로 이름 포함)
+      const { data, error } = await supabase
+        .from('speaker_requests')
+        .select(selectFields)
+        .eq('assembly_id', assemblyId)
+        .eq('union_id', unionId)
+        .order('requested_at', { ascending: true });
+
+      if (error) {
+        console.error('발언 요청 조회 실패:', error);
+        return NextResponse.json({ error: '발언 요청 목록을 불러올 수 없습니다.' }, { status: 500 });
+      }
+
+      return NextResponse.json({ data: data || [] });
+    }
+
+    // 참여자 모드: 내 요청만
     const { data, error } = await supabase
       .from('speaker_requests')
       .select('id, assembly_id, agenda_item_id, status, queue_position, requested_at')

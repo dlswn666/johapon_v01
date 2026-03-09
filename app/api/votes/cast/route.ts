@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/app/_lib/shared/supabase/server';
 import { authenticateApiRequest } from '@/app/_lib/shared/api/auth';
 import { sendAlimTalk } from '@/app/_lib/features/alimtalk/actions/sendAlimTalk';
+import { isSessionMode } from '@/app/_lib/shared/utils/featureFlags';
 
 /**
  * 투표 실행 (cast_vote RPC 호출)
@@ -51,6 +52,53 @@ export async function POST(request: NextRequest) {
     // DEF-003: 개인정보 수집·이용 동의 확인
     if (!snapshot.consent_agreed_at) {
       return NextResponse.json({ error: '개인정보 수집·이용 동의가 필요합니다.' }, { status: 403 });
+    }
+
+    // 세션 모드: 활성 세션 검증 + last_seen_at 갱신
+    const { data: assembly } = await supabase
+      .from('assemblies')
+      .select('session_mode, status')
+      .eq('id', assemblyId)
+      .eq('union_id', unionId)
+      .single();
+
+    if (assembly && isSessionMode(assembly)) {
+      // 출석 유형 확인 (ONSITE는 세션 검증 스킵)
+      const { data: attendanceLog } = await supabase
+        .from('assembly_attendance_logs')
+        .select('id, attendance_type, last_seen_at')
+        .eq('assembly_id', assemblyId)
+        .eq('union_id', unionId)
+        .eq('user_id', auth.user.id)
+        .is('exit_at', null)
+        .order('entry_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (attendanceLog && attendanceLog.attendance_type !== 'ONSITE') {
+        // 온라인/서면대리: grace window 검증
+        // 투표 중(poll OPEN)에는 180초, 기본 90초
+        const graceSeconds = assembly.status === 'VOTING' ? 180 : 90;
+        const graceThreshold = new Date(Date.now() - graceSeconds * 1000).toISOString();
+
+        if (!attendanceLog.last_seen_at || attendanceLog.last_seen_at < graceThreshold) {
+          return NextResponse.json(
+            { error: '현재 총회장 참여 상태를 확인할 수 없습니다. 총회장에 다시 접속해주세요.' },
+            { status: 403 },
+          );
+        }
+
+        // 투표 행위 = 출석 증거: last_seen_at 갱신
+        await supabase
+          .from('assembly_attendance_logs')
+          .update({ last_seen_at: new Date().toISOString() })
+          .eq('id', attendanceLog.id);
+      } else if (!attendanceLog) {
+        return NextResponse.json(
+          { error: '활성 출석 세션이 없습니다. 총회장에 다시 접속해주세요.' },
+          { status: 403 },
+        );
+      }
     }
 
     // cast_vote RPC 호출 (DB 함수에서 모든 검증 + 비밀투표 처리)

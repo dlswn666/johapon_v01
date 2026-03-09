@@ -27,7 +27,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
     const { data: assembly } = await supabase
       .from('assemblies')
-      .select('id, title, minutes_draft, minutes_finalized_at')
+      .select('id, title, minutes_draft, minutes_finalized_at, minutes_confirmed_by, minutes_content_hash')
       .eq('id', assemblyId)
       .eq('union_id', unionId)
       .single();
@@ -40,6 +40,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
       data: {
         minutes_draft: assembly.minutes_draft,
         minutes_finalized_at: assembly.minutes_finalized_at,
+        minutes_confirmed_by: assembly.minutes_confirmed_by,
+        minutes_content_hash: assembly.minutes_content_hash,
       },
     });
   } catch (error) {
@@ -352,6 +354,9 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       // Unicode 제어 문자 제거 (C0/C1 제어 문자, 탭/줄바꿈은 유지)
       sanitized = sanitized.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/g, '');
       update.minutes_draft = sanitized;
+      // 서명 후 수정하면 해시·서명 무효화
+      update.minutes_content_hash = null;
+      update.minutes_confirmed_by = [];
     } else {
       return NextResponse.json({ error: '수정할 내용이 없습니다.' }, { status: 400 });
     }

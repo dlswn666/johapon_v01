@@ -215,7 +215,7 @@ export function HomeBoardSection() {
                                 'text-[14px] lg:text-[20px] font-semibold tracking-[1px]',
                                 'outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
                                 'min-w-[110px] lg:w-full text-center',
-                                'transition-all duration-200',
+                                'transition-colors duration-200',
                                 activeTab === tab.id
                                     ? 'bg-[#2f7f5f] text-white shadow-md focus-visible:ring-white focus-visible:ring-offset-[#2f7f5f]'
                                     : 'bg-white border-[2px] border-[#2f7f5f] text-[#2f7f5f] hover:bg-[#f0f7f4] hover:shadow-sm focus-visible:ring-[#2f7f5f]'
@@ -293,20 +293,20 @@ export function HomeBoardSection() {
                                     <div key={(item as Record<string, unknown>).id as number}>
                                         <button
                                             onClick={getItemClickHandler((item as Record<string, unknown>).id as number)}
-                                            className="w-full flex items-center justify-between py-[6px] px-[8px] hover:bg-white/60 rounded-[8px] transition-all duration-150 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[#2f7f5f] focus-visible:ring-offset-2 group"
+                                            className="w-full flex items-center justify-between py-[6px] px-[8px] hover:bg-white/60 rounded-[8px] transition-colors duration-150 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[#2f7f5f] focus-visible:ring-offset-2 group"
                                         >
                                             {/* 제목 + 댓글수 */}
                                             <div className="flex items-center gap-[10px] flex-1 min-w-0">
                                                 <span className="text-[14px] lg:text-[18px] font-semibold text-[#33363d] tracking-[1px] truncate group-hover:text-[#2f7f5f] transition-colors">
                                                     {(item as Record<string, unknown>).title as string}
                                                 </span>
-                                                {/* 댓글 수 */}
-                                                <span className="text-[12px] font-light text-[#6d7882] shrink-0">
+                                                {/* 댓글 수 - 피그마: Medium 14px */}
+                                                <span className="text-[12px] lg:text-[14px] font-medium text-[#6d7882] shrink-0">
                                                     [{(item as Record<string, unknown>).comment_count as number ?? 0}]
                                                 </span>
                                             </div>
-                                            {/* 날짜 */}
-                                            <span className="text-[12px] font-light text-[#6d7882] shrink-0 ml-[16px]">
+                                            {/* 날짜 - 피그마: Light 14px */}
+                                            <span className="text-[12px] lg:text-[14px] font-light text-[#6d7882] shrink-0 ml-[16px]">
                                                 {formatDate((item as Record<string, unknown>).created_at as string)}
                                             </span>
                                         </button>

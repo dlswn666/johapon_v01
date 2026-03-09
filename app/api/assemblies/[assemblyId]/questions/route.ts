@@ -10,12 +10,16 @@ interface RouteContext {
 const QA_ALLOWED_STATUSES = ['IN_PROGRESS', 'VOTING', 'VOTING_CLOSED'];
 
 /**
- * 총회 질문 목록 조회 (참여자용 — 승인된 질문만)
+ * 총회 질문 목록 조회
  * GET /api/assemblies/[assemblyId]/questions
+ * - admin=true: 관리자용 — 모든 질문 반환 (is_approved 무관)
+ * - 기본: 참여자용 — 승인된 질문 + 내 질문만
  */
 export async function GET(request: NextRequest, context: RouteContext) {
   try {
-    const auth = await authenticateApiRequest();
+    const isAdmin = request.nextUrl.searchParams.get('admin') === 'true';
+
+    const auth = await authenticateApiRequest(isAdmin ? { requireAdmin: true } : undefined);
     if (!auth.authenticated) return auth.response;
 
     const { assemblyId } = await context.params;
@@ -27,11 +31,27 @@ export async function GET(request: NextRequest, context: RouteContext) {
     const unionId = auth.user.union_id;
     const supabase = await createClient();
 
-    const selectFields = 'id, assembly_id, agenda_item_id, snapshot_id, user_id, content, visibility, is_approved, answer, answered_at, is_read_aloud, submitted_at';
+    const selectFields = 'id, assembly_id, agenda_item_id, snapshot_id, user_id, content, visibility, is_approved, approved_by, approved_at, answer, answered_by, answered_at, is_read_aloud, submitted_at';
 
-    // 안전하게 두 쿼리로 분리 (PostgREST 필터 인젝션 방지)
+    // 관리자 모드: 모든 질문 반환
+    if (isAdmin) {
+      const { data, error } = await supabase
+        .from('assembly_questions')
+        .select(selectFields)
+        .eq('assembly_id', assemblyId)
+        .eq('union_id', unionId)
+        .order('submitted_at', { ascending: true });
+
+      if (error) {
+        console.error('질문 목록 조회 실패:', error);
+        return NextResponse.json({ error: '질문 목록을 불러올 수 없습니다.' }, { status: 500 });
+      }
+
+      return NextResponse.json({ data: data || [] });
+    }
+
+    // 참여자 모드: 내 질문 + 승인된 공개 질문
     const [myResult, publicResult] = await Promise.all([
-      // 내 질문 (모든 상태)
       supabase
         .from('assembly_questions')
         .select(selectFields)
@@ -39,7 +59,6 @@ export async function GET(request: NextRequest, context: RouteContext) {
         .eq('union_id', unionId)
         .eq('user_id', auth.user.id)
         .order('submitted_at', { ascending: true }),
-      // 승인된 공개 질문
       supabase
         .from('assembly_questions')
         .select(selectFields)

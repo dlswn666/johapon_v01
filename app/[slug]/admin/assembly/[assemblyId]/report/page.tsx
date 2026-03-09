@@ -6,7 +6,7 @@ import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import { useAssembly } from '@/app/_lib/features/assembly/api/useAssemblyHook';
 import { useExecuteTally, useAssemblyReport } from '@/app/_lib/features/assembly/api/useReportHook';
-import { useGenerateMinutes, useMinutesDraft, useUpdateMinutes, useFinalizeMinutes } from '@/app/_lib/features/assembly/api/useMinutesHook';
+import { useGenerateMinutes, useMinutesDraft, useUpdateMinutes, useConfirmMinutes } from '@/app/_lib/features/assembly/api/useMinutesHook';
 import { useGenerateEvidencePackage, useEvidencePackage } from '@/app/_lib/features/assembly/api/useEvidenceHook';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -35,7 +35,7 @@ export default function AssemblyReportPage({ params }: { params: Promise<{ assem
   const executeTallyMutation = useExecuteTally(assemblyId);
   const generateMinutesMutation = useGenerateMinutes(assemblyId);
   const updateMinutesMutation = useUpdateMinutes(assemblyId);
-  const finalizeMinutesMutation = useFinalizeMinutes(assemblyId);
+  const confirmMinutesMutation = useConfirmMinutes(assemblyId);
   const generateEvidenceMutation = useGenerateEvidencePackage(assemblyId);
 
   useEffect(() => {
@@ -77,14 +77,34 @@ export default function AssemblyReportPage({ params }: { params: Promise<{ assem
     });
   };
 
-  const handleFinalizeMinutes = () => {
+  const handleConfirmMinutes = (role: 'chair' | 'member') => {
     openConfirmModal({
-      title: '의사록 확정',
-      message: '의사록을 확정하시겠습니까? 확정 후에는 공식 의사록으로 등록됩니다.',
-      confirmText: '확정',
+      title: '의사록 확인 서명',
+      message: role === 'chair'
+        ? '의장으로서 의사록 내용을 확인하고 서명하시겠습니까?'
+        : '출석 조합원으로서 의사록 내용을 확인하고 서명하시겠습니까?',
+      confirmText: '서명',
       cancelText: '취소',
-      onConfirm: () => finalizeMinutesMutation.mutate(),
+      onConfirm: () => confirmMinutesMutation.mutate(role),
     });
+  };
+
+  const handleStartEdit = () => {
+    if ((minutesData?.minutes_confirmed_by || []).length > 0) {
+      openConfirmModal({
+        title: '주의: 서명 초기화',
+        message: '의사록을 수정하면 기존 서명이 모두 초기화됩니다. 계속하시겠습니까?',
+        confirmText: '수정',
+        cancelText: '취소',
+        onConfirm: () => {
+          setMinutesText(minutesData!.minutes_draft);
+          setIsEditingMinutes(true);
+        },
+      });
+    } else {
+      setMinutesText(minutesData!.minutes_draft);
+      setIsEditingMinutes(true);
+    }
   };
 
   const handleGenerateEvidence = () => {
@@ -315,14 +335,16 @@ export default function AssemblyReportPage({ params }: { params: Promise<{ assem
                 )}
               </div>
               <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleGenerateMinutes}
-                  disabled={generateMinutesMutation.isPending}
-                >
-                  {generateMinutesMutation.isPending ? '생성 중...' : '자동 생성'}
-                </Button>
+                {!minutesData?.minutes_finalized_at && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleGenerateMinutes}
+                    disabled={generateMinutesMutation.isPending}
+                  >
+                    {generateMinutesMutation.isPending ? '생성 중...' : '자동 생성'}
+                  </Button>
+                )}
                 {minutesData?.minutes_draft && !minutesData.minutes_finalized_at && (
                   <>
                     {isEditingMinutes ? (
@@ -338,20 +360,10 @@ export default function AssemblyReportPage({ params }: { params: Promise<{ assem
                         </Button>
                       </>
                     ) : (
-                      <Button size="sm" variant="outline" onClick={() => {
-                        setMinutesText(minutesData.minutes_draft);
-                        setIsEditingMinutes(true);
-                      }}>
+                      <Button size="sm" variant="outline" onClick={handleStartEdit}>
                         수정
                       </Button>
                     )}
-                    <Button
-                      size="sm"
-                      onClick={handleFinalizeMinutes}
-                      disabled={finalizeMinutesMutation.isPending}
-                    >
-                      확정
-                    </Button>
                   </>
                 )}
               </div>
@@ -378,6 +390,79 @@ export default function AssemblyReportPage({ params }: { params: Promise<{ assem
           ) : (
             <div className="bg-white rounded-lg border border-gray-200 p-10 text-center text-gray-400">
               의사록 초안이 없습니다. &quot;자동 생성&quot; 버튼을 눌러 생성하세요.
+            </div>
+          )}
+
+          {/* 서명 섹션 */}
+          {minutesData?.minutes_draft && (
+            <div className="bg-white rounded-lg border border-gray-200 p-5">
+              <h3 className="text-base font-semibold text-gray-900 mb-3">
+                의사록 확인 서명
+                {minutesData.minutes_finalized_at && (
+                  <span className="ml-2 text-sm font-normal text-green-600 bg-green-50 px-2 py-0.5 rounded">확정됨</span>
+                )}
+              </h3>
+
+              {/* 서명 진행 상태 */}
+              <div className="mb-4">
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <span>서명 진행: {(minutesData.minutes_confirmed_by || []).length}/3</span>
+                  {(minutesData.minutes_confirmed_by || []).length >= 3 && <CheckCircle className="w-4 h-4 text-green-500" />}
+                </div>
+                <div className="mt-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-blue-500 rounded-full transition-all"
+                    style={{ width: `${Math.min(100, ((minutesData.minutes_confirmed_by || []).length / 3) * 100)}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* 서명자 목록 */}
+              {(minutesData.minutes_confirmed_by || []).length > 0 && (
+                <div className="mb-4 space-y-2">
+                  {(minutesData.minutes_confirmed_by || []).map((signer, idx) => (
+                    <div key={idx} className="flex items-center gap-3 text-sm p-2 bg-gray-50 rounded">
+                      <CheckCircle className="w-4 h-4 text-green-500 shrink-0" />
+                      <span className="font-medium">{signer.name}</span>
+                      <span className="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">
+                        {signer.role === 'chair' ? '의장' : '조합원'}
+                      </span>
+                      <span className="text-xs text-gray-400 ml-auto">
+                        {new Date(signer.confirmed_at).toLocaleString('ko-KR')}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* 서명 버튼 (확정 전에만 표시) */}
+              {!minutesData.minutes_finalized_at && (
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    onClick={() => handleConfirmMinutes('chair')}
+                    disabled={confirmMinutesMutation.isPending}
+                  >
+                    {confirmMinutesMutation.isPending ? '서명 중...' : '의장 서명'}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleConfirmMinutes('member')}
+                    disabled={confirmMinutesMutation.isPending}
+                  >
+                    {confirmMinutesMutation.isPending ? '서명 중...' : '조합원 서명'}
+                  </Button>
+                </div>
+              )}
+
+              {/* 해시값 표시 (확정된 경우) */}
+              {minutesData.minutes_finalized_at && minutesData.minutes_content_hash && (
+                <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-100">
+                  <p className="text-xs text-gray-500">문서 해시 (SHA-256)</p>
+                  <p className="text-xs font-mono text-gray-600 mt-1 break-all">{minutesData.minutes_content_hash}</p>
+                </div>
+              )}
             </div>
           )}
         </div>

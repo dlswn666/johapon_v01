@@ -26,7 +26,7 @@ export function HomePartnerships() {
                 <div className="flex gap-[20px] md:gap-[45px]">
                     {[...Array(5)].map((_, i) => (
                         <div key={i} className="flex-shrink-0 w-[137px] flex flex-col items-center gap-[10px]">
-                            <Skeleton className="w-[50px] h-[50px] rounded-full" />
+                            <Skeleton className="w-[50px] h-[50px]" />
                             <Skeleton className="h-[14px] w-[80px]" />
                             <Skeleton className="h-[12px] w-[120px]" />
                         </div>
@@ -45,14 +45,14 @@ export function HomePartnerships() {
         <section className="w-full">
             {/* 헤더 */}
             <div className="flex items-center justify-between mb-[12px] md:mb-[16px]">
-                <h3 className="font-semibold text-[14px] md:text-[16px] tracking-wider uppercase text-black">
-                    PARTNERSHIPS
+                <h3 className="font-semibold text-[14px] md:text-[16px] text-black">
+                    파트너십
                 </h3>
                 <Link
                     href={`/${slug}/communication/partner`}
                     className={cn(
-                        'flex items-center gap-[4px] text-[12px] md:text-[14px] text-gray-500 hover:text-[#4E8C6D] transition-colors',
-                        'outline-none focus-visible:ring-2 focus-visible:ring-[#4E8C6D] focus-visible:ring-offset-2 rounded-sm'
+                        'flex items-center gap-[4px] text-[12px] text-[#b1b8be] hover:text-[#2f7f5f] transition-colors',
+                        'outline-none focus-visible:ring-2 focus-visible:ring-[#2f7f5f] focus-visible:ring-offset-2 rounded-sm'
                     )}
                 >
                     <span>함께하는 협력 업체입니다</span>
@@ -77,11 +77,11 @@ export function HomePartnerships() {
                             'flex-shrink-0 w-[137px] snap-start',
                             'flex flex-col items-center gap-[10px]',
                             'group cursor-pointer',
-                            'outline-none focus-visible:ring-2 focus-visible:ring-[#4E8C6D] focus-visible:ring-offset-2 rounded-[8px]'
+                            'outline-none focus-visible:ring-2 focus-visible:ring-[#2f7f5f] focus-visible:ring-offset-2 rounded-[8px]'
                         )}
                     >
-                        {/* 썸네일 - Figma: 50px */}
-                        <div className="relative w-[50px] h-[50px] rounded-full overflow-hidden bg-gray-100">
+                        {/* 썸네일 - 피그마: 50px 정사각형 */}
+                        <div className="relative w-[50px] h-[50px] overflow-hidden bg-gray-100 rounded-[8px]">
                             {partner.image_url ? (
                                 <Image
                                     src={partner.image_url}
@@ -91,8 +91,8 @@ export function HomePartnerships() {
                                     sizes="50px"
                                 />
                             ) : (
-                                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#4E8C6D]/20 to-[#4E8C6D]/5">
-                                    <span className="text-[18px] font-bold text-[#4E8C6D]/40">
+                                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#2f7f5f]/20 to-[#2f7f5f]/5">
+                                    <span className="text-[18px] font-bold text-[#2f7f5f]/40">
                                         {(partner.title || partner.business_name).charAt(0)}
                                     </span>
                                 </div>
@@ -100,7 +100,7 @@ export function HomePartnerships() {
                         </div>
 
                         {/* 제목 - Figma: Semibold 14px, center */}
-                        <h4 className="font-semibold text-[14px] text-black text-center truncate w-full group-hover:text-[#4E8C6D] transition-colors">
+                        <h4 className="font-semibold text-[14px] text-black text-center truncate w-full group-hover:text-[#2f7f5f] transition-colors">
                             {partner.title || partner.business_name}
                         </h4>
 

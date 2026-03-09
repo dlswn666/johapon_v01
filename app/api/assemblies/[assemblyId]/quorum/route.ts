@@ -27,7 +27,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
     // 총회 정보 확인
     const { data: assembly } = await supabase
       .from('assemblies')
-      .select('quorum_total_members')
+      .select('quorum_total_members, session_mode, status')
       .eq('id', assemblyId)
       .eq('union_id', unionId)
       .single();
@@ -57,14 +57,23 @@ export async function GET(request: NextRequest, context: RouteContext) {
     // 출석 유형별 카운트 (중복 없는 현재 체크인 상태)
     const { data: attendanceLogs } = await supabase
       .from('assembly_attendance_logs')
-      .select('attendance_type, snapshot_id')
+      .select('attendance_type, snapshot_id, last_seen_at')
       .eq('assembly_id', assemblyId)
       .eq('union_id', unionId)
       .is('exit_at', null); // 아직 퇴장하지 않은 로그만
 
+    // last_seen_at 기반 필터: 온라인 세션은 grace window 내만 카운팅
+    const graceSeconds = 90;
+    const graceThreshold = new Date(Date.now() - graceSeconds * 1000).toISOString();
+
     // 스냅샷 기준으로 중복 제거 (동일 조합원 최신 로그만)
     const uniqueBySnapshot = new Map<string, string>();
     for (const log of attendanceLogs || []) {
+      // 온라인 세션(last_seen_at 존재)은 grace window 확인
+      // last_seen_at IS NULL은 LEGACY 모드 출석 → 항상 카운팅 (하위 호환)
+      if (log.last_seen_at && log.last_seen_at < graceThreshold) {
+        continue; // grace window 초과 → 정족수에서 제외
+      }
       uniqueBySnapshot.set(log.snapshot_id, log.attendance_type);
     }
 

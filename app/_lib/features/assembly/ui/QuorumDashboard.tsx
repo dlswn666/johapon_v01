@@ -2,14 +2,17 @@
 
 import React from 'react';
 import { useQuorumStatus } from '@/app/_lib/features/assembly/api/useQuorumHook';
+import { useAttendanceLive } from '@/app/_lib/features/assembly/api/useAttendanceLiveHook';
 import { AGENDA_TYPE_LABELS } from '@/app/_lib/shared/type/assembly.types';
 
 interface QuorumDashboardProps {
   assemblyId: string;
+  showLiveStatus?: boolean;
 }
 
-export default function QuorumDashboard({ assemblyId }: QuorumDashboardProps) {
+export default function QuorumDashboard({ assemblyId, showLiveStatus = false }: QuorumDashboardProps) {
   const { data: quorum, isLoading, error } = useQuorumStatus(assemblyId);
+  const { data: liveData } = useAttendanceLive(showLiveStatus ? assemblyId : undefined);
 
   if (isLoading) {
     return (
@@ -51,9 +54,14 @@ export default function QuorumDashboard({ assemblyId }: QuorumDashboardProps) {
           <p className="text-2xl font-bold text-blue-700">{quorum.onsiteCount}</p>
           <p className="text-xs text-blue-600 mt-1">현장</p>
         </div>
-        <div className="bg-green-50 rounded-lg p-3 text-center">
+        <div className="bg-green-50 rounded-lg p-3 text-center relative">
           <p className="text-2xl font-bold text-green-700">{quorum.onlineCount}</p>
           <p className="text-xs text-green-600 mt-1">온라인</p>
+          {liveData && liveData.unstableCount > 0 && (
+            <span className="absolute -top-1 -right-1 px-1.5 py-0.5 bg-amber-500 text-white text-[10px] font-medium rounded-full">
+              연결 불안정 {liveData.unstableCount}명
+            </span>
+          )}
         </div>
         <div className="bg-purple-50 rounded-lg p-3 text-center">
           <p className="text-2xl font-bold text-purple-700">{quorum.writtenProxyCount}</p>

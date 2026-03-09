@@ -25,6 +25,20 @@ export const useCastVote = () => {
       assemblyId: string;
       optionId: string;
     }) => {
+      // 투표 전 heartbeat 1회 발송 (실패해도 투표 계속)
+      try {
+        const sessionId = useVoteStore.getState().sessionId;
+        if (sessionId) {
+          await fetch(`/api/assemblies/${assemblyId}/online-session/heartbeat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sessionId }),
+          });
+        }
+      } catch {
+        // heartbeat 실패 무시
+      }
+
       const res = await fetch('/api/votes/cast', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

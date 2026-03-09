@@ -212,7 +212,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       .from('assembly-evidence')
       .upload(fileName, fileBuffer, {
         contentType: 'application/json',
-        upsert: true,
+        upsert: false,
       });
 
     let evidenceUrl: string | null = null;

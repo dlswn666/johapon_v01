@@ -48,7 +48,6 @@ export function HeroSlider({ slides, autoPlayInterval = 4000, className }: HeroS
     const [isTransitioning, setIsTransitioning] = useState(false);
     const sliderRef = useRef<HTMLDivElement>(null);
     const [isPaused, setIsPaused] = useState(false);
-    const [progressKey, setProgressKey] = useState(0);
     const reducedMotion = useReducedMotion();
 
     // 터치 스와이프 관련 상태
@@ -96,7 +95,6 @@ export function HeroSlider({ slides, autoPlayInterval = 4000, className }: HeroS
             if (isTransitioning || index === currentIndex) return;
             setIsTransitioning(true);
             setCurrentIndex(index);
-            setProgressKey((prev) => prev + 1);
         },
         [currentIndex, isTransitioning]
     );
@@ -111,12 +109,10 @@ export function HeroSlider({ slides, autoPlayInterval = 4000, className }: HeroS
             // 마지막 복제본에서 첫 번째로 점프
             if (currentIndex >= activeSlides.length) {
                 setCurrentIndex(0);
-                setProgressKey((prev) => prev + 1);
             }
             // 첫 번째 복제본에서 마지막으로 점프
             else if (currentIndex < 0) {
                 setCurrentIndex(activeSlides.length - 1);
-                setProgressKey((prev) => prev + 1);
             }
         }, 500); // transition duration과 일치
 
@@ -232,6 +228,13 @@ export function HeroSlider({ slides, autoPlayInterval = 4000, className }: HeroS
                             draggable={false}
                             priority={index === 0}
                         />
+                        {/* 피그마: 상하단 그라데이션 오버레이 */}
+                        <div
+                            className="absolute inset-0 pointer-events-none"
+                            style={{
+                                background: 'linear-gradient(to bottom, rgba(0,0,0,0.2) 9%, rgba(0,0,0,0) 49%, rgba(0,0,0,0.2) 85%)',
+                            }}
+                        />
                     </div>
                 ))}
             </div>
@@ -241,24 +244,24 @@ export function HeroSlider({ slides, autoPlayInterval = 4000, className }: HeroS
                 <>
                     <button
                         onClick={goToPrev}
-                        className="absolute left-[16px] md:left-[36px] top-1/2 -translate-y-1/2 bg-[rgba(0,0,0,0.25)] hover:bg-[rgba(0,0,0,0.4)] text-white rounded-full transition-all duration-200 z-20 w-[44px] h-[44px] md:w-[63px] md:h-[63px] flex items-center justify-center cursor-pointer focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-gray-800 outline-none backdrop-blur-[2px]"
+                        className="absolute left-[16px] md:left-[21px] top-1/2 -translate-y-1/2 opacity-50 hover:opacity-80 text-white rounded-full transition-opacity duration-200 z-20 w-[44px] h-[44px] md:w-[50px] md:h-[50px] flex items-center justify-center cursor-pointer focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-gray-800 outline-none"
                         aria-label="이전 슬라이드"
                     >
-                        <ChevronLeft className="w-5 h-5 md:w-6 md:h-6" aria-hidden="true" />
+                        <ChevronLeft className="w-6 h-6 md:w-8 md:h-8" aria-hidden="true" />
                     </button>
                     <button
                         onClick={goToNext}
-                        className="absolute right-[16px] md:right-[36px] top-1/2 -translate-y-1/2 bg-[rgba(0,0,0,0.25)] hover:bg-[rgba(0,0,0,0.4)] text-white rounded-full transition-all duration-200 z-20 w-[44px] h-[44px] md:w-[63px] md:h-[63px] flex items-center justify-center cursor-pointer focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-gray-800 outline-none backdrop-blur-[2px]"
+                        className="absolute right-[16px] md:right-[21px] top-1/2 -translate-y-1/2 opacity-50 hover:opacity-80 text-white rounded-full transition-opacity duration-200 z-20 w-[44px] h-[44px] md:w-[50px] md:h-[50px] flex items-center justify-center cursor-pointer focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-gray-800 outline-none"
                         aria-label="다음 슬라이드"
                     >
-                        <ChevronRight className="w-5 h-5 md:w-6 md:h-6" aria-hidden="true" />
+                        <ChevronRight className="w-6 h-6 md:w-8 md:h-8" aria-hidden="true" />
                     </button>
                 </>
             )}
 
-            {/* 프로그레스 바 인디케이터 (슬라이드가 2개 이상일 때만) */}
+            {/* 슬라이드 인디케이터 버튼 (슬라이드가 2개 이상일 때만) */}
             {hasMultipleSlides && (
-                <div className="absolute bottom-[20px] md:bottom-[50px] left-[16px] md:left-[164px] z-20 flex gap-0 w-[calc(100%-32px)] md:w-[728px] h-[8px] md:h-[13px] bg-[rgba(255,255,255,0.3)] rounded-full overflow-hidden backdrop-blur-[2px]">
+                <div className="absolute bottom-[20px] md:bottom-[45px] left-[16px] md:left-1/2 md:-translate-x-1/2 z-20 flex gap-0 w-[calc(100%-32px)] md:w-[min(728px,calc(100%-328px))] h-[8px] md:h-[13px] bg-white rounded-[21px] overflow-hidden">
                     {activeSlides.map((_, index) => {
                         const isActive =
                             currentIndex === index ||
@@ -268,23 +271,13 @@ export function HeroSlider({ slides, autoPlayInterval = 4000, className }: HeroS
                             <button
                                 key={index}
                                 onClick={() => goToSlide(index)}
-                                className="flex-1 relative cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-inset"
+                                className={cn(
+                                    'flex-1 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-inset transition-colors duration-300',
+                                    isActive ? 'bg-[#2f7f5f]' : 'bg-transparent'
+                                )}
                                 aria-label={`슬라이드 ${index + 1}로 이동`}
                                 aria-current={isActive ? 'true' : undefined}
-                            >
-                                {isActive && (
-                                    <div
-                                        key={progressKey}
-                                        className="absolute inset-0 bg-[#2f7f5f] rounded-full origin-left"
-                                        style={{
-                                            animation: isPaused || reducedMotion
-                                                ? 'none'
-                                                : `progress-fill ${autoPlayInterval}ms linear forwards`,
-                                            animationPlayState: isPaused ? 'paused' : 'running',
-                                        }}
-                                    />
-                                )}
-                            </button>
+                            />
                         );
                     })}
                 </div>
