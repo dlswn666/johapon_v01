@@ -85,7 +85,7 @@ export default function UnionHomePage() {
                         </aside>
 
                         {/* 중앙 메인 컨텐츠 */}
-                        <div className="flex-1 max-w-[1200px] flex flex-col gap-[20px] md:gap-[30px]">
+                        <div className="w-full min-w-0 flex-1 max-w-[1200px] flex flex-col gap-[20px] md:gap-[30px]">
                             {/* 게시판 섹션 */}
                             <HomeBoardSection />
 

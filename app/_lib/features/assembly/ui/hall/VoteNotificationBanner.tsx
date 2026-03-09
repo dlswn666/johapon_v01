@@ -22,9 +22,12 @@ export default function VoteNotificationBanner({ activePollIds }: VoteNotificati
     prevIdsRef.current = activePollIds;
 
     if (newIds.length > 0) {
-      setVisible(true);
-      if (timerRef.current) clearTimeout(timerRef.current);
-      timerRef.current = setTimeout(() => setVisible(false), 3000);
+      // requestAnimationFrame으로 래핑하여 effect 내 동기 setState 방지
+      requestAnimationFrame(() => {
+        setVisible(true);
+        if (timerRef.current) clearTimeout(timerRef.current);
+        timerRef.current = setTimeout(() => setVisible(false), 3000);
+      });
     }
 
     return () => {

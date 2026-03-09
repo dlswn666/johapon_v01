@@ -22,6 +22,7 @@ function SystemAdminHeader() {
     const { user, logout } = useAuth();
     const router = useRouter();
     const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+    const [isCompactMenuOpen, setIsCompactMenuOpen] = useState(false);
 
     const navItems: NavItem[] = [
         { href: '/systemAdmin', label: '대시보드', icon: Home, exact: true },
@@ -75,23 +76,24 @@ function SystemAdminHeader() {
     useEffect(() => {
         const handleClickOutside = () => {
             setOpenDropdown(null);
+            setIsCompactMenuOpen(false);
         };
 
-        if (openDropdown) {
+        if (openDropdown || isCompactMenuOpen) {
             document.addEventListener('click', handleClickOutside);
         }
 
         return () => {
             document.removeEventListener('click', handleClickOutside);
         };
-    }, [openDropdown]);
+    }, [openDropdown, isCompactMenuOpen]);
 
     return (
         <header className="sticky top-0 z-50 bg-slate-900 border-b border-slate-700 shadow-lg">
-            <div className="container mx-auto px-4">
+            <div className="container mx-auto px-4 relative">
                 <div className="flex items-center justify-between h-16">
                     {/* 로고 & 네비게이션 */}
-                    <div className="flex items-center gap-8">
+                    <div className="flex items-center gap-4 lg:gap-8 min-w-0">
                         <Link href="/systemAdmin" className="flex items-center gap-3 cursor-pointer">
                             <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
                                 <Shield className="w-5 h-5 text-white" />
@@ -104,7 +106,7 @@ function SystemAdminHeader() {
                             </div>
                         </Link>
 
-                        <nav className="hidden md:flex items-center gap-1">
+                        <nav className="hidden lg:flex items-center gap-1">
                             {navItems.map((item) => {
                                 const Icon = item.icon;
                                 const hasSubItems = item.subItems && item.subItems.length > 0;
@@ -181,12 +183,32 @@ function SystemAdminHeader() {
                                 );
                             })}
                         </nav>
+
+                        {/* 태블릿/모바일 컴팩트 메뉴 */}
+                        <div className="relative lg:hidden">
+                            <Button
+                                variant="ghost"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setIsCompactMenuOpen((prev) => !prev);
+                                }}
+                                className="text-slate-300 hover:text-white hover:bg-slate-800 h-9 px-3"
+                            >
+                                메뉴
+                                <ChevronDown
+                                    className={cn(
+                                        'w-4 h-4 transition-transform duration-200',
+                                        isCompactMenuOpen && 'rotate-180'
+                                    )}
+                                />
+                            </Button>
+                        </div>
                     </div>
 
                     {/* 사용자 정보 */}
                     <div className="flex items-center gap-4">
                         <div className="flex items-center gap-3">
-                            <div className="text-right hidden sm:block">
+                            <div className="text-right hidden xl:block">
                                 <p className="text-sm font-medium text-white">{user?.name}</p>
                                 <p className="text-xs text-slate-400">시스템 관리자</p>
                             </div>
@@ -205,6 +227,55 @@ function SystemAdminHeader() {
                         </Button>
                     </div>
                 </div>
+
+                {isCompactMenuOpen && (
+                    <div
+                        className="lg:hidden absolute top-full left-4 right-4 mt-2 bg-slate-800 border border-slate-700 rounded-lg shadow-xl p-2 z-50"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="max-h-[65vh] overflow-y-auto">
+                            {navItems.map((item) => {
+                                const isActive = isActiveRoute(item.href, item.exact);
+                                return (
+                                    <div key={item.href} className="mb-1 last:mb-0">
+                                        <Link
+                                            href={item.href}
+                                            onClick={() => setIsCompactMenuOpen(false)}
+                                            className={cn(
+                                                'block px-3 py-2 rounded-md text-sm font-medium',
+                                                isActive
+                                                    ? 'bg-blue-500/20 text-blue-400'
+                                                    : 'text-slate-200 hover:bg-slate-700'
+                                            )}
+                                        >
+                                            {item.label}
+                                        </Link>
+
+                                        {item.subItems && item.subItems.length > 0 && (
+                                            <div className="mt-1 ml-2 pl-2 border-l border-slate-700 space-y-1">
+                                                {item.subItems.map((subItem) => (
+                                                    <Link
+                                                        key={subItem.href}
+                                                        href={subItem.href}
+                                                        onClick={() => setIsCompactMenuOpen(false)}
+                                                        className={cn(
+                                                            'block px-3 py-1.5 rounded-md text-xs',
+                                                            pathname === subItem.href
+                                                                ? 'bg-blue-500/20 text-blue-300'
+                                                                : 'text-slate-400 hover:bg-slate-700 hover:text-slate-200'
+                                                        )}
+                                                    >
+                                                        {subItem.label}
+                                                    </Link>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
             </div>
         </header>
     );

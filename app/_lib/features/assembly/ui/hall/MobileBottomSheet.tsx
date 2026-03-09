@@ -7,7 +7,6 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '@/components/ui/drawer';
-import { Button } from '@/components/ui/button';
 import { Vote, MessageCircle, FileText, Hand, Monitor } from 'lucide-react';
 import ActiveVoteCard from './ActiveVoteCard';
 import AgendaVoteList from './AgendaVoteList';

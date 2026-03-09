@@ -160,21 +160,21 @@ export default function UnionLayoutContent({ children }: UnionLayoutContentProps
             <UnionBreadcrumb />
 
             {/* ABC 3분할 레이아웃 */}
-            {/* Desktop: 가로 배치 (20% / 60% / 20%), Mobile: 세로 쌓기 (A → B → C) */}
-            <div className="flex-1 flex flex-col md:flex-row min-h-[1200px]">
+            {/* Desktop: 가로 배치 (20% / 60% / 20%), Mobile/Tablet: 세로 쌓기 (A → B → C) */}
+            <div className="flex-1 flex flex-col lg:flex-row min-h-[1200px]">
                 {/* A 영역 - 왼쪽 광고 */}
-                <aside className="hidden md:block w-full md:w-[20%] bg-gray-100 p-4 order-2 md:order-1">
-                    <div className="sticky top-24 md:h-[50vh]">
+                <aside className="hidden lg:block w-full lg:w-[20%] bg-gray-100 p-4 order-2 lg:order-1">
+                    <div className="sticky top-24 lg:h-[50vh]">
                         <SideAdWidget />
                     </div>
                 </aside>
 
                 {/* B 영역 - 메인 콘텐츠 */}
-                <main id="main-content" className="w-full md:w-[60%] order-1 md:order-2 min-h-[1200px]">{children}</main>
+                <main id="main-content" className="w-full lg:w-[60%] order-1 lg:order-2 min-h-[1200px]">{children}</main>
 
                 {/* C 영역 - 오른쪽 광고 */}
-                <aside className="hidden md:block w-full md:w-[20%] bg-gray-100 p-4 order-3">
-                    <div className="sticky top-24 md:h-[50vh]">
+                <aside className="hidden lg:block w-full lg:w-[20%] bg-gray-100 p-4 order-3">
+                    <div className="sticky top-24 lg:h-[50vh]">
                         <SideAdWidget />
                     </div>
                 </aside>

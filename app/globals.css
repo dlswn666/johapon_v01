@@ -210,10 +210,12 @@
         min-height: 100%;
         /* 300ms 터치 딜레이 제거 - 모바일 반응성 개선 */
         touch-action: manipulation;
+        overflow-x: clip;
     }
     body {
         @apply bg-background text-foreground;
         min-height: 100%;
+        overflow-x: clip;
     }
 }
 

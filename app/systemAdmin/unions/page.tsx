@@ -184,19 +184,19 @@ export default function SystemAdminUnionsPage() {
                             {unions?.map((union) => (
                                 <div
                                     key={union.id}
-                                    className="flex items-center justify-between p-5 bg-slate-700/30 hover:bg-slate-700/50 rounded-xl transition-colors group"
+                                    className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between p-5 bg-slate-700/30 hover:bg-slate-700/50 rounded-xl transition-colors group"
                                 >
-                                    <div className="flex items-center gap-5">
-                                        <div className="w-14 h-14 bg-blue-500/20 rounded-xl flex items-center justify-center">
+                                    <div className="flex items-start gap-4 sm:gap-5 min-w-0">
+                                        <div className="w-12 h-12 sm:w-14 sm:h-14 bg-blue-500/20 rounded-xl flex items-center justify-center shrink-0">
                                             <Building2 className="w-7 h-7 text-blue-400" />
                                         </div>
-                                        <div>
-                                            <div className="flex items-center gap-3">
-                                                <h3 className="text-lg font-semibold text-white group-hover:text-blue-400 transition-colors">
+                                        <div className="min-w-0">
+                                            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                                                <h3 className="text-base sm:text-lg font-semibold text-white group-hover:text-blue-400 transition-colors break-words">
                                                     {union.name}
                                                 </h3>
                                                 <span
-                                                    className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                                    className={`px-2 py-0.5 rounded-full text-xs font-medium shrink-0 ${
                                                         union.is_active
                                                             ? 'bg-emerald-500/20 text-emerald-400'
                                                             : 'bg-slate-600 text-slate-400'
@@ -206,7 +206,7 @@ export default function SystemAdminUnionsPage() {
                                                 </span>
                                                 {/* 알림톡 채널 상태 */}
                                                 <span
-                                                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                                                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium shrink-0 ${
                                                         union.vault_sender_key_id
                                                             ? 'bg-yellow-500/20 text-yellow-400'
                                                             : 'bg-slate-600/50 text-slate-400'
@@ -219,7 +219,7 @@ export default function SystemAdminUnionsPage() {
                                                         : '조합온'}
                                                 </span>
                                             </div>
-                                            <div className="flex items-center gap-4 mt-1">
+                                            <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-1">
                                                 <p className="text-sm text-slate-400">/{union.slug}</p>
                                                 {union.phone && (
                                                     <p className="text-sm text-slate-500">{union.phone}</p>
@@ -228,9 +228,9 @@ export default function SystemAdminUnionsPage() {
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center gap-4">
+                                    <div className="flex w-full lg:w-auto flex-wrap items-center justify-between gap-3 sm:gap-4">
                                         {/* 활성화 토글 */}
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex items-center gap-2 shrink-0">
                                             <span className="text-xs text-slate-500">활성화</span>
                                             <Switch
                                                 checked={union.is_active}
@@ -240,7 +240,7 @@ export default function SystemAdminUnionsPage() {
                                         </div>
 
                                         {/* 액션 버튼들 */}
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex flex-wrap items-center gap-1 sm:gap-2">
                                             <a
                                                 href={`/${union.slug}`}
                                                 target="_blank"
@@ -362,4 +362,3 @@ export default function SystemAdminUnionsPage() {
         </div>
     );
 }
-

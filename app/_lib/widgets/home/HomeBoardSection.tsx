@@ -192,13 +192,13 @@ export function HomeBoardSection() {
     };
 
     return (
-        <section className="flex flex-col lg:flex-row gap-[16px] lg:gap-[24px] lg:h-[294px]">
+        <section className="w-full min-w-0 flex flex-col lg:flex-row gap-[16px] lg:gap-[24px] lg:h-[294px]">
             {/* 좌측: 세로 탭 버튼 - Figma: w-155px, h-294px */}
-            <div className="relative shrink-0 lg:w-[155px] h-full">
+            <div className="relative w-full min-w-0 shrink-0 lg:w-[155px] h-full">
                 {/* 모바일 스크롤 페이드 힌트 */}
                 <div className="absolute right-0 top-0 bottom-0 w-[24px] bg-gradient-to-l from-white to-transparent pointer-events-none z-10 lg:hidden" />
                 <div
-                    className="flex lg:flex-col gap-[10px] lg:gap-0 lg:justify-between h-full overflow-x-auto lg:overflow-visible scrollbar-hide pr-[24px] lg:pr-0"
+                    className="w-full max-w-full flex lg:flex-col gap-[10px] lg:gap-0 lg:justify-between h-full overflow-x-auto lg:overflow-visible scrollbar-hide pr-[24px] lg:pr-0"
                     role="tablist"
                     aria-label="게시판 카테고리"
                 >
@@ -232,7 +232,7 @@ export function HomeBoardSection() {
                 role="tabpanel"
                 id={`tabpanel-${activeTab}`}
                 aria-labelledby={`tab-${activeTab}`}
-                className="flex-1 bg-[#f4f5f6] rounded-[16px] p-[16px] lg:p-[20px] h-full overflow-hidden"
+                className="flex-1 min-w-0 bg-[#f4f5f6] rounded-[16px] p-[16px] lg:p-[20px] h-full overflow-hidden"
             >
                 {/* 로딩 상태 */}
                 {isLoading ? (
@@ -274,7 +274,7 @@ export function HomeBoardSection() {
                         </button>
                     </div>
                 ) : (
-                    <div className="flex flex-col gap-[20px] lg:gap-[30px]">
+                    <div className="flex flex-col gap-[20px] lg:gap-[30px] min-w-0">
                         {/* 전체보기 - Figma: text-[#8a949e] 18px */}
                         <div className="flex items-center justify-end">
                             <button

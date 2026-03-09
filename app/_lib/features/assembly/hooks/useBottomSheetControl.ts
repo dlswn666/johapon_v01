@@ -19,11 +19,12 @@ export const useBottomSheetControl = (activePollIds: string[]): UseBottomSheetCo
     const prevIds = new Set(prevPollIdsRef.current);
     const hasNewPoll = activePollIds.some((id) => !prevIds.has(id));
 
-    if (hasNewPoll && activePollIds.length > 0) {
-      setSnapPoint(0.8);
-    }
-
     prevPollIdsRef.current = activePollIds;
+
+    if (hasNewPoll && activePollIds.length > 0) {
+      // requestAnimationFrame으로 래핑하여 effect 내 동기 setState 방지
+      requestAnimationFrame(() => setSnapPoint(0.8));
+    }
   }, [activePollIds]);
 
   const expandForVote = useCallback(() => setSnapPoint(0.8), []);

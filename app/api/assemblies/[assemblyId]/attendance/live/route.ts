@@ -68,7 +68,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
     const onlineLogs = logs.filter((l) => l.attendance_type === 'ONLINE');
     const snapshotIds = [...new Set(onlineLogs.map((l) => l.snapshot_id))];
 
-    let snapshotMap = new Map<string, string>();
+    const snapshotMap = new Map<string, string>();
     if (snapshotIds.length > 0) {
       const { data: snapshots } = await supabase
         .from('assembly_member_snapshots')

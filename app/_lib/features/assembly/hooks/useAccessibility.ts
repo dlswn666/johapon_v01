@@ -54,15 +54,8 @@ const saveSettings = (settings: A11ySettings) => {
 };
 
 export const useAccessibility = (): UseAccessibilityReturn => {
-  const [fontScale, setFontScale] = useState(1.0);
-  const [isHighContrast, setIsHighContrast] = useState(false);
-
-  // 초기 로드 (클라이언트 전용)
-  useEffect(() => {
-    const settings = loadSettings();
-    setFontScale(settings.fontScale);
-    setIsHighContrast(settings.isHighContrast);
-  }, []);
+  const [fontScale, setFontScale] = useState(() => loadSettings().fontScale);
+  const [isHighContrast, setIsHighContrast] = useState(() => loadSettings().isHighContrast);
 
   const toggleFontScale = useCallback(() => {
     setFontScale((prev) => {

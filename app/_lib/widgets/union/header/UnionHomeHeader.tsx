@@ -130,8 +130,8 @@ export default function UnionHomeHeader() {
     return (
         <>
             <header className="bg-white border-b border-gray-200 shadow-[0px_1px_3px_0px_rgba(0,0,0,0.1),0px_1px_2px_-1px_rgba(0,0,0,0.1)]">
-                {/* 모바일 헤더 (md 미만) */}
-                <div className="md:hidden relative safe-top" style={{ height: 'calc(60px + env(safe-area-inset-top, 0px))' }}>
+                {/* 모바일/태블릿 헤더 (lg 미만) */}
+                <div className="lg:hidden relative safe-top" style={{ height: 'calc(60px + env(safe-area-inset-top, 0px))' }}>
                     <div className="container mx-auto px-4 h-full flex items-center justify-between">
                         {/* 왼쪽: 사이드바 토글 버튼 */}
                         <button
@@ -171,8 +171,8 @@ export default function UnionHomeHeader() {
                     </div>
                 </div>
 
-                {/* 데스크탑 헤더 (md 이상) */}
-                <div className="h-[90px] hidden md:block relative">
+                {/* 데스크탑 헤더 (lg 이상) */}
+                <div className="h-[90px] hidden lg:block relative">
                     <div className="container mx-auto px-4 h-full flex items-center justify-between">
                         {/* 왼쪽: 로고 영역 */}
                         <Link

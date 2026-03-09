@@ -13,26 +13,27 @@ export default function PrivacyEnglishPage() {
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
             {/* Header */}
             <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
-                <div className="container mx-auto max-w-4xl px-4 py-4 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
+                <div className="container mx-auto max-w-4xl px-4 py-3 sm:py-4 flex items-center justify-between gap-2">
+                    <div className="flex min-w-0 items-center gap-2 sm:gap-4">
                         <Link
                             href="/"
-                            className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+                            className="p-2 shrink-0 hover:bg-slate-100 rounded-full transition-colors"
                             aria-label="Home"
                         >
                             <ArrowLeft className="w-5 h-5 text-slate-600" />
                         </Link>
-                        <div className="flex items-center gap-3">
-                            <Shield className="w-6 h-6 text-emerald-600" />
-                            <h1 className="text-xl font-bold text-slate-900">Privacy Policy</h1>
+                        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+                            <Shield className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600 shrink-0" />
+                            <h1 className="text-base sm:text-xl font-bold text-slate-900 truncate">Privacy Policy</h1>
                         </div>
                     </div>
                     <Link
                         href="/privacy"
-                        className="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
+                        className="shrink-0 flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
+                        aria-label="Switch to Korean"
                     >
-                        <Globe className="w-4 h-4" />
-                        <span>한국어</span>
+                        <Globe className="w-4 h-4 shrink-0" />
+                        <span className="hidden min-[360px]:inline">한국어</span>
                     </Link>
                 </div>
             </header>
@@ -371,4 +372,3 @@ export default function PrivacyEnglishPage() {
         </div>
     );
 }
-
