@@ -93,7 +93,7 @@ export const useCreateAssembly = () => {
       const res = await fetch('/api/assemblies', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newAssembly),
+        body: JSON.stringify({ ...newAssembly, union_id: union?.id }),
       });
       if (!res.ok) {
         const err = await res.json();

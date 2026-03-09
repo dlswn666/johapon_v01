@@ -56,6 +56,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '총회 일시를 설정해주세요.' }, { status: 400 });
     }
 
+    // SYSTEM_ADMIN은 union_id가 null이므로 클라이언트에서 전달받은 union_id 사용
+    const unionId = auth.user.union_id || body.union_id;
+    if (!unionId) {
+      return NextResponse.json({ error: '조합 정보를 확인할 수 없습니다.' }, { status: 400 });
+    }
+
     const { data, error } = await supabase
       .from('assemblies')
       .insert({
@@ -68,7 +74,7 @@ export async function POST(request: NextRequest) {
         zoom_meeting_id: body.zoom_meeting_id || null,
         youtube_video_id: body.youtube_video_id || null,
         legal_basis: body.legal_basis?.trim() || null,
-        union_id: auth.user.union_id,
+        union_id: unionId,
         created_by: auth.user.id,
       })
       .select()
