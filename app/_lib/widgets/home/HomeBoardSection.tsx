@@ -192,15 +192,16 @@ export function HomeBoardSection() {
     };
 
     return (
-        <section className="w-full min-w-0 flex flex-col lg:flex-row gap-[16px] lg:gap-[24px] lg:items-start">
+        <section className="w-full min-w-0 flex flex-col lg:flex-row gap-[16px] lg:gap-[20px] xl:gap-[24px] lg:items-start">
             {/* 좌측: 세로 탭 버튼 - Figma: w-155px, h-294px */}
-            <div className="relative w-full min-w-0 shrink-0 lg:w-[155px] lg:h-[294px]">
+            <div className="relative w-full min-w-0 shrink-0 lg:w-[130px] xl:w-[155px] lg:h-[294px]">
                 {/* 모바일 스크롤 페이드 힌트 */}
                 <div className="absolute right-0 top-0 bottom-0 w-[24px] bg-gradient-to-l from-white to-transparent pointer-events-none z-10 lg:hidden" />
                 <div
-                    className="w-full max-w-full flex lg:flex-col gap-[10px] lg:gap-0 lg:justify-between lg:h-[294px] overflow-x-auto lg:overflow-visible scrollbar-hide pr-[24px] lg:pr-0"
+                    className="w-full max-w-full flex lg:flex-col gap-[10px] lg:gap-0 lg:justify-between lg:h-[294px] overflow-x-auto lg:overflow-visible scrollbar-hide pr-[24px] lg:pr-0 touch-pan-x"
                     role="tablist"
                     aria-label="게시판 카테고리"
+                    style={{ WebkitOverflowScrolling: 'touch' }}
                 >
                     {TABS.map((tab) => (
                         <button
@@ -212,14 +213,14 @@ export function HomeBoardSection() {
                             id={`tab-${tab.id}`}
                             className={cn(
                                 'flex items-center justify-center',
-                                'px-[16px] lg:px-[20px] py-[12px] lg:py-[20px] rounded-[50px] cursor-pointer whitespace-nowrap',
-                                'text-[14px] lg:text-[20px] font-semibold tracking-[1px] leading-[1.3]',
+                                'px-[10px] lg:px-[16px] xl:px-[20px] py-[10px] lg:py-[16px] xl:py-[20px] rounded-[20px] lg:rounded-[50px] cursor-pointer whitespace-nowrap shrink-0',
+                                'text-[16px] lg:text-[16px] xl:text-[20px] font-bold tracking-[0px] lg:tracking-[1px] leading-[1.3]',
                                 'outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
-                                'min-w-[100px] lg:w-[155px] text-center',
+                                'lg:flex-none lg:w-[130px] xl:w-[155px] text-center',
                                 'transition-colors duration-200',
                                 activeTab === tab.id
                                     ? 'bg-[#2f7f5f] text-white focus-visible:ring-white focus-visible:ring-offset-[#2f7f5f]'
-                                    : 'bg-white border-[2px] border-[#2f7f5f] text-[#2f7f5f] hover:bg-[#f0f7f4] focus-visible:ring-[#2f7f5f]'
+                                    : 'bg-white border-[0.738px] border-[#2f7f5f] text-[#2f7f5f] hover:bg-[#f0f7f4] focus-visible:ring-[#2f7f5f]'
                             )}
                         >
                             {tab.label}
@@ -233,7 +234,7 @@ export function HomeBoardSection() {
                 role="tabpanel"
                 id={`tabpanel-${activeTab}`}
                 aria-labelledby={`tab-${activeTab}`}
-                className="flex-1 min-w-0 bg-[#f4f5f6] rounded-[16px] p-[16px] lg:p-[20px] lg:min-h-[309px]"
+                className="flex-1 min-w-0 bg-[#f4f5f6] rounded-[16px] p-[16px] lg:p-[18px] xl:p-[20px] lg:min-h-[309px]"
             >
                 {/* 로딩 상태 */}
                 {isLoading ? (

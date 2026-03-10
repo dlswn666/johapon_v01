@@ -66,8 +66,13 @@ function StatItem({ icon, label, value }: StatItemProps) {
     );
 }
 
-export function HomeInfoSection() {
+interface HomeInfoSectionProps {
+    statsOnly?: boolean;
+}
+
+export function HomeInfoSection({ statsOnly = false }: HomeInfoSectionProps) {
     const { union } = useSlug();
+    const unionName = union?.name || '조합';
 
     // 현재 단계 정보 조회
     const { data: currentStage } = useQuery({
@@ -89,24 +94,65 @@ export function HomeInfoSection() {
     const consentRate = null;
     const visitorCount = null;
 
+    // statsOnly 모드: 통계 사이드바만 풀너비로 렌더링 (태블릿 전용)
+    if (statsOnly) {
+        return (
+            <section
+                className="bg-white border border-[#cdd1d5] rounded-[6px] p-[12px] overflow-hidden"
+                aria-label="조합 통계"
+            >
+                <h3 className="font-semibold text-[14px] text-[#1e2124] tracking-[1px] mb-[12px]">조합 현황</h3>
+                <div className="bg-[#f4f5f6] rounded-[10px] px-[16px] py-[12px]">
+                    <div className="flex flex-col gap-y-[8px]">
+                        <StatItem
+                            icon={<Eye className="w-[18px] h-[18px]" />}
+                            label="접속자 수"
+                            value={visitorCount ? `${visitorCount}명` : null}
+                        />
+                        <StatItem
+                            icon={<Users className="w-[18px] h-[18px]" />}
+                            label="조합원 수"
+                            value={union?.member_count ? `${union.member_count}명` : null}
+                        />
+                        <StatItem
+                            icon={<Square className="w-[18px] h-[18px]" />}
+                            label="면적"
+                            value={union?.area_size ? `${union.area_size}평` : null}
+                        />
+                        <StatItem
+                            icon={<Layers className="w-[18px] h-[18px]" />}
+                            label="단계"
+                            value={currentStage?.stage_name}
+                        />
+                        <StatItem
+                            icon={<BarChart3 className="w-[18px] h-[18px]" />}
+                            label="동의율"
+                            value={consentRate ? `${consentRate}%` : null}
+                        />
+                    </div>
+                </div>
+            </section>
+        );
+    }
+
     return (
         <section
-            className="bg-white border border-[#cdd1d5] rounded-[6px] lg:rounded-[10px] p-[12px] lg:p-[24px] overflow-hidden"
+            className="bg-white border border-[#cdd1d5] rounded-[8px] lg:rounded-[10px] p-[10px] lg:p-[24px] overflow-hidden"
             aria-labelledby="info-section-title"
         >
             {/* 섹션 제목 */}
             <h3
                 id="info-section-title"
-                className="font-semibold text-[14px] lg:text-[22px] text-[#1e2124] tracking-[1px] mb-[16px] lg:mb-[30px]"
+                className="font-bold text-[18px] lg:text-[22px] text-[#1e2124] tracking-[1px] mb-[10px] lg:mb-[30px]"
             >
                 재개발 정보
             </h3>
 
             {/* 콘텐츠: 2x2 배너(유동) + 조합 정보(고정, 1열 5행) */}
-            <div className="flex flex-col-reverse lg:flex-row gap-[16px] lg:gap-[20px]">
+            <div className="flex flex-col xl:flex-row gap-[16px] xl:gap-[24px]">
                 {/* 2x2 배너 그리드 - 유동 너비 (커뮤니티 섹션 유무에 따라 줄어듦) */}
                 <nav
-                    className="grid grid-cols-2 gap-[8px] lg:gap-[12px] flex-1 min-w-0"
+                    className="grid grid-cols-2 gap-[10px] lg:gap-[12px] xl:gap-[16px] flex-1 min-w-0"
                     aria-label="외부 재개발 정보 링크"
                 >
                     {INFO_LINKS.map((link) => (
@@ -115,7 +161,7 @@ export function HomeInfoSection() {
                             href={link.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="relative h-full rounded-[6px] lg:rounded-[6px] border border-[#e6e8ea] overflow-hidden flex items-center justify-center transition-[border-color,box-shadow] duration-200 hover:border-[#2f7f5f] hover:shadow-sm focus-visible:ring-2 focus-visible:ring-[#2f7f5f] focus-visible:ring-offset-2 outline-none group"
+                            className="relative h-[87px] lg:h-auto lg:aspect-auto xl:h-full rounded-[4px] lg:rounded-[6px] border border-[#cdd1d5] overflow-hidden flex items-center justify-center transition-[border-color,box-shadow] duration-200 hover:border-[#2f7f5f] hover:shadow-sm focus-visible:ring-2 focus-visible:ring-[#2f7f5f] focus-visible:ring-offset-2 outline-none group"
                             style={{ backgroundColor: link.bgColor }}
                             aria-label={`${link.label} (새 창에서 열림)`}
                         >
@@ -130,34 +176,40 @@ export function HomeInfoSection() {
                     ))}
                 </nav>
 
-                {/* 조합 정보 - 고정 너비, 1열 5행 */}
-                <div className="lg:w-[240px] shrink-0 bg-[#f4f5f6] rounded-[10px] lg:rounded-[12px] px-[16px] py-[12px] lg:px-[20px] lg:py-[16px]">
-                    <div className="flex flex-col gap-y-[8px] lg:gap-y-[10px]">
-                        <StatItem
-                            icon={<Eye className="w-[18px] h-[18px] lg:w-[22px] lg:h-[22px]" />}
-                            label="접속자 수"
-                            value={visitorCount ? `${visitorCount}명` : null}
-                        />
-                        <StatItem
-                            icon={<Users className="w-[18px] h-[18px] lg:w-[22px] lg:h-[22px]" />}
-                            label="조합원 수"
-                            value={union?.member_count ? `${union.member_count}명` : null}
-                        />
-                        <StatItem
-                            icon={<Square className="w-[18px] h-[18px] lg:w-[22px] lg:h-[22px]" />}
-                            label="면적"
-                            value={union?.area_size ? `${union.area_size}평` : null}
-                        />
-                        <StatItem
-                            icon={<Layers className="w-[18px] h-[18px] lg:w-[22px] lg:h-[22px]" />}
-                            label="단계"
-                            value={currentStage?.stage_name}
-                        />
-                        <StatItem
-                            icon={<BarChart3 className="w-[18px] h-[18px] lg:w-[22px] lg:h-[22px]" />}
-                            label="동의율"
-                            value={consentRate ? `${consentRate}%` : null}
-                        />
+                {/* 조합 통계 - 모바일: 카드 하단에 표시, md/lg: 숨김(별도 섹션), xl: 사이드바 */}
+                <div className="block md:hidden xl:block xl:w-[240px] shrink-0">
+                    {/* 모바일 전용: 조합명 타이틀 (Figma: "미아 2구역") */}
+                    <h4 className="font-bold text-[18px] text-[#1e2124] tracking-[1px] mb-[10px] md:hidden xl:hidden">
+                        {unionName}
+                    </h4>
+                    <div className="bg-[#f4f5f6] rounded-[4px] xl:rounded-[12px] px-[15px] xl:px-[20px] py-[12px] xl:py-[16px] xl:h-auto">
+                        <div className="flex flex-col gap-y-[8px] lg:gap-y-[10px]">
+                            <StatItem
+                                icon={<Eye className="w-[18px] h-[18px] lg:w-[22px] lg:h-[22px]" />}
+                                label="접속자 수"
+                                value={visitorCount ? `${visitorCount}명` : null}
+                            />
+                            <StatItem
+                                icon={<Users className="w-[18px] h-[18px] lg:w-[22px] lg:h-[22px]" />}
+                                label="조합원 수"
+                                value={union?.member_count ? `${union.member_count}명` : null}
+                            />
+                            <StatItem
+                                icon={<Square className="w-[18px] h-[18px] lg:w-[22px] lg:h-[22px]" />}
+                                label="면적"
+                                value={union?.area_size ? `${union.area_size}평` : null}
+                            />
+                            <StatItem
+                                icon={<Layers className="w-[18px] h-[18px] lg:w-[22px] lg:h-[22px]" />}
+                                label="단계"
+                                value={currentStage?.stage_name}
+                            />
+                            <StatItem
+                                icon={<BarChart3 className="w-[18px] h-[18px] lg:w-[22px] lg:h-[22px]" />}
+                                label="동의율"
+                                value={consentRate ? `${consentRate}%` : null}
+                            />
+                        </div>
                     </div>
                 </div>
             </div>

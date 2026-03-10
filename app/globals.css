@@ -42,6 +42,14 @@
     --radius-md: calc(var(--radius) - 2px);
     --radius-lg: var(--radius);
     --radius-xl: calc(var(--radius) + 4px);
+
+    /* 커스텀 브레이크포인트 — Tailwind v4 방식 (전체 정의 필수)
+       sm: 소형모바일, md: 태블릿, lg: 소형데스크톱, xl: 풀데스크톱, 2xl: 초대형 */
+    --breakpoint-sm: 480px;
+    --breakpoint-md: 768px;
+    --breakpoint-lg: 1100px;
+    --breakpoint-xl: 1650px;
+    --breakpoint-2xl: 1920px;
 }
 
 :root {

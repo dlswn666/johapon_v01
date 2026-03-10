@@ -64,9 +64,9 @@ export default function UnionHomePage() {
     // 로그인 상태: 새로운 홈페이지 레이아웃
     return (
         <>
-            {/* Hero Section - Figma: 풀 width 슬라이더 */}
-            <section className="relative">
-                <div className="w-full h-[300px] md:h-[500px] lg:h-[700px] overflow-hidden">
+            {/* Hero Section - max-w-[1920px]로 너비 제한 */}
+            <section className="relative max-w-[1920px] mx-auto">
+                <div className="w-full h-[376px] md:h-[400px] lg:h-[500px] xl:h-[700px] rounded-[8px] md:rounded-none overflow-hidden">
                     {isSlidesLoading ? (
                         <Skeleton className="w-full h-full" />
                     ) : (
@@ -76,53 +76,84 @@ export default function UnionHomePage() {
             </section>
 
             {/* 메인 컨텐츠 섹션 - Figma: 3열 레이아웃 (좌측광고 | 메인컨텐츠 | 우측광고) */}
-            <section className="py-[24px] md:py-[30px]">
+            <section className="py-[12px] md:py-[30px]">
                 <div className="max-w-[1920px] mx-auto px-[16px] md:px-[24px]">
-                    <div className="flex gap-[24px] lg:gap-[42px] items-start justify-center">
-                        {/* 좌측 광고 - PC에서만 표시 */}
-                        <aside className="hidden lg:block w-[279px] shrink-0">
+                    <div className="flex gap-[24px] lg:gap-[32px] xl:gap-[42px] items-start justify-center">
+                        {/* 좌측 광고 - 소형 데스크톱 이상에서 표시 */}
+                        <aside className="hidden lg:block lg:w-[200px] xl:w-[279px] shrink-0">
                             <SideAdWidget />
                         </aside>
 
                         {/* 중앙 메인 컨텐츠 */}
                         <div className="w-full min-w-0 flex-1 max-w-[1200px] flex flex-col gap-[20px] md:gap-[30px]">
+                            {/* 태블릿 전용: 광고 배너 ① (히어로 아래 풀너비) — md(768px)~lg(1100px) 미만에서만 표시 */}
+                            <div className="hidden md:block lg:hidden">
+                                <HomeBannerWidget variant="tablet-full" />
+                            </div>
+
+                            {/* 모바일: 광고 배너 ① (히어로 아래) */}
+                            <div className="block md:hidden">
+                                <HomeBannerWidget variant="mobile-full" />
+                            </div>
+
                             {/* 게시판 섹션 */}
                             <HomeBoardSection />
 
-                            {/* 모바일: 배너 광고 2열 그리드 */}
-                            <div className="block md:hidden">
-                                <HomeBannerWidget />
-                            </div>
-
-                            {/* 모바일: 커뮤니티 + 조합정보 2열 그리드 */}
-                            <div className="grid grid-cols-2 gap-[8px] md:hidden">
+                            {/* 모바일: 커뮤니티 (풀너비) — Figma 순서: 게시판 → 커뮤니티 → 배너 → 정보+통계 */}
+                            <div className="md:hidden">
                                 <HomeCommunitySection />
-                                <HomeUnionCard />
                             </div>
 
-                            {/* PC: 커뮤니티 + 재개발 정보 가로 배치 (커뮤니티 없으면 정보가 전체 너비) */}
-                            <div className="hidden md:flex md:gap-[24px]">
-                                {hasCommunityLinks && (
-                                    <div className="w-[282px] shrink-0">
-                                        <HomeCommunitySection />
-                                    </div>
-                                )}
-                                <div className="flex-1 min-w-0">
-                                    <HomeInfoSection />
-                                </div>
+                            {/* 모바일: 광고 배너 ② (커뮤니티 아래) */}
+                            <div className="block md:hidden">
+                                <HomeBannerWidget variant="mobile-full" />
                             </div>
 
-                            {/* 모바일: 재개발 정보 */}
+                            {/* 모바일: 재개발 정보 + 통계 (합쳐진 카드) */}
                             <div className="md:hidden">
                                 <HomeInfoSection />
                             </div>
 
+                            {/* 태블릿 전용: 광고 배너 ② (커뮤니티+정보 바로 위 풀너비) */}
+                            <div className="hidden md:block lg:hidden">
+                                <HomeBannerWidget variant="tablet-full" />
+                            </div>
+
+                            {/* lg 전용: 통계 풀너비 섹션 — 커뮤니티+정보 위에 배치 */}
+                            <div className="hidden lg:block xl:hidden">
+                                <HomeInfoSection statsOnly />
+                            </div>
+
+                            {/* 태블릿~PC: 커뮤니티 + 재개발 정보 가로 배치
+                                md(태블릿): 커뮤니티(왼쪽, flex-1) + 정보(오른쪽, flex-1)
+                                lg(소형 데스크톱): 정보(왼쪽, flex-1) + 커뮤니티(오른쪽, 155px) — 통계 자리를 커뮤니티가 대체
+                                xl(풀 데스크톱): 커뮤니티(왼쪽, 282px) + 정보(오른쪽, flex-1) */}
+                            <div className="hidden md:flex md:flex-row md:gap-[16px] lg:gap-[24px] xl:gap-[24px]">
+                                {/* 커뮤니티 — md: flex-1(왼쪽), lg: 155px(오른쪽, order-2), xl: 282px(왼쪽, order-1) */}
+                                {hasCommunityLinks && (
+                                    <div className="flex-1 min-w-0 lg:w-[155px] lg:shrink-0 lg:flex-none lg:order-2 xl:w-[282px] xl:order-1">
+                                        <HomeCommunitySection />
+                                    </div>
+                                )}
+                                {/* 재개발 정보 — md: flex-1(오른쪽), lg: flex-1(왼쪽, order-1), xl: flex-1(오른쪽, order-2) */}
+                                <div className="flex-1 min-w-0 lg:order-1 xl:order-2">
+                                    <HomeInfoSection />
+                                </div>
+                            </div>
+
+                            {/* md 전용: 통계 풀너비 섹션 — 커뮤니티+정보 아래에 배치 */}
+                            <div className="hidden md:block lg:hidden">
+                                <HomeInfoSection statsOnly />
+                            </div>
+
                             {/* 파트너십 섹션 */}
-                            <HomePartnerships />
+                            <div className="mb-[100px]">
+                                <HomePartnerships />
+                            </div>
                         </div>
 
-                        {/* 우측 광고 - PC에서만 표시 */}
-                        <aside className="hidden lg:block w-[279px] shrink-0">
+                        {/* 우측 광고 - 소형 데스크톱 이상에서 표시 */}
+                        <aside className="hidden lg:block lg:w-[200px] xl:w-[279px] shrink-0">
                             <SideAdWidget />
                         </aside>
                     </div>

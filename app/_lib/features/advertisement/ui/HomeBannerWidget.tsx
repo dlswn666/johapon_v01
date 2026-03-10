@@ -83,12 +83,12 @@ const DEFAULT_BANNER_ADS: Advertisement[] = [
 ];
 
 // 개별 배너 카드 컴포넌트
-function BannerCard({ ad, isMobile }: { ad: Advertisement; isMobile: boolean }) {
+function BannerCard({ ad, isMobile, fullHeight }: { ad: Advertisement; isMobile: boolean; fullHeight?: boolean }) {
     // 모바일이면 모바일 이미지 우선 사용, 없으면 웹 이미지로 폴백
     const imageUrl = isMobile && ad.image_url_mobile ? ad.image_url_mobile : ad.image_url;
 
     return (
-        <div className="relative w-full h-[120px] bg-white rounded-[8px] shadow-sm border border-slate-200 overflow-hidden group">
+        <div className={`relative w-full ${fullHeight ? 'h-full' : 'h-[120px]'} bg-white rounded-[8px] shadow-sm border border-slate-200 overflow-hidden group`}>
             {imageUrl ? (
                 <>
                     <Image
@@ -121,20 +121,65 @@ function BannerCard({ ad, isMobile }: { ad: Advertisement; isMobile: boolean }) 
     );
 }
 
-// 모바일 홈 배너 광고 컴포넌트 (2열 그리드)
-export function HomeBannerWidget() {
-    const { data: ads, isLoading } = useRandomAds('SUB', 2);
+interface HomeBannerWidgetProps {
+    variant?: 'mobile' | 'mobile-full' | 'tablet-full';
+}
+
+// 홈 배너 광고 컴포넌트 (모바일: 2열 그리드, 모바일 풀너비: 단일 배너, 태블릿: 풀너비 단일 배너)
+export function HomeBannerWidget({ variant = 'mobile' }: HomeBannerWidgetProps) {
+    const isSingle = variant === 'tablet-full' || variant === 'mobile-full';
+    const { data: ads, isLoading } = useRandomAds('SUB', isSingle ? 1 : 2);
     const isMobile = useMediaQuery('(max-width: 767px)');
 
     // useMemo를 사용하여 ads 변경 시 bannerAds 계산
     const bannerAds = useMemo<Advertisement[]>(() => {
-        if (ads && ads.length >= 2) {
-            return [ads[0], ads[1]];
+        const count = isSingle ? 1 : 2;
+        if (ads && ads.length >= count) {
+            return ads.slice(0, count);
         }
-        // 기본값 사용 (서버/클라이언트 동일하게 처음 2개 사용)
-        return DEFAULT_BANNER_ADS.slice(0, 2);
-    }, [ads]);
+        // 기본값 사용 (서버/클라이언트 동일하게 처음 N개 사용)
+        return DEFAULT_BANNER_ADS.slice(0, count);
+    }, [ads, variant]);
 
+    // 모바일 풀너비 배너 (1개, h-100, rounded-12) — 일반적인 모바일 배너 광고 비율 (약 320×100)
+    if (variant === 'mobile-full') {
+        if (isLoading) {
+            return (
+                <div className="w-full h-[100px] bg-slate-200/50 rounded-[12px] animate-pulse" />
+            );
+        }
+        return (
+            <div className="flex flex-col gap-1">
+                <div className="w-full h-[100px] rounded-[12px] overflow-hidden">
+                    {bannerAds[0] && <BannerCard ad={bannerAds[0]} isMobile={true} fullHeight />}
+                </div>
+                <p className="text-[11px] text-slate-400 text-center font-medium uppercase tracking-widest">
+                    Advertisement
+                </p>
+            </div>
+        );
+    }
+
+    // 태블릿 풀너비 배너 (1개, 가로 전체)
+    if (variant === 'tablet-full') {
+        if (isLoading) {
+            return (
+                <div className="w-full h-[80px] bg-slate-200/50 rounded-[8px] animate-pulse" />
+            );
+        }
+        return (
+            <div className="flex flex-col gap-1">
+                <div className="w-full h-[80px]">
+                    {bannerAds[0] && <BannerCard ad={bannerAds[0]} isMobile={false} />}
+                </div>
+                <p className="text-[11px] text-slate-400 text-center font-medium uppercase tracking-widest">
+                    Advertisement
+                </p>
+            </div>
+        );
+    }
+
+    // 모바일 기본: 2열 그리드
     if (isLoading) {
         return (
             <div className="grid grid-cols-2 gap-[8px]">
