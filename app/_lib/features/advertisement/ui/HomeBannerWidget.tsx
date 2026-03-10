@@ -139,7 +139,7 @@ export function HomeBannerWidget({ variant = 'mobile' }: HomeBannerWidgetProps) 
         }
         // 기본값 사용 (서버/클라이언트 동일하게 처음 N개 사용)
         return DEFAULT_BANNER_ADS.slice(0, count);
-    }, [ads, variant]);
+    }, [ads, isSingle]);
 
     // 모바일 풀너비 배너 (1개, h-100, rounded-12) — 일반적인 모바일 배너 광고 비율 (약 320×100)
     if (variant === 'mobile-full') {

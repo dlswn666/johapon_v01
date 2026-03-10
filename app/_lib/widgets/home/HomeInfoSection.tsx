@@ -98,11 +98,11 @@ export function HomeInfoSection({ statsOnly = false }: HomeInfoSectionProps) {
     if (statsOnly) {
         return (
             <section
-                className="bg-white border border-[#cdd1d5] rounded-[6px] p-[12px] overflow-hidden"
+                className="bg-white border border-[#cdd1d5] rounded-[8px] md:rounded-[12px] lg:rounded-[10px] p-[10px] md:p-[24px] lg:p-[24px] overflow-hidden"
                 aria-label="조합 통계"
             >
-                <h3 className="font-semibold text-[14px] text-[#1e2124] tracking-[1px] mb-[12px]">조합 현황</h3>
-                <div className="bg-[#f4f5f6] rounded-[10px] px-[16px] py-[12px]">
+                <h3 className="font-bold text-[18px] md:text-[22px] lg:text-[16px] text-[#1e2124] tracking-[1px] mb-[10px] md:mb-[30px] lg:mb-[20px]">조합 현황</h3>
+                <div className="bg-[#f4f5f6] rounded-[10px] px-[16px] py-[12px] md:px-[20px] md:py-[16px]">
                     <div className="flex flex-col gap-y-[8px]">
                         <StatItem
                             icon={<Eye className="w-[18px] h-[18px]" />}
@@ -137,13 +137,13 @@ export function HomeInfoSection({ statsOnly = false }: HomeInfoSectionProps) {
 
     return (
         <section
-            className="bg-white border border-[#cdd1d5] rounded-[8px] lg:rounded-[10px] p-[10px] lg:p-[24px] overflow-hidden"
+            className="bg-white border border-[#cdd1d5] rounded-[8px] lg:rounded-[10px] p-[10px] lg:p-[24px] overflow-hidden md:flex-1"
             aria-labelledby="info-section-title"
         >
             {/* 섹션 제목 */}
             <h3
                 id="info-section-title"
-                className="font-bold text-[18px] lg:text-[22px] text-[#1e2124] tracking-[1px] mb-[10px] lg:mb-[30px]"
+                className="font-bold text-[18px] lg:text-[16px] xl:text-[22px] text-[#1e2124] tracking-[1px] mb-[10px] lg:mb-[20px] xl:mb-[30px]"
             >
                 재개발 정보
             </h3>
@@ -161,7 +161,7 @@ export function HomeInfoSection({ statsOnly = false }: HomeInfoSectionProps) {
                             href={link.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="relative h-[87px] lg:h-auto lg:aspect-auto xl:h-full rounded-[4px] lg:rounded-[6px] border border-[#cdd1d5] overflow-hidden flex items-center justify-center transition-[border-color,box-shadow] duration-200 hover:border-[#2f7f5f] hover:shadow-sm focus-visible:ring-2 focus-visible:ring-[#2f7f5f] focus-visible:ring-offset-2 outline-none group"
+                            className="relative h-[87px] lg:h-[70px] xl:h-[87px] rounded-[4px] lg:rounded-[6px] border border-[#cdd1d5] overflow-hidden flex items-center justify-center transition-[border-color,box-shadow] duration-200 hover:border-[#2f7f5f] hover:shadow-sm focus-visible:ring-2 focus-visible:ring-[#2f7f5f] focus-visible:ring-offset-2 outline-none group"
                             style={{ backgroundColor: link.bgColor }}
                             aria-label={`${link.label} (새 창에서 열림)`}
                         >

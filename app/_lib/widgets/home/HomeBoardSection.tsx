@@ -192,13 +192,13 @@ export function HomeBoardSection() {
     };
 
     return (
-        <section className="w-full min-w-0 flex flex-col lg:flex-row gap-[16px] lg:gap-[20px] xl:gap-[24px] lg:items-start">
+        <section className="w-full min-w-0 flex flex-col lg:flex-row gap-[16px] lg:gap-[12px] xl:gap-[24px] lg:items-start">
             {/* 좌측: 세로 탭 버튼 - Figma: w-155px, h-294px */}
-            <div className="relative w-full min-w-0 shrink-0 lg:w-[130px] xl:w-[155px] lg:h-[294px]">
+            <div className="relative w-full min-w-0 shrink-0 lg:w-[120px] xl:w-[155px] lg:h-auto">
                 {/* 모바일 스크롤 페이드 힌트 */}
                 <div className="absolute right-0 top-0 bottom-0 w-[24px] bg-gradient-to-l from-white to-transparent pointer-events-none z-10 lg:hidden" />
                 <div
-                    className="w-full max-w-full flex lg:flex-col gap-[10px] lg:gap-0 lg:justify-between lg:h-[294px] overflow-x-auto lg:overflow-visible scrollbar-hide pr-[24px] lg:pr-0 touch-pan-x"
+                    className="w-full max-w-full flex lg:flex-col gap-[10px] lg:gap-[8px] xl:gap-[10px] overflow-x-auto lg:overflow-visible scrollbar-hide pr-[24px] lg:pr-0 touch-pan-x"
                     role="tablist"
                     aria-label="게시판 카테고리"
                     style={{ WebkitOverflowScrolling: 'touch' }}
@@ -213,10 +213,10 @@ export function HomeBoardSection() {
                             id={`tab-${tab.id}`}
                             className={cn(
                                 'flex items-center justify-center',
-                                'px-[10px] lg:px-[16px] xl:px-[20px] py-[10px] lg:py-[16px] xl:py-[20px] rounded-[20px] lg:rounded-[50px] cursor-pointer whitespace-nowrap shrink-0',
-                                'text-[16px] lg:text-[16px] xl:text-[20px] font-bold tracking-[0px] lg:tracking-[1px] leading-[1.3]',
+                                'px-[10px] lg:px-[10px] xl:px-[20px] py-[10px] lg:py-[10px] xl:py-[20px] rounded-[20px] lg:rounded-[50px] cursor-pointer whitespace-nowrap shrink-0',
+                                'text-[16px] lg:text-[13px] xl:text-[20px] font-bold tracking-[0px] lg:tracking-[0.5px] xl:tracking-[1px] leading-[1.3]',
                                 'outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
-                                'lg:flex-none lg:w-[130px] xl:w-[155px] text-center',
+                                'lg:flex-none lg:w-[120px] xl:w-[155px] text-center',
                                 'transition-colors duration-200',
                                 activeTab === tab.id
                                     ? 'bg-[#2f7f5f] text-white focus-visible:ring-white focus-visible:ring-offset-[#2f7f5f]'
@@ -234,7 +234,7 @@ export function HomeBoardSection() {
                 role="tabpanel"
                 id={`tabpanel-${activeTab}`}
                 aria-labelledby={`tab-${activeTab}`}
-                className="flex-1 min-w-0 bg-[#f4f5f6] rounded-[16px] p-[16px] lg:p-[18px] xl:p-[20px] lg:min-h-[309px]"
+                className="flex-1 min-w-0 bg-[#f4f5f6] rounded-[16px] p-[16px] lg:p-[16px] xl:p-[20px] lg:h-[270px] lg:overflow-hidden xl:h-auto xl:overflow-visible"
             >
                 {/* 로딩 상태 */}
                 {isLoading ? (
@@ -276,19 +276,19 @@ export function HomeBoardSection() {
                         </button>
                     </div>
                 ) : (
-                    <div className="flex flex-col gap-[20px] lg:gap-[30px] min-w-0">
-                        {/* 전체보기 - Figma: text-[#8a949e] 18px */}
+                    <div className="flex flex-col gap-[20px] lg:gap-[20px] xl:gap-[30px] min-w-0">
+                        {/* 전체보기 - Figma: Medium 18px #8a949e tracking-[1px] */}
                         <div className="flex items-center justify-end">
                             <button
                                 onClick={handleViewAll}
                                 className="flex items-center gap-[2px] text-[#8a949e] hover:text-[#6d7882] transition-colors rounded-md focus-visible:ring-2 focus-visible:ring-[#2f7f5f] focus-visible:ring-offset-2 outline-none"
                             >
-                                <span className="text-[14px] lg:text-[18px] font-medium tracking-[1px] leading-[1.3]">전체보기</span>
-                                <ChevronRight className="w-[20px] h-[20px] lg:w-[24px] lg:h-[24px]" />
+                                <span className="text-[14px] lg:text-[14px] xl:text-[18px] font-medium tracking-[1px] leading-[1.3]">전체보기</span>
+                                <ChevronRight className="w-[20px] h-[20px] lg:w-[20px] lg:h-[20px] xl:w-[24px] xl:h-[24px]" />
                             </button>
                         </div>
 
-                        {/* 게시글 목록 */}
+                        {/* 게시글 목록 - Figma: gap-[10px] (구분선 포함) */}
                         {data && data.length > 0 ? (
                             <div className="flex flex-col gap-[10px]">
                                 {data.slice(0, 5).map((item, index) => (
@@ -297,22 +297,22 @@ export function HomeBoardSection() {
                                             onClick={getItemClickHandler((item as Record<string, unknown>).id as number)}
                                             className="w-full flex items-center justify-between hover:bg-white/60 rounded-[8px] transition-colors duration-150 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[#2f7f5f] focus-visible:ring-offset-2 group"
                                         >
-                                            {/* 제목 + 댓글수 */}
+                                            {/* 제목 + 댓글수 — Figma: SemiBold 18px #33363d tracking-[1px] leading-[1.5] */}
                                             <div className="flex items-center gap-[10px] flex-1 min-w-0">
-                                                <span className="text-[14px] lg:text-[18px] font-semibold text-[#33363d] tracking-[1px] leading-[1.5] truncate group-hover:text-[#2f7f5f] transition-colors">
+                                                <span className="text-[14px] lg:text-[14px] xl:text-[18px] font-semibold text-[#33363d] tracking-[1px] leading-[1.5] truncate group-hover:text-[#2f7f5f] transition-colors">
                                                     {(item as Record<string, unknown>).title as string}
                                                 </span>
-                                                {/* 댓글 수 - 피그마: Medium 14px */}
-                                                <span className="text-[12px] lg:text-[14px] font-medium text-[#6d7882] leading-[1.4] shrink-0">
+                                                {/* 댓글 수 — Figma: Medium 14px #6d7882 leading-[1.4] */}
+                                                <span className="text-[12px] lg:text-[12px] xl:text-[14px] font-medium text-[#6d7882] leading-[1.4] shrink-0">
                                                     [ {(item as Record<string, unknown>).comment_count as number ?? 0} ]
                                                 </span>
                                             </div>
-                                            {/* 날짜 - 피그마: Light 14px */}
-                                            <span className="text-[12px] lg:text-[14px] font-light text-[#6d7882] leading-[1.4] shrink-0 ml-[16px]">
+                                            {/* 날짜 — Figma: Light 14px #6d7882 leading-[1.4] */}
+                                            <span className="text-[12px] lg:text-[12px] xl:text-[14px] font-light text-[#6d7882] leading-[1.4] shrink-0 ml-[16px]">
                                                 {formatDate((item as Record<string, unknown>).created_at as string)}
                                             </span>
                                         </button>
-                                        {/* 구분선 */}
+                                        {/* 구분선 — Figma: #cdd1d5 */}
                                         {index < Math.min(data.length, 5) - 1 && (
                                             <div className="border-b border-[#cdd1d5] mt-[10px]" />
                                         )}

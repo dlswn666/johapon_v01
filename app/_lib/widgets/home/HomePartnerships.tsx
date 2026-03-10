@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useEffect, useCallback, useMemo, useState } from 'react';
+import React, { useRef, useEffect, useCallback, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
@@ -72,7 +72,7 @@ export function HomePartnerships() {
     const dragStartXRef = useRef(0);
     const dragOffsetStartRef = useRef(0);
     const currentOffsetRef = useRef(0);
-    const [, forceRender] = useState(0);
+    const scheduleNextRef = useRef<() => void>(() => {});
 
     const itemCount = partners?.length || 0;
 
@@ -130,10 +130,13 @@ export function HomePartnerships() {
 
             // 슬라이드 끝난 뒤 다시 대기
             timerRef.current = setTimeout(() => {
-                scheduleNext();
+                scheduleNextRef.current();
             }, SLIDE_MS);
         }, PAUSE_MS);
     }, [itemCount, setOffsetInstant, setOffsetSmooth]);
+
+    // ref를 최신 함수로 동기화
+    scheduleNextRef.current = scheduleNext;
 
     // 타이머 정리
     const clearTimer = useCallback(() => {
@@ -184,6 +187,7 @@ export function HomePartnerships() {
         if (trackRef.current) trackRef.current.style.transition = 'none';
     }, [clearTimer]);
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- singleSetWidth는 ref 기반 함수로 안정적
     const handleTouchMove = useCallback((e: React.TouchEvent) => {
         if (!isDraggingRef.current) return;
         const dx = dragStartXRef.current - e.touches[0].clientX;
@@ -221,6 +225,7 @@ export function HomePartnerships() {
         e.preventDefault();
     }, [clearTimer]);
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- singleSetWidth는 ref 기반 함수로 안정적
     const handleMouseMove = useCallback((e: React.MouseEvent) => {
         if (!isDraggingRef.current) return;
         const dx = dragStartXRef.current - e.clientX;

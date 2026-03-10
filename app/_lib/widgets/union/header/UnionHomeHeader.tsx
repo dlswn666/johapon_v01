@@ -132,7 +132,7 @@ export default function UnionHomeHeader() {
             <header className="bg-white border-b border-gray-200 shadow-[0px_1px_3px_0px_rgba(0,0,0,0.1),0px_1px_2px_-1px_rgba(0,0,0,0.1)]">
                 {/* 모바일/태블릿 헤더 (lg 미만) */}
                 <div className="lg:hidden relative safe-top" style={{ height: 'calc(60px + env(safe-area-inset-top, 0px))' }}>
-                    <div className="container mx-auto px-4 h-full flex items-center justify-between">
+                    <div className="w-full mx-auto px-[16px] h-full flex items-center justify-between">
                         {/* 왼쪽: 사이드바 토글 버튼 */}
                         <button
                             onClick={toggleSidebar}

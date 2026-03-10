@@ -12,7 +12,7 @@ import { LandingPage } from '@/app/_lib/widgets/landing';
 import { UserStatusModal } from '@/app/_lib/widgets/modal';
 import { SideAdWidget } from '@/app/_lib/features/advertisement/ui/SideAdWidget';
 import { HomeBannerWidget } from '@/app/_lib/features/advertisement/ui/HomeBannerWidget';
-import { HomeBoardSection, HomeCommunitySection, HomeInfoSection, HomePartnerships, HomeUnionCard } from '@/app/_lib/widgets/home';
+import { HomeBoardSection, HomeCommunitySection, HomeInfoSection, HomePartnerships } from '@/app/_lib/widgets/home';
 
 export default function UnionHomePage() {
     const { union, isLoading: isUnionLoading } = useSlug();
@@ -65,8 +65,8 @@ export default function UnionHomePage() {
     return (
         <>
             {/* Hero Section - max-w-[1920px]로 너비 제한 */}
-            <section className="relative max-w-[1920px] mx-auto">
-                <div className="w-full h-[376px] md:h-[400px] lg:h-[500px] xl:h-[700px] rounded-[8px] md:rounded-none overflow-hidden">
+            <section className="relative max-w-[1920px] mx-auto px-[16px] lg:px-0">
+                <div className="w-full h-[376px] md:h-[400px] lg:h-[500px] xl:h-[700px] rounded-[8px] lg:rounded-none overflow-hidden">
                     {isSlidesLoading ? (
                         <Skeleton className="w-full h-full" />
                     ) : (
@@ -119,30 +119,30 @@ export default function UnionHomePage() {
                                 <HomeBannerWidget variant="tablet-full" />
                             </div>
 
-                            {/* lg 전용: 통계 풀너비 섹션 — 커뮤니티+정보 위에 배치 */}
-                            <div className="hidden lg:block xl:hidden">
-                                <HomeInfoSection statsOnly />
-                            </div>
-
                             {/* 태블릿~PC: 커뮤니티 + 재개발 정보 가로 배치
                                 md(태블릿): 커뮤니티(왼쪽, flex-1) + 정보(오른쪽, flex-1)
-                                lg(소형 데스크톱): 정보(왼쪽, flex-1) + 커뮤니티(오른쪽, 155px) — 통계 자리를 커뮤니티가 대체
+                                lg(소형 데스크톱): 커뮤니티(왼쪽, 175px) + 정보(오른쪽, flex-1)
                                 xl(풀 데스크톱): 커뮤니티(왼쪽, 282px) + 정보(오른쪽, flex-1) */}
                             <div className="hidden md:flex md:flex-row md:gap-[16px] lg:gap-[24px] xl:gap-[24px]">
-                                {/* 커뮤니티 — md: flex-1(왼쪽), lg: 155px(오른쪽, order-2), xl: 282px(왼쪽, order-1) */}
+                                {/* 커뮤니티 — md: flex-1(왼쪽), lg: 175px(왼쪽), xl: 282px(왼쪽) */}
                                 {hasCommunityLinks && (
-                                    <div className="flex-1 min-w-0 lg:w-[155px] lg:shrink-0 lg:flex-none lg:order-2 xl:w-[282px] xl:order-1">
+                                    <div className="flex-1 min-w-0 flex flex-col lg:w-[215px] lg:shrink-0 lg:flex-none xl:w-[282px]">
                                         <HomeCommunitySection />
                                     </div>
                                 )}
-                                {/* 재개발 정보 — md: flex-1(오른쪽), lg: flex-1(왼쪽, order-1), xl: flex-1(오른쪽, order-2) */}
-                                <div className="flex-1 min-w-0 lg:order-1 xl:order-2">
+                                {/* 재개발 정보 — md: flex-1(오른쪽), lg: flex-1(오른쪽), xl: flex-1(오른쪽) */}
+                                <div className="flex-1 min-w-0 flex flex-col">
                                     <HomeInfoSection />
                                 </div>
                             </div>
 
                             {/* md 전용: 통계 풀너비 섹션 — 커뮤니티+정보 아래에 배치 */}
                             <div className="hidden md:block lg:hidden">
+                                <HomeInfoSection statsOnly />
+                            </div>
+
+                            {/* lg 전용: 통계 풀너비 섹션 — 커뮤니티+정보 아래에 배치 */}
+                            <div className="hidden lg:block xl:hidden">
                                 <HomeInfoSection statsOnly />
                             </div>
 
