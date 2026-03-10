@@ -395,7 +395,7 @@ export default function UnionDetailPage() {
                             <Link href={`/systemAdmin/unions/${unionId}/admins`} className="cursor-pointer">
                                 <Button
                                     variant="outline"
-                                    className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
+                                    className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600 hover:text-white"
                                 >
                                     <Users className="w-4 h-4 mr-2" />
                                     관리자 관리
@@ -409,7 +409,7 @@ export default function UnionDetailPage() {
                             >
                                 <Button
                                     variant="outline"
-                                    className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
+                                    className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600 hover:text-white"
                                 >
                                     <ExternalLink className="w-4 h-4 mr-2" />
                                     사이트 보기

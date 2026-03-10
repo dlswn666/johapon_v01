@@ -100,16 +100,16 @@ export default function UnionHomePage() {
                                 <HomeUnionCard />
                             </div>
 
-                            {/* PC: 재개발 정보 + 커뮤니티 가로 배치 (커뮤니티 없으면 정보가 전체 너비) */}
+                            {/* PC: 커뮤니티 + 재개발 정보 가로 배치 (커뮤니티 없으면 정보가 전체 너비) */}
                             <div className="hidden md:flex md:gap-[24px]">
-                                <div className="flex-1 min-w-0">
-                                    <HomeInfoSection />
-                                </div>
                                 {hasCommunityLinks && (
                                     <div className="w-[282px] shrink-0">
                                         <HomeCommunitySection />
                                     </div>
                                 )}
+                                <div className="flex-1 min-w-0">
+                                    <HomeInfoSection />
+                                </div>
                             </div>
 
                             {/* 모바일: 재개발 정보 */}

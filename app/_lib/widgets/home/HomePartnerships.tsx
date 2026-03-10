@@ -3,7 +3,6 @@
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import { useAdsByType } from '@/app/_lib/features/advertisement/api/useAdvertisement';
@@ -44,19 +43,18 @@ export function HomePartnerships() {
     return (
         <section className="w-full">
             {/* 헤더 */}
-            <div className="flex items-center justify-between mb-[12px] md:mb-[16px]">
-                <h3 className="font-semibold text-[14px] md:text-[16px] text-black">
-                    파트너십
+            <div className="flex items-center justify-between mb-[20px] md:mb-[30px]">
+                <h3 className="font-semibold text-[14px] md:text-[16px] text-black tracking-[1px] leading-[1.6]">
+                    PARTNERSHIPS
                 </h3>
                 <Link
                     href={`/${slug}/communication/partner`}
                     className={cn(
-                        'flex items-center gap-[4px] text-[12px] text-[#b1b8be] hover:text-[#2f7f5f] transition-colors',
+                        'flex items-center gap-[4px] text-[12px] text-[#b1b8be] leading-[1.4] hover:text-[#2f7f5f] transition-colors',
                         'outline-none focus-visible:ring-2 focus-visible:ring-[#2f7f5f] focus-visible:ring-offset-2 rounded-sm'
                     )}
                 >
-                    <span>함께하는 협력 업체입니다</span>
-                    <ChevronRight className="w-[12px] h-[12px] md:w-[14px] md:h-[14px]" />
+                    <span>{`함께하는 협력 업체입니다 >`}</span>
                 </Link>
             </div>
 
@@ -81,7 +79,7 @@ export function HomePartnerships() {
                         )}
                     >
                         {/* 썸네일 - 피그마: 50px 정사각형 */}
-                        <div className="relative w-[50px] h-[50px] overflow-hidden bg-gray-100 rounded-[8px]">
+                        <div className="relative w-[50px] h-[50px] overflow-hidden bg-gray-100">
                             {partner.image_url ? (
                                 <Image
                                     src={partner.image_url}
@@ -99,17 +97,17 @@ export function HomePartnerships() {
                             )}
                         </div>
 
-                        {/* 제목 - Figma: Semibold 14px, center */}
-                        <h4 className="font-semibold text-[14px] text-black text-center truncate w-full group-hover:text-[#2f7f5f] transition-colors">
-                            {partner.title || partner.business_name}
-                        </h4>
-
-                        {/* 설명 - Figma: Light 12px, 2줄 */}
-                        {partner.content && (
-                            <p className="text-[12px] font-light text-[#8a949e] line-clamp-2 text-center w-full">
-                                {partner.content}
-                            </p>
-                        )}
+                        {/* 텍스트 영역 - Figma: gap-2px */}
+                        <div className="flex flex-col gap-[2px] items-center w-full">
+                            <h4 className="font-semibold text-[14px] text-black text-center leading-[1.6] truncate w-full group-hover:text-[#2f7f5f] transition-colors">
+                                {partner.title || partner.business_name}
+                            </h4>
+                            {partner.content && (
+                                <p className="text-[12px] font-light text-[#8a949e] leading-[1.4] line-clamp-2 w-full overflow-hidden">
+                                    {partner.content}
+                                </p>
+                            )}
+                        </div>
                     </Link>
                 ))}
             </div>

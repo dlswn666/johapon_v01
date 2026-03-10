@@ -69,31 +69,31 @@ export function HomeCommunitySection() {
     }
 
     return (
-        <div className="border border-[#cdd1d5] rounded-[10px] md:rounded-[10px] px-[10px] md:px-[24px] py-[10px] md:py-[24px] h-full">
+        <div className="border border-[#cdd1d5] rounded-[10px] md:rounded-[12px] px-[10px] md:px-[24px] py-[10px] md:py-[24px] flex flex-col gap-[10px] md:gap-[30px] h-full">
             {/* 섹션 제목 */}
-            <h3 className="font-semibold text-[16px] md:text-[22px] text-[#1e2124] tracking-[0.67px] md:tracking-[1px] mb-[10px] md:mb-[30px]">재개발 커뮤니티</h3>
+            <h3 className="font-semibold text-[16px] md:text-[22px] text-[#1e2124] tracking-[0.67px] md:tracking-[1px] leading-[1.2]">재개발 커뮤니티</h3>
 
             {/* 링크 목록 */}
-            <div className="flex flex-col gap-[7px] md:gap-[10px]">
+            <div className="flex flex-col gap-[7px] md:gap-[20px] flex-1">
                 {communityLinks.map((link) => (
                     <button
                         key={link.id}
                         onClick={() => handleLinkClick(link.url)}
-                        className="w-full bg-[#f4f5f6] rounded-[6px] md:rounded-[10px] px-[7px] md:px-[10px] py-[10px] md:py-[15px] flex items-center gap-[10px] md:gap-[15px] hover:bg-[#e8e9ea] transition-colors cursor-pointer"
+                        className="w-full bg-[#f4f5f6] rounded-[6px] md:rounded-[12px] px-[7px] md:px-[10px] py-[10px] md:py-[15px] flex items-center justify-between flex-1 hover:bg-[#e8e9ea] transition-colors cursor-pointer"
                     >
-                        {/* 아이콘 */}
-                        <div className="relative size-[24px] md:size-[38px] rounded-[6px] md:rounded-[10px] overflow-hidden shrink-0">
-                            {link.icon}
-                        </div>
-
-                        {/* 라벨 + 화살표 */}
-                        <div className="flex items-center justify-between flex-1 md:w-[143px] md:shrink-0">
-                            <span className="font-semibold text-[15px] md:text-[16px] text-[#33363d] tracking-[0.67px] md:tracking-[1px]">
+                        {/* 아이콘 + 라벨 */}
+                        <div className="flex items-center gap-[10px]">
+                            <div className="relative size-[24px] md:size-[38px] rounded-[6px] md:rounded-[8px] overflow-hidden shrink-0">
+                                {link.icon}
+                            </div>
+                            <span className="font-semibold text-[15px] md:text-[16px] text-[#33363d] tracking-[0.67px] md:tracking-[1px] leading-[1.5]">
                                 {link.label}
                             </span>
-                            <div className="size-[24px] md:size-[38px] rounded-full bg-[#2f7f5f] flex items-center justify-center">
-                                <ChevronRight className="size-[14px] md:size-[20px] text-white" />
-                            </div>
+                        </div>
+
+                        {/* 화살표 */}
+                        <div className="size-[24px] md:size-[38px] rounded-full bg-[#33363d] flex items-center justify-center shrink-0">
+                            <ChevronRight className="size-[14px] md:size-[20px] text-white" />
                         </div>
                     </button>
                 ))}

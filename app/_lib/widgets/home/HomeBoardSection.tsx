@@ -22,8 +22,8 @@ interface TabItem {
 const TABS: TabItem[] = [
     { id: 'notice', label: '공지사항' },
     { id: 'union-info', label: '조합 정보 공유' },
-    { id: 'free-board', label: '자유게시판' },
-    { id: 'partner', label: '제휴업체' },
+    { id: 'free-board', label: '자유 게시판' },
+    { id: 'partner', label: '제휴 업체' },
 ];
 
 export function HomeBoardSection() {
@@ -192,13 +192,13 @@ export function HomeBoardSection() {
     };
 
     return (
-        <section className="w-full min-w-0 flex flex-col lg:flex-row gap-[16px] lg:gap-[24px] lg:h-[294px]">
+        <section className="w-full min-w-0 flex flex-col lg:flex-row gap-[16px] lg:gap-[24px] lg:items-start">
             {/* 좌측: 세로 탭 버튼 - Figma: w-155px, h-294px */}
-            <div className="relative w-full min-w-0 shrink-0 lg:w-[155px] h-full">
+            <div className="relative w-full min-w-0 shrink-0 lg:w-[155px] lg:h-[294px]">
                 {/* 모바일 스크롤 페이드 힌트 */}
                 <div className="absolute right-0 top-0 bottom-0 w-[24px] bg-gradient-to-l from-white to-transparent pointer-events-none z-10 lg:hidden" />
                 <div
-                    className="w-full max-w-full flex lg:flex-col gap-[10px] lg:gap-0 lg:justify-between h-full overflow-x-auto lg:overflow-visible scrollbar-hide pr-[24px] lg:pr-0"
+                    className="w-full max-w-full flex lg:flex-col gap-[10px] lg:gap-0 lg:justify-between lg:h-[294px] overflow-x-auto lg:overflow-visible scrollbar-hide pr-[24px] lg:pr-0"
                     role="tablist"
                     aria-label="게시판 카테고리"
                 >
@@ -211,14 +211,15 @@ export function HomeBoardSection() {
                             aria-controls={`tabpanel-${tab.id}`}
                             id={`tab-${tab.id}`}
                             className={cn(
-                                'px-[18px] lg:px-[20px] py-[14px] lg:py-[20px] rounded-[50px] cursor-pointer whitespace-nowrap',
-                                'text-[14px] lg:text-[20px] font-semibold tracking-[1px]',
+                                'flex items-center justify-center',
+                                'px-[16px] lg:px-[20px] py-[12px] lg:py-[20px] rounded-[50px] cursor-pointer whitespace-nowrap',
+                                'text-[14px] lg:text-[20px] font-semibold tracking-[1px] leading-[1.3]',
                                 'outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
-                                'min-w-[110px] lg:w-full text-center',
+                                'min-w-[100px] lg:w-[155px] text-center',
                                 'transition-colors duration-200',
                                 activeTab === tab.id
-                                    ? 'bg-[#2f7f5f] text-white shadow-md focus-visible:ring-white focus-visible:ring-offset-[#2f7f5f]'
-                                    : 'bg-white border-[2px] border-[#2f7f5f] text-[#2f7f5f] hover:bg-[#f0f7f4] hover:shadow-sm focus-visible:ring-[#2f7f5f]'
+                                    ? 'bg-[#2f7f5f] text-white focus-visible:ring-white focus-visible:ring-offset-[#2f7f5f]'
+                                    : 'bg-white border-[2px] border-[#2f7f5f] text-[#2f7f5f] hover:bg-[#f0f7f4] focus-visible:ring-[#2f7f5f]'
                             )}
                         >
                             {tab.label}
@@ -232,7 +233,7 @@ export function HomeBoardSection() {
                 role="tabpanel"
                 id={`tabpanel-${activeTab}`}
                 aria-labelledby={`tab-${activeTab}`}
-                className="flex-1 min-w-0 bg-[#f4f5f6] rounded-[16px] p-[16px] lg:p-[20px] h-full overflow-hidden"
+                className="flex-1 min-w-0 bg-[#f4f5f6] rounded-[16px] p-[16px] lg:p-[20px] lg:min-h-[309px]"
             >
                 {/* 로딩 상태 */}
                 {isLoading ? (
@@ -281,7 +282,7 @@ export function HomeBoardSection() {
                                 onClick={handleViewAll}
                                 className="flex items-center gap-[2px] text-[#8a949e] hover:text-[#6d7882] transition-colors rounded-md focus-visible:ring-2 focus-visible:ring-[#2f7f5f] focus-visible:ring-offset-2 outline-none"
                             >
-                                <span className="text-[14px] lg:text-[18px] font-medium tracking-[1px]">전체보기</span>
+                                <span className="text-[14px] lg:text-[18px] font-medium tracking-[1px] leading-[1.3]">전체보기</span>
                                 <ChevronRight className="w-[20px] h-[20px] lg:w-[24px] lg:h-[24px]" />
                             </button>
                         </div>
@@ -293,20 +294,20 @@ export function HomeBoardSection() {
                                     <div key={(item as Record<string, unknown>).id as number}>
                                         <button
                                             onClick={getItemClickHandler((item as Record<string, unknown>).id as number)}
-                                            className="w-full flex items-center justify-between py-[6px] px-[8px] hover:bg-white/60 rounded-[8px] transition-colors duration-150 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[#2f7f5f] focus-visible:ring-offset-2 group"
+                                            className="w-full flex items-center justify-between hover:bg-white/60 rounded-[8px] transition-colors duration-150 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[#2f7f5f] focus-visible:ring-offset-2 group"
                                         >
                                             {/* 제목 + 댓글수 */}
                                             <div className="flex items-center gap-[10px] flex-1 min-w-0">
-                                                <span className="text-[14px] lg:text-[18px] font-semibold text-[#33363d] tracking-[1px] truncate group-hover:text-[#2f7f5f] transition-colors">
+                                                <span className="text-[14px] lg:text-[18px] font-semibold text-[#33363d] tracking-[1px] leading-[1.5] truncate group-hover:text-[#2f7f5f] transition-colors">
                                                     {(item as Record<string, unknown>).title as string}
                                                 </span>
                                                 {/* 댓글 수 - 피그마: Medium 14px */}
-                                                <span className="text-[12px] lg:text-[14px] font-medium text-[#6d7882] shrink-0">
-                                                    [{(item as Record<string, unknown>).comment_count as number ?? 0}]
+                                                <span className="text-[12px] lg:text-[14px] font-medium text-[#6d7882] leading-[1.4] shrink-0">
+                                                    [ {(item as Record<string, unknown>).comment_count as number ?? 0} ]
                                                 </span>
                                             </div>
                                             {/* 날짜 - 피그마: Light 14px */}
-                                            <span className="text-[12px] lg:text-[14px] font-light text-[#6d7882] shrink-0 ml-[16px]">
+                                            <span className="text-[12px] lg:text-[14px] font-light text-[#6d7882] leading-[1.4] shrink-0 ml-[16px]">
                                                 {formatDate((item as Record<string, unknown>).created_at as string)}
                                             </span>
                                         </button>
