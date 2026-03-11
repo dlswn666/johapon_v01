@@ -112,8 +112,8 @@ export default function UnionLayoutContent({ children }: UnionLayoutContentProps
                 <UnionBreadcrumb />
 
                 {/* 전체 너비 메인 콘텐츠 (광고 영역 없음) */}
-                <main id="main-content" className="flex-1 min-h-[1200px] px-4 md:px-8 py-8">
-                    <div className="max-w-[1400px] mx-auto">
+                <main id="main-content" className="flex-1 min-h-[1200px] py-8">
+                    <div className="container mx-auto px-4 md:px-8">
                         {children}
                     </div>
                 </main>

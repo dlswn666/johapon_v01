@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef, useCallback, useState } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -38,6 +38,206 @@ const variantStyles: Record<TableVariant, TableStyles> = {
         cell: 'text-gray-700',
     },
 };
+
+/**
+ * StickyHeaderTable: 커스텀 횡스크롤바를 뷰포트 하단에 fixed로 표시하는 래퍼 컴포넌트
+ * macOS 오버레이 스크롤바 환경에서도 항상 횡스크롤바가 보이도록 커스텀 트랙+썸을 직접 렌더링
+ * position: fixed + IntersectionObserver로 테이블이 화면에 보일 때만 표시
+ */
+function StickyHeaderTable({
+    children,
+    className,
+    maxHeight,
+    minWidth,
+}: {
+    children: React.ReactNode;
+    className?: string;
+    maxHeight?: string;
+    minWidth?: string;
+}) {
+    const wrapperRef = useRef<HTMLDivElement>(null);
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const thumbRef = useRef<HTMLDivElement>(null);
+    const [needsScrollbar, setNeedsScrollbar] = useState(false);
+    const [isVisible, setIsVisible] = useState(false);
+    const [thumbWidth, setThumbWidth] = useState(0);
+    const [thumbLeft, setThumbLeft] = useState(0);
+    const [trackRect, setTrackRect] = useState({ left: 0, width: 0 });
+    const isDragging = useRef(false);
+    const dragStartX = useRef(0);
+    const dragStartScrollLeft = useRef(0);
+
+    // 스크롤 필요 여부 + 트랙 위치/크기 계산
+    useEffect(() => {
+        const container = scrollContainerRef.current;
+        const wrapper = wrapperRef.current;
+        if (!container || !wrapper) return;
+
+        const update = () => {
+            const { scrollWidth, clientWidth } = container;
+            const needs = scrollWidth > clientWidth;
+            setNeedsScrollbar(needs);
+            if (needs) {
+                const wrapperRect = wrapper.getBoundingClientRect();
+                const ratio = clientWidth / scrollWidth;
+                setTrackRect({ left: wrapperRect.left, width: wrapperRect.width });
+                setThumbWidth(Math.max(ratio * wrapperRect.width, 40));
+            }
+        };
+
+        update();
+        const observer = new ResizeObserver(update);
+        observer.observe(container);
+        window.addEventListener('resize', update);
+
+        return () => {
+            observer.disconnect();
+            window.removeEventListener('resize', update);
+        };
+    }, []);
+
+    // IntersectionObserver: 테이블이 화면에 보이는지 감지
+    useEffect(() => {
+        const wrapper = wrapperRef.current;
+        if (!wrapper) return;
+
+        const observer = new IntersectionObserver(
+            ([entry]) => setIsVisible(entry.isIntersecting),
+            { threshold: 0.01 }
+        );
+        observer.observe(wrapper);
+        return () => observer.disconnect();
+    }, []);
+
+    // 스크롤 위치 변경 시 트랙 위치 갱신 (페이지 스크롤로 wrapper 위치 변할 수 있음)
+    useEffect(() => {
+        if (!needsScrollbar || !isVisible) return;
+        const wrapper = wrapperRef.current;
+        if (!wrapper) return;
+
+        const updateTrackPos = () => {
+            const rect = wrapper.getBoundingClientRect();
+            setTrackRect(prev => {
+                if (prev.left !== rect.left || prev.width !== rect.width) {
+                    return { left: rect.left, width: rect.width };
+                }
+                return prev;
+            });
+        };
+
+        window.addEventListener('scroll', updateTrackPos, { passive: true });
+        return () => window.removeEventListener('scroll', updateTrackPos);
+    }, [needsScrollbar, isVisible]);
+
+    // 메인 컨테이너 스크롤 → 썸 위치 동기화
+    const handleMainScroll = useCallback(() => {
+        const container = scrollContainerRef.current;
+        if (!container || isDragging.current) return;
+
+        const { scrollLeft, scrollWidth, clientWidth } = container;
+        const maxScroll = scrollWidth - clientWidth;
+        if (maxScroll <= 0) return;
+
+        const ratio = scrollLeft / maxScroll;
+        const maxThumbLeft = trackRect.width - thumbWidth;
+        setThumbLeft(ratio * maxThumbLeft);
+    }, [thumbWidth, trackRect.width]);
+
+    // 썸 드래그 시작
+    const handleThumbMouseDown = useCallback((e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        isDragging.current = true;
+        dragStartX.current = e.clientX;
+        dragStartScrollLeft.current = scrollContainerRef.current?.scrollLeft || 0;
+
+        const handleMouseMove = (ev: MouseEvent) => {
+            if (!isDragging.current) return;
+            const container = scrollContainerRef.current;
+            if (!container) return;
+
+            const deltaX = ev.clientX - dragStartX.current;
+            const maxThumbLeft = trackRect.width - thumbWidth;
+            const { scrollWidth, clientWidth } = container;
+            const maxScroll = scrollWidth - clientWidth;
+
+            const scrollDelta = (deltaX / maxThumbLeft) * maxScroll;
+            container.scrollLeft = dragStartScrollLeft.current + scrollDelta;
+        };
+
+        const handleMouseUp = () => {
+            isDragging.current = false;
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+        };
+
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+    }, [thumbWidth, trackRect.width]);
+
+    // 트랙 클릭 → 해당 위치로 스크롤
+    const handleTrackClick = useCallback((e: React.MouseEvent) => {
+        if (e.target === thumbRef.current) return;
+        const container = scrollContainerRef.current;
+        if (!container) return;
+
+        const clickX = e.clientX - trackRect.left;
+        const ratio = clickX / trackRect.width;
+        const { scrollWidth, clientWidth } = container;
+        container.scrollLeft = ratio * (scrollWidth - clientWidth);
+    }, [trackRect]);
+
+    const showBar = needsScrollbar && isVisible;
+
+    return (
+        <div ref={wrapperRef} className={cn('relative', className)}>
+            {/* 메인 스크롤 컨테이너 */}
+            <div
+                ref={scrollContainerRef}
+                className="overflow-x-auto overflow-y-auto"
+                style={{ maxHeight }}
+                onScroll={handleMainScroll}
+            >
+                <div
+                    className="[&_[data-slot=table-container]]:!overflow-visible"
+                    style={{ minWidth }}
+                >
+                    {children}
+                </div>
+            </div>
+
+            {/* 커스텀 횡스크롤바 — position: fixed로 뷰포트 하단에 항상 표시 */}
+            {showBar && (
+                <div
+                    className="fixed bottom-0 z-50 cursor-pointer"
+                    style={{
+                        left: `${trackRect.left}px`,
+                        width: `${trackRect.width}px`,
+                        height: '20px',
+                        background: '#e8e8e8',
+                        borderTop: '1px solid #ccc',
+                        boxShadow: '0 -2px 6px rgba(0,0,0,0.1)',
+                    }}
+                    onClick={handleTrackClick}
+                >
+                    {/* 썸 (드래그 가능한 핸들) */}
+                    <div
+                        ref={thumbRef}
+                        className="absolute top-[4px] rounded-full cursor-grab active:cursor-grabbing"
+                        style={{
+                            left: `${thumbLeft}px`,
+                            width: `${thumbWidth}px`,
+                            height: '12px',
+                            background: '#999',
+                            transition: isDragging.current ? 'none' : 'left 0.05s ease-out',
+                        }}
+                        onMouseDown={handleThumbMouseDown}
+                    />
+                </div>
+            )}
+        </div>
+    );
+}
 
 /**
  * 공통 DataTable 컴포넌트
@@ -167,21 +367,16 @@ export function DataTable<T extends object>({
         );
     }
 
-    // stickyHeader 모드일 때의 렌더링 (가짜 스크롤바 + relative positioning으로 가로 이동)
+    // stickyHeader 모드일 때의 렌더링
+    // 메인 컨테이너: overflow-y auto + overflow-x hidden (세로 스크롤만)
+    // 하단: 가짜 횡스크롤바를 sticky로 항상 표시
     if (stickyHeader && maxHeight) {
         return (
-            <div className={cn('relative', className)}>
-                {/* 메인 스크롤 컨테이너: 세로 스크롤만, 가로 스크롤은 숨김 */}
-                <div className="overflow-y-auto overflow-x-hidden" style={{ maxHeight }}>
-                    {/* 테이블 래퍼: relative positioning으로 가로 이동 */}
-                    <div
-                        ref={tableWrapperRef}
-                        className="relative [&_[data-slot=table-container]]:!overflow-visible"
-                        style={{
-                            minWidth,
-                            // left는 스크롤 이벤트에서 제어됨
-                        }}
-                    >
+            <StickyHeaderTable
+                className={className}
+                maxHeight={maxHeight}
+                minWidth={minWidth}
+            >
                         <Table className="table-fixed" style={{ minWidth }}>
                             {/* 고정 헤더 - sticky로 상단 고정 */}
                             <TableHeader className={cn(styles.header, 'bg-gray-50 sticky top-0 z-10')}>
@@ -341,20 +536,7 @@ export function DataTable<T extends object>({
                                 ) : null}
                             </div>
                         )}
-                    </div>
-                </div>
-
-                {/* 하단 고정 가로 스크롤바 */}
-                <div
-                    ref={fakeScrollbarRef}
-                    className="sticky bottom-0 overflow-x-auto bg-gray-50 border-t border-gray-200 z-10"
-                    style={{ height: '17px' }}
-                    onScroll={handleFakeScrollbarScroll}
-                >
-                    {/* 스크롤 영역 확보를 위한 빈 div */}
-                    <div style={{ width: minWidth, height: '1px' }} />
-                </div>
-            </div>
+            </StickyHeaderTable>
         );
     }
 

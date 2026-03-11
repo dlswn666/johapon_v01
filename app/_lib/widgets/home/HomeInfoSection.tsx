@@ -143,7 +143,7 @@ export function HomeInfoSection({ statsOnly = false }: HomeInfoSectionProps) {
             {/* 섹션 제목 */}
             <h3
                 id="info-section-title"
-                className="font-bold text-[18px] lg:text-[16px] xl:text-[22px] text-[#1e2124] tracking-[1px] mb-[10px] lg:mb-[20px] xl:mb-[30px]"
+                className="font-bold text-[18px] lg:text-[16px] xl:text-[22px] text-[#1e2124] tracking-[1px] leading-[1.2] mb-[10px] lg:mb-[20px] xl:mb-[30px]"
             >
                 재개발 정보
             </h3>
@@ -152,7 +152,7 @@ export function HomeInfoSection({ statsOnly = false }: HomeInfoSectionProps) {
             <div className="flex flex-col xl:flex-row gap-[16px] xl:gap-[24px]">
                 {/* 2x2 배너 그리드 - 유동 너비 (커뮤니티 섹션 유무에 따라 줄어듦) */}
                 <nav
-                    className="grid grid-cols-2 gap-[10px] lg:gap-[12px] xl:gap-[16px] flex-1 min-w-0"
+                    className="grid grid-cols-2 gap-[10px] lg:gap-[12px] xl:gap-[16px] flex-1 min-w-0 self-start"
                     aria-label="외부 재개발 정보 링크"
                 >
                     {INFO_LINKS.map((link) => (

@@ -433,7 +433,7 @@ export default function MemberListTab() {
                         totalItems: totalCount,
                     }}
                     minWidth="1610px"
-                    maxHeight="calc(100vh - 340px)"
+                    maxHeight="1450px"
                     stickyHeader={true}
                 />
             </div>

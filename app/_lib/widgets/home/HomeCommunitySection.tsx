@@ -69,17 +69,17 @@ export function HomeCommunitySection() {
     }
 
     return (
-        <div className="border border-[#cdd1d5] rounded-[8px] md:rounded-[12px] lg:rounded-[10px] px-[10px] md:px-[24px] lg:px-[24px] xl:px-[24px] py-[10px] md:py-[24px] lg:py-[24px] xl:py-[24px] flex flex-col gap-[10px] md:gap-[30px] lg:gap-[20px] xl:gap-[30px] h-[155px] md:h-full">
+        <div className="border border-[#cdd1d5] rounded-[8px] md:rounded-[12px] lg:rounded-[10px] px-[10px] md:px-[24px] lg:px-[24px] xl:px-[24px] py-[10px] md:py-[24px] lg:py-[24px] xl:py-[24px] flex flex-col h-[155px] md:h-full">
             {/* 섹션 제목 */}
-            <h3 className="font-bold text-[18px] md:text-[22px] lg:text-[16px] xl:text-[22px] text-[#1e2124] tracking-[1px] leading-[1.2]">재개발 커뮤니티</h3>
+            <h3 className="font-bold text-[18px] md:text-[22px] lg:text-[16px] xl:text-[22px] text-[#1e2124] tracking-[1px] leading-[1.2] mb-[10px] lg:mb-[20px] xl:mb-[30px]">재개발 커뮤니티</h3>
 
             {/* 링크 목록 */}
-            <div className="flex flex-col gap-[7px] md:gap-[20px] lg:gap-[12px] xl:gap-[20px] flex-1">
+            <div className="flex flex-col gap-[10px] lg:gap-[12px] xl:gap-[16px] flex-1">
                 {communityLinks.map((link) => (
                     <button
                         key={link.id}
                         onClick={() => handleLinkClick(link.url)}
-                        className="w-full bg-[#f4f5f6] rounded-[4px] md:rounded-[12px] lg:rounded-[6px] xl:rounded-[12px] px-[7px] md:px-[10px] lg:px-[10px] xl:px-[10px] py-[10px] md:py-[15px] lg:py-0 xl:py-[15px] flex items-center justify-between flex-1 lg:flex-none lg:h-[70px] xl:h-auto xl:flex-1 hover:bg-[#e8e9ea] transition-colors cursor-pointer"
+                        className="w-full bg-[#f4f5f6] rounded-[4px] md:rounded-[12px] lg:rounded-[6px] xl:rounded-[12px] px-[7px] md:px-[10px] lg:px-[10px] xl:px-[10px] py-[10px] md:py-[15px] lg:py-0 xl:py-0 flex items-center justify-between flex-1 lg:flex-none lg:h-[70px] xl:flex-none xl:h-[87px] hover:bg-[#e8e9ea] transition-colors cursor-pointer"
                     >
                         {/* 아이콘 + 라벨 */}
                         <div className="flex items-center gap-[10px] lg:gap-[6px] xl:gap-[10px]">
