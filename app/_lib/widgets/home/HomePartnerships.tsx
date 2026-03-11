@@ -86,8 +86,8 @@ export function HomePartnerships() {
         gapRef.current = parseFloat(style.gap) || 20;
     }, [itemCount]);
 
-    const stepSize = () => cardWidthRef.current + gapRef.current;
-    const singleSetWidth = () => stepSize() * itemCount;
+    const stepSize = useCallback(() => cardWidthRef.current + gapRef.current, []);
+    const singleSetWidth = useCallback(() => stepSize() * itemCount, [stepSize, itemCount]);
 
     // transition 없이 즉시 이동
     const setOffsetInstant = useCallback((offset: number) => {
@@ -133,10 +133,12 @@ export function HomePartnerships() {
                 scheduleNextRef.current();
             }, SLIDE_MS);
         }, PAUSE_MS);
-    }, [itemCount, setOffsetInstant, setOffsetSmooth]);
+    }, [itemCount, stepSize, setOffsetInstant, setOffsetSmooth]);
 
     // ref를 최신 함수로 동기화
-    scheduleNextRef.current = scheduleNext;
+    useEffect(() => {
+        scheduleNextRef.current = scheduleNext;
+    }, [scheduleNext]);
 
     // 타이머 정리
     const clearTimer = useCallback(() => {
@@ -176,7 +178,7 @@ export function HomePartnerships() {
         };
         window.addEventListener('resize', h);
         return () => window.removeEventListener('resize', h);
-    }, [measure, setOffsetInstant]);
+    }, [measure, stepSize, setOffsetInstant]);
 
     // --- 터치 ---
     const handleTouchStart = useCallback((e: React.TouchEvent) => {
@@ -187,7 +189,6 @@ export function HomePartnerships() {
         if (trackRef.current) trackRef.current.style.transition = 'none';
     }, [clearTimer]);
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- singleSetWidth는 ref 기반 함수로 안정적
     const handleTouchMove = useCallback((e: React.TouchEvent) => {
         if (!isDraggingRef.current) return;
         const dx = dragStartXRef.current - e.touches[0].clientX;
@@ -201,7 +202,7 @@ export function HomePartnerships() {
         if (trackRef.current) {
             trackRef.current.style.transform = `translateX(${-newOffset}px)`;
         }
-    }, []);
+    }, [singleSetWidth]);
 
     const handleTouchEnd = useCallback(() => {
         isDraggingRef.current = false;
@@ -213,7 +214,7 @@ export function HomePartnerships() {
             setOffsetSmooth(nearest * step);
         }
         setTimeout(() => restartAuto(), SLIDE_MS);
-    }, [itemCount, setOffsetSmooth, restartAuto]);
+    }, [itemCount, stepSize, setOffsetSmooth, restartAuto]);
 
     // --- 마우스 드래그 ---
     const handleMouseDown = useCallback((e: React.MouseEvent) => {
@@ -225,7 +226,6 @@ export function HomePartnerships() {
         e.preventDefault();
     }, [clearTimer]);
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- singleSetWidth는 ref 기반 함수로 안정적
     const handleMouseMove = useCallback((e: React.MouseEvent) => {
         if (!isDraggingRef.current) return;
         const dx = dragStartXRef.current - e.clientX;
@@ -239,7 +239,7 @@ export function HomePartnerships() {
         if (trackRef.current) {
             trackRef.current.style.transform = `translateX(${-newOffset}px)`;
         }
-    }, []);
+    }, [singleSetWidth]);
 
     const handleMouseUp = useCallback(() => {
         if (!isDraggingRef.current) return;
@@ -251,7 +251,7 @@ export function HomePartnerships() {
             setOffsetSmooth(nearest * step);
         }
         setTimeout(() => restartAuto(), SLIDE_MS);
-    }, [itemCount, setOffsetSmooth, restartAuto]);
+    }, [itemCount, stepSize, setOffsetSmooth, restartAuto]);
 
     const handleMouseLeave = useCallback(() => {
         if (isDraggingRef.current) handleMouseUp();

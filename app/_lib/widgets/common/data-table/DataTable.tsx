@@ -229,7 +229,7 @@ function StickyHeaderTable({
                             width: `${thumbWidth}px`,
                             height: '12px',
                             background: '#999',
-                            transition: isDragging.current ? 'none' : 'left 0.05s ease-out',
+                            transition: 'left 0.05s ease-out',
                         }}
                         onMouseDown={handleThumbMouseDown}
                     />
@@ -332,13 +332,9 @@ export function DataTable<T extends object>({
     const fakeScrollbarRef = useRef<HTMLDivElement>(null);
     const tableWrapperRef = useRef<HTMLDivElement>(null);
 
-    // 가짜 스크롤바 스크롤 시 테이블 이동 (Direct DOM Manipulation)
-    const handleFakeScrollbarScroll = useCallback(() => {
-        if (fakeScrollbarRef.current && tableWrapperRef.current) {
-            const scrollLeft = fakeScrollbarRef.current.scrollLeft;
-            tableWrapperRef.current.style.left = `-${scrollLeft}px`;
-        }
-    }, []);
+    // stickyHeader ref는 향후 사용 예정
+    void fakeScrollbarRef;
+    void tableWrapperRef;
 
     // 로딩 상태 렌더링
     if (isLoading) {
