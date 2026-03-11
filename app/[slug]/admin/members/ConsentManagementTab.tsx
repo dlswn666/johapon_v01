@@ -662,6 +662,7 @@ export default function ConsentManagementTab() {
                                     onChange={(e) => setSearchAddress(e.target.value)}
                                     onKeyDown={handleInputKeyDown}
                                     onFocus={() => setLastFocusedInput('address')}
+                                    className="h-11"
                                 />
                                 <Input
                                     ref={searchNameInputRef}
@@ -670,6 +671,7 @@ export default function ConsentManagementTab() {
                                     onChange={(e) => setSearchName(e.target.value)}
                                     onKeyDown={handleInputKeyDown}
                                     onFocus={() => setLastFocusedInput('name')}
+                                    className="h-11"
                                 />
                             </div>
                             <div className="flex gap-3">
@@ -680,12 +682,12 @@ export default function ConsentManagementTab() {
                                     onChange={(e) => setSearchBuilding(e.target.value)}
                                     onKeyDown={handleInputKeyDown}
                                     onFocus={() => setLastFocusedInput('building')}
-                                    className="flex-1"
+                                    className="flex-1 h-11"
                                 />
                                 <Button
                                     onClick={handleSearch}
                                     disabled={isSearching || !selectedStageId}
-                                    className="bg-[#4E8C6D] hover:bg-[#3d7058] text-white"
+                                    className="bg-[#4E8C6D] hover:bg-[#3d7058] text-white h-11"
                                 >
                                     {isSearching ? (
                                         <Loader2 className="w-4 h-4 animate-spin" />
@@ -700,7 +702,7 @@ export default function ConsentManagementTab() {
                         <div
                             ref={searchResultsRef}
                             onScroll={handleSearchResultsScroll}
-                            className="border border-gray-200 rounded-lg max-h-[350px] min-h-[200px] overflow-y-auto flex-grow overscroll-contain"
+                            className="border border-gray-200 rounded-lg max-h-[450px] min-h-[300px] overflow-y-auto flex-grow overscroll-contain"
                         >
                             {searchResults.length === 0 ? (
                                 <div className="p-8 text-center text-gray-400">
@@ -810,7 +812,7 @@ export default function ConsentManagementTab() {
                         </div>
 
                         {/* 선택된 조합원 목록 */}
-                        <div className="border border-gray-200 rounded-lg max-h-[350px] min-h-[200px] overflow-y-auto flex-grow overscroll-contain">
+                        <div className="border border-gray-200 rounded-lg max-h-[450px] min-h-[300px] overflow-y-auto flex-grow overscroll-contain">
                             {selectedMembers.length === 0 ? (
                                 <div className="p-8 text-center text-gray-400">
                                     <p className="text-sm">조합원을 선택하세요</p>
@@ -846,7 +848,7 @@ export default function ConsentManagementTab() {
                         </div>
 
                         {/* 동의 상태 선택 */}
-                        <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                        <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
                             <span className="text-sm font-medium text-gray-700">동의 상태:</span>
                             <SelectBox
                                 value={consentStatus}

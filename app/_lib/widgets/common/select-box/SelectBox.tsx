@@ -53,7 +53,7 @@ export function SelectBox({
             <SelectTrigger
                 className={cn(
                     // 기본 스타일
-                    'h-12 px-4 pr-10 rounded-xl border border-gray-300',
+                    'h-12 px-4 pr-9 rounded-xl border border-gray-300',
                     // 텍스트 스타일
                     'text-[14px] text-gray-900',
                     // 포커스 스타일
@@ -64,13 +64,15 @@ export function SelectBox({
                     'transition-all duration-200',
                     // 화살표 색상 조정 (부드러운 회색)
                     '[&_svg]:text-gray-400',
+                    // Radix 기본 아이콘 숨기기 (커스텀 아이콘 사용)
+                    '[&>[data-slot=select-icon]]:hidden',
                     // 비활성화 스타일
                     'disabled:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-500',
                     className
                 )}
             >
                 <SelectValue placeholder={placeholder} />
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 pointer-events-none" />
+                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" />
             </SelectTrigger>
             <SelectContent
                 className={cn('bg-white rounded-xl border border-gray-200 shadow-lg', 'max-h-60 overflow-y-auto')}

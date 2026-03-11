@@ -872,7 +872,7 @@ export interface CoOwnerInfo {
     property_pnu: string | null;
     property_address: string | null;
     property_address_jibun: string | null;
-    building_unit_id: string;
+    building_unit_id: string | null;
     ownership_type: OwnershipType;
     // 물건지 정보 (PNU 매칭 확인용)
     property_units?: MemberPropertyUnitInfo[];
@@ -1224,10 +1224,10 @@ export function useCoOwners(memberId: string | undefined) {
         queryFn: async (): Promise<CoOwnerInfo[]> => {
             if (!memberId) return [];
 
-            // 1. 해당 사용자의 building_unit_id 목록 조회
+            // 1. 해당 사용자의 building_unit_id + pnu 목록 조회
             const { data: memberUnits, error: memberUnitsError } = await supabase
                 .from('user_property_units')
-                .select('building_unit_id')
+                .select('building_unit_id, pnu, dong, ho')
                 .eq('user_id', memberId);
 
             if (memberUnitsError) throw memberUnitsError;
@@ -1237,27 +1237,62 @@ export function useCoOwners(memberId: string | undefined) {
                 .map((u) => u.building_unit_id)
                 .filter((id): id is string => id !== null && id !== undefined);
 
-            // building_unit_id가 없는 경우 빈 배열 반환
-            if (buildingUnitIds.length === 0) return [];
+            // 동/호가 없는 단독주택·토지의 PNU (building_unit_id로 매칭 안 될 수 있음)
+            const landPnus = memberUnits
+                .filter((u) => u.pnu && !u.dong && !u.ho)
+                .map((u) => u.pnu)
+                .filter((pnu): pnu is string => pnu !== null);
 
-            // 2. 동일한 building_unit_id를 가진 모든 사용자의 property_units 조회 (현재 사용자 포함)
-            const { data: coOwnerUnits, error: coOwnerUnitsError } = await supabase
-                .from('user_property_units')
-                .select(
-                    `
-                    user_id,
-                    building_unit_id,
-                    ownership_type,
-                    land_area,
-                    land_ownership_ratio,
-                    building_area,
-                    building_ownership_ratio
-                `
-                )
-                .in('building_unit_id', buildingUnitIds);
+            // building_unit_id도 없고 PNU도 없으면 빈 배열 반환
+            if (buildingUnitIds.length === 0 && landPnus.length === 0) return [];
 
-            if (coOwnerUnitsError) throw coOwnerUnitsError;
-            if (!coOwnerUnits || coOwnerUnits.length === 0) return [];
+            // 2. 공동소유자 조회: building_unit_id 매칭 + PNU 폴백 (동/호 없는 토지·단독주택)
+            type CoOwnerUnit = {
+                user_id: string;
+                building_unit_id: string | null;
+                pnu: string | null;
+                dong: string | null;
+                ho: string | null;
+                ownership_type: string | null;
+                land_area: number | null;
+                land_ownership_ratio: number | null;
+                building_area: number | null;
+                building_ownership_ratio: number | null;
+            };
+            const allCoOwnerUnits: CoOwnerUnit[] = [];
+
+            // 2-1. building_unit_id로 매칭
+            if (buildingUnitIds.length > 0) {
+                const { data, error } = await supabase
+                    .from('user_property_units')
+                    .select('user_id, building_unit_id, pnu, dong, ho, ownership_type, land_area, land_ownership_ratio, building_area, building_ownership_ratio')
+                    .in('building_unit_id', buildingUnitIds);
+                if (error) throw error;
+                if (data) allCoOwnerUnits.push(...data);
+            }
+
+            // 2-2. PNU 폴백: 동/호 없는 같은 지번의 다른 소유자
+            if (landPnus.length > 0) {
+                const { data, error } = await supabase
+                    .from('user_property_units')
+                    .select('user_id, building_unit_id, pnu, dong, ho, ownership_type, land_area, land_ownership_ratio, building_area, building_ownership_ratio')
+                    .in('pnu', landPnus)
+                    .is('dong', null)
+                    .is('ho', null);
+                if (error) throw error;
+                if (data) allCoOwnerUnits.push(...data);
+            }
+
+            // 중복 제거 (user_id + pnu 기준)
+            const seen = new Set<string>();
+            const coOwnerUnits = allCoOwnerUnits.filter((unit) => {
+                const key = `${unit.user_id}_${unit.pnu ?? unit.building_unit_id ?? ''}`;
+                if (seen.has(key)) return false;
+                seen.add(key);
+                return true;
+            });
+
+            if (coOwnerUnits.length === 0) return [];
 
             // 3. 공동 소유자들의 상세 정보 조회
             const coOwnerUserIds = [...new Set(coOwnerUnits.map((u) => u.user_id))];
