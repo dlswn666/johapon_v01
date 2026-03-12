@@ -1,12 +1,13 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Play, Square, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAgendaItems } from '@/app/_lib/features/assembly/api/useAgendaHook';
 import { useQuorumStatus } from '@/app/_lib/features/assembly/api/useQuorumHook';
 import useModalStore from '@/app/_lib/shared/stores/modal/useModalStore';
+import { queryClient } from '@/app/_lib/shared/tanstack/queryClient';
 import {
   AGENDA_TYPE_LABELS,
   AgendaItemWithPoll,
@@ -35,6 +36,7 @@ export default function AgendaControl({ assemblyId }: AgendaControlProps) {
   const { data: agendas, isLoading } = useAgendaItems(assemblyId);
   const { data: quorum } = useQuorumStatus(assemblyId);
   const { openConfirmModal, openAlertModal } = useModalStore();
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
   if (isLoading) {
     return (
@@ -48,7 +50,7 @@ export default function AgendaControl({ assemblyId }: AgendaControlProps) {
   // 안건 목록을 polls 포함하여 캐스팅
   const agendasWithPolls = (agendas ?? []) as AgendaItemWithPoll[];
 
-  const handleOpenPoll = async (pollId: string, agendaTitle: string) => {
+  const handleOpenPoll = async (agendaId: string, pollId: string, agendaTitle: string) => {
     // 정족수 미달 경고
     if (quorum && !quorum.quorumMet) {
       openConfirmModal({
@@ -57,7 +59,7 @@ export default function AgendaControl({ assemblyId }: AgendaControlProps) {
         confirmText: '투표 개시',
         cancelText: '취소',
         variant: 'danger',
-        onConfirm: () => executePollTransition(pollId, 'OPEN'),
+        onConfirm: () => executePollTransition(agendaId, pollId, 'OPEN'),
       });
       return;
     }
@@ -67,24 +69,25 @@ export default function AgendaControl({ assemblyId }: AgendaControlProps) {
       message: `"${agendaTitle}" 안건의 투표를 개시하시겠습니까?`,
       confirmText: '투표 개시',
       cancelText: '취소',
-      onConfirm: () => executePollTransition(pollId, 'OPEN'),
+      onConfirm: () => executePollTransition(agendaId, pollId, 'OPEN'),
     });
   };
 
-  const handleClosePoll = (pollId: string, agendaTitle: string) => {
+  const handleClosePoll = (agendaId: string, pollId: string, agendaTitle: string) => {
     openConfirmModal({
       title: '투표 마감',
       message: `"${agendaTitle}" 안건의 투표를 마감하시겠습니까? 마감 후 추가 투표가 불가능합니다.`,
       confirmText: '투표 마감',
       cancelText: '취소',
       variant: 'danger',
-      onConfirm: () => executePollTransition(pollId, 'CLOSED'),
+      onConfirm: () => executePollTransition(agendaId, pollId, 'CLOSED'),
     });
   };
 
-  const executePollTransition = async (pollId: string, status: 'OPEN' | 'CLOSED') => {
+  const executePollTransition = async (agendaId: string, pollId: string, status: 'OPEN' | 'CLOSED') => {
     try {
-      const res = await fetch(`/api/assemblies/${assemblyId}/agendas/polls/${pollId}/status`, {
+      setIsTransitioning(true);
+      const res = await fetch(`/api/assemblies/${assemblyId}/agendas/${agendaId}/polls/${pollId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),
@@ -93,7 +96,9 @@ export default function AgendaControl({ assemblyId }: AgendaControlProps) {
         const err = await res.json();
         throw new Error(err.error || '투표 상태 변경 실패');
       }
-      // 쿼리 무효화를 위해 페이지 새로고침 대신 refetch
+      // 쿼리 무효화
+      queryClient.invalidateQueries({ queryKey: ['agendas', assemblyId] });
+      queryClient.invalidateQueries({ queryKey: ['quorum', assemblyId] });
       openAlertModal({
         title: '상태 변경 완료',
         message: status === 'OPEN' ? '투표가 개시되었습니다.' : '투표가 마감되었습니다.',
@@ -105,6 +110,8 @@ export default function AgendaControl({ assemblyId }: AgendaControlProps) {
         message: err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.',
         type: 'error',
       });
+    } finally {
+      setIsTransitioning(false);
     }
   };
 
@@ -149,7 +156,8 @@ export default function AgendaControl({ assemblyId }: AgendaControlProps) {
                   {pollStatus === 'SCHEDULED' && (
                     <Button
                       size="sm"
-                      onClick={() => handleOpenPoll(poll!.id, agenda.title)}
+                      disabled={isTransitioning}
+                      onClick={() => handleOpenPoll(agenda.id, poll!.id, agenda.title)}
                       className="h-8"
                     >
                       <Play className="w-3.5 h-3.5 mr-1" />
@@ -160,7 +168,8 @@ export default function AgendaControl({ assemblyId }: AgendaControlProps) {
                     <Button
                       size="sm"
                       variant="destructive"
-                      onClick={() => handleClosePoll(poll!.id, agenda.title)}
+                      disabled={isTransitioning}
+                      onClick={() => handleClosePoll(agenda.id, poll!.id, agenda.title)}
                       className="h-8"
                     >
                       <Square className="w-3.5 h-3.5 mr-1" />

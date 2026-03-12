@@ -60,15 +60,22 @@ export const useCreateOnsiteBallot = (assemblyId: string) => {
       pollId,
       memberId,
       inputChoiceId,
+      ballotType,
     }: {
       pollId: string;
       memberId: string;
       inputChoiceId: string;
+      ballotType?: 'ONSITE' | 'WRITTEN';
     }) => {
       const res = await fetch(`/api/assemblies/${assemblyId}/onsite-ballot`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ poll_id: pollId, member_id: memberId, input_choice_id: inputChoiceId }),
+        body: JSON.stringify({
+          poll_id: pollId,
+          member_id: memberId,
+          input_choice_id: inputChoiceId,
+          ...(ballotType && { ballot_type: ballotType }),
+        }),
       });
       if (!res.ok) {
         let errorMessage = '현장투표 입력에 실패했습니다.';
@@ -97,6 +104,41 @@ export const useCreateOnsiteBallot = (assemblyId: string) => {
         message: error.message,
         type: 'error',
       });
+    },
+  });
+};
+
+/**
+ * 서면결의서 스캔 이미지 업로드 (P0-1)
+ */
+export const useUploadBallotScan = (assemblyId: string) => {
+  const queryClient = useQueryClient();
+  const { union } = useSlug();
+  const openAlertModal = useModalStore((state) => state.openAlertModal);
+
+  return useMutation({
+    mutationFn: async ({ ballotInputId, file }: { ballotInputId: string; file: File }) => {
+      const formData = new FormData();
+      formData.append('ballot_input_id', ballotInputId);
+      formData.append('file', file);
+      const res = await fetch(`/api/assemblies/${assemblyId}/onsite-ballot/upload-scan`, {
+        method: 'POST',
+        body: formData,
+      });
+      if (!res.ok) {
+        let errorMessage = '스캔 이미지 업로드에 실패했습니다.';
+        try { const err = await res.json(); errorMessage = err.error || errorMessage; } catch { /* 기본 메시지 사용 */ }
+        throw new Error(errorMessage);
+      }
+      const { data } = await res.json();
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['onsiteBallot', union?.id, assemblyId] });
+      openAlertModal({ title: '업로드 완료', message: '스캔 이미지가 업로드되었습니다.', type: 'success' });
+    },
+    onError: (error: Error) => {
+      openAlertModal({ title: '업로드 실패', message: error.message, type: 'error' });
     },
   });
 };
@@ -143,6 +185,72 @@ export const useVerifyOnsiteBallot = (assemblyId: string) => {
         message: error.message,
         type: 'error',
       });
+    },
+  });
+};
+
+/**
+ * 이의 제기 (P2-1: VERIFIED → DISPUTED)
+ */
+export const useDisputeOnsiteBallot = (assemblyId: string) => {
+  const queryClient = useQueryClient();
+  const { union } = useSlug();
+  const openAlertModal = useModalStore((state) => state.openAlertModal);
+
+  return useMutation({
+    mutationFn: async ({ ballotInputId, disputeNote }: { ballotInputId: string; disputeNote: string }) => {
+      const res = await fetch(`/api/assemblies/${assemblyId}/onsite-ballot`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ballot_input_id: ballotInputId, action: 'DISPUTE', dispute_note: disputeNote }),
+      });
+      if (!res.ok) {
+        let errorMessage = '이의 제기에 실패했습니다.';
+        try { const err = await res.json(); errorMessage = err.error || errorMessage; } catch { /* 기본 메시지 사용 */ }
+        throw new Error(errorMessage);
+      }
+      const { data } = await res.json();
+      return data as OnsiteBallotInput;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['onsiteBallot', union?.id, assemblyId] });
+      openAlertModal({ title: '이의 제기', message: '이의 제기가 접수되었습니다.', type: 'success' });
+    },
+    onError: (error: Error) => {
+      openAlertModal({ title: '이의 제기 실패', message: error.message, type: 'error' });
+    },
+  });
+};
+
+/**
+ * 이의 해결 (P2-1: DISPUTED → VERIFIED)
+ */
+export const useResolveOnsiteBallotDispute = (assemblyId: string) => {
+  const queryClient = useQueryClient();
+  const { union } = useSlug();
+  const openAlertModal = useModalStore((state) => state.openAlertModal);
+
+  return useMutation({
+    mutationFn: async ({ ballotInputId, resolvedChoiceId }: { ballotInputId: string; resolvedChoiceId: string }) => {
+      const res = await fetch(`/api/assemblies/${assemblyId}/onsite-ballot`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ballot_input_id: ballotInputId, action: 'RESOLVE', resolved_choice_id: resolvedChoiceId }),
+      });
+      if (!res.ok) {
+        let errorMessage = '이의 해결에 실패했습니다.';
+        try { const err = await res.json(); errorMessage = err.error || errorMessage; } catch { /* 기본 메시지 사용 */ }
+        throw new Error(errorMessage);
+      }
+      const { data } = await res.json();
+      return data as OnsiteBallotInput;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['onsiteBallot', union?.id, assemblyId] });
+      openAlertModal({ title: '이의 해결', message: '이의가 해결되었습니다.', type: 'success' });
+    },
+    onError: (error: Error) => {
+      openAlertModal({ title: '이의 해결 실패', message: error.message, type: 'error' });
     },
   });
 };

@@ -57,7 +57,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
     // 출석 유형별 카운트 (중복 없는 현재 체크인 상태)
     const { data: attendanceLogs } = await supabase
       .from('assembly_attendance_logs')
-      .select('attendance_type, snapshot_id, last_seen_at')
+      .select('attendance_type, snapshot_id, last_seen_at, identity_verified')
       .eq('assembly_id', assemblyId)
       .eq('union_id', unionId)
       .is('exit_at', null); // 아직 퇴장하지 않은 로그만
@@ -67,14 +67,17 @@ export async function GET(request: NextRequest, context: RouteContext) {
     const graceThreshold = new Date(Date.now() - graceSeconds * 1000).toISOString();
 
     // 스냅샷 기준으로 중복 제거 (동일 조합원 최신 로그만)
-    const uniqueBySnapshot = new Map<string, string>();
+    const uniqueBySnapshot = new Map<string, { type: string; verified: boolean }>();
     for (const log of attendanceLogs || []) {
       // 온라인 세션(last_seen_at 존재)은 grace window 확인
       // last_seen_at IS NULL은 LEGACY 모드 출석 → 항상 카운팅 (하위 호환)
       if (log.last_seen_at && log.last_seen_at < graceThreshold) {
         continue; // grace window 초과 → 정족수에서 제외
       }
-      uniqueBySnapshot.set(log.snapshot_id, log.attendance_type);
+      uniqueBySnapshot.set(log.snapshot_id, {
+        type: log.attendance_type,
+        verified: log.identity_verified === true,
+      });
     }
 
     let onsiteCount = 0;
@@ -83,9 +86,13 @@ export async function GET(request: NextRequest, context: RouteContext) {
     let onsiteWeight = 0;
     let onlineWeight = 0;
     let writtenProxyWeight = 0;
+    let identityVerifiedCount = 0;
+    let nonVerifiedCount = 0;
 
-    for (const [snapshotId, type] of uniqueBySnapshot.entries()) {
+    for (const [snapshotId, { type, verified }] of uniqueBySnapshot.entries()) {
       const weight = snapshotWeightMap.get(snapshotId) || 1;
+      if (verified) identityVerifiedCount++;
+      else nonVerifiedCount++;
       if (type === 'ONSITE') { onsiteCount++; onsiteWeight += weight; }
       else if (type === 'ONLINE') { onlineCount++; onlineWeight += weight; }
       else if (type === 'WRITTEN_PROXY') { writtenProxyCount++; writtenProxyWeight += weight; }
@@ -145,6 +152,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
       totalAttendanceWeight,
       quorumMet,
       quorumThresholdPct,
+      identityVerifiedCount,
+      nonVerifiedCount,
       perAgenda,
     };
 

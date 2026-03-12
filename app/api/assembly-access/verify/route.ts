@@ -2,7 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/app/_lib/shared/supabase/server';
 import { authenticateApiRequest } from '@/app/_lib/shared/api/auth';
 import { isSessionMode } from '@/app/_lib/shared/utils/featureFlags';
+import type { IdentityMethod } from '@/app/_lib/shared/type/assembly.types';
 import crypto from 'crypto';
+
+// 지원되는 본인인증 방법
+const SUPPORTED_IDENTITY_METHODS: IdentityMethod[] = ['KAKAO_LOGIN', 'PASS_CERT', 'CERTIFICATE'];
 
 // 입장 허용 총회 상태
 const ENTRY_ALLOWED_STATUSES = ['CONVENED', 'IN_PROGRESS', 'VOTING', 'VOTING_CLOSED'];
@@ -23,10 +27,32 @@ export async function POST(request: NextRequest) {
     const auth = await authenticateApiRequest();
     if (!auth.authenticated) return auth.response;
 
-    const { assemblyId, token } = await request.json();
+    const body = await request.json();
+    const { assemblyId, token } = body;
+    // 본인인증 방법 (기본값: 카카오 로그인)
+    const identityMethod: IdentityMethod = body.identityMethod || 'KAKAO_LOGIN';
 
     if (!assemblyId || !token) {
       return NextResponse.json({ error: '필수 파라미터가 누락되었습니다.' }, { status: 400 });
+    }
+
+    // 지원되지 않는 인증 방법 검증
+    if (!SUPPORTED_IDENTITY_METHODS.includes(identityMethod)) {
+      return NextResponse.json({ error: '지원되지 않는 인증 방법입니다.' }, { status: 400 });
+    }
+
+    // PASS 본인인증 / 공동인증서 — 아직 미구현
+    if (identityMethod === 'PASS_CERT') {
+      return NextResponse.json(
+        { error: 'PASS 본인인증은 준비 중입니다.' },
+        { status: 501 },
+      );
+    }
+    if (identityMethod === 'CERTIFICATE') {
+      return NextResponse.json(
+        { error: '공동인증서 인증은 준비 중입니다.' },
+        { status: 501 },
+      );
     }
 
     if (!auth.user.union_id) {
@@ -98,7 +124,7 @@ export async function POST(request: NextRequest) {
       .update({
         token_used_at: now,
         identity_verified_at: now,
-        identity_method: 'KAKAO_LOGIN',
+        identity_method: identityMethod,
       })
       .eq('id', snapshot.id)
       .is('identity_verified_at', null)
@@ -137,7 +163,7 @@ export async function POST(request: NextRequest) {
           attendance_type: isProxy ? 'WRITTEN_PROXY' : 'ONLINE',
           entry_at: now,
           identity_verified: true,
-          identity_method: 'KAKAO_LOGIN',
+          identity_method: identityMethod,
           identity_verified_at: now,
           ip_address: ip,
           user_agent: userAgent,
@@ -168,7 +194,7 @@ export async function POST(request: NextRequest) {
           ...snapshot,
           token_used_at: now,
           identity_verified_at: now,
-          identity_method: 'KAKAO_LOGIN',
+          identity_method: identityMethod,
         },
         ...assemblyData,
         isReentry: false,
@@ -189,7 +215,8 @@ export async function PATCH(request: NextRequest) {
     const auth = await authenticateApiRequest();
     if (!auth.authenticated) return auth.response;
 
-    const { assemblyId } = await request.json();
+    const body = await request.json();
+    const { assemblyId, consentTextHash, consentVersion } = body;
 
     if (!assemblyId) {
       return NextResponse.json({ error: '필수 파라미터가 누락되었습니다.' }, { status: 400 });
@@ -202,17 +229,41 @@ export async function PATCH(request: NextRequest) {
     const unionId = auth.user.union_id;
     const supabase = await createClient();
 
-    // 스냅샷 조회 (본인 확인 완료된 건만)
-    const { data: snapshot, error: snapshotError } = await supabase
+    // B2 수정: 본인 + 대리인 폴백 경로
+    let snapshot: { id: string; consent_agreed_at: string | null } | null = null;
+    let actorRole: 'OWNER' | 'PROXY' = 'OWNER';
+
+    // 1단계: 본인 경로
+    const { data: ownerSnapshot } = await supabase
       .from('assembly_member_snapshots')
       .select('id, consent_agreed_at')
       .eq('assembly_id', assemblyId)
       .eq('union_id', unionId)
       .eq('user_id', auth.user.id)
       .eq('is_active', true)
-      .single();
+      .maybeSingle();
 
-    if (snapshotError || !snapshot) {
+    if (ownerSnapshot) {
+      snapshot = ownerSnapshot;
+      actorRole = 'OWNER';
+    } else {
+      // 2단계: 대리인 경로 (B2 버그 수정)
+      const { data: proxySnapshot } = await supabase
+        .from('assembly_member_snapshots')
+        .select('id, consent_agreed_at')
+        .eq('assembly_id', assemblyId)
+        .eq('union_id', unionId)
+        .eq('proxy_user_id', auth.user.id)
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (proxySnapshot) {
+        snapshot = proxySnapshot;
+        actorRole = 'PROXY';
+      }
+    }
+
+    if (!snapshot) {
       return NextResponse.json({ error: '총회 접근 권한이 없습니다.' }, { status: 403 });
     }
 
@@ -221,11 +272,29 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ data: { consent_agreed_at: snapshot.consent_agreed_at } });
     }
 
-    // 동의 기록
+    // P1-5: 현재 유효한 약관 버전 조회
     const now = new Date().toISOString();
+    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || null;
+    const userAgent = request.headers.get('user-agent') || null;
+
+    const { data: currentVersion } = await supabase
+      .from('consent_versions')
+      .select('version_code')
+      .eq('consent_type', 'ASSEMBLY_PRIVACY')
+      .lte('effective_from', now)
+      .order('effective_from', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const resolvedVersion = consentVersion || currentVersion?.version_code || 'v1.0';
+
+    // 동의 기록 (버전 포함)
     const { error: updateError } = await supabase
       .from('assembly_member_snapshots')
-      .update({ consent_agreed_at: now })
+      .update({
+        consent_agreed_at: now,
+        consent_agreed_version: resolvedVersion,
+      })
       .eq('id', snapshot.id);
 
     if (updateError) {
@@ -233,7 +302,60 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: '동의 처리에 실패했습니다.' }, { status: 500 });
     }
 
-    return NextResponse.json({ data: { consent_agreed_at: now } });
+    // 동의 증거 INSERT (assembly_consent_evidences 테이블 존재 시)
+    const resolvedHash = consentTextHash || crypto
+      .createHash('sha256')
+      .update(`CONSENT_V${resolvedVersion}_${assemblyId}`)
+      .digest('hex');
+
+    let evidenceId: string | null = null;
+    const { data: evidenceData } = await supabase
+      .from('assembly_consent_evidences')
+      .insert({
+        union_id: unionId,
+        assembly_id: assemblyId,
+        snapshot_id: snapshot.id,
+        actor_user_id: auth.user.id,
+        actor_role: actorRole,
+        consent_type: 'VOTING_CONSENT',
+        consent_version: resolvedVersion,
+        consent_text_hash: resolvedHash,
+        signature_type: 'SIMPLE',
+        ip_address: ip,
+        user_agent: userAgent,
+      })
+      .select('id')
+      .maybeSingle();
+
+    if (evidenceData) {
+      evidenceId = evidenceData.id;
+    }
+
+    // 감사 로그
+    await supabase.from('assembly_audit_logs').insert({
+      assembly_id: assemblyId,
+      union_id: unionId,
+      event_type: 'CONSENT_AGREED',
+      actor_id: auth.user.id,
+      actor_role: actorRole,
+      target_type: 'snapshot',
+      target_id: snapshot.id,
+      event_data: {
+        consent_type: 'VOTING_CONSENT',
+        consent_version: resolvedVersion,
+        consent_text_hash: resolvedHash,
+        evidence_id: evidenceId,
+      },
+      ip_address: ip,
+      user_agent: userAgent,
+    });
+
+    return NextResponse.json({
+      data: {
+        consent_agreed_at: now,
+        consent_evidence_id: evidenceId,
+      },
+    });
   } catch (error) {
     console.error('PATCH /api/assembly-access/verify error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

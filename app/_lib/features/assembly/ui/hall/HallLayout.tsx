@@ -10,7 +10,9 @@ import AgendaVoteList from './AgendaVoteList';
 import QaSection from './QaSection';
 import DocumentSection from './DocumentSection';
 import SpeakerSection from './SpeakerSection';
+import ResultsSection from './ResultsSection';
 import MobileBottomSheet from './MobileBottomSheet';
+import { BarChart2 } from 'lucide-react';
 import type { AgendaItem, Poll, PollOption } from '@/app/_lib/shared/type/assembly.types';
 
 export interface HallLayoutProps {
@@ -116,6 +118,19 @@ export default function HallLayout({ assemblyId, activePollIds }: HallLayoutProp
           <h2 className="text-sm font-semibold text-gray-700 mb-2">발언 요청</h2>
           <SpeakerSection assemblyId={assemblyId} />
         </div>
+
+        {/* 투표 결과 (VOTING_CLOSED, CLOSED, ARCHIVED 상태에서만 표시) */}
+        {['VOTING_CLOSED', 'CLOSED', 'ARCHIVED'].includes(assembly?.status || '') && (
+          <div>
+            <h2 className="text-sm font-semibold text-gray-700 mb-2">
+              <span className="flex items-center gap-1.5">
+                <BarChart2 className="w-4 h-4" aria-hidden="true" />
+                투표 결과
+              </span>
+            </h2>
+            <ResultsSection assemblyId={assemblyId} />
+          </div>
+        )}
       </div>
     </div>
   );

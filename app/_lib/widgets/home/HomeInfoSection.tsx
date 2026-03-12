@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import Image from 'next/image';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/app/_lib/shared/supabase/client';
@@ -152,7 +151,7 @@ export function HomeInfoSection({ statsOnly = false }: HomeInfoSectionProps) {
             <div className="flex flex-col xl:flex-row gap-[16px] xl:gap-[24px]">
                 {/* 2x2 배너 그리드 - 유동 너비 (커뮤니티 섹션 유무에 따라 줄어듦) */}
                 <nav
-                    className="grid grid-cols-2 gap-[10px] lg:gap-[12px] xl:gap-[16px] flex-1 min-w-0 self-start"
+                    className="grid grid-cols-2 gap-[10px] lg:gap-[12px] xl:gap-[16px] flex-1 min-w-0 xl:self-start"
                     aria-label="외부 재개발 정보 링크"
                 >
                     {INFO_LINKS.map((link) => (
@@ -161,15 +160,15 @@ export function HomeInfoSection({ statsOnly = false }: HomeInfoSectionProps) {
                             href={link.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="relative h-[87px] lg:h-[70px] xl:h-[87px] rounded-[4px] lg:rounded-[6px] border border-[#cdd1d5] overflow-hidden flex items-center justify-center transition-[border-color,box-shadow] duration-200 hover:border-[#2f7f5f] hover:shadow-sm focus-visible:ring-2 focus-visible:ring-[#2f7f5f] focus-visible:ring-offset-2 outline-none group"
+                            className="relative h-[87px] lg:h-[70px] xl:h-[87px] rounded-[4px] lg:rounded-[6px] overflow-hidden flex items-center justify-center transition-[box-shadow] duration-200 hover:shadow-sm focus-visible:ring-2 focus-visible:ring-[#2f7f5f] focus-visible:ring-offset-2 outline-none group"
                             style={{ backgroundColor: link.bgColor }}
                             aria-label={`${link.label} (새 창에서 열림)`}
                         >
-                            <Image
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
                                 src={link.icon}
                                 alt=""
-                                fill
-                                className="object-contain p-[10px] lg:p-[12px] group-hover:scale-105 transition-transform duration-200"
+                                className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-200"
                                 aria-hidden="true"
                             />
                         </a>

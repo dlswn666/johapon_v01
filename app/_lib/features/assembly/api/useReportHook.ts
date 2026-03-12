@@ -127,6 +127,23 @@ export const useTallyResults = (assemblyId: string | undefined) => {
 };
 
 /**
+ * 투표 결과 공개 조회 (P1-4, 조합원 열람용)
+ * 비밀투표 원칙: 안건별 총 집계만 표시
+ */
+export const usePublicAssemblyReport = (assemblyId: string | undefined) => {
+  return useQuery({
+    queryKey: ['publicAssemblyReport', assemblyId],
+    queryFn: async () => {
+      const res = await fetch(`/api/assemblies/${assemblyId}/report`);
+      if (!res.ok) throw new Error('결과를 불러올 수 없습니다.');
+      const { data } = await res.json();
+      return data as AssemblyReport;
+    },
+    enabled: !!assemblyId,
+  });
+};
+
+/**
  * 총회 보고서 조회
  */
 export const useAssemblyReport = (assemblyId: string | undefined) => {

@@ -177,21 +177,27 @@ export interface SearchMembersParams {
     searchAddress?: string;
     searchName?: string;
     searchBuilding?: string;
+    searchKeyword?: string; // 통합 검색어 (이름, 주소, 건물이름 OR 검색)
     offset?: number;
     limit?: number;
 }
 
 // 조합원 검색 (동의 관리용)
 export const searchMembersForConsent = async (params: SearchMembersParams): Promise<MemberSearchResult[]> => {
-    const { unionId, stageId, searchAddress, searchName, searchBuilding } = params;
+    const { unionId, stageId, searchAddress, searchName, searchBuilding, searchKeyword } = params;
+
+    // 통합 검색어가 있으면 개별 필드 대신 통합 검색 로직 사용
+    const effectiveAddress = searchKeyword || searchAddress;
+    const effectiveName = searchKeyword || searchName;
+    const effectiveBuilding = searchKeyword || searchBuilding;
 
     // 주소 검색 시 user_property_units에서 먼저 조회
     let addressUserIds: string[] = [];
-    if (searchAddress) {
+    if (effectiveAddress) {
         const { data: addressUnitsData } = await supabase
             .from('user_property_units')
             .select('user_id')
-            .ilike('property_address_jibun', `%${searchAddress}%`);
+            .ilike('property_address_jibun', `%${effectiveAddress}%`);
 
         if (addressUnitsData && addressUnitsData.length > 0) {
             addressUserIds = [...new Set(addressUnitsData.map((u) => u.user_id))];
@@ -200,11 +206,11 @@ export const searchMembersForConsent = async (params: SearchMembersParams): Prom
 
     // 건물이름 검색 시 buildings 테이블에서 먼저 조회
     let buildingUserIds: string[] = [];
-    if (searchBuilding) {
+    if (effectiveBuilding) {
         const { data: buildingsData } = await supabase
             .from('buildings')
             .select('id')
-            .ilike('building_name', `%${searchBuilding}%`);
+            .ilike('building_name', `%${effectiveBuilding}%`);
 
         if (buildingsData && buildingsData.length > 0) {
             const buildingIds = buildingsData.map((b) => b.id);
@@ -228,8 +234,8 @@ export const searchMembersForConsent = async (params: SearchMembersParams): Prom
             }
         }
 
-        // 건물이름으로 검색했지만 결과가 없는 경우
-        if (buildingUserIds.length === 0) {
+        // 통합 검색이 아닌 개별 건물이름 검색에서 결과가 없는 경우에만 빈 배열 반환
+        if (!searchKeyword && buildingUserIds.length === 0) {
             return [];
         }
     }
@@ -247,22 +253,41 @@ export const searchMembersForConsent = async (params: SearchMembersParams): Prom
         .in('user_status', ['APPROVED', 'PRE_REGISTERED'])
         .order('name', { ascending: true });
 
-    // 건물이름 검색: 조회된 user_id 목록으로 필터링
-    if (searchBuilding && buildingUserIds.length > 0) {
-        query = query.in('id', buildingUserIds);
-    }
+    // 통합 검색: OR 조건으로 이름, 주소, 건물이름 검색
+    if (searchKeyword) {
+        const keyword = escapeLikeWildcards(searchKeyword);
+        // 이름 OR 주소 OR 건물이름 매칭된 user_id 목록
+        const allMatchedUserIds = new Set<string>([
+            ...addressUserIds,
+            ...buildingUserIds,
+        ]);
 
-    // 이름 검색: 직접 ilike 적용
-    if (searchName) {
-        query = query.ilike('name', `%${escapeLikeWildcards(searchName)}%`);
-    }
-
-    // 주소 검색 조건
-    if (searchAddress) {
-        if (addressUserIds.length > 0) {
-            query = query.or(`id.in.(${addressUserIds.join(',')}),property_address.ilike.%${escapeLikeWildcards(searchAddress)}%`);
+        if (allMatchedUserIds.size > 0) {
+            // 이름 ILIKE OR (주소/건물 매칭 user_id)
+            query = query.or(`name.ilike.%${keyword}%,id.in.(${[...allMatchedUserIds].join(',')}),property_address.ilike.%${keyword}%`);
         } else {
-            query = query.ilike('property_address', `%${escapeLikeWildcards(searchAddress)}%`);
+            // 주소/건물 매칭이 없으면 이름과 기존 주소 필드만 검색
+            query = query.or(`name.ilike.%${keyword}%,property_address.ilike.%${keyword}%`);
+        }
+    } else {
+        // 기존 개별 필드 검색 (AND 조건)
+        // 건물이름 검색: 조회된 user_id 목록으로 필터링
+        if (searchBuilding && buildingUserIds.length > 0) {
+            query = query.in('id', buildingUserIds);
+        }
+
+        // 이름 검색: 직접 ilike 적용
+        if (searchName) {
+            query = query.ilike('name', `%${escapeLikeWildcards(searchName)}%`);
+        }
+
+        // 주소 검색 조건
+        if (searchAddress) {
+            if (addressUserIds.length > 0) {
+                query = query.or(`id.in.(${addressUserIds.join(',')}),property_address.ilike.%${escapeLikeWildcards(searchAddress)}%`);
+            } else {
+                query = query.ilike('property_address', `%${escapeLikeWildcards(searchAddress)}%`);
+            }
         }
     }
 

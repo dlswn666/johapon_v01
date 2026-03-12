@@ -155,6 +155,21 @@ export async function POST(request: NextRequest, context: RouteContext) {
       .eq('union_id', unionId)
       .order('viewed_at');
 
+    // 동의 증거
+    const { data: consentEvidences } = await supabase
+      .from('assembly_consent_evidences')
+      .select('id, snapshot_id, actor_user_id, actor_role, consent_type, consent_version, consent_text_hash, signature_type, created_at')
+      .eq('assembly_id', assemblyId)
+      .eq('union_id', unionId)
+      .order('created_at');
+
+    // 결과 공개
+    const { data: resultPublications } = await supabase
+      .from('assembly_result_publications')
+      .select('id, published_by, published_at, result_hash, source_tally_hash')
+      .eq('assembly_id', assemblyId)
+      .eq('union_id', unionId);
+
     // 감사 로그 (해시 체인 포함)
     const { data: auditLogs } = await supabase
       .from('assembly_audit_logs')
@@ -196,6 +211,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
       questions: questions || [],
       speaker_requests: speakerRequests || [],
       document_view_logs: documentViewLogs || [],
+      consent_evidences: consentEvidences || [],
+      result_publications: resultPublications || [],
       audit_logs: logs,
     };
 
@@ -232,12 +249,15 @@ export async function POST(request: NextRequest, context: RouteContext) {
       }
     }
 
-    // assemblies 테이블에 URL 저장
+    // assemblies 테이블에 URL + 해시 저장
     const { error: updateError } = await supabase
       .from('assemblies')
       .update({
         evidence_package_url: evidenceUrl,
         evidence_packaged_at: packagedAt,
+        evidence_package_hash: packageHash,
+        evidence_package_signed_by: auth.user.id,
+        evidence_package_signed_at: packagedAt,
       })
       .eq('id', assemblyId)
       .eq('union_id', unionId);

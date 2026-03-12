@@ -42,11 +42,16 @@ const DEV_SYSTEM_ADMIN_USER: User = {
     property_zonecode: null,
     rejected_at: null,
     rejected_reason: null,
+    business_registration_no: null,
+    canonical_user_id: null,
+    entity_type: null,
+    representative_name: null,
     resident_address: null,
     resident_address_detail: null,
     resident_address_jibun: null,
     resident_address_road: null,
     resident_zonecode: null,
+    voting_weight: 1,
 };
 
 interface AuthContextType {

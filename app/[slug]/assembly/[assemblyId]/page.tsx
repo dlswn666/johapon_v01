@@ -10,7 +10,8 @@ import { ASSEMBLY_STATUS_LABELS } from '@/app/_lib/shared/type/assembly.types';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getUnionPath } from '@/app/_lib/shared/lib/utils/slug';
-import { Shield, CheckCircle, AlertCircle, LogIn, RefreshCw, FileCheck } from 'lucide-react';
+import { Shield, CheckCircle, AlertCircle, LogIn, RefreshCw, FileCheck, Smartphone, Lock } from 'lucide-react';
+import { IdentityMethod, IDENTITY_METHOD_LABELS } from '@/app/_lib/shared/type/assembly.types';
 
 /**
  * 총회 입장 게이트 페이지
@@ -50,6 +51,7 @@ export default function AssemblyGatePage({ params }: { params: Promise<{ assembl
   const [errorMessage, setErrorMessage] = useState('');
   const [consentChecked, setConsentChecked] = useState(false);
   const [countdown, setCountdown] = useState(2);
+  const [selectedIdentityMethod, setSelectedIdentityMethod] = useState<IdentityMethod>('KAKAO_LOGIN');
   const hasCalledVerify = useRef(false);
 
   // 상태 동기화 (로딩 완료 후 — 파생 상태)
@@ -74,7 +76,7 @@ export default function AssemblyGatePage({ params }: { params: Promise<{ assembl
 
     setVerificationStep('verifying');
     verifyMutation.mutate(
-      { assemblyId, token },
+      { assemblyId, token, identityMethod: selectedIdentityMethod },
       {
         onSuccess: (data) => {
           const consentAgreed = (data.snapshot as Record<string, unknown>)?.consent_agreed_at;
@@ -161,6 +163,63 @@ export default function AssemblyGatePage({ params }: { params: Promise<{ assembl
               {ASSEMBLY_STATUS_LABELS[assembly.status]} |{' '}
               {new Date(assembly.scheduled_at).toLocaleDateString('ko-KR')}
             </p>
+          </div>
+        )}
+
+        {/* 인증 방법 선택 */}
+        {(currentStep === 'checking' || currentStep === 'login_required') && !snapshot?.identity_verified_at && (
+          <div className="space-y-3">
+            <p className="text-sm font-medium text-gray-700 text-left">인증 방법 선택</p>
+            <div className="grid gap-2">
+              {/* 카카오 로그인 (활성) */}
+              <button
+                type="button"
+                className={`flex items-center gap-3 p-3 rounded-lg border-2 transition-colors text-left ${
+                  selectedIdentityMethod === 'KAKAO_LOGIN'
+                    ? 'border-blue-500 bg-blue-50'
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
+                onClick={() => setSelectedIdentityMethod('KAKAO_LOGIN')}
+              >
+                <LogIn className="w-5 h-5 text-yellow-600 shrink-0" aria-hidden="true" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-900">{IDENTITY_METHOD_LABELS.KAKAO_LOGIN}</p>
+                  <p className="text-xs text-gray-500">카카오 계정으로 본인 확인</p>
+                </div>
+              </button>
+
+              {/* PASS 본인인증 (준비 중) */}
+              <button
+                type="button"
+                disabled
+                className="flex items-center gap-3 p-3 rounded-lg border-2 border-gray-100 bg-gray-50 opacity-60 cursor-not-allowed text-left"
+              >
+                <Smartphone className="w-5 h-5 text-gray-400 shrink-0" aria-hidden="true" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-500">{IDENTITY_METHOD_LABELS.PASS_CERT}</p>
+                  <p className="text-xs text-gray-400">휴대폰 본인인증</p>
+                </div>
+                <span className="text-[10px] font-semibold text-gray-400 bg-gray-200 px-2 py-0.5 rounded-full shrink-0">
+                  준비 중
+                </span>
+              </button>
+
+              {/* 공동인증서 (준비 중) */}
+              <button
+                type="button"
+                disabled
+                className="flex items-center gap-3 p-3 rounded-lg border-2 border-gray-100 bg-gray-50 opacity-60 cursor-not-allowed text-left"
+              >
+                <Lock className="w-5 h-5 text-gray-400 shrink-0" aria-hidden="true" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-500">{IDENTITY_METHOD_LABELS.CERTIFICATE}</p>
+                  <p className="text-xs text-gray-400">공동인증서(구 공인인증서)</p>
+                </div>
+                <span className="text-[10px] font-semibold text-gray-400 bg-gray-200 px-2 py-0.5 rounded-full shrink-0">
+                  준비 중
+                </span>
+              </button>
+            </div>
           </div>
         )}
 

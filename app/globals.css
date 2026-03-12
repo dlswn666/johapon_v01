@@ -411,6 +411,14 @@
     }
 }
 
+/* P2-2: 인쇄 최적화 CSS */
+@media print {
+    nav, header, .no-print, button { display: none !important; }
+    @page { margin: 20mm 15mm; }
+    body { max-width: 100% !important; }
+    table, .print-section { page-break-inside: avoid; }
+}
+
 /* 고대비 모드 (접근성) */
 .high-contrast {
     --background: #000;

@@ -136,8 +136,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
           }
           const entry = optionMap[t.option_id];
           entry.total_count += t.vote_count;
-          // TODO: voting_weight 차등 의결권은 users 테이블에 weight 필드 추가 시 반영 예정
-          // 현재 1.0 하드코딩은 의도된 동작 (1인 1표 원칙)
+          // 차등 의결권: vote_tally_results.vote_weight_sum은 실제 투표 시 snapshot.voting_weight 기반으로 집계됨
+          // users.voting_weight → snapshot.voting_weight → cast_vote RPC → vote_ballots.voting_weight → tally
           entry.weight_sum += Number(t.vote_weight_sum) || 0;
           if (t.voting_method === 'ELECTRONIC') entry.electronic_count += t.vote_count;
           else if (t.voting_method === 'ONSITE') entry.onsite_count += t.vote_count;

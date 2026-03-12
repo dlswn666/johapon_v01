@@ -66,7 +66,9 @@ export async function POST(request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: '요청 본문이 유효하지 않습니다.' }, { status: 400 });
     }
 
-    const { poll_id, member_id, input_choice_id } = body;
+    const { poll_id, member_id, input_choice_id, ballot_type } = body;
+    // P0-1: ballot_type 지원 (ONSITE/WRITTEN)
+    const resolvedBallotType = ballot_type === 'WRITTEN' ? 'WRITTEN' : 'ONSITE';
 
     if (!poll_id || typeof poll_id !== 'string') {
       return NextResponse.json({ error: '투표 ID가 필요합니다.' }, { status: 400 });
@@ -157,6 +159,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
         inputter_id: auth.user.id,
         input_at: new Date().toISOString(),
         status: 'PENDING_VERIFICATION',
+        ballot_type: resolvedBallotType,
       })
       .select('*')
       .single();
@@ -169,6 +172,127 @@ export async function POST(request: NextRequest, context: RouteContext) {
     return NextResponse.json({ data }, { status: 201 });
   } catch (error) {
     console.error('POST /api/assemblies/[id]/onsite-ballot error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+/**
+ * 서면/현장투표 이의 제기 및 해결 (P2-1)
+ * PATCH /api/assemblies/[assemblyId]/onsite-ballot
+ * Body: { ballot_input_id, action: 'DISPUTE'|'RESOLVE'|'CANCEL', dispute_note?, resolved_choice_id? }
+ */
+export async function PATCH(request: NextRequest, context: RouteContext) {
+  try {
+    const auth = await authenticateApiRequest({ requireAdmin: true });
+    if (!auth.authenticated) return auth.response;
+
+    const { assemblyId } = await context.params;
+
+    if (!auth.user.union_id) {
+      return NextResponse.json({ error: '조합 정보를 확인할 수 없습니다.' }, { status: 400 });
+    }
+
+    const unionId = auth.user.union_id;
+    const supabase = await createClient();
+
+    let body;
+    try { body = await request.json(); } catch {
+      return NextResponse.json({ error: '요청 본문이 유효하지 않습니다.' }, { status: 400 });
+    }
+
+    const { ballot_input_id, action, dispute_note, resolved_choice_id } = body;
+
+    if (!ballot_input_id || typeof ballot_input_id !== 'string') {
+      return NextResponse.json({ error: '투표 입력 ID가 필요합니다.' }, { status: 400 });
+    }
+
+    if (!['DISPUTE', 'RESOLVE', 'CANCEL'].includes(action)) {
+      return NextResponse.json({ error: '유효하지 않은 작업입니다. (DISPUTE, RESOLVE, CANCEL)' }, { status: 400 });
+    }
+
+    // 대상 투표 입력 조회
+    const { data: ballot } = await supabase
+      .from('written_ballot_inputs')
+      .select('*')
+      .eq('id', ballot_input_id)
+      .eq('assembly_id', assemblyId)
+      .eq('union_id', unionId)
+      .single();
+
+    if (!ballot) {
+      return NextResponse.json({ error: '투표 입력을 찾을 수 없습니다.' }, { status: 404 });
+    }
+
+    let update: Record<string, unknown> = {};
+    let eventType = '';
+
+    if (action === 'DISPUTE') {
+      // VERIFIED → DISPUTED
+      if (ballot.status !== 'VERIFIED') {
+        return NextResponse.json({ error: '검증 완료 상태에서만 이의 제기가 가능합니다.' }, { status: 400 });
+      }
+      if (!dispute_note || typeof dispute_note !== 'string' || !dispute_note.trim()) {
+        return NextResponse.json({ error: '이의 제기 사유를 입력해야 합니다.' }, { status: 400 });
+      }
+      update = { status: 'DISPUTED', dispute_note: dispute_note.trim() };
+      eventType = 'BALLOT_DISPUTED';
+    } else if (action === 'RESOLVE') {
+      // DISPUTED → VERIFIED
+      if (ballot.status !== 'DISPUTED') {
+        return NextResponse.json({ error: '이의 제기 상태에서만 해결할 수 있습니다.' }, { status: 400 });
+      }
+      if (!resolved_choice_id || typeof resolved_choice_id !== 'string') {
+        return NextResponse.json({ error: '해결 결과 선택지가 필요합니다.' }, { status: 400 });
+      }
+      update = {
+        status: 'VERIFIED',
+        resolved_by: auth.user.id,
+        resolved_at: new Date().toISOString(),
+        resolved_choice_id,
+      };
+      eventType = 'BALLOT_RESOLVED';
+    } else if (action === 'CANCEL') {
+      // PENDING_VERIFICATION | DISPUTED → CANCELLED
+      if (!['PENDING_VERIFICATION', 'DISPUTED'].includes(ballot.status)) {
+        return NextResponse.json({ error: '대기 또는 이의 제기 상태에서만 취소할 수 있습니다.' }, { status: 400 });
+      }
+      update = { status: 'CANCELLED' };
+      eventType = 'BALLOT_CANCELLED';
+    }
+
+    const { data, error } = await supabase
+      .from('written_ballot_inputs')
+      .update(update)
+      .eq('id', ballot_input_id)
+      .eq('assembly_id', assemblyId)
+      .eq('union_id', unionId)
+      .select('*')
+      .single();
+
+    if (error || !data) {
+      console.error('투표 상태 변경 실패:', error);
+      return NextResponse.json({ error: '투표 상태 변경에 실패했습니다.' }, { status: 500 });
+    }
+
+    // 감사 로그
+    await supabase.from('assembly_audit_logs').insert({
+      assembly_id: assemblyId,
+      union_id: unionId,
+      event_type: eventType,
+      actor_id: auth.user.id,
+      actor_role: 'ADMIN',
+      target_type: 'written_ballot_input',
+      target_id: ballot_input_id,
+      event_data: {
+        ballot_input_id,
+        ...(dispute_note && { dispute_note }),
+        ...(resolved_choice_id && { resolved_choice_id }),
+      },
+    });
+
+    return NextResponse.json({ data });
+  } catch (error) {
+    console.error('PATCH /api/assemblies/[id]/onsite-ballot error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

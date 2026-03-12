@@ -234,7 +234,7 @@ export function HomeBoardSection() {
                 role="tabpanel"
                 id={`tabpanel-${activeTab}`}
                 aria-labelledby={`tab-${activeTab}`}
-                className="flex-1 min-w-0 bg-[#f4f5f6] rounded-[16px] p-[16px] lg:p-[16px] xl:p-[20px] lg:h-[270px] lg:overflow-hidden xl:h-auto xl:overflow-visible"
+                className="flex-1 min-w-0 bg-[#f4f5f6] rounded-[16px] p-[16px] lg:p-[16px] xl:p-[20px] lg:h-[270px] lg:overflow-hidden xl:h-[320px] xl:overflow-hidden"
             >
                 {/* 로딩 상태 */}
                 {isLoading ? (

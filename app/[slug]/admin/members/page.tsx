@@ -66,6 +66,7 @@ import MemberDetailModal from './MemberDetailModal';
 import ManualInviteModal from './ManualInviteModal';
 import MemberListTab from './MemberListTab';
 import ConsentManagementTab from './ConsentManagementTab';
+import DuplicateMembersTab from './DuplicateMembersTab';
 import ConflictResolutionModal from './ConflictResolutionModal';
 import { useResolveConflict, createConflictComparisonData } from '@/app/_lib/features/member-management/api/useConflictResolutionHook';
 import { ConflictComparisonData, ConflictResolutionRequest } from '@/app/_lib/shared/type/conflict.types';
@@ -76,7 +77,7 @@ import { DataTable, ColumnDef } from '@/app/_lib/widgets/common/data-table';
 import { formatAddressDisplay, formatResidentAddressDisplay } from '@/app/_lib/shared/utils/address-utils';
 
 // 탭 타입
-type TabType = 'members' | 'consent' | 'invite' | 'approval';
+type TabType = 'members' | 'consent' | 'invite' | 'approval' | 'duplicates';
 
 // 사용자 상태 필터 타입
 type UserStatusFilter = 'ALL' | UserStatus;
@@ -743,9 +744,8 @@ export default function MemberManagementPage() {
     return (
         <div className="space-y-6">
                 {/* 페이지 헤더 */}
-                <div className="mb-8">
-                    <h1 className="text-2xl font-bold text-gray-900 mb-2">조합원 관리</h1>
-                    <p className="text-gray-600">{union?.name} 조합의 조합원을 관리합니다</p>
+                <div className="mb-4">
+                    <h1 className="text-2xl font-bold text-gray-900">조합원 관리</h1>
                 </div>
 
                 {/* 탭 네비게이션 */}
@@ -800,6 +800,18 @@ export default function MemberManagementPage() {
                                 <UserCheck className="w-4 h-4" />
                                 승인 관리
                             </button>
+                            <button
+                                onClick={() => setActiveTab('duplicates')}
+                                className={cn(
+                                    'flex items-center gap-2 px-3 md:px-6 py-4 text-sm font-medium border-b-2 transition-colors cursor-pointer whitespace-nowrap',
+                                    activeTab === 'duplicates'
+                                        ? 'border-[#4E8C6D] text-[#4E8C6D]'
+                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                )}
+                            >
+                                <AlertCircle className="w-4 h-4" />
+                                중복 조합원 관리
+                            </button>
                         </nav>
                     </div>
                 </div>
@@ -808,6 +820,9 @@ export default function MemberManagementPage() {
                 {activeTab === 'members' ? (
                     // ====== 조합원 관리 탭 ======
                     <MemberListTab />
+                ) : activeTab === 'duplicates' ? (
+                    // ====== 중복 조합원 관리 탭 ======
+                    <DuplicateMembersTab />
                 ) : activeTab === 'consent' ? (
                     // ====== 동의율 관리 탭 ======
                     <ConsentManagementTab />

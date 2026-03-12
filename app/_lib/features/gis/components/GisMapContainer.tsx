@@ -71,8 +71,6 @@ export default function GisMapContainer() {
 
     // 다중 선택 상태 (클릭한 필지들 리스트)
     const [selectedPnuList, setSelectedPnuList] = useState<string[]>([]);
-    const lastClickTime = useRef<number>(0);
-    const lastClickPnu = useRef<string | null>(null);
 
     // 동의 단계 목록 조회
     const { data: stages, isLoading: stagesLoading } = useQuery({
@@ -181,7 +179,7 @@ export default function GisMapContainer() {
     const isLoading = viewMode === 'registration' ? registrationLoading : consentLoading;
 
     // 조합의 모든 조합원 정보 (초기 로딩, PNU별 그룹화)
-    const { getMembersByPnu, isLoading: membersLoading } = useUnionMembers(unionId);
+    const { members, getMembersByPnu, isLoading: membersLoading } = useUnionMembers(unionId);
 
     // 표시할 필지 정보 (검색된 필지 또는 호버된 필지)
     const displayPnu = searchedPnu || hoveredPnu;
@@ -258,7 +256,7 @@ export default function GisMapContainer() {
         enabled: !!searchedPnu && !!unionId && parcelMembers.length > 0 && !!selectedStageId,
     });
 
-    // 주소 검색 함수 - 검색 시 이전 선택 취소하고 검색한 값만 표시
+    // 주소/소유주 검색 함수 - 검색 결과를 기존 리스트에 누적 추가
     const handleSearch = useCallback(() => {
         if (!searchQuery.trim()) {
             setSearchedPnu(null);
@@ -266,34 +264,58 @@ export default function GisMapContainer() {
         }
 
         const query = searchQuery.trim().toLowerCase();
+        const foundPnus: string[] = [];
 
-        // 검색 시 이전 선택된 값 초기화
-        setSelectedPnuList([]);
-
-        // 동의 현황 데이터에서 검색
-        const foundConsent = consentData.find((d) => d.address?.toLowerCase().includes(query) || d.pnu.includes(query));
-
-        if (foundConsent) {
-            setSearchedPnu(foundConsent.pnu);
-            setSelectedPnuList([foundConsent.pnu]);
-            return;
+        // 1. 소유주 이름으로 검색 (members 데이터에서)
+        if (members) {
+            const matchedMembers = members.filter((m) => m.name?.toLowerCase().includes(query));
+            for (const member of matchedMembers) {
+                if (member.property_pnu && !foundPnus.includes(member.property_pnu)) {
+                    foundPnus.push(member.property_pnu);
+                }
+            }
         }
 
-        // 가입 현황 데이터에서 검색
-        const foundReg = registrationData.find(
-            (d) => d.address?.toLowerCase().includes(query) || d.pnu.includes(query)
-        );
+        // 2. 주소/지번으로 검색 (동의 현황 데이터)
+        for (const d of consentData) {
+            if (
+                (d.address?.toLowerCase().includes(query) || d.pnu.includes(query)) &&
+                !foundPnus.includes(d.pnu)
+            ) {
+                foundPnus.push(d.pnu);
+            }
+        }
 
-        if (foundReg) {
-            setSearchedPnu(foundReg.pnu);
-            setSelectedPnuList([foundReg.pnu]);
+        // 3. 주소/지번으로 검색 (가입 현황 데이터)
+        for (const d of registrationData) {
+            if (
+                (d.address?.toLowerCase().includes(query) || d.pnu.includes(query)) &&
+                !foundPnus.includes(d.pnu)
+            ) {
+                foundPnus.push(d.pnu);
+            }
+        }
+
+        if (foundPnus.length > 0) {
+            // 기존 리스트에 누적 추가 (중복 제거)
+            setSelectedPnuList((prev) => {
+                const newList = [...prev];
+                for (const pnu of foundPnus) {
+                    if (!newList.includes(pnu)) {
+                        newList.unshift(pnu);
+                    }
+                }
+                return newList;
+            });
+            setSearchedPnu(foundPnus[0]);
+            setSearchQuery('');
             return;
         }
 
         // 찾지 못함
         setSearchedPnu(null);
-        alert('해당 주소를 찾을 수 없습니다.');
-    }, [searchQuery, consentData, registrationData]);
+        alert('해당 주소 또는 소유주를 찾을 수 없습니다.');
+    }, [searchQuery, consentData, registrationData, members]);
 
     // 검색 초기화
     const handleClearSearch = useCallback(() => {
@@ -306,30 +328,24 @@ export default function GisMapContainer() {
         setHoveredPnu(pnu);
     }, []);
 
-    // 필지 클릭 핸들러 - 다중 선택 및 더블클릭 취소 기능
+    // 필지 클릭 핸들러 - 토글 방식 (이미 선택된 필지 클릭 시 해제)
     const handleParcelClick = useCallback(
         (pnu: string) => {
-            const now = Date.now();
-            const isDoubleClick = lastClickPnu.current === pnu && now - lastClickTime.current < 300;
-
-            if (isDoubleClick) {
-                // 더블클릭: 해당 필지 선택 취소
-                setSelectedPnuList((prev) => prev.filter((p) => p !== pnu));
-                if (searchedPnu === pnu) {
-                    setSearchedPnu(null);
+            setSelectedPnuList((prev) => {
+                const isAlreadySelected = prev.includes(pnu);
+                if (isAlreadySelected) {
+                    // 이미 선택된 필지: 선택 해제
+                    if (searchedPnu === pnu) {
+                        setSearchedPnu(null);
+                    }
+                    return prev.filter((p) => p !== pnu);
+                } else {
+                    // 새 필지: 리스트 맨 앞에 추가
+                    setSearchedPnu(pnu);
+                    setSelectedPnu(pnu);
+                    return [pnu, ...prev];
                 }
-            } else {
-                // 단일 클릭: 리스트에 추가 (이미 있으면 맨 위로 이동)
-                setSelectedPnuList((prev) => {
-                    const filtered = prev.filter((p) => p !== pnu);
-                    return [pnu, ...filtered];
-                });
-                setSearchedPnu(pnu);
-                setSelectedPnu(pnu);
-            }
-
-            lastClickTime.current = now;
-            lastClickPnu.current = pnu;
+            });
         },
         [searchedPnu]
     );
@@ -416,7 +432,7 @@ export default function GisMapContainer() {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <Input
                         type="text"
-                        placeholder="지번 또는 도로명 주소로 검색..."
+                        placeholder="지번, 도로명 주소 또는 소유주 이름으로 검색..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -475,7 +491,7 @@ export default function GisMapContainer() {
             })()}
 
             {/* 지도 영역 */}
-            <div className="flex-1 bg-slate-50 rounded-xl border border-slate-200 overflow-hidden relative min-h-[500px]">
+            <div className="flex-1 bg-slate-50 rounded-xl border border-slate-200 overflow-hidden relative min-h-[1100px]">
                 {isLoading && !currentGeoJson ? (
                     <div className="absolute inset-0 flex items-center justify-center bg-white/50 z-10">
                         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -499,6 +515,7 @@ export default function GisMapContainer() {
                         mode={viewMode}
                         onParcelClick={handleParcelClick}
                         selectedPnu={searchedPnu}
+                        selectedPnuList={selectedPnuList}
                         onParcelHover={handleParcelHover}
                     />
                 ) : (

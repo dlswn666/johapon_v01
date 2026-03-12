@@ -174,6 +174,43 @@ export const useConfirmMinutes = (assemblyId: string) => {
 };
 
 /**
+ * 의사록 정정안 생성 (P2-4)
+ */
+export const useCreateMinutesCorrection = (assemblyId: string) => {
+  const queryClient = useQueryClient();
+  const openAlertModal = useModalStore((state) => state.openAlertModal);
+  const { union } = useSlug();
+
+  return useMutation({
+    mutationFn: async ({ correctionReason, correctedContent }: { correctionReason: string; correctedContent: string }) => {
+      const res = await fetch(`/api/assemblies/${assemblyId}/minutes/correction`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ correction_reason: correctionReason, corrected_content: correctedContent }),
+      });
+      if (!res.ok) {
+        let errorMessage = '의사록 정정에 실패했습니다.';
+        try { const err = await res.json(); errorMessage = err.error || errorMessage; } catch { /* 기본 메시지 사용 */ }
+        throw new Error(errorMessage);
+      }
+      const { data } = await res.json();
+      return data as MinutesDraft;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['minutesDraft', union?.id, assemblyId] });
+      openAlertModal({
+        title: '정정안 생성 완료',
+        message: '의사록 정정안이 생성되었습니다. 3인 서명 후 재확정됩니다.',
+        type: 'success',
+      });
+    },
+    onError: (error: Error) => {
+      openAlertModal({ title: '정정 실패', message: error.message, type: 'error' });
+    },
+  });
+};
+
+/**
  * 의사록 확정
  */
 export const useFinalizeMinutes = (assemblyId: string) => {

@@ -12,7 +12,7 @@ import { useLogAccessEvent } from '@/app/_lib/features/member-management/api/use
 import useMemberStore, { BlockedFilter } from '@/app/_lib/features/member-management/model/useMemberStore';
 import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
-import { OWNERSHIP_TYPE_LABELS, OWNERSHIP_TYPE_STYLES, OwnershipType } from '@/app/_lib/shared/type/database.types';
+import { OWNERSHIP_TYPE_LABELS, OWNERSHIP_TYPE_STYLES, ENTITY_TYPE_LABELS, ENTITY_TYPE_STYLES, OwnershipType, EntityType } from '@/app/_lib/shared/type/database.types';
 import MemberEditModal from './MemberEditModal';
 import BlockMemberModal from './BlockMemberModal';
 import { DataTable, ColumnDef } from '@/app/_lib/widgets/common/data-table';
@@ -155,23 +155,37 @@ export default function MemberListTab() {
                 key: 'ownership_type',
                 header: '소유유형',
                 align: 'left',
-                width: '80px',
+                width: '110px',
                 render: (_, row) => {
                     // 대표 물건지의 소유유형 표시
                     const primaryUnit = row.property_units?.find((pu) => pu.is_primary);
                     const ownershipType = primaryUnit?.ownership_type as OwnershipType | undefined;
-
-                    if (!ownershipType) return <span className="text-gray-400">-</span>;
+                    const entityType = (row as MemberWithLandInfo & { entity_type?: string }).entity_type as EntityType | undefined;
 
                     return (
-                        <span
-                            className={cn(
-                                'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium',
-                                OWNERSHIP_TYPE_STYLES[ownershipType]
+                        <div className="flex flex-col gap-1">
+                            {ownershipType && (
+                                <span
+                                    className={cn(
+                                        'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium',
+                                        OWNERSHIP_TYPE_STYLES[ownershipType]
+                                    )}
+                                >
+                                    {OWNERSHIP_TYPE_LABELS[ownershipType]}
+                                </span>
                             )}
-                        >
-                            {OWNERSHIP_TYPE_LABELS[ownershipType]}
-                        </span>
+                            {entityType && entityType !== 'INDIVIDUAL' && (
+                                <span
+                                    className={cn(
+                                        'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium',
+                                        ENTITY_TYPE_STYLES[entityType]
+                                    )}
+                                >
+                                    {ENTITY_TYPE_LABELS[entityType]}
+                                </span>
+                            )}
+                            {!ownershipType && !entityType && <span className="text-gray-400">-</span>}
+                        </div>
                     );
                 },
             },
@@ -286,7 +300,17 @@ export default function MemberListTab() {
                     );
                 },
             },
-            // 12. 특이사항
+            // 12. 의결권 (도시정비법 §45 — 1인 1의결권 고정)
+            {
+                key: 'voting_weight',
+                header: '의결권',
+                align: 'center',
+                width: '80px',
+                render: () => (
+                    <span className="text-gray-600">1</span>
+                ),
+            },
+            // 13. 특이사항
             {
                 key: 'notes',
                 header: '특이사항',
@@ -432,8 +456,8 @@ export default function MemberListTab() {
                         fetchNextPage,
                         totalItems: totalCount,
                     }}
-                    minWidth="1610px"
-                    maxHeight="1450px"
+                    minWidth="1690px"
+                    maxHeight="970px"
                     stickyHeader={true}
                 />
             </div>

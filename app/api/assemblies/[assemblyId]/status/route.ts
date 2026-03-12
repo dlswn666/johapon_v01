@@ -107,9 +107,36 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     let data;
 
     if (newStatus === 'NOTICE_SENT') {
+      // P0-3: 소집공고 14일 전 검증 (도정법 §44)
+      const { data: assemblyForCheck } = await supabase
+        .from('assemblies')
+        .select('scheduled_at')
+        .eq('id', assemblyId)
+        .eq('union_id', unionId)
+        .single();
+
+      if (assemblyForCheck?.scheduled_at) {
+        const scheduledDate = new Date(assemblyForCheck.scheduled_at);
+        const now = new Date();
+        const diffMs = scheduledDate.getTime() - now.getTime();
+        const diffDays = diffMs / (1000 * 60 * 60 * 24);
+
+        if (diffDays < 14 && body.force !== true) {
+          return NextResponse.json({
+            error: '소집공고는 총회 개최 14일 전까지 발송해야 합니다.',
+            details: {
+              scheduled_at: assemblyForCheck.scheduled_at,
+              days_until: Math.floor(diffDays),
+              can_force: true,
+            },
+          }, { status: 400 });
+        }
+      }
+
       // NOTICE_SENT 전이: 원자적 RPC 사용 (상태전이 + 스냅샷 생성 단일 트랜잭션)
-      // TODO: voting_weight는 현재 1.0 하드코딩 (transition_to_notice_sent RPC).
-      // 차등 의결권 지원 시 users 테이블에 voting_weight 컬럼 추가 후 RPC 수정 필요.
+      // NOTE: transition_to_notice_sent RPC 내부에서 users.voting_weight를 직접 참조하도록 수정 필요.
+      // 현재 RPC는 1.0 하드코딩 — DB 마이그레이션으로 RPC를 업데이트하면 자동 반영됨.
+      // 수동 스냅샷 생성(POST /snapshots)은 이미 users.voting_weight 반영 완료.
       const { data: rpcResult, error: rpcError } = await supabase
         .rpc('transition_to_notice_sent', {
           p_assembly_id: assemblyId,
@@ -201,76 +228,130 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
         }
       }
     } else {
-      // 일반 상태 전이
-      const { data: updated, error: updateError } = await supabase
-        .from('assemblies')
-        .update({ status: newStatus })
-        .eq('id', assemblyId)
-        .eq('union_id', unionId)
-        .select()
-        .single();
+      // B3 수정: 원자적 상태 전이 (RPC 사용, 폴백으로 기존 로직)
+      const { data: rpcResult, error: rpcError } = await supabase.rpc(
+        'transition_assembly_status',
+        {
+          p_assembly_id: assemblyId,
+          p_union_id: unionId,
+          p_actor_id: auth.user.id,
+          p_new_status: newStatus,
+          p_reason: reason || null,
+          p_reason_code: body.reason_code || null,
+        }
+      );
 
-      if (updateError || !updated) {
-        console.error('상태 업데이트 실패:', updateError);
-        return NextResponse.json({ error: '상태 변경에 실패했습니다.' }, { status: 500 });
+      if (rpcError) {
+        // RPC 함수 미존재 시 기존 방식 폴백
+        if (rpcError.message?.includes('function') || rpcError.code === '42883') {
+          console.warn('transition_assembly_status RPC 미생성, 기존 방식 폴백:', rpcError.message);
+
+          const { data: updated, error: updateError } = await supabase
+            .from('assemblies')
+            .update({ status: newStatus })
+            .eq('id', assemblyId)
+            .eq('union_id', unionId)
+            .select()
+            .single();
+
+          if (updateError || !updated) {
+            console.error('상태 업데이트 실패:', updateError);
+            return NextResponse.json({ error: '상태 변경에 실패했습니다.' }, { status: 500 });
+          }
+
+          data = updated;
+
+          // 기존 polls 일괄 상태 변경
+          if (newStatus === 'VOTING' && assembly.status === 'IN_PROGRESS') {
+            await supabase.from('polls')
+              .update({ status: 'OPEN', opened_by: auth.user.id })
+              .eq('assembly_id', assemblyId)
+              .eq('union_id', unionId)
+              .eq('status', 'SCHEDULED');
+          }
+          if (newStatus === 'VOTING_CLOSED') {
+            await supabase.from('polls')
+              .update({ status: 'CLOSED', closed_by: auth.user.id })
+              .eq('assembly_id', assemblyId)
+              .eq('union_id', unionId)
+              .eq('status', 'OPEN');
+          }
+          if (newStatus === 'CANCELLED' && assembly.status === 'VOTING') {
+            await supabase.from('polls').update({ status: 'CANCELLED' })
+              .eq('assembly_id', assemblyId).eq('union_id', unionId).eq('status', 'OPEN');
+          }
+
+          // 기존 감사 로그 기록
+          const eventData: Record<string, unknown> = {
+            from_status: assembly.status,
+            to_status: newStatus,
+            ...(newStatus === 'CANCELLED' && reason && { cancellation_reason: reason.trim() }),
+          };
+
+          const { error: auditError } = await supabase
+            .from('assembly_audit_logs')
+            .insert({
+              assembly_id: assemblyId,
+              union_id: unionId,
+              event_type: 'STATUS_CHANGE',
+              actor_id: auth.user.id,
+              actor_role: 'ADMIN',
+              target_type: 'assembly',
+              target_id: assemblyId,
+              event_data: eventData,
+            });
+
+          if (auditError) {
+            console.error('감사 로그 기록 실패:', auditError);
+            await supabase.from('assemblies')
+              .update({ status: assembly.status })
+              .eq('id', assemblyId)
+              .eq('union_id', unionId);
+            return NextResponse.json({ error: '감사 로그 기록 실패로 상태 변경이 취소되었습니다.' }, { status: 500 });
+          }
+        } else {
+          console.error('상태 전이 RPC 실패:', rpcError);
+          return NextResponse.json({ error: '상태 변경에 실패했습니다.' }, { status: 500 });
+        }
+      } else if (!rpcResult?.success) {
+        return NextResponse.json(
+          { error: rpcResult?.error || '상태 변경에 실패했습니다.' },
+          { status: 400 }
+        );
+      } else {
+        // RPC 성공: 최신 assemblies 조회
+        const { data: updated } = await supabase
+          .from('assemblies')
+          .select()
+          .eq('id', assemblyId)
+          .eq('union_id', unionId)
+          .single();
+
+        data = updated;
       }
-
-      data = updated;
     }
 
-    // DEF-001: IN_PROGRESS→VOTING 전이 시 polls 일괄 OPEN (C-2)
-    if (newStatus === 'VOTING' && assembly.status === 'IN_PROGRESS') {
-      await supabase.from('polls')
-        .update({ status: 'OPEN', opened_by: auth.user.id })
-        .eq('assembly_id', assemblyId)
-        .eq('union_id', unionId)
-        .eq('status', 'SCHEDULED');
-    }
+    // NOTICE_SENT 전이 시 감사 로그 (P0-3 force 포함)
+    if (newStatus === 'NOTICE_SENT') {
+      const eventData: Record<string, unknown> = {
+        from_status: assembly.status,
+        to_status: newStatus,
+        ...(snapshotCount > 0 && { snapshot_count: snapshotCount }),
+        ...(body.force === true && { force_notice: true }),
+      };
 
-    // VOTING_CLOSED 전이 시 polls 일괄 CLOSED (C-3)
-    if (newStatus === 'VOTING_CLOSED') {
-      await supabase.from('polls')
-        .update({ status: 'CLOSED', closed_by: auth.user.id })
-        .eq('assembly_id', assemblyId)
-        .eq('union_id', unionId)
-        .eq('status', 'OPEN');
-    }
-
-    // VOTING→CANCELLED 전이 시 polls 일괄 CANCELLED (C-4)
-    if (newStatus === 'CANCELLED' && assembly.status === 'VOTING') {
-      await supabase.from('polls').update({ status: 'CANCELLED' })
-        .eq('assembly_id', assemblyId).eq('union_id', unionId).eq('status', 'OPEN');
-    }
-
-    // 감사 로그 기록 (해시 체인은 DB 트리거가 자동 계산)
-    const eventData: Record<string, unknown> = {
-      from_status: assembly.status,
-      to_status: newStatus,
-      ...(snapshotCount > 0 && { snapshot_count: snapshotCount }),
-      ...(newStatus === 'CANCELLED' && reason && { cancellation_reason: reason.trim() }),
-    };
-
-    const { error: auditError } = await supabase
-      .from('assembly_audit_logs')
-      .insert({
-        assembly_id: assemblyId,
-        union_id: unionId,
-        event_type: 'STATUS_CHANGE',
-        actor_id: auth.user.id,
-        actor_role: 'ADMIN',
-        target_type: 'assembly',
-        target_id: assemblyId,
-        event_data: eventData,
-      });
-
-    // 감사 로그 실패 시 상태 롤백
-    if (auditError) {
-      console.error('감사 로그 기록 실패:', auditError);
-      await supabase.from('assemblies')
-        .update({ status: assembly.status })
-        .eq('id', assemblyId)
-        .eq('union_id', unionId);
-      return NextResponse.json({ error: '감사 로그 기록 실패로 상태 변경이 취소되었습니다.' }, { status: 500 });
+      await supabase
+        .from('assembly_audit_logs')
+        .insert({
+          assembly_id: assemblyId,
+          union_id: unionId,
+          event_type: 'STATUS_CHANGE',
+          actor_id: auth.user.id,
+          actor_role: 'ADMIN',
+          target_type: 'assembly',
+          target_id: assemblyId,
+          event_data: eventData,
+        });
     }
 
     return NextResponse.json({

@@ -48,16 +48,13 @@ export default function ConsentManagementTab() {
 
     // 조회 상태
     const [selectedStageId, setSelectedStageId] = useState<string>('');
-    const [searchAddress, setSearchAddress] = useState('');
-    const [searchName, setSearchName] = useState('');
-    const [searchBuilding, setSearchBuilding] = useState('');
+    const [searchKeyword, setSearchKeyword] = useState('');
     const [isSearching, setIsSearching] = useState(false);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
     const [hasMore, setHasMore] = useState(false);
     const [searchResults, setSearchResults] = useState<MemberSearchResult[]>([]);
     const [focusedIndex, setFocusedIndex] = useState(-1);
     const [isResultFocused, setIsResultFocused] = useState(false);
-    const [lastFocusedInput, setLastFocusedInput] = useState<'address' | 'name' | 'building'>('name');
     const PAGE_SIZE = 100;
 
     // 선택된 조합원 리스트 상태
@@ -70,9 +67,7 @@ export default function ConsentManagementTab() {
 
     // 검색 결과 리스트 ref + 무한 스크롤 처리
     const searchResultsRef = useRef<HTMLDivElement>(null);
-    const searchAddressInputRef = useRef<HTMLInputElement>(null);
-    const searchNameInputRef = useRef<HTMLInputElement>(null);
-    const searchBuildingInputRef = useRef<HTMLInputElement>(null);
+    const searchInputRef = useRef<HTMLInputElement>(null);
     const searchResultsTableRef = useRef<HTMLTableElement>(null);
 
     // 파일 input ref
@@ -130,9 +125,7 @@ export default function ConsentManagementTab() {
             const results = await searchMembersForConsent({
                 unionId,
                 stageId: selectedStageId,
-                searchAddress: searchAddress || undefined,
-                searchName: searchName || undefined,
-                searchBuilding: searchBuilding || undefined,
+                searchKeyword: searchKeyword || undefined,
                 offset: 0,
                 limit: PAGE_SIZE,
             });
@@ -140,11 +133,7 @@ export default function ConsentManagementTab() {
             if (results.length === 0) {
                 setSearchResults([]);
                 setHasMore(false);
-                if (searchBuilding) {
-                    toast.error('해당 건물이름으로 검색된 조합원이 없습니다.');
-                } else {
-                    toast.error('검색 결과가 없습니다.');
-                }
+                toast.error('검색 결과가 없습니다.');
                 return;
             }
 
@@ -171,7 +160,7 @@ export default function ConsentManagementTab() {
         } finally {
             setIsSearching(false);
         }
-    }, [unionId, selectedStageId, searchAddress, searchName, searchBuilding, selectedMembers]);
+    }, [unionId, selectedStageId, searchKeyword, selectedMembers]);
 
     // 추가 데이터 로드 (무한 스크롤)
     const handleLoadMore = useCallback(async () => {
@@ -182,9 +171,7 @@ export default function ConsentManagementTab() {
             const results = await searchMembersForConsent({
                 unionId,
                 stageId: selectedStageId,
-                searchAddress: searchAddress || undefined,
-                searchName: searchName || undefined,
-                searchBuilding: searchBuilding || undefined,
+                searchKeyword: searchKeyword || undefined,
                 offset: searchResults.length,
                 limit: PAGE_SIZE,
             });
@@ -198,7 +185,7 @@ export default function ConsentManagementTab() {
         } finally {
             setIsLoadingMore(false);
         }
-    }, [unionId, selectedStageId, searchAddress, searchName, searchBuilding, searchResults.length, isLoadingMore, hasMore]);
+    }, [unionId, selectedStageId, searchKeyword, searchResults.length, isLoadingMore, hasMore]);
 
     // 검색 결과 스크롤 시 하단 근처에서 추가 로드
     const handleSearchResultsScroll = useCallback(() => {
@@ -233,20 +220,10 @@ export default function ConsentManagementTab() {
         [handleSearch]
     );
 
-    // 마지막 포커스된 input으로 돌아가기
+    // 검색 input으로 포커스 돌아가기
     const focusLastInput = useCallback(() => {
-        switch (lastFocusedInput) {
-            case 'address':
-                searchAddressInputRef.current?.focus();
-                break;
-            case 'name':
-                searchNameInputRef.current?.focus();
-                break;
-            case 'building':
-                searchBuildingInputRef.current?.focus();
-                break;
-        }
-    }, [lastFocusedInput]);
+        searchInputRef.current?.focus();
+    }, []);
 
     // 조회 결과 영역 키보드 이벤트 처리 (선택 전용)
     const handleResultKeyDown = useCallback(
@@ -572,7 +549,7 @@ export default function ConsentManagementTab() {
 
                 <div className="flex flex-wrap gap-4 items-center">
                     <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-gray-700">동의 단계:</span>
+                        <span className="text-sm font-medium text-gray-700 whitespace-nowrap shrink-0">동의 단계:</span>
                         <SelectBox
                             value={selectedStageId}
                             onChange={(value) => setSelectedStageId(value)}
@@ -650,59 +627,36 @@ export default function ConsentManagementTab() {
                 <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* 왼쪽: 검색 및 결과 */}
                     <div className="flex flex-col space-y-4">
-                        <h3 className="text-sm font-semibold text-gray-700">조회</h3>
+                        <h3 className="text-[15px] font-semibold text-gray-700">조회</h3>
 
                         {/* 검색 폼 */}
-                        <div className="space-y-3">
-                            <div className="grid grid-cols-2 gap-3">
-                                <Input
-                                    ref={searchAddressInputRef}
-                                    placeholder="지번 주소"
-                                    value={searchAddress}
-                                    onChange={(e) => setSearchAddress(e.target.value)}
-                                    onKeyDown={handleInputKeyDown}
-                                    onFocus={() => setLastFocusedInput('address')}
-                                    className="h-11"
-                                />
-                                <Input
-                                    ref={searchNameInputRef}
-                                    placeholder="소유주 이름"
-                                    value={searchName}
-                                    onChange={(e) => setSearchName(e.target.value)}
-                                    onKeyDown={handleInputKeyDown}
-                                    onFocus={() => setLastFocusedInput('name')}
-                                    className="h-11"
-                                />
-                            </div>
-                            <div className="flex gap-3">
-                                <Input
-                                    ref={searchBuildingInputRef}
-                                    placeholder="건물이름"
-                                    value={searchBuilding}
-                                    onChange={(e) => setSearchBuilding(e.target.value)}
-                                    onKeyDown={handleInputKeyDown}
-                                    onFocus={() => setLastFocusedInput('building')}
-                                    className="flex-1 h-11"
-                                />
-                                <Button
-                                    onClick={handleSearch}
-                                    disabled={isSearching || !selectedStageId}
-                                    className="bg-[#4E8C6D] hover:bg-[#3d7058] text-white h-11"
-                                >
-                                    {isSearching ? (
-                                        <Loader2 className="w-4 h-4 animate-spin" />
-                                    ) : (
-                                        <Search className="w-4 h-4" />
-                                    )}
-                                </Button>
-                            </div>
+                        <div className="flex gap-3">
+                            <Input
+                                ref={searchInputRef}
+                                placeholder="이름, 주소, 건물이름으로 검색"
+                                value={searchKeyword}
+                                onChange={(e) => setSearchKeyword(e.target.value)}
+                                onKeyDown={handleInputKeyDown}
+                                className="flex-1 h-11"
+                            />
+                            <Button
+                                onClick={handleSearch}
+                                disabled={isSearching || !selectedStageId}
+                                className="bg-[#4E8C6D] hover:bg-[#3d7058] text-white h-11"
+                            >
+                                {isSearching ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                    <Search className="w-4 h-4" />
+                                )}
+                            </Button>
                         </div>
 
                         {/* 검색 결과 */}
                         <div
                             ref={searchResultsRef}
                             onScroll={handleSearchResultsScroll}
-                            className="border border-gray-200 rounded-lg max-h-[450px] min-h-[300px] overflow-y-auto flex-grow overscroll-contain"
+                            className="border border-gray-200 rounded-lg max-h-[600px] min-h-[400px] overflow-y-auto flex-grow overscroll-contain"
                         >
                             {searchResults.length === 0 ? (
                                 <div className="p-8 text-center text-gray-400">
@@ -713,7 +667,7 @@ export default function ConsentManagementTab() {
                                 <>
                                     <table
                                         ref={searchResultsTableRef}
-                                        className="w-full text-sm outline-none"
+                                        className="w-full text-[15px] outline-none"
                                         tabIndex={0}
                                         onKeyDown={handleResultKeyDown}
                                         onFocus={() => setIsResultFocused(true)}
@@ -721,19 +675,19 @@ export default function ConsentManagementTab() {
                                     >
                                         <thead className="bg-gray-50 sticky top-0">
                                             <tr>
-                                                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">
+                                                <th className="px-3 py-2.5 text-left text-sm font-semibold text-gray-600 w-[50px]">
                                                     번호
                                                 </th>
-                                                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">
+                                                <th className="px-3 py-2.5 text-left text-sm font-semibold text-gray-600 w-[80px]">
                                                     이름
                                                 </th>
-                                                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">
+                                                <th className="px-3 py-2.5 text-left text-sm font-semibold text-gray-600">
                                                     지번
                                                 </th>
-                                                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">
+                                                <th className="px-3 py-2.5 text-left text-sm font-semibold text-gray-600 w-[70px]">
                                                     동/호
                                                 </th>
-                                                <th className="px-3 py-2 text-center text-xs font-semibold text-gray-600">
+                                                <th className="px-3 py-2.5 text-center text-sm font-semibold text-gray-600 w-[80px]">
                                                     상태
                                                 </th>
                                             </tr>
@@ -760,14 +714,19 @@ export default function ConsentManagementTab() {
                                                             }
                                                         }}
                                                     >
-                                                        <td className="px-3 py-2 text-gray-500">{index + 1}</td>
-                                                        <td className="px-3 py-2 font-medium text-gray-900">
+                                                        <td className="px-3 py-2.5 text-gray-500">{index + 1}</td>
+                                                        <td className="px-3 py-2.5 font-medium text-gray-900">
                                                             {member.name}
                                                         </td>
-                                                        <td className="px-3 py-2 text-gray-600 truncate max-w-[200px]" title={formatPropertyAddressDisplay(member.property_address_jibun, member.property_address_road, member.property_dong, member.property_ho) || member.property_address || '-'}>
-                                                            {formatPropertyAddressDisplay(member.property_address_jibun, member.property_address_road, member.property_dong, member.property_ho) || member.property_address || '-'}
+                                                        <td className="px-3 py-2.5 font-medium text-gray-900 truncate max-w-[200px]" title={member.property_address_jibun || member.property_address || '-'}>
+                                                            {member.property_address_jibun || member.property_address || '-'}
                                                         </td>
-                                                        <td className="px-3 py-2 text-center">
+                                                        <td className="px-3 py-2.5 font-medium text-gray-900 whitespace-nowrap">
+                                                            {member.property_dong || member.property_ho
+                                                                ? [member.property_dong, member.property_ho].filter(Boolean).join('/')
+                                                                : '-'}
+                                                        </td>
+                                                        <td className="px-3 py-2.5 text-center">
                                                             {getConsentStatusBadge(member.current_consent_status)}
                                                         </td>
                                                     </tr>
@@ -786,7 +745,7 @@ export default function ConsentManagementTab() {
                         </div>
 
                         {searchResults.length > 0 && (
-                            <p className="text-xs text-gray-500">
+                            <p className="text-sm text-gray-500">
                                 검색 결과: {searchResults.length}명{hasMore ? '+' : ''} | 클릭하여 오른쪽 목록에 추가
                             </p>
                         )}
@@ -795,7 +754,7 @@ export default function ConsentManagementTab() {
                     {/* 오른쪽: 선택된 조합원 */}
                     <div className="flex flex-col space-y-4">
                         <div className="flex items-center justify-between">
-                            <h3 className="text-sm font-semibold text-gray-700">
+                            <h3 className="text-[15px] font-semibold text-gray-700">
                                 선택된 조합원 ({selectedMembers.length}명)
                             </h3>
                             {selectedMembers.length > 0 && (
@@ -812,10 +771,10 @@ export default function ConsentManagementTab() {
                         </div>
 
                         {/* 선택된 조합원 목록 */}
-                        <div className="border border-gray-200 rounded-lg max-h-[450px] min-h-[300px] overflow-y-auto flex-grow overscroll-contain">
+                        <div className="border border-gray-200 rounded-lg max-h-[600px] min-h-[400px] overflow-y-auto flex-grow overscroll-contain">
                             {selectedMembers.length === 0 ? (
                                 <div className="p-8 text-center text-gray-400">
-                                    <p className="text-sm">조합원을 선택하세요</p>
+                                    <p className="text-[15px]">조합원을 선택하세요</p>
                                 </div>
                             ) : (
                                 <div className="divide-y divide-gray-100">
@@ -825,13 +784,15 @@ export default function ConsentManagementTab() {
                                             className="p-3 flex items-center justify-between hover:bg-gray-50"
                                         >
                                             <div className="flex-1 min-w-0">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-xs text-gray-400">{index + 1}</span>
-                                                    <span className="font-medium text-gray-900">{member.name}</span>
+                                                <div className="flex items-start gap-2">
+                                                    <span className="text-xs text-gray-400 mt-0.5 shrink-0">{index + 1}</span>
+                                                    <div className="min-w-0">
+                                                        <span className="font-medium text-gray-900">{member.name}</span>
+                                                        <p className="font-medium text-gray-900 truncate">
+                                                            {formatPropertyAddressDisplay(member.property_address_jibun, member.property_address_road, member.property_dong, member.property_ho) || member.property_address || '-'}
+                                                        </p>
+                                                    </div>
                                                 </div>
-                                                <p className="text-xs text-gray-500 truncate mt-0.5">
-                                                    {formatPropertyAddressDisplay(member.property_address_jibun, member.property_address_road, member.property_dong, member.property_ho) || member.property_address || '-'}
-                                                </p>
                                             </div>
                                             <Button
                                                 variant="ghost"
@@ -849,7 +810,7 @@ export default function ConsentManagementTab() {
 
                         {/* 동의 상태 선택 */}
                         <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
-                            <span className="text-sm font-medium text-gray-700">동의 상태:</span>
+                            <span className="text-[15px] font-medium text-gray-700 whitespace-nowrap shrink-0">동의 상태:</span>
                             <SelectBox
                                 value={consentStatus}
                                 onChange={(value) => setConsentStatus(value as 'AGREED' | 'DISAGREED')}

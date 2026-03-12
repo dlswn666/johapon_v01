@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/app/_lib/shared/supabase/server';
 import { authenticateApiRequest } from '@/app/_lib/shared/api/auth';
+import type { SignatureType } from '@/app/_lib/shared/type/assembly.types';
 import crypto from 'crypto';
 
 interface RouteContext {
   params: Promise<{ assemblyId: string }>;
 }
+
+// 지원되는 전자서명 방법
+const SUPPORTED_SIGNATURE_TYPES: SignatureType[] = ['SIMPLE', 'KAKAO_CERT', 'PASS_CERT'];
 
 interface ConfirmedByEntry {
   user_id: string;
@@ -13,6 +17,7 @@ interface ConfirmedByEntry {
   role: 'chair' | 'member';
   confirmed_at: string;
   ip: string;
+  signature_type: SignatureType;
 }
 
 /**
@@ -40,8 +45,30 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     }
 
     const { role } = body;
+    // 전자서명 방법 (기본값: 간편서명)
+    const signatureType: SignatureType = body.signature_type || 'SIMPLE';
+
     if (role !== 'chair' && role !== 'member') {
       return NextResponse.json({ error: 'role은 "chair" 또는 "member"여야 합니다.' }, { status: 400 });
+    }
+
+    // 지원되지 않는 서명 방법 검증
+    if (!SUPPORTED_SIGNATURE_TYPES.includes(signatureType)) {
+      return NextResponse.json({ error: '지원되지 않는 서명 방법입니다.' }, { status: 400 });
+    }
+
+    // 카카오 인증서명 / PASS 인증서명 — 아직 미구현
+    if (signatureType === 'KAKAO_CERT') {
+      return NextResponse.json(
+        { error: '카카오 인증서명은 준비 중입니다.' },
+        { status: 501 },
+      );
+    }
+    if (signatureType === 'PASS_CERT') {
+      return NextResponse.json(
+        { error: 'PASS 인증서명은 준비 중입니다.' },
+        { status: 501 },
+      );
     }
 
     // 출석 자격 검증: assembly_member_snapshots에서 해당 user_id 확인
@@ -106,6 +133,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       role,
       confirmed_at: new Date().toISOString(),
       ip,
+      signature_type: signatureType,
     };
 
     const updatedConfirmedBy = [...confirmedBy, newEntry];
@@ -145,7 +173,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
         actor_role: auth.user.role === 'ADMIN' || auth.user.role === 'SYSTEM_ADMIN' ? 'ADMIN' : 'MEMBER',
         target_type: 'minutes',
         target_id: assemblyId,
-        event_data: { role, name: snapshot.member_name },
+        event_data: { role, name: snapshot.member_name, signature_type: signatureType },
         ip_address: ip,
       });
 

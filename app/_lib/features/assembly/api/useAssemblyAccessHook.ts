@@ -1,7 +1,7 @@
 'use client';
 
 import { useMutation } from '@tanstack/react-query';
-import { AssemblyAccessResult } from '@/app/_lib/shared/type/assembly.types';
+import { AssemblyAccessResult, IdentityMethod } from '@/app/_lib/shared/type/assembly.types';
 import useVoteStore from '@/app/_lib/features/assembly/model/useVoteStore';
 
 /**
@@ -12,11 +12,11 @@ export const useVerifyAssemblyAccess = () => {
   const { setSnapshot, setAssembly, setAgendaItems } = useVoteStore();
 
   return useMutation({
-    mutationFn: async ({ assemblyId, token }: { assemblyId: string; token: string }) => {
+    mutationFn: async ({ assemblyId, token, identityMethod }: { assemblyId: string; token: string; identityMethod?: IdentityMethod }) => {
       const res = await fetch('/api/assembly-access/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ assemblyId, token }),
+        body: JSON.stringify({ assemblyId, token, identityMethod }),
       });
       if (!res.ok) {
         let errorMessage = '총회 접근 인증에 실패했습니다.';

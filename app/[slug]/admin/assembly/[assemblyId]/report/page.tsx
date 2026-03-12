@@ -6,11 +6,12 @@ import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import { useAssembly } from '@/app/_lib/features/assembly/api/useAssemblyHook';
 import { useExecuteTally, useAssemblyReport } from '@/app/_lib/features/assembly/api/useReportHook';
-import { useGenerateMinutes, useMinutesDraft, useUpdateMinutes, useConfirmMinutes } from '@/app/_lib/features/assembly/api/useMinutesHook';
+import { useGenerateMinutes, useMinutesDraft, useUpdateMinutes, useConfirmMinutes, useCreateMinutesCorrection } from '@/app/_lib/features/assembly/api/useMinutesHook';
 import { useGenerateEvidencePackage, useEvidencePackage } from '@/app/_lib/features/assembly/api/useEvidenceHook';
+import { usePublishResults, useResultPublication } from '@/app/_lib/features/assembly/api/useResultPublicationHook';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, BarChart2, FileText, Package, CheckCircle, AlertCircle, Download } from 'lucide-react';
+import { ArrowLeft, BarChart2, FileText, Package, CheckCircle, AlertCircle, Download, Printer, Globe } from 'lucide-react';
 import { getUnionPath } from '@/app/_lib/shared/lib/utils/slug';
 import useModalStore from '@/app/_lib/shared/stores/modal/useModalStore';
 import { useEffect } from 'react';
@@ -37,6 +38,14 @@ export default function AssemblyReportPage({ params }: { params: Promise<{ assem
   const updateMinutesMutation = useUpdateMinutes(assemblyId);
   const confirmMinutesMutation = useConfirmMinutes(assemblyId);
   const generateEvidenceMutation = useGenerateEvidencePackage(assemblyId);
+  const correctionMutation = useCreateMinutesCorrection(assemblyId);
+  const publishResultsMutation = usePublishResults(assemblyId);
+  const { data: publicationData } = useResultPublication(assemblyId);
+
+  // P2-4: 의사록 정정 상태
+  const [showCorrectionModal, setShowCorrectionModal] = useState(false);
+  const [correctionReason, setCorrectionReason] = useState('');
+  const [correctionContent, setCorrectionContent] = useState('');
 
   useEffect(() => {
     if (!isAuthLoading && !isAdmin) {
@@ -54,6 +63,19 @@ export default function AssemblyReportPage({ params }: { params: Promise<{ assem
         await executeTallyMutation.mutateAsync();
         refetchReport();
       },
+    });
+  };
+
+  const canPublishResults = ['VOTING_CLOSED', 'CLOSED', 'ARCHIVED'].includes(assembly?.status || '');
+  const isAlreadyPublished = !!publicationData;
+
+  const handlePublishResults = () => {
+    openConfirmModal({
+      title: '투표 결과 공개',
+      message: '투표 결과를 조합원에게 공개하시겠습니까? 공개 후에는 취소할 수 없습니다.',
+      confirmText: '공개',
+      cancelText: '취소',
+      onConfirm: () => publishResultsMutation.mutate(),
     });
   };
 
@@ -183,13 +205,63 @@ export default function AssemblyReportPage({ params }: { params: Promise<{ assem
                 <h2 className="text-lg font-semibold text-gray-900">투표 집계</h2>
                 <p className="text-sm text-gray-500">투표가 마감된 후 집계를 실행하세요.</p>
               </div>
-              <Button
-                onClick={handleExecuteTally}
-                disabled={executeTallyMutation.isPending}
-              >
-                {executeTallyMutation.isPending ? '집계 중...' : '집계 실행'}
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.print()}
+                  className="no-print"
+                >
+                  <Printer className="w-4 h-4 mr-1" />
+                  인쇄/PDF
+                </Button>
+                <Button
+                  onClick={handleExecuteTally}
+                  disabled={executeTallyMutation.isPending}
+                >
+                  {executeTallyMutation.isPending ? '집계 중...' : '집계 실행'}
+                </Button>
+              </div>
             </div>
+          </div>
+
+          {/* 결과 공개 영역 */}
+          <div className="bg-white rounded-lg border border-gray-200 p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">결과 공개</h2>
+                <p className="text-sm text-gray-500">
+                  {isAlreadyPublished
+                    ? '투표 결과가 조합원에게 공개되었습니다.'
+                    : '집계 완료 후 조합원에게 투표 결과를 공개할 수 있습니다.'}
+                </p>
+              </div>
+              {isAlreadyPublished ? (
+                <span className="inline-flex items-center gap-1.5 text-sm font-medium text-green-700 bg-green-50 px-3 py-1.5 rounded-full">
+                  <CheckCircle className="w-4 h-4" />
+                  공개 완료
+                </span>
+              ) : (
+                <Button
+                  onClick={handlePublishResults}
+                  disabled={!canPublishResults || publishResultsMutation.isPending || !report}
+                  variant="default"
+                >
+                  <Globe className="w-4 h-4 mr-1.5" />
+                  {publishResultsMutation.isPending ? '공개 중...' : '결과 공개'}
+                </Button>
+              )}
+            </div>
+            {!canPublishResults && !isAlreadyPublished && (
+              <p className="text-xs text-amber-600 mt-2">
+                투표 마감(VOTING_CLOSED) 이후에만 결과를 공개할 수 있습니다.
+              </p>
+            )}
+            {isAlreadyPublished && publicationData?.published_at && (
+              <p className="text-xs text-gray-400 mt-2">
+                공개 일시: {new Date(publicationData.published_at).toLocaleString('ko-KR')}
+              </p>
+            )}
           </div>
 
           {/* 보고서 요약 */}
@@ -463,6 +535,24 @@ export default function AssemblyReportPage({ params }: { params: Promise<{ assem
                   <p className="text-xs font-mono text-gray-600 mt-1 break-all">{minutesData.minutes_content_hash}</p>
                 </div>
               )}
+
+              {/* P2-4: 정정안 작성 버튼 (확정된 의사록에만 표시) */}
+              {minutesData.minutes_finalized_at && (
+                <div className="mt-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setCorrectionContent(minutesData.minutes_draft || '');
+                      setCorrectionReason('');
+                      setShowCorrectionModal(true);
+                    }}
+                    className="no-print"
+                  >
+                    정정안 작성
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -553,6 +643,51 @@ export default function AssemblyReportPage({ params }: { params: Promise<{ assem
                 감사 로그 (WORM 해시 체인 무결성 검증 포함)
               </li>
             </ul>
+          </div>
+        </div>
+      )}
+
+      {/* P2-4: 의사록 정정 모달 */}
+      {showCorrectionModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl mx-4 space-y-4 max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-semibold text-gray-900">의사록 정정안 작성</h3>
+            <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-800">
+              확정된 의사록에 정정안을 추가합니다. 원본 의사록은 감사 로그에 보존됩니다.
+              서명이 초기화되며 3인 재서명이 필요합니다.
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">정정 사유 (필수)</label>
+              <textarea
+                value={correctionReason}
+                onChange={(e) => setCorrectionReason(e.target.value)}
+                placeholder="정정 사유를 입력하세요"
+                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm h-20 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">정정 내용</label>
+              <textarea
+                value={correctionContent}
+                onChange={(e) => setCorrectionContent(e.target.value)}
+                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm h-[300px] resize-none font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" size="sm" onClick={() => setShowCorrectionModal(false)}>취소</Button>
+              <Button
+                size="sm"
+                disabled={!correctionReason.trim() || !correctionContent.trim() || correctionMutation.isPending}
+                onClick={() => {
+                  correctionMutation.mutate(
+                    { correctionReason: correctionReason.trim(), correctedContent: correctionContent },
+                    { onSuccess: () => setShowCorrectionModal(false) }
+                  );
+                }}
+              >
+                {correctionMutation.isPending ? '처리 중...' : '정정안 생성'}
+              </Button>
+            </div>
           </div>
         </div>
       )}

@@ -84,6 +84,17 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: `현재 상태(${existing.status})에서는 수정할 수 없습니다.` }, { status: 400 });
     }
 
+    // P0-4: NOTICE_SENT 이후 법적 필수 필드 잠금 (도정법 §44)
+    const NOTICE_SENT_LOCKED_FIELDS = ['scheduled_at', 'assembly_type', 'venue_address'];
+    if (existing.status === 'NOTICE_SENT') {
+      const lockedField = Object.keys(body).find(k => NOTICE_SENT_LOCKED_FIELDS.includes(k));
+      if (lockedField) {
+        return NextResponse.json({
+          error: `소집공고 발송 후에는 '${lockedField}' 필드를 수정할 수 없습니다. 공고를 취소하고 재발송해야 합니다.`,
+        }, { status: 400 });
+      }
+    }
+
     // 화이트리스트 필터링 (Mass Assignment 방지)
     const safeUpdates = Object.fromEntries(
       Object.entries(body).filter(([k]) => ASSEMBLY_ALLOWED_FIELDS.includes(k))

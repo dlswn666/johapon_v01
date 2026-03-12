@@ -12,6 +12,26 @@ export type SpeakerRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'COMPLE
 export type WrittenBallotStatus = 'PENDING_VERIFICATION' | 'VERIFIED' | 'DISPUTED' | 'CANCELLED';
 export type SessionMode = 'LEGACY' | 'SESSION';
 
+// 본인인증 방법
+export type IdentityMethod = 'KAKAO_LOGIN' | 'PASS_CERT' | 'CERTIFICATE';
+
+// 전자서명 방법
+export type SignatureType = 'SIMPLE' | 'KAKAO_CERT' | 'PASS_CERT';
+
+// 인증 방법 한국어 레이블
+export const IDENTITY_METHOD_LABELS: Record<IdentityMethod, string> = {
+  KAKAO_LOGIN: '카카오 로그인',
+  PASS_CERT: 'PASS 본인인증',
+  CERTIFICATE: '공동인증서',
+};
+
+// 서명 방법 한국어 레이블
+export const SIGNATURE_TYPE_LABELS: Record<SignatureType, string> = {
+  SIMPLE: '간편서명',
+  KAKAO_CERT: '카카오 인증서명',
+  PASS_CERT: 'PASS 인증서명',
+};
+
 export interface Assembly {
   id: string;
   union_id: string;
@@ -84,8 +104,24 @@ export interface Poll {
   allow_written: boolean;
   allow_proxy: boolean;
   allow_onsite: boolean;
+  // 법적 투표 기간 잠금 (Workstream A)
+  legal_opens_at: string | null;
+  legal_closes_at: string | null;
+  legal_window_locked_at: string | null;
+  close_reason: string | null;
+  close_reason_code: CloseReasonCode | null;
   created_at: string;
   updated_at: string;
+}
+
+// 조기 마감 사유 코드
+export type CloseReasonCode = 'NORMAL' | 'EMERGENCY' | 'COURT_ORDER';
+
+// 투표 상태 전이 요청
+export interface PollTransitionRequest {
+  status: 'OPEN' | 'CLOSED' | 'SCHEDULED' | 'CANCELLED';
+  close_reason_code?: CloseReasonCode;
+  close_reason?: string;
 }
 
 // DB: poll_options 테이블
@@ -385,3 +421,511 @@ export const QUORUM_DEFAULTS: Record<AgendaType, { requiresDirect: boolean; quor
   BUDGET_APPROVAL: { requiresDirect: false, quorumThresholdPct: 50, approvalThresholdPct: 50 },
   EXECUTIVE_ELECTION: { requiresDirect: false, quorumThresholdPct: 50, approvalThresholdPct: 50 },
 };
+
+// 동의 증거 (Workstream B)
+export interface AssemblyConsentEvidence {
+  id: string;
+  union_id: string;
+  assembly_id: string;
+  snapshot_id: string;
+  actor_user_id: string;
+  actor_role: 'OWNER' | 'PROXY';
+  consent_type: 'IDENTITY_CONSENT' | 'VOTING_CONSENT' | 'PROXY_CONSENT';
+  consent_version: string;
+  consent_text_hash: string;
+  signature_type: 'SIMPLE' | 'KAKAO_CERT' | 'PASS_CERT';
+  signature_value: string | null;
+  signature_provider: string | null;
+  signature_verified: boolean;
+  signature_verified_at: string | null;
+  ip_address: string | null;
+  user_agent: string | null;
+  device_fingerprint: string | null;
+  created_at: string;
+}
+
+// 결과 공개 (Workstream D)
+export interface AssemblyResultPublication {
+  id: string;
+  union_id: string;
+  assembly_id: string;
+  published_by: string;
+  published_at: string;
+  result_json: PublicResultJson;
+  result_hash: string;
+  source_tally_hash: string;
+}
+
+export interface PublicResultJson {
+  assembly_id: string;
+  assembly_title: string;
+  published_at: string;
+  agendas: PublicAgendaResult[];
+}
+
+export interface PublicAgendaResult {
+  agenda_id: string;
+  title: string;
+  seq_order: number;
+  agenda_type: string;
+  total_votes: number;
+  is_passed: boolean;
+  options: PublicOptionResult[];
+}
+
+export interface PublicOptionResult {
+  label: string;
+  option_type: string;
+  vote_count: number;
+  vote_weight_sum: number;
+}
+
+// ============================================
+// Phase 2: 공식 문서, 컴플라이언스, 서명, 알림
+// ============================================
+
+// 공식 문서 타입
+export type OfficialDocumentType =
+  | 'CONVOCATION_NOTICE'
+  | 'AGENDA_EXPLANATION'
+  | 'E_VOTING_GUIDE'
+  | 'CONSENT_FORM'
+  | 'PROXY_FORM'
+  | 'MINUTES'
+  | 'RESULT_PUBLICATION'
+  | 'EVIDENCE_PACKAGE_SUMMARY';
+
+export type DocumentStatus =
+  | 'DRAFT'
+  | 'GENERATED'
+  | 'REVIEW'
+  | 'APPROVED'
+  | 'SIGNED_PARTIAL'
+  | 'SIGNED_COMPLETE'
+  | 'SEALED'
+  | 'SUPERSEDED'
+  | 'VOID';
+
+export const DOCUMENT_TYPE_LABELS: Record<OfficialDocumentType, string> = {
+  CONVOCATION_NOTICE: '소집통지문',
+  AGENDA_EXPLANATION: '안건 설명서',
+  E_VOTING_GUIDE: '전자투표 안내문',
+  CONSENT_FORM: '동의서',
+  PROXY_FORM: '위임장',
+  MINUTES: '의사록',
+  RESULT_PUBLICATION: '결과 공표문',
+  EVIDENCE_PACKAGE_SUMMARY: '증거 패키지 요약',
+};
+
+export const DOCUMENT_STATUS_LABELS: Record<DocumentStatus, string> = {
+  DRAFT: '초안',
+  GENERATED: '생성됨',
+  REVIEW: '검토중',
+  APPROVED: '승인됨',
+  SIGNED_PARTIAL: '서명 진행중',
+  SIGNED_COMPLETE: '서명 완료',
+  SEALED: '봉인됨',
+  SUPERSEDED: '대체됨',
+  VOID: '무효',
+};
+
+export const DOCUMENT_STATUS_COLORS: Record<DocumentStatus, string> = {
+  DRAFT: 'bg-gray-100 text-gray-700',
+  GENERATED: 'bg-blue-100 text-blue-700',
+  REVIEW: 'bg-purple-100 text-purple-700',
+  APPROVED: 'bg-green-100 text-green-700',
+  SIGNED_PARTIAL: 'bg-amber-100 text-amber-700',
+  SIGNED_COMPLETE: 'bg-emerald-100 text-emerald-700',
+  SEALED: 'bg-indigo-100 text-indigo-700',
+  SUPERSEDED: 'bg-gray-50 text-gray-400 line-through',
+  VOID: 'bg-red-100 text-red-700',
+};
+
+// DB: official_documents 테이블
+export interface OfficialDocument {
+  id: string;
+  assembly_id: string;
+  union_id: string;
+  agenda_item_id: string | null;
+  document_type: OfficialDocumentType;
+  version: number;
+  previous_version_id: string | null;
+  status: DocumentStatus;
+  source_json: Record<string, unknown>;
+  html_content: string | null;
+  pdf_storage_path: string | null;
+  content_hash: string | null;
+  required_signers: DocumentRequiredSigner[];
+  signature_threshold: number;
+  generated_at: string | null;
+  reviewed_at: string | null;
+  approved_at: string | null;
+  approved_by: string | null;
+  sealed_at: string | null;
+  sealed_by: string | null;
+  void_at: string | null;
+  void_reason: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DocumentRequiredSigner {
+  signer_id: string;
+  signer_name: string;
+  signer_role: SignerRole;
+}
+
+export type SignerRole = 'CHAIRPERSON' | 'DIRECTOR' | 'AUDITOR' | 'MEMBER' | 'ADMIN';
+
+export const SIGNER_ROLE_LABELS: Record<SignerRole, string> = {
+  CHAIRPERSON: '의장',
+  DIRECTOR: '이사',
+  AUDITOR: '감사',
+  MEMBER: '조합원',
+  ADMIN: '관리자',
+};
+
+// 서명 방법 (DB)
+export type SignatureMethod = 'SIMPLE_HASH' | 'PASS_VERIFIED' | 'CERTIFIED';
+
+export const SIGNATURE_METHOD_LABELS: Record<SignatureMethod, string> = {
+  SIMPLE_HASH: '간편서명 (해시)',
+  PASS_VERIFIED: 'PASS 인증서명',
+  CERTIFIED: '공인전자서명',
+};
+
+// DB: document_signatures 테이블
+export interface DocumentSignature {
+  id: string;
+  document_id: string;
+  document_version: number;
+  document_hash: string;
+  signer_id: string;
+  signer_name: string;
+  signer_role: SignerRole;
+  signature_method: SignatureMethod;
+  signed_at: string;
+  ip_address: string | null;
+  user_agent: string | null;
+  is_verified: boolean;
+  verified_at: string | null;
+  status: 'VALID' | 'INVALIDATED' | 'REVOKED';
+  invalidated_at: string | null;
+  invalidation_reason: string | null;
+  audit_log_id: string | null;
+  created_at: string;
+}
+
+// 서명 결과 (sign_document_atomic RPC 응답)
+export interface SignDocumentResult {
+  success: boolean;
+  error?: string;
+  signatureId?: string;
+  thresholdMet?: boolean;
+  currentCount?: number;
+  requiredCount?: number;
+}
+
+// ============================================
+// 컴플라이언스 엔진
+// ============================================
+
+export type ComplianceCheckpoint =
+  | 'BEFORE_NOTICE'
+  | 'BEFORE_CONVENE'
+  | 'BEFORE_START'
+  | 'BEFORE_VOTING'
+  | 'BEFORE_PUBLISH'
+  | 'BEFORE_SEAL'
+  | 'BEFORE_ARCHIVE';
+
+export type ComplianceSeverity = 'BLOCK' | 'WARNING' | 'INFO';
+
+export type ComplianceRuleLayer = 'STATUTORY' | 'BYLAW' | 'POLICY';
+
+export type ComplianceEvaluationStatus = 'OPEN' | 'PASS' | 'FAIL' | 'WAIVED' | 'RESOLVED';
+
+export type ComplianceRuleCategory =
+  | 'NOTICE'
+  | 'AGENDA'
+  | 'PARTICIPATION'
+  | 'QUORUM'
+  | 'VOTING'
+  | 'DOCUMENT'
+  | 'SIGNATURE'
+  | 'RECORD';
+
+export const COMPLIANCE_SEVERITY_LABELS: Record<ComplianceSeverity, string> = {
+  BLOCK: '차단',
+  WARNING: '경고',
+  INFO: '정보',
+};
+
+export const COMPLIANCE_SEVERITY_COLORS: Record<ComplianceSeverity, string> = {
+  BLOCK: 'bg-red-50 border-red-200 text-red-700',
+  WARNING: 'bg-amber-50 border-amber-200 text-amber-700',
+  INFO: 'bg-blue-50 border-blue-200 text-blue-700',
+};
+
+export const COMPLIANCE_SEVERITY_ICONS: Record<ComplianceSeverity, string> = {
+  BLOCK: '■',
+  WARNING: '▲',
+  INFO: '●',
+};
+
+export const COMPLIANCE_LAYER_LABELS: Record<ComplianceRuleLayer, string> = {
+  STATUTORY: '법정',
+  BYLAW: '정관',
+  POLICY: '내부정책',
+};
+
+export const COMPLIANCE_STATUS_LABELS: Record<ComplianceEvaluationStatus, string> = {
+  OPEN: '미평가',
+  PASS: '통과',
+  FAIL: '실패',
+  WAIVED: '면제',
+  RESOLVED: '해결됨',
+};
+
+// DB: assembly_compliance_evaluations 테이블
+export interface ComplianceEvaluation {
+  id: string;
+  assembly_id: string;
+  union_id: string;
+  checkpoint: ComplianceCheckpoint;
+  rule_code: string;
+  rule_layer: ComplianceRuleLayer;
+  severity: ComplianceSeverity;
+  status: ComplianceEvaluationStatus;
+  message: string;
+  remediation: string | null;
+  legal_basis: string | null;
+  context_data: Record<string, unknown> | null;
+  waiver_reason: string | null;
+  transition_context: string | null;
+  evaluated_at: string;
+  evaluated_by: string;
+  resolved_at: string | null;
+  resolved_by: string | null;
+  created_at: string;
+}
+
+// 컴플라이언스 평가 결과 (API 응답)
+export interface ComplianceCheckResult {
+  checkpoint: ComplianceCheckpoint;
+  evaluations: ComplianceEvaluation[];
+  summary: {
+    total: number;
+    pass: number;
+    fail: number;
+    waived: number;
+    open: number;
+    hasBlockingFailures: boolean;
+    canProceed: boolean;
+  };
+}
+
+// ============================================
+// 알림 배치
+// ============================================
+
+export type NotificationType =
+  | 'CONVOCATION_NOTICE'
+  | 'NOTICE_REMINDER'
+  | 'VOTE_START'
+  | 'VOTE_REMINDER'
+  | 'RESULT_PUBLICATION'
+  | 'SIGNATURE_REQUEST'
+  | 'MINUTES_CORRECTION';
+
+export type NotificationDeliveryChannel = 'KAKAO_ALIMTALK' | 'SMS' | 'EMAIL' | 'MIXED';
+
+export type NotificationBatchStatus =
+  | 'PENDING'
+  | 'SENDING'
+  | 'DELIVERED'
+  | 'PARTIALLY_DELIVERED'
+  | 'FAILED'
+  | 'SUPERSEDED';
+
+export const NOTIFICATION_TYPE_LABELS: Record<NotificationType, string> = {
+  CONVOCATION_NOTICE: '소집통지',
+  NOTICE_REMINDER: '통지 리마인더',
+  VOTE_START: '투표 시작',
+  VOTE_REMINDER: '투표 리마인더',
+  RESULT_PUBLICATION: '결과 공표',
+  SIGNATURE_REQUEST: '서명 요청',
+  MINUTES_CORRECTION: '의사록 정정',
+};
+
+export const NOTIFICATION_STATUS_LABELS: Record<NotificationBatchStatus, string> = {
+  PENDING: '대기',
+  SENDING: '발송중',
+  DELIVERED: '발송완료',
+  PARTIALLY_DELIVERED: '부분발송',
+  FAILED: '발송실패',
+  SUPERSEDED: '대체됨',
+};
+
+export const NOTIFICATION_STATUS_COLORS: Record<NotificationBatchStatus, string> = {
+  PENDING: 'bg-gray-100 text-gray-700',
+  SENDING: 'bg-blue-100 text-blue-700',
+  DELIVERED: 'bg-green-100 text-green-700',
+  PARTIALLY_DELIVERED: 'bg-amber-100 text-amber-700',
+  FAILED: 'bg-red-100 text-red-700',
+  SUPERSEDED: 'bg-gray-50 text-gray-400',
+};
+
+// DB: notification_batches 테이블
+export interface NotificationBatch {
+  id: string;
+  assembly_id: string;
+  union_id: string;
+  notification_type: NotificationType;
+  document_id: string | null;
+  document_hash: string | null;
+  document_version: number | null;
+  delivery_channel: NotificationDeliveryChannel;
+  status: NotificationBatchStatus;
+  sent_by: string;
+  sent_at: string | null;
+  completed_at: string | null;
+  total_recipients: number;
+  delivered_count: number;
+  failed_count: number;
+  provider_batch_ref: string | null;
+  failure_details: Record<string, unknown>;
+  delivery_metadata: Record<string, unknown>;
+  created_at: string;
+}
+
+// ============================================
+// 대리인 등록 (proxy_registrations)
+// ============================================
+
+export type ProxyType = 'MEMBER' | 'NON_MEMBER';
+export type ProxyRelationship = 'SPOUSE' | 'FAMILY' | 'AGENT' | 'OTHER';
+export type ProxyScope = 'ALL_AGENDAS' | 'SPECIFIC_AGENDAS';
+export type ProxyRegistrationStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'REVOKED';
+
+export const PROXY_STATUS_LABELS: Record<ProxyRegistrationStatus, string> = {
+  PENDING: '대기',
+  APPROVED: '승인',
+  REJECTED: '거절',
+  REVOKED: '해제',
+};
+
+export const PROXY_RELATIONSHIP_LABELS: Record<ProxyRelationship, string> = {
+  SPOUSE: '배우자',
+  FAMILY: '가족',
+  AGENT: '대리인',
+  OTHER: '기타',
+};
+
+export interface ProxyRegistration {
+  id: string;
+  assembly_id: string;
+  union_id: string;
+  snapshot_id: string;
+  delegator_user_id: string;
+  proxy_type: ProxyType;
+  proxy_user_id: string | null;
+  proxy_name: string;
+  proxy_phone: string | null;
+  proxy_relationship: ProxyRelationship | null;
+  authorization_doc_url: string | null;
+  scope: ProxyScope;
+  agenda_ids: string[] | null;
+  verified_at: string | null;
+  verified_by: string | null;
+  status: ProxyRegistrationStatus;
+  revoked_reason: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// ============================================
+// 안건 법적 규칙
+// ============================================
+
+export interface AgendaLegalRule {
+  id: string;
+  union_id: string;
+  agenda_type: string;
+  statutory_quorum_pct: number;
+  bylaw_quorum_pct: number | null;
+  effective_quorum_pct: number;
+  statutory_approval_pct: number;
+  bylaw_approval_pct: number | null;
+  effective_approval_pct: number;
+  approval_base: 'PRESENT' | 'TOTAL';
+  requires_direct_attendance: boolean;
+  direct_attendance_basis: 'HEAD_COUNT' | 'WEIGHT' | null;
+  electronic_allowed: boolean;
+  written_allowed: boolean;
+  proxy_allowed: boolean;
+  required_documents: string[];
+  requires_result_publication: boolean;
+  legal_reference: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// ============================================
+// 의사록 정정
+// ============================================
+
+export interface MinutesCorrection {
+  id: string;
+  assembly_id: string;
+  union_id: string;
+  original_document_id: string;
+  corrected_document_id: string;
+  correction_number: number;
+  correction_reason_code: string | null;
+  correction_reason_detail: string;
+  requested_by: string;
+  requested_at: string;
+  created_at: string;
+}
+
+// ============================================
+// 위자드 스텝
+// ============================================
+
+export type WizardStep = 1 | 2 | 3 | 4 | 5 | 6 | 7;
+
+export const WIZARD_STEP_LABELS: Record<WizardStep, string> = {
+  1: '기본 정보',
+  2: '참여 방식',
+  3: '안건 구성',
+  4: '문서 생성',
+  5: '알림 계획',
+  6: '컴플라이언스 검증',
+  7: '최종 확인',
+};
+
+export const WIZARD_STEP_DESCRIPTIONS: Record<WizardStep, string> = {
+  1: '총회 제목, 유형, 일시, 장소, 영상 송출 설정',
+  2: '투표 채널, 세션 모드, 본인인증 방법 설정',
+  3: '안건 등록/수정, 법적 템플릿 자동 적용',
+  4: '공식 문서 일괄/개별 생성 및 미리보기',
+  5: '소집공고 기한 자동 계산 및 발송 실행',
+  6: '전체 규칙 실행 및 BLOCK/WARNING/INFO 확인',
+  7: '체크리스트 요약 및 최종 확정',
+};
+
+// 채널 충돌 모드
+export type ChannelConflictMode = 'LAST_WINS' | 'FIRST_LOCKS';
+
+// 본인인증 수준
+export type IdentityVerificationLevel = 'KAKAO_ONLY' | 'PASS_REQUIRED';
+
+// assemblies 테이블 Phase 2 확장 필드
+export interface AssemblyPhase2Extensions {
+  identity_verification_level: IdentityVerificationLevel;
+  required_signature_type: SignatureMethod;
+  channel_conflict_mode: ChannelConflictMode;
+}

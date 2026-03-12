@@ -7,23 +7,30 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '@/components/ui/drawer';
-import { Vote, MessageCircle, FileText, Hand, Monitor } from 'lucide-react';
+import { Vote, MessageCircle, FileText, Hand, Monitor, BarChart2 } from 'lucide-react';
 import ActiveVoteCard from './ActiveVoteCard';
 import AgendaVoteList from './AgendaVoteList';
 import QaSection from './QaSection';
 import DocumentSection from './DocumentSection';
 import SpeakerSection from './SpeakerSection';
+import ResultsSection from './ResultsSection';
 import useVoteStore from '@/app/_lib/features/assembly/model/useVoteStore';
 import type { AgendaItem, Poll, PollOption } from '@/app/_lib/shared/type/assembly.types';
 
-type TabId = 'agenda' | 'qa' | 'documents' | 'speaker';
+type TabId = 'agenda' | 'qa' | 'documents' | 'speaker' | 'results';
 
-const TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
+const BASE_TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
   { id: 'agenda', label: '투표', icon: <Vote className="w-4 h-4" aria-hidden="true" /> },
   { id: 'qa', label: 'Q&A', icon: <MessageCircle className="w-4 h-4" aria-hidden="true" /> },
   { id: 'documents', label: '자료', icon: <FileText className="w-4 h-4" aria-hidden="true" /> },
   { id: 'speaker', label: '발언', icon: <Hand className="w-4 h-4" aria-hidden="true" /> },
 ];
+
+const RESULTS_TAB: { id: TabId; label: string; icon: React.ReactNode } = {
+  id: 'results', label: '결과', icon: <BarChart2 className="w-4 h-4" aria-hidden="true" />,
+};
+
+const RESULTS_VISIBLE_STATUSES = ['VOTING_CLOSED', 'CLOSED', 'ARCHIVED'];
 
 export interface MobileBottomSheetProps {
   assemblyId: string;
@@ -40,7 +47,10 @@ export default function MobileBottomSheet({
 }: MobileBottomSheetProps) {
   const [activeTab, setActiveTab] = useState<TabId>('agenda');
   const [snap, setSnap] = useState<string | number | null>(0.5);
-  const { agendaItems, receiptTokens } = useVoteStore();
+  const { assembly, agendaItems, receiptTokens } = useVoteStore();
+
+  const showResults = RESULTS_VISIBLE_STATUSES.includes(assembly?.status || '');
+  const tabs = showResults ? [...BASE_TABS, RESULTS_TAB] : BASE_TABS;
 
   const isFullScreen = snap === 1;
 
@@ -64,7 +74,7 @@ export default function MobileBottomSheet({
             <DrawerTitle className="sr-only">총회 콘텐츠</DrawerTitle>
             {/* 탭 네비게이션 */}
             <div role="tablist" className="flex bg-gray-50 rounded-lg overflow-hidden border border-gray-200">
-              {TABS.map((tab) => (
+              {tabs.map((tab) => (
                 <button
                   key={tab.id}
                   role="tab"
@@ -118,6 +128,7 @@ export default function MobileBottomSheet({
             {activeTab === 'qa' && <QaSection assemblyId={assemblyId} />}
             {activeTab === 'documents' && <DocumentSection assemblyId={assemblyId} />}
             {activeTab === 'speaker' && <SpeakerSection assemblyId={assemblyId} />}
+            {activeTab === 'results' && <ResultsSection assemblyId={assemblyId} />}
           </div>
         </DrawerContent>
       </Drawer>

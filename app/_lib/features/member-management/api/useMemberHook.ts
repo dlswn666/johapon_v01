@@ -261,6 +261,7 @@ interface GroupedMemberRow {
     land_ownership_ratio: number | null;
     building_area: number | null;
     building_ownership_ratio: number | null;
+    voting_weight: number;
     updated_at: string | null;
     // User 타입에 있지만 DB 함수에서 반환하지 않는 필드들 (null로 처리)
     rejected_reason?: string | null;
@@ -560,6 +561,42 @@ export function useUnblockMember() {
                     is_blocked: false,
                     blocked_at: null,
                     blocked_reason: null,
+                    updated_at: new Date().toISOString(),
+                })
+                .eq('id', memberId)
+                .eq('union_id', unionId);
+
+            if (error) throw error;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['approved-members'] });
+            queryClient.invalidateQueries({ queryKey: ['member-detail'] });
+        },
+    });
+}
+
+// 의결권 가중치 수정
+export function useUpdateVotingWeight() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({
+            memberId,
+            unionId,
+            votingWeight,
+        }: {
+            memberId: string;
+            unionId: string;
+            votingWeight: number;
+        }) => {
+            if (votingWeight < 0) {
+                throw new Error('의결권 가중치는 0 이상이어야 합니다.');
+            }
+
+            const { error } = await supabase
+                .from('users')
+                .update({
+                    voting_weight: votingWeight,
                     updated_at: new Date().toISOString(),
                 })
                 .eq('id', memberId)

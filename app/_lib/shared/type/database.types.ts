@@ -848,6 +848,7 @@ export type Database = {
           assembly_id: string
           consent_agreed_at: string | null
           created_at: string
+          entity_type: string | null
           id: string
           identity_method: string | null
           identity_verified_at: string | null
@@ -856,6 +857,7 @@ export type Database = {
           member_phone: string | null
           member_type: string
           property_address: string | null
+          property_units_snapshot: Json | null
           proxy_authorized_at: string | null
           proxy_name: string | null
           proxy_user_id: string | null
@@ -870,6 +872,7 @@ export type Database = {
           assembly_id: string
           consent_agreed_at?: string | null
           created_at?: string
+          entity_type?: string | null
           id?: string
           identity_method?: string | null
           identity_verified_at?: string | null
@@ -878,6 +881,7 @@ export type Database = {
           member_phone?: string | null
           member_type?: string
           property_address?: string | null
+          property_units_snapshot?: Json | null
           proxy_authorized_at?: string | null
           proxy_name?: string | null
           proxy_user_id?: string | null
@@ -892,6 +896,7 @@ export type Database = {
           assembly_id?: string
           consent_agreed_at?: string | null
           created_at?: string
+          entity_type?: string | null
           id?: string
           identity_method?: string | null
           identity_verified_at?: string | null
@@ -900,6 +905,7 @@ export type Database = {
           member_phone?: string | null
           member_type?: string
           property_address?: string | null
+          property_units_snapshot?: Json | null
           proxy_authorized_at?: string | null
           proxy_name?: string | null
           proxy_user_id?: string | null
@@ -2638,10 +2644,12 @@ export type Database = {
           dong: string | null
           ho: string | null
           id: string
+          is_active: boolean
           is_primary: boolean | null
           land_area: number | null
           land_ownership_ratio: number | null
           notes: string | null
+          ownership_ratio: number
           ownership_type: string | null
           pnu: string | null
           previous_pnu: string | null
@@ -2659,10 +2667,12 @@ export type Database = {
           dong?: string | null
           ho?: string | null
           id?: string
+          is_active?: boolean
           is_primary?: boolean | null
           land_area?: number | null
           land_ownership_ratio?: number | null
           notes?: string | null
+          ownership_ratio?: number
           ownership_type?: string | null
           pnu?: string | null
           previous_pnu?: string | null
@@ -2680,10 +2690,12 @@ export type Database = {
           dong?: string | null
           ho?: string | null
           id?: string
+          is_active?: boolean
           is_primary?: boolean | null
           land_area?: number | null
           land_ownership_ratio?: number | null
           notes?: string | null
+          ownership_ratio?: number
           ownership_type?: string | null
           pnu?: string | null
           previous_pnu?: string | null
@@ -2760,8 +2772,11 @@ export type Database = {
           birth_date: string | null
           blocked_at: string | null
           blocked_reason: string | null
+          business_registration_no: string | null
+          canonical_user_id: string | null
           created_at: string
           email: string | null
+          entity_type: string | null
           executive_sort_order: number | null
           executive_title: string | null
           id: string
@@ -2776,6 +2791,7 @@ export type Database = {
           property_zonecode: string | null
           rejected_at: string | null
           rejected_reason: string | null
+          representative_name: string | null
           resident_address: string | null
           resident_address_detail: string | null
           resident_address_jibun: string | null
@@ -2785,14 +2801,18 @@ export type Database = {
           union_id: string | null
           updated_at: string | null
           user_status: string | null
+          voting_weight: number
         }
         Insert: {
           approved_at?: string | null
           birth_date?: string | null
           blocked_at?: string | null
           blocked_reason?: string | null
+          business_registration_no?: string | null
+          canonical_user_id?: string | null
           created_at?: string
           email?: string | null
+          entity_type?: string | null
           executive_sort_order?: number | null
           executive_title?: string | null
           id: string
@@ -2807,6 +2827,7 @@ export type Database = {
           property_zonecode?: string | null
           rejected_at?: string | null
           rejected_reason?: string | null
+          representative_name?: string | null
           resident_address?: string | null
           resident_address_detail?: string | null
           resident_address_jibun?: string | null
@@ -2816,14 +2837,18 @@ export type Database = {
           union_id?: string | null
           updated_at?: string | null
           user_status?: string | null
+          voting_weight?: number
         }
         Update: {
           approved_at?: string | null
           birth_date?: string | null
           blocked_at?: string | null
           blocked_reason?: string | null
+          business_registration_no?: string | null
+          canonical_user_id?: string | null
           created_at?: string
           email?: string | null
+          entity_type?: string | null
           executive_sort_order?: number | null
           executive_title?: string | null
           id?: string
@@ -2838,6 +2863,7 @@ export type Database = {
           property_zonecode?: string | null
           rejected_at?: string | null
           rejected_reason?: string | null
+          representative_name?: string | null
           resident_address?: string | null
           resident_address_detail?: string | null
           resident_address_jibun?: string | null
@@ -2847,6 +2873,7 @@ export type Database = {
           union_id?: string | null
           updated_at?: string | null
           user_status?: string | null
+          voting_weight?: number
         }
         Relationships: [
           {
@@ -3109,6 +3136,320 @@ export type Database = {
             columns: ["verifier_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feature_flags: {
+        Row: {
+          description: string | null
+          enabled: boolean
+          flag_name: string
+          updated_at: string | null
+        }
+        Insert: {
+          description?: string | null
+          enabled?: boolean
+          flag_name: string
+          updated_at?: string | null
+        }
+        Update: {
+          description?: string | null
+          enabled?: boolean
+          flag_name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      migration_user_mapping: {
+        Row: {
+          id: string
+          migrated_at: string | null
+          new_ownership_id: string | null
+          new_property_unit_id: string | null
+          notes: string | null
+          original_upu_id: string
+        }
+        Insert: {
+          id?: string
+          migrated_at?: string | null
+          new_ownership_id?: string | null
+          new_property_unit_id?: string | null
+          notes?: string | null
+          original_upu_id: string
+        }
+        Update: {
+          id?: string
+          migrated_at?: string | null
+          new_ownership_id?: string | null
+          new_property_unit_id?: string | null
+          notes?: string | null
+          original_upu_id?: string
+        }
+        Relationships: []
+      }
+      property_units: {
+        Row: {
+          building_area: number | null
+          building_name: string | null
+          building_unit_id: string | null
+          created_at: string
+          dong: string | null
+          ho: string | null
+          id: string
+          is_deleted: boolean
+          land_area: number | null
+          notes: string | null
+          official_price: number | null
+          pnu: string | null
+          previous_pnu: string | null
+          property_address_jibun: string | null
+          property_address_road: string | null
+          property_zonecode: string | null
+          union_id: string
+          updated_at: string
+        }
+        Insert: {
+          building_area?: number | null
+          building_name?: string | null
+          building_unit_id?: string | null
+          created_at?: string
+          dong?: string | null
+          ho?: string | null
+          id?: string
+          is_deleted?: boolean
+          land_area?: number | null
+          notes?: string | null
+          official_price?: number | null
+          pnu?: string | null
+          previous_pnu?: string | null
+          property_address_jibun?: string | null
+          property_address_road?: string | null
+          property_zonecode?: string | null
+          union_id: string
+          updated_at?: string
+        }
+        Update: {
+          building_area?: number | null
+          building_name?: string | null
+          building_unit_id?: string | null
+          created_at?: string
+          dong?: string | null
+          ho?: string | null
+          id?: string
+          is_deleted?: boolean
+          land_area?: number | null
+          notes?: string | null
+          official_price?: number | null
+          pnu?: string | null
+          previous_pnu?: string | null
+          property_address_jibun?: string | null
+          property_address_road?: string | null
+          property_zonecode?: string | null
+          union_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_units_union_id_fkey"
+            columns: ["union_id"]
+            isOneToOne: false
+            referencedRelation: "unions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      property_ownerships: {
+        Row: {
+          building_ownership_ratio: number | null
+          created_at: string
+          id: string
+          is_active: boolean
+          is_primary: boolean
+          land_ownership_ratio: number | null
+          notes: string | null
+          ownership_ratio: number
+          ownership_type: string
+          property_unit_id: string
+          source_upu_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          building_ownership_ratio?: number | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_primary?: boolean
+          land_ownership_ratio?: number | null
+          notes?: string | null
+          ownership_ratio?: number
+          ownership_type?: string
+          property_unit_id: string
+          source_upu_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          building_ownership_ratio?: number | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_primary?: boolean
+          land_ownership_ratio?: number | null
+          notes?: string | null
+          ownership_ratio?: number
+          ownership_type?: string
+          property_unit_id?: string
+          source_upu_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_ownerships_property_unit_id_fkey"
+            columns: ["property_unit_id"]
+            isOneToOne: false
+            referencedRelation: "property_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "property_ownerships_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      co_ownership_groups: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string | null
+          property_unit_id: string
+          representative_user_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          property_unit_id: string
+          representative_user_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          property_unit_id?: string
+          representative_user_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "co_ownership_groups_property_unit_id_fkey"
+            columns: ["property_unit_id"]
+            isOneToOne: true
+            referencedRelation: "property_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "co_ownership_groups_representative_user_id_fkey"
+            columns: ["representative_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_merge_history: {
+        Row: {
+          canonical_user_id: string
+          duplicate_user_id: string
+          id: string
+          merge_reason: string | null
+          merged_at: string
+          merged_by: string
+          snapshot_before: Json | null
+        }
+        Insert: {
+          canonical_user_id: string
+          duplicate_user_id: string
+          id?: string
+          merge_reason?: string | null
+          merged_at?: string
+          merged_by: string
+          snapshot_before?: Json | null
+        }
+        Update: {
+          canonical_user_id?: string
+          duplicate_user_id?: string
+          id?: string
+          merge_reason?: string | null
+          merged_at?: string
+          merged_by?: string
+          snapshot_before?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_merge_history_canonical_user_id_fkey"
+            columns: ["canonical_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_merge_history_duplicate_user_id_fkey"
+            columns: ["duplicate_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_merge_history_merged_by_fkey"
+            columns: ["merged_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      merge_exclusions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          status: string
+          union_id: string
+          user_id_a: string
+          user_id_b: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          status?: string
+          union_id: string
+          user_id_a: string
+          user_id_b: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          status?: string
+          union_id?: string
+          user_id_a?: string
+          user_id_b?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "merge_exclusions_union_id_fkey"
+            columns: ["union_id"]
+            isOneToOne: false
+            referencedRelation: "unions"
             referencedColumns: ["id"]
           },
         ]
@@ -4740,3 +5081,37 @@ export type OwnershipChangeType = 'TRANSFER' | 'CO_OWNER_ADDED' | 'CO_OWNER_REMO
 export type PropertyOwnershipHistory = Database['public']['Tables']['property_ownership_history']['Row'];
 export type NewPropertyOwnershipHistory = Database['public']['Tables']['property_ownership_history']['Insert'];
 export type UpdatePropertyOwnershipHistory = Database['public']['Tables']['property_ownership_history']['Update'];
+
+// M:N 소유 관계 스키마 타입
+export type EntityType = 'INDIVIDUAL' | 'CORPORATION' | 'GOVERNMENT' | 'PUBLIC_CORP';
+
+export type PropertyUnit = Database['public']['Tables']['property_units']['Row'];
+export type NewPropertyUnit = Database['public']['Tables']['property_units']['Insert'];
+export type UpdatePropertyUnit = Database['public']['Tables']['property_units']['Update'];
+
+export type PropertyOwnership = Database['public']['Tables']['property_ownerships']['Row'];
+export type NewPropertyOwnership = Database['public']['Tables']['property_ownerships']['Insert'];
+export type UpdatePropertyOwnership = Database['public']['Tables']['property_ownerships']['Update'];
+
+export type CoOwnershipGroup = Database['public']['Tables']['co_ownership_groups']['Row'];
+export type NewCoOwnershipGroup = Database['public']['Tables']['co_ownership_groups']['Insert'];
+
+export type UserMergeHistory = Database['public']['Tables']['user_merge_history']['Row'];
+export type NewUserMergeHistory = Database['public']['Tables']['user_merge_history']['Insert'];
+
+export type MergeExclusion = Database['public']['Tables']['merge_exclusions']['Row'];
+export type NewMergeExclusion = Database['public']['Tables']['merge_exclusions']['Insert'];
+
+export const ENTITY_TYPE_LABELS: Record<EntityType, string> = {
+    INDIVIDUAL: '개인',
+    CORPORATION: '법인',
+    GOVERNMENT: '관청',
+    PUBLIC_CORP: '공공기관',
+};
+
+export const ENTITY_TYPE_STYLES: Record<EntityType, string> = {
+    INDIVIDUAL: 'bg-gray-100 text-gray-700',
+    CORPORATION: 'bg-purple-100 text-purple-700',
+    GOVERNMENT: 'bg-slate-100 text-slate-700',
+    PUBLIC_CORP: 'bg-blue-100 text-blue-700',
+};

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/app/_lib/shared/supabase/server';
 import { authenticateApiRequest } from '@/app/_lib/shared/api/auth';
+import crypto from 'crypto';
 
 interface RouteContext {
   params: Promise<{ assemblyId: string }>;
@@ -116,8 +117,24 @@ export async function POST(request: NextRequest, context: RouteContext) {
       tallyResults.push({ poll_id: poll.id, result: result || [] });
     }
 
+    // P2-3: 집계 결과 확정 해시
+    const tallyPayload = JSON.stringify(tallyResults, Object.keys(tallyResults).sort());
+    const tallyHash = crypto.createHash('sha256').update(tallyPayload).digest('hex');
+
+    // 감사 로그에 집계 확정 해시 기록
+    await supabase.from('assembly_audit_logs').insert({
+      assembly_id: assemblyId,
+      union_id: unionId,
+      event_type: 'TALLY_FINALIZED',
+      actor_id: auth.user.id,
+      actor_role: 'ADMIN',
+      target_type: 'tally',
+      target_id: assemblyId,
+      event_data: { poll_count: polls.length, tally_hash: tallyHash },
+    });
+
     return NextResponse.json({
-      data: { tallied_at: new Date().toISOString(), polls: tallyResults },
+      data: { tallied_at: new Date().toISOString(), polls: tallyResults, tally_hash: tallyHash },
       ...(errors.length > 0 && { errors }),
     });
   } catch (error) {

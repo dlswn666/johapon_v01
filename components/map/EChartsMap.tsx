@@ -30,15 +30,16 @@ interface EChartsMapProps {
     mode?: MapViewMode;
     onParcelClick?: (pnu: string) => void;
     selectedPnu?: string | null;
+    selectedPnuList?: string[];
     onParcelHover?: (pnu: string | null) => void;
 }
 
-// 동의 현황 색상 및 라벨
+// 동의 현황 색상 및 라벨 (불투명 색상으로 번짐 방지)
 const CONSENT_CONFIG = {
     pieces: [
-        { value: 'FULL_AGREED', label: '동의 완료', color: '#22c55e66' }, // green-500 + 40% opacity
-        { value: 'PARTIAL_AGREED', label: '일부 동의', color: '#eab30866' }, // yellow-500 + 40% opacity
-        { value: 'NONE_AGREED', label: '비동의', color: '#ef444466' }, // red-500 + 40% opacity
+        { value: 'FULL_AGREED', label: '동의 완료', color: '#86efac' }, // green-300 (불투명)
+        { value: 'PARTIAL_AGREED', label: '일부 동의', color: '#fde68a' }, // amber-200 (불투명)
+        { value: 'NONE_AGREED', label: '비동의', color: '#fca5a5' }, // red-300 (불투명)
         { value: 'NO_OWNER', label: '미제출', color: '#f1f5f9' }, // 연한 회색
     ],
     labels: {
@@ -48,20 +49,20 @@ const CONSENT_CONFIG = {
         NO_OWNER: { label: '미제출', description: '동의서 미제출' },
     },
     colors: {
-        FULL_AGREED: '#22c55e66',
-        PARTIAL_AGREED: '#eab30866',
-        NONE_AGREED: '#ef444466',
+        FULL_AGREED: '#86efac',
+        PARTIAL_AGREED: '#fde68a',
+        NONE_AGREED: '#fca5a5',
         NO_OWNER: '#f1f5f9',
     },
     seriesName: '필지별 동의 현황',
 };
 
-// 가입 현황 색상 및 라벨 (디자인 시스템에 맞게 조정)
+// 가입 현황 색상 및 라벨 (불투명 색상으로 번짐 방지)
 const REGISTRATION_CONFIG = {
     pieces: [
-        { value: 'ALL_REGISTERED', label: '전체 가입', color: '#22c55e66' }, // green-500 + 40% opacity
-        { value: 'PARTIAL_REGISTERED', label: '일부 가입', color: '#ca8a0466' }, // yellow-600 + 40% opacity
-        { value: 'NONE_REGISTERED', label: '미가입', color: '#dc262666' }, // red-600 + 40% opacity
+        { value: 'ALL_REGISTERED', label: '전체 가입', color: '#86efac' }, // green-300 (불투명)
+        { value: 'PARTIAL_REGISTERED', label: '일부 가입', color: '#fde68a' }, // amber-200 (불투명)
+        { value: 'NONE_REGISTERED', label: '미가입', color: '#fca5a5' }, // red-300 (불투명)
         { value: 'NO_OWNER', label: '미제출', color: '#f1f5f9' }, // 연한 회색
     ],
     labels: {
@@ -71,9 +72,9 @@ const REGISTRATION_CONFIG = {
         NO_OWNER: { label: '미제출', description: '등록된 조합원 없음' },
     },
     colors: {
-        ALL_REGISTERED: '#22c55e66', // green-500 + 40% opacity
-        PARTIAL_REGISTERED: '#ca8a0466', // yellow-600 + 40% opacity
-        NONE_REGISTERED: '#dc262666', // red-600 + 40% opacity
+        ALL_REGISTERED: '#86efac', // green-300 (불투명)
+        PARTIAL_REGISTERED: '#fde68a', // amber-200 (불투명)
+        NONE_REGISTERED: '#fca5a5', // red-300 (불투명)
         NO_OWNER: '#f1f5f9', // 연한 회색
     },
     seriesName: '필지별 가입 현황',
@@ -96,19 +97,22 @@ const PREVIEW_CONFIG = {
     seriesName: '필지 미리보기',
 };
 
+// 주소 보기 모드 설정 - 선택된 필지 하이라이트 색상
+const ADDRESS_SELECTED_COLOR = '#3b82f6'; // blue-500 (선택된 필지 색상)
+
 // 주소 보기 모드 설정 (새로 추가)
 const ADDRESS_CONFIG = {
-    pieces: [{ value: 'ALL', label: '필지', color: '#ffffff' }],
+    pieces: [{ value: 'ALL', label: '필지', color: '#f8fafc' }],
     labels: {},
     colors: {
-        // 모든 상태를 동일한 색상(흰색)으로 처리
-        FULL_AGREED: '#ffffff',
-        PARTIAL_AGREED: '#ffffff',
-        NONE_AGREED: '#ffffff',
-        NO_OWNER: '#ffffff',
-        ALL_REGISTERED: '#ffffff',
-        PARTIAL_REGISTERED: '#ffffff',
-        NONE_REGISTERED: '#ffffff',
+        // 모든 상태를 동일한 연한 회색으로 처리 (경계선이 잘 보이도록)
+        FULL_AGREED: '#f8fafc',
+        PARTIAL_AGREED: '#f8fafc',
+        NONE_AGREED: '#f8fafc',
+        NO_OWNER: '#f8fafc',
+        ALL_REGISTERED: '#f8fafc',
+        PARTIAL_REGISTERED: '#f8fafc',
+        NONE_REGISTERED: '#f8fafc',
     },
     seriesName: '필지 주소',
 };
@@ -136,6 +140,7 @@ export default function EChartsMap({
     mode = 'address',
     onParcelClick,
     selectedPnu,
+    selectedPnuList = [],
     onParcelHover,
 }: EChartsMapProps) {
     const chartRef = useRef<HTMLDivElement>(null);
@@ -159,6 +164,9 @@ export default function EChartsMap({
         return map;
     }, [data]);
 
+    // 선택된 PNU 세트 (빠른 조회용)
+    const selectedPnuSet = useMemo(() => new Set(selectedPnuList), [selectedPnuList]);
+
     useEffect(() => {
         if (!chartRef.current || !geoJson) return;
 
@@ -166,6 +174,12 @@ export default function EChartsMap({
             chartInstance.current = echarts.init(chartRef.current);
             chartInstance.current.on('click', (params: { componentType: string; name: string }) => {
                 if (params.componentType === 'series' && onParcelClick) {
+                    // 클릭 시 emphasis 상태를 즉시 해제하여 data areaColor가 바로 반영되도록 함
+                    chartInstance.current?.dispatchAction({
+                        type: 'downplay',
+                        seriesIndex: 0,
+                        name: params.name,
+                    });
                     onParcelClick(params.name);
                 }
             });
@@ -322,32 +336,46 @@ export default function EChartsMap({
                     emphasis: {
                         label: { show: false },
                         itemStyle: {
-                            areaColor: mode === 'address' ? '#f8fafc' : '#3b82f6',
-                            borderColor: mode === 'address' ? '#000000' : '#1d4ed8',
+                            areaColor: mode === 'address' ? '#cbd5e1' : '#60a5fa',
+                            borderColor: '#334155',
                             borderWidth: 2,
-                            shadowColor: 'rgba(0, 0, 0, 0.3)',
-                            shadowBlur: 10,
                         },
                     },
                     select: {
                         label: { show: false },
                         itemStyle: {
-                            areaColor: mode === 'address' ? '#eff6ff' : '#2563eb',
-                            borderColor: mode === 'address' ? '#000000' : '#1e40af',
+                            areaColor: mode === 'address' ? '#93c5fd' : '#2563eb',
+                            borderColor: '#334155',
                             borderWidth: 2,
                         },
                     },
-                    data: data.map((item) => ({
-                        name: item.pnu,
-                        value: item.status,
-                        itemStyle: {
-                            // 상태별 채움색을 직접 지정 (가장 확실한 방식)
-                            areaColor:
-                                mode === 'address'
-                                    ? '#ffffff'
-                                    : (config.colors as Record<string, string>)[item.status] || '#f1f5f9',
-                        },
-                    })),
+                    data: data.map((item) => {
+                        const isSelected = selectedPnuSet.has(item.pnu);
+                        let areaColor: string;
+                        let emphasisColor: string;
+                        if (mode === 'address') {
+                            areaColor = isSelected ? ADDRESS_SELECTED_COLOR : '#f8fafc';
+                            emphasisColor = isSelected ? '#2563eb' : '#cbd5e1';
+                        } else {
+                            const baseColor = (config.colors as Record<string, string>)[item.status] || '#f1f5f9';
+                            areaColor = isSelected ? ADDRESS_SELECTED_COLOR : baseColor;
+                            emphasisColor = isSelected ? '#2563eb' : '#60a5fa';
+                        }
+                        return {
+                            name: item.pnu,
+                            value: item.status,
+                            itemStyle: {
+                                areaColor,
+                            },
+                            emphasis: {
+                                itemStyle: {
+                                    areaColor: emphasisColor,
+                                    borderColor: '#334155',
+                                    borderWidth: 2,
+                                },
+                            },
+                        };
+                    }),
                 },
             ],
         };
@@ -369,16 +397,33 @@ export default function EChartsMap({
                             label: {
                                 show: false,
                             },
-                            data: data.map((item) => ({
-                                name: item.pnu,
-                                value: item.status,
-                                itemStyle: {
-                                    areaColor:
-                                        mode === 'address'
-                                            ? '#ffffff'
-                                            : (config.colors as Record<string, string>)[item.status] || '#f1f5f9',
-                                },
-                            })),
+                            data: data.map((item) => {
+                                const isSelected = selectedPnuSet.has(item.pnu);
+                                let areaColor: string;
+                                let emphasisColor: string;
+                                if (mode === 'address') {
+                                    areaColor = isSelected ? ADDRESS_SELECTED_COLOR : '#f8fafc';
+                                    emphasisColor = isSelected ? '#2563eb' : '#cbd5e1';
+                                } else {
+                                    const baseColor = (config.colors as Record<string, string>)[item.status] || '#f1f5f9';
+                                    areaColor = isSelected ? ADDRESS_SELECTED_COLOR : baseColor;
+                                    emphasisColor = isSelected ? '#2563eb' : '#60a5fa';
+                                }
+                                return {
+                                    name: item.pnu,
+                                    value: item.status,
+                                    itemStyle: {
+                                        areaColor,
+                                    },
+                                    emphasis: {
+                                        itemStyle: {
+                                            areaColor: emphasisColor,
+                                            borderColor: '#334155',
+                                            borderWidth: 2,
+                                        },
+                                    },
+                                };
+                            }),
                         },
                     ],
                 },
@@ -392,13 +437,13 @@ export default function EChartsMap({
         return () => {
             window.removeEventListener('resize', handleResize);
         };
-    }, [geoJson, data, dataMap, onParcelClick, onParcelHover, config, mode]);
+    }, [geoJson, data, dataMap, onParcelClick, onParcelHover, config, mode, selectedPnuSet]);
 
-    // 외부에서 선택된 필지 하이라이트 및 포커스
+    // 외부에서 선택된 필지 포커스 (툴팁만 표시, highlight는 사용하지 않음 - data areaColor로 처리)
     useEffect(() => {
         if (!chartInstance.current || !selectedPnu) return;
 
-        // 이전 선택 해제
+        // 이전 선택 해제 (emphasis 상태 제거)
         if (prevSelectedPnu.current && prevSelectedPnu.current !== selectedPnu) {
             chartInstance.current.dispatchAction({
                 type: 'downplay',
@@ -407,14 +452,7 @@ export default function EChartsMap({
             });
         }
 
-        // 새로운 필지 강조
-        chartInstance.current.dispatchAction({
-            type: 'highlight',
-            seriesIndex: 0,
-            name: selectedPnu,
-        });
-
-        // 툴팁 표시
+        // 툴팁만 표시 (highlight는 emphasis 색상을 적용해서 data areaColor를 덮으므로 사용하지 않음)
         chartInstance.current.dispatchAction({
             type: 'showTip',
             seriesIndex: 0,
@@ -424,7 +462,7 @@ export default function EChartsMap({
         prevSelectedPnu.current = selectedPnu;
     }, [selectedPnu]);
 
-    return <div ref={chartRef} className="w-full h-full min-h-[500px]" />;
+    return <div ref={chartRef} className="w-full h-full min-h-[1100px]" />;
 }
 
 // 지도 범례 컴포넌트 (canvas 외부에 배치)

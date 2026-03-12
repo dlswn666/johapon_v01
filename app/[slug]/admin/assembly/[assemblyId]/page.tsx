@@ -13,10 +13,14 @@ import {
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import useModalStore from '@/app/_lib/shared/stores/modal/useModalStore';
-import { ArrowLeft, Settings, FileText, Vote, Users, QrCode, ClipboardList, BarChart2 } from 'lucide-react';
+import { ArrowLeft, Settings, FileText, Vote, Users, QrCode, ClipboardList, BarChart2, UserPlus, FileCheck, Bell, Shield } from 'lucide-react';
 import { getUnionPath } from '@/app/_lib/shared/lib/utils/slug';
 import QuorumDashboard from '@/app/_lib/features/assembly/ui/QuorumDashboard';
 import AdminLiveDashboard from '@/app/_lib/features/assembly/ui/admin/AdminLiveDashboard';
+import ComplianceBanner from '@/app/_lib/features/assembly/ui/ComplianceBanner';
+import { useComplianceCheck } from '@/app/_lib/features/assembly/api/useComplianceHook';
+import { getTransitionCheckpoint } from '@/app/_lib/features/assembly/domain/assemblyStateMachine';
+import type { ComplianceCheckpoint } from '@/app/_lib/shared/type/assembly.types';
 
 // 상태 전이 버튼 설정
 const STATUS_ACTIONS: Record<string, { nextStatus: AssemblyStatus; label: string; variant: 'default' | 'destructive' | 'outline' }[]> = {
@@ -72,6 +76,15 @@ export default function AssemblyDashboardPage({ params }: { params: Promise<{ as
   const { data: assembly, isLoading } = useAssembly(assemblyId);
   const transitionMutation = useTransitionAssemblyStatus();
   const { openConfirmModal } = useModalStore();
+
+  // 현재 상태에 맞는 컴플라이언스 체크포인트 결정
+  const complianceCheckpoint = assembly
+    ? (getTransitionCheckpoint(assembly.status, STATUS_ACTIONS[assembly.status]?.[0]?.nextStatus || assembly.status) as ComplianceCheckpoint | null)
+    : null;
+  const { data: complianceResult, isLoading: isComplianceLoading } = useComplianceCheck(
+    assemblyId,
+    complianceCheckpoint || undefined
+  );
 
   useEffect(() => {
     if (!isAuthLoading && !isAdmin) {
@@ -187,6 +200,14 @@ export default function AssemblyDashboardPage({ params }: { params: Promise<{ as
         </div>
       )}
 
+      {/* 컴플라이언스 배너 (준비 단계에서 표시) */}
+      {isEditable && complianceCheckpoint && (
+        <ComplianceBanner
+          checkResult={complianceResult}
+          isLoading={isComplianceLoading}
+        />
+      )}
+
       {/* 정족수 대시보드 (총회 진행 중/투표 중에만 표시) */}
       {showQuorum && <QuorumDashboard assemblyId={assemblyId} />}
 
@@ -263,6 +284,19 @@ export default function AssemblyDashboardPage({ params }: { params: Promise<{ as
         </button>
 
         <button
+          onClick={() => router.push(getUnionPath(slug, `/admin/assembly/${assemblyId}/qr-codes`))}
+          className="flex items-center gap-3 p-4 bg-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow text-left"
+        >
+          <div className="w-10 h-10 bg-amber-50 rounded-lg flex items-center justify-center">
+            <QrCode className="w-5 h-5 text-amber-600" />
+          </div>
+          <div>
+            <p className="font-medium text-gray-900">입장 QR 코드</p>
+            <p className="text-xs text-gray-500">조합원 입장코드 생성/인쇄</p>
+          </div>
+        </button>
+
+        <button
           onClick={() => router.push(getUnionPath(slug, `/admin/assembly/${assemblyId}/checkin`))}
           className="flex items-center gap-3 p-4 bg-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow text-left"
         >
@@ -289,6 +323,19 @@ export default function AssemblyDashboardPage({ params }: { params: Promise<{ as
         </button>
 
         <button
+          onClick={() => router.push(getUnionPath(slug, `/admin/assembly/${assemblyId}/proxy`))}
+          className="flex items-center gap-3 p-4 bg-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow text-left"
+        >
+          <div className="w-10 h-10 bg-violet-50 rounded-lg flex items-center justify-center">
+            <UserPlus className="w-5 h-5 text-violet-600" />
+          </div>
+          <div>
+            <p className="font-medium text-gray-900">대리인 관리</p>
+            <p className="text-xs text-gray-500">위임장 등록/해제</p>
+          </div>
+        </button>
+
+        <button
           onClick={() => router.push(getUnionPath(slug, `/admin/assembly/${assemblyId}/report`))}
           className="flex items-center gap-3 p-4 bg-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow text-left"
         >
@@ -298,6 +345,45 @@ export default function AssemblyDashboardPage({ params }: { params: Promise<{ as
           <div>
             <p className="font-medium text-gray-900">결과 보고서</p>
             <p className="text-xs text-gray-500">집계/의사록/증거패키지</p>
+          </div>
+        </button>
+
+        <button
+          onClick={() => router.push(getUnionPath(slug, `/admin/assembly/${assemblyId}/documents`))}
+          className="flex items-center gap-3 p-4 bg-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow text-left"
+        >
+          <div className="w-10 h-10 bg-emerald-50 rounded-lg flex items-center justify-center">
+            <FileCheck className="w-5 h-5 text-emerald-600" />
+          </div>
+          <div>
+            <p className="font-medium text-gray-900">공식 문서</p>
+            <p className="text-xs text-gray-500">문서 생성/서명/봉인</p>
+          </div>
+        </button>
+
+        <button
+          onClick={() => router.push(getUnionPath(slug, `/admin/assembly/${assemblyId}/notifications`))}
+          className="flex items-center gap-3 p-4 bg-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow text-left"
+        >
+          <div className="w-10 h-10 bg-rose-50 rounded-lg flex items-center justify-center">
+            <Bell className="w-5 h-5 text-rose-600" />
+          </div>
+          <div>
+            <p className="font-medium text-gray-900">알림 관리</p>
+            <p className="text-xs text-gray-500">발송 이력/추적</p>
+          </div>
+        </button>
+
+        <button
+          onClick={() => router.push(getUnionPath(slug, `/admin/assembly/${assemblyId}/compliance`))}
+          className="flex items-center gap-3 p-4 bg-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow text-left"
+        >
+          <div className="w-10 h-10 bg-sky-50 rounded-lg flex items-center justify-center">
+            <Shield className="w-5 h-5 text-sky-600" />
+          </div>
+          <div>
+            <p className="font-medium text-gray-900">컴플라이언스</p>
+            <p className="text-xs text-gray-500">법적 검증 상세</p>
           </div>
         </button>
 

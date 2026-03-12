@@ -29,6 +29,7 @@ import { cn } from '@/lib/utils';
 import {
     useUpdateMember,
     useUpdateMemberPnu,
+    useUpdateVotingWeight,
     useUnionLandLots,
     useUpdateOwnershipType,
     useCoOwners,
@@ -46,7 +47,9 @@ import {
     OwnershipType,
     OWNERSHIP_TYPE_LABELS,
     OWNERSHIP_TYPE_STYLES,
+    ENTITY_TYPE_LABELS,
     MemberPropertyUnitInfo,
+    EntityType,
 } from '@/app/_lib/shared/type/database.types';
 
 interface MemberEditModalProps {
@@ -158,9 +161,13 @@ export default function MemberEditModal({ member: initialMember, onClose, onBloc
     const [showSaveConfirmModal, setShowSaveConfirmModal] = useState(false);
     const [showSaveSuccessModal, setShowSaveSuccessModal] = useState(false);
 
+    // 의결권은 도시정비법 §45에 따라 1인 1의결권 고정 (수동 수정 불가)
+
     // API 호출
     const { mutateAsync: updateMember } = useUpdateMember();
     const { mutateAsync: updateMemberPnu } = useUpdateMemberPnu();
+    // updateVotingWeight 비활성화 — 의결권은 도시정비법 §45에 따라 1인 1의결권 고정
+    const { mutateAsync: _updateVotingWeight } = useUpdateVotingWeight();
     const { mutateAsync: updateOwnershipType } = useUpdateOwnershipType();
     const { data: unionLandLots } = useUnionLandLots(unionId);
     const { mutate: logAccessEvent } = useLogAccessEvent();
@@ -290,6 +297,7 @@ export default function MemberEditModal({ member: initialMember, onClose, onBloc
         setShowSaveSuccessModal(false);
         setIsEditMode(false);
     };
+
 
     // PNU 매칭
     const handlePnuMatch = async () => {
@@ -457,6 +465,20 @@ export default function MemberEditModal({ member: initialMember, onClose, onBloc
                         </div>
                     </div>
 
+                    {/* 구성원 유형 (entity_type) */}
+                    {(() => {
+                        const entityType = (initialMember as MemberWithLandInfo & { entity_type?: string }).entity_type as EntityType | undefined;
+                        if (!entityType || entityType === 'INDIVIDUAL') return null;
+                        return (
+                            <div className="flex items-center gap-2 px-4 py-2 bg-purple-50 rounded-xl">
+                                <span className="text-[13px] text-gray-500">구성원 유형:</span>
+                                <span className="text-[13px] font-medium text-purple-700">
+                                    {ENTITY_TYPE_LABELS[entityType]}
+                                </span>
+                            </div>
+                        );
+                    })()}
+
                     {/* 생년월일, 전화번호 */}
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
@@ -562,6 +584,22 @@ export default function MemberEditModal({ member: initialMember, onClose, onBloc
                                 </p>
                             </div>
                         )}
+                    </div>
+
+                    {/* 의결권 (도시정비법 §45 — 수동 수정 불가) */}
+                    <div className="space-y-2">
+                        <label className="flex items-center gap-2 text-[14px] font-medium text-gray-700">
+                            <Percent className="w-4 h-4" />
+                            의결권
+                        </label>
+                        <div className="flex items-center gap-2">
+                            <div className="w-32 h-10 rounded-xl border border-gray-200 bg-gray-50 flex items-center px-3 text-[14px] text-gray-500">
+                                1
+                            </div>
+                            <span className="text-xs text-gray-400">
+                                도시정비법 §45에 따라 1인 1의결권으로 자동 고정됩니다.
+                            </span>
+                        </div>
                     </div>
 
                     {/* 공동 소유자 섹션 */}

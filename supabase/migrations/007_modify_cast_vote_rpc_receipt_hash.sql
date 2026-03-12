@@ -1,0 +1,32 @@
+-- Phase 5 Migration 007: cast_vote RPC 영수증 해시 저장 추가
+-- Workstream C: 영수증 레지스트리 연동
+--
+-- 주의: cast_vote RPC 함수의 영수증 토큰 생성 직후에 아래 INSERT를 추가해야 합니다.
+-- 기존 RPC 함수 구조를 유지하면서, receipt_token 생성 블록 이후에 삽입합니다.
+--
+-- 현재 cast_vote RPC에서 v_receipt_token 생성 후 다음을 추가:
+--
+-- INSERT INTO vote_receipt_registry (
+--   union_id,
+--   assembly_id,
+--   poll_id,
+--   snapshot_id,
+--   receipt_token_hash,
+--   issued_at
+-- ) VALUES (
+--   p_union_id,
+--   p_assembly_id,
+--   p_poll_id,
+--   p_snapshot_id,
+--   encode(sha256(v_receipt_token::bytea), 'hex'),
+--   now()
+-- )
+-- ON CONFLICT (receipt_token_hash) DO NOTHING;
+--
+-- 이 마이그레이션은 참조용입니다. 실제 적용은 cast_vote RPC 함수를
+-- CREATE OR REPLACE로 재생성할 때 포함해야 합니다.
+
+-- 테이블이 존재하지 않으면 이 마이그레이션은 007 이전 마이그레이션에 의존합니다.
+-- 005_create_vote_receipt_registry.sql이 먼저 실행되어야 합니다.
+
+SELECT 1; -- placeholder (RPC 수정은 cast_vote 함수 재생성 시 적용)
