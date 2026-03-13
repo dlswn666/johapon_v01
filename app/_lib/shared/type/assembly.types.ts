@@ -79,11 +79,12 @@ export interface AgendaItem {
   quorum_threshold_pct: number | null;
   quorum_requires_direct: boolean;
   approval_threshold_pct: number | null;
+  explanation_html: string | null;
   created_at: string;
   updated_at: string;
 }
 
-export type NewAgendaItem = Pick<AgendaItem, 'title' | 'agenda_type'> & Partial<Pick<AgendaItem, 'description' | 'seq_order' | 'quorum_threshold_pct' | 'quorum_requires_direct' | 'approval_threshold_pct'>>;
+export type NewAgendaItem = Pick<AgendaItem, 'title' | 'agenda_type'> & Partial<Pick<AgendaItem, 'description' | 'seq_order' | 'quorum_threshold_pct' | 'quorum_requires_direct' | 'approval_threshold_pct' | 'explanation_html'>>;
 
 export type UpdateAgendaItem = Partial<Omit<AgendaItem, 'id' | 'assembly_id' | 'union_id' | 'created_at' | 'updated_at'>>;
 
@@ -487,6 +488,7 @@ export interface PublicOptionResult {
 // 공식 문서 타입
 export type OfficialDocumentType =
   | 'CONVOCATION_NOTICE'
+  | 'INDIVIDUAL_NOTICE'
   | 'AGENDA_EXPLANATION'
   | 'E_VOTING_GUIDE'
   | 'CONSENT_FORM'
@@ -508,7 +510,8 @@ export type DocumentStatus =
   | 'VOID';
 
 export const DOCUMENT_TYPE_LABELS: Record<OfficialDocumentType, string> = {
-  CONVOCATION_NOTICE: '소집통지문',
+  CONVOCATION_NOTICE: '소집공고',
+  INDIVIDUAL_NOTICE: '소집통지서',
   AGENDA_EXPLANATION: '안건 설명서',
   E_VOTING_GUIDE: '전자투표 안내문',
   CONSENT_FORM: '동의서',
@@ -900,27 +903,41 @@ export interface MinutesCorrection {
 // 위자드 스텝
 // ============================================
 
-export type WizardStep = 1 | 2 | 3 | 4 | 5 | 6 | 7;
+export type WizardStep = 1 | 2 | 3 | 4 | 5;
 
 export const WIZARD_STEP_LABELS: Record<WizardStep, string> = {
   1: '기본 정보',
-  2: '참여 방식',
-  3: '안건 구성',
-  4: '문서 생성',
-  5: '알림 계획',
-  6: '컴플라이언스 검증',
-  7: '최종 확인',
+  2: '안건 등록',
+  3: '소집공고 작성',
+  4: '소집통지서 작성',
+  5: '발송 설정 & 확인',
 };
 
 export const WIZARD_STEP_DESCRIPTIONS: Record<WizardStep, string> = {
-  1: '총회 제목, 유형, 일시, 장소, 영상 송출 설정',
-  2: '투표 채널, 세션 모드, 본인인증 방법 설정',
-  3: '안건 등록/수정, 법적 템플릿 자동 적용',
-  4: '공식 문서 일괄/개별 생성 및 미리보기',
-  5: '소집공고 기한 자동 계산 및 발송 실행',
-  6: '전체 규칙 실행 및 BLOCK/WARNING/INFO 확인',
-  7: '체크리스트 요약 및 최종 확정',
+  1: '총회 유형, 일시, 장소, 참여 방식 설정',
+  2: '안건 추가 및 의안서(TipTap) 작성',
+  3: 'TipTap 에디터로 소집공고 편집',
+  4: 'TipTap 에디터로 소집통지서 편집',
+  5: '발송 일정, 컴플라이언스, 최종 확인',
 };
+
+// 예약 알림
+export type ScheduledNotificationStatus = 'PENDING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
+export type ScheduledNotificationType = 'CONVOCATION_NOTICE' | 'INDIVIDUAL_NOTICE';
+
+export interface ScheduledNotification {
+  id: string;
+  assembly_id: string;
+  union_id: string;
+  notification_type: ScheduledNotificationType;
+  document_id: string | null;
+  scheduled_at: string;
+  status: ScheduledNotificationStatus;
+  error_message: string | null;
+  created_by: string;
+  executed_at: string | null;
+  created_at: string;
+}
 
 // 채널 충돌 모드
 export type ChannelConflictMode = 'LAST_WINS' | 'FIRST_LOCKS';
@@ -942,6 +959,7 @@ export interface AssemblyPhase2Extensions {
 // 문서 유형별 아이콘 (lucide 컴포넌트명)
 export const DOCUMENT_TYPE_ICONS: Record<OfficialDocumentType, string> = {
   CONVOCATION_NOTICE: 'FileText',
+  INDIVIDUAL_NOTICE: 'Mail',
   AGENDA_EXPLANATION: 'ClipboardList',
   E_VOTING_GUIDE: 'Smartphone',
   CONSENT_FORM: 'UserCheck',
@@ -954,6 +972,7 @@ export const DOCUMENT_TYPE_ICONS: Record<OfficialDocumentType, string> = {
 
 export const DOCUMENT_TYPE_ICON_COLORS: Record<OfficialDocumentType, string> = {
   CONVOCATION_NOTICE: 'bg-blue-50 text-blue-600',
+  INDIVIDUAL_NOTICE: 'bg-teal-50 text-teal-600',
   AGENDA_EXPLANATION: 'bg-purple-50 text-purple-600',
   E_VOTING_GUIDE: 'bg-cyan-50 text-cyan-600',
   CONSENT_FORM: 'bg-amber-50 text-amber-600',
@@ -965,7 +984,8 @@ export const DOCUMENT_TYPE_ICON_COLORS: Record<OfficialDocumentType, string> = {
 };
 
 export const DOCUMENT_TYPE_DESCRIPTIONS: Record<OfficialDocumentType, string> = {
-  CONVOCATION_NOTICE: '총회 소집을 조합원에게 공지하는 문서',
+  CONVOCATION_NOTICE: '총회 소집을 전체 조합원에게 공지하는 문서',
+  INDIVIDUAL_NOTICE: '조합원 개인별 소집통지서 (서면결의 안내 포함)',
   AGENDA_EXPLANATION: '각 안건의 상세 설명 문서',
   E_VOTING_GUIDE: '전자투표 절차 안내 문서',
   CONSENT_FORM: '개인정보 수집/이용 및 전자투표 동의서',

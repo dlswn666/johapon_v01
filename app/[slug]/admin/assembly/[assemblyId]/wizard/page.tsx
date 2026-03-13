@@ -15,14 +15,12 @@ import { useComplianceCheck } from '@/app/_lib/features/assembly/api/useComplian
 import type { WizardStep } from '@/app/_lib/shared/type/assembly.types';
 import { WIZARD_STEP_LABELS, WIZARD_STEP_DESCRIPTIONS } from '@/app/_lib/shared/type/assembly.types';
 import WizardStep1BasicInfo, { type Step1Data } from '@/app/_lib/features/assembly/ui/wizard/WizardStep1BasicInfo';
-import WizardStep2Participation, { type Step2Data } from '@/app/_lib/features/assembly/ui/wizard/WizardStep2Participation';
 import WizardStep3Agendas, { type Step3Data } from '@/app/_lib/features/assembly/ui/wizard/WizardStep3Agendas';
-import WizardStep4Documents from '@/app/_lib/features/assembly/ui/wizard/WizardStep4Documents';
-import WizardStep5Notifications from '@/app/_lib/features/assembly/ui/wizard/WizardStep5Notifications';
-import WizardStep6Compliance from '@/app/_lib/features/assembly/ui/wizard/WizardStep6Compliance';
-import WizardStep7Summary from '@/app/_lib/features/assembly/ui/wizard/WizardStep7Summary';
+import WizardStep3ConvocationNotice from '@/app/_lib/features/assembly/ui/wizard/WizardStep3ConvocationNotice';
+import WizardStep4IndividualNotice from '@/app/_lib/features/assembly/ui/wizard/WizardStep4IndividualNotice';
+import WizardStep5ScheduleConfirm from '@/app/_lib/features/assembly/ui/wizard/WizardStep5ScheduleConfirm';
 
-const WIZARD_STEPS = ([1, 2, 3, 4, 5, 6, 7] as WizardStep[]).map((step) => ({
+const WIZARD_STEPS = ([1, 2, 3, 4, 5] as WizardStep[]).map((step) => ({
   step,
   label: WIZARD_STEP_LABELS[step],
   description: WIZARD_STEP_DESCRIPTIONS[step],
@@ -39,7 +37,7 @@ export default function WizardPage({ params }: { params: Promise<{ assemblyId: s
   const wizard = useWizardState(assemblyId);
   const { data: complianceResult } = useComplianceCheck(assemblyId, 'BEFORE_NOTICE');
 
-  // 스텝 1 데이터
+  // 스텝 1 데이터 (기본 정보 + 참여 방식 통합)
   const [step1Data, setStep1Data] = useState<Step1Data>({
     title: '',
     assembly_type: 'REGULAR',
@@ -50,10 +48,6 @@ export default function WizardPage({ params }: { params: Promise<{ assemblyId: s
     zoom_meeting_id: '',
     youtube_video_id: '',
     legal_basis: '',
-  });
-
-  // 스텝 2 데이터
-  const [step2Data, setStep2Data] = useState<Step2Data>({
     session_mode: 'SESSION',
     identity_verification_level: 'KAKAO_ONLY',
     channel_conflict_mode: 'LAST_WINS',
@@ -63,12 +57,12 @@ export default function WizardPage({ params }: { params: Promise<{ assemblyId: s
     allow_onsite: true,
   });
 
-  // 스텝 3 데이터
-  const [step3Data, setStep3Data] = useState<Step3Data>({
+  // 스텝 2 데이터 (안건)
+  const [step2Data, setStep2Data] = useState<Step3Data>({
     agendaItems: [],
   });
 
-  // assembly 로드 시 데이터 초기화 (초기화 여부 추적)
+  // assembly 로드 시 데이터 초기화
   const initializedRef = React.useRef(false);
   useEffect(() => {
     if (assembly && !initializedRef.current) {
@@ -83,15 +77,16 @@ export default function WizardPage({ params }: { params: Promise<{ assemblyId: s
         zoom_meeting_id: assembly.zoom_meeting_id || '',
         youtube_video_id: assembly.youtube_video_id || '',
         legal_basis: assembly.legal_basis || '',
+        session_mode: assembly.session_mode || 'SESSION',
+        identity_verification_level: 'KAKAO_ONLY',
+        channel_conflict_mode: 'LAST_WINS',
+        allow_electronic: true,
+        allow_written: true,
+        allow_proxy: true,
+        allow_onsite: true,
       };
-      const updateStep1 = setStep1Data;
-      const updateStep2 = setStep2Data;
       queueMicrotask(() => {
-        updateStep1(newStep1);
-        updateStep2((prev) => ({
-          ...prev,
-          session_mode: assembly.session_mode || 'SESSION',
-        }));
+        setStep1Data(newStep1);
       });
     }
   }, [assembly]);
@@ -102,15 +97,13 @@ export default function WizardPage({ params }: { params: Promise<{ assemblyId: s
     }
   }, [isAuthLoading, isAdmin, router, slug]);
 
-  // 자동 저장
+  // 자동 저장 (스텝 1, 2만 — 스텝 3,4는 자체 저장)
   useEffect(() => {
     if (wizard.currentStep === 1) wizard.autoSave(1, step1Data as unknown as Record<string, unknown>);
     if (wizard.currentStep === 2) wizard.autoSave(2, step2Data as unknown as Record<string, unknown>);
-    if (wizard.currentStep === 3) wizard.autoSave(3, step3Data as unknown as Record<string, unknown>);
-  }, [step1Data, step2Data, step3Data, wizard.currentStep]);
+  }, [step1Data, step2Data, wizard.currentStep]);
 
   const handleConfirm = () => {
-    // DRAFT -> NOTICE_SENT 전이
     transitionMutation.mutate(
       { assemblyId, status: 'NOTICE_SENT' },
       {
@@ -168,24 +161,19 @@ export default function WizardPage({ params }: { params: Promise<{ assemblyId: s
             <WizardStep1BasicInfo data={step1Data} onChange={setStep1Data} />
           )}
           {wizard.currentStep === 2 && (
-            <WizardStep2Participation data={step2Data} onChange={setStep2Data} />
+            <WizardStep3Agendas data={step2Data} onChange={setStep2Data} />
           )}
           {wizard.currentStep === 3 && (
-            <WizardStep3Agendas data={step3Data} onChange={setStep3Data} />
+            <WizardStep3ConvocationNotice assemblyId={assemblyId} assembly={assembly} />
           )}
           {wizard.currentStep === 4 && (
-            <WizardStep4Documents assemblyId={assemblyId} />
+            <WizardStep4IndividualNotice assemblyId={assemblyId} assembly={assembly} />
           )}
           {wizard.currentStep === 5 && (
-            <WizardStep5Notifications assemblyId={assemblyId} assembly={assembly} />
-          )}
-          {wizard.currentStep === 6 && (
-            <WizardStep6Compliance assemblyId={assemblyId} />
-          )}
-          {wizard.currentStep === 7 && (
-            <WizardStep7Summary
+            <WizardStep5ScheduleConfirm
+              assemblyId={assemblyId}
               assembly={assembly}
-              completedSteps={wizard.completedSteps}
+              completedSteps={wizard.completedSteps as Set<number>}
               complianceResult={complianceResult}
               onConfirm={handleConfirm}
               isConfirming={transitionMutation.isPending}
@@ -202,7 +190,7 @@ export default function WizardPage({ params }: { params: Promise<{ assemblyId: s
               <ChevronLeft className="w-4 h-4 mr-1" />
               이전
             </Button>
-            {wizard.currentStep < 7 && (
+            {wizard.currentStep < 5 && (
               <Button onClick={wizard.goNext}>
                 다음
                 <ChevronRight className="w-4 h-4 ml-1" />

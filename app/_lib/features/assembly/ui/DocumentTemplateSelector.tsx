@@ -3,7 +3,7 @@
 import React from 'react';
 import {
   FileText, ClipboardList, Smartphone, UserCheck,
-  Users, Vote, BookOpen, BarChart3, Package,
+  Users, Vote, BookOpen, BarChart3, Package, Mail,
 } from 'lucide-react';
 import type { OfficialDocumentType, DocumentTemplate } from '@/app/_lib/shared/type/assembly.types';
 import {
@@ -14,6 +14,7 @@ import {
 
 const ICON_MAP: Record<OfficialDocumentType, React.ElementType> = {
   CONVOCATION_NOTICE: FileText,
+  INDIVIDUAL_NOTICE: Mail,
   AGENDA_EXPLANATION: ClipboardList,
   E_VOTING_GUIDE: Smartphone,
   CONSENT_FORM: UserCheck,

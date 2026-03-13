@@ -108,10 +108,10 @@ export const useCreateAssembly = () => {
 
       openAlertModal({
         title: '생성 완료',
-        message: '총회가 성공적으로 생성되었습니다.',
+        message: '총회가 생성되었습니다. 위자드로 이동합니다.',
         type: 'success',
         onOk: () => {
-          const path = getUnionPath(slug, `/admin/assembly/${data.id}`);
+          const path = getUnionPath(slug, `/admin/assembly/${data.id}/wizard`);
           router.push(path);
         },
       });

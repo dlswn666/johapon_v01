@@ -113,6 +113,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
         quorum_threshold_pct: body.quorum_threshold_pct ?? defaults.quorumThresholdPct,
         quorum_requires_direct: body.quorum_requires_direct ?? defaults.requiresDirect,
         approval_threshold_pct: body.approval_threshold_pct ?? defaults.approvalThresholdPct,
+        explanation_html: body.explanation_html?.trim() || null,
       })
       .select()
       .single();

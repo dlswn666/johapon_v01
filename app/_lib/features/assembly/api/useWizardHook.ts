@@ -68,7 +68,7 @@ export function useWizardState(assemblyId: string) {
   }, []);
 
   const goNext = useCallback(() => {
-    setCurrentStep((prev) => (prev < 7 ? ((prev + 1) as WizardStep) : prev));
+    setCurrentStep((prev) => (prev < 5 ? ((prev + 1) as WizardStep) : prev));
   }, []);
 
   const goPrev = useCallback(() => {

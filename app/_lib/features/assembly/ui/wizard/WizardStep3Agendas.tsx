@@ -1,12 +1,13 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Trash2, GripVertical } from 'lucide-react';
+import { Plus, Trash2, GripVertical, ChevronDown, ChevronUp } from 'lucide-react';
 import InfoCard from '@/app/_lib/widgets/common/InfoCard';
+import { TextEditorDynamic } from '@/app/_lib/widgets/common/text-editor/TextEditorDynamic';
 import type { AgendaType, NewAgendaItem } from '@/app/_lib/shared/type/assembly.types';
 import {
   AGENDA_TYPE_LABELS,
@@ -14,7 +15,7 @@ import {
 } from '@/app/_lib/shared/type/assembly.types';
 
 interface Step3Data {
-  agendaItems: (NewAgendaItem & { _tempId: string })[];
+  agendaItems: (NewAgendaItem & { _tempId: string; explanation_html?: string })[];
 }
 
 interface WizardStep3Props {
@@ -22,9 +23,26 @@ interface WizardStep3Props {
   onChange: (data: Step3Data) => void;
 }
 
+const EXPLANATION_TEMPLATE =
+  '<h2>1. 제안 사유</h2><p>(제안 사유를 입력하세요)</p><h2>2. 주요 내용</h2><p>(주요 내용을 입력하세요)</p><h2>3. 기대 효과</h2><p>(기대 효과를 입력하세요)</p>';
+
 export default function WizardStep3Agendas({ data, onChange }: WizardStep3Props) {
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+
+  const toggleExpanded = (tempId: string) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(tempId)) {
+        next.delete(tempId);
+      } else {
+        next.add(tempId);
+      }
+      return next;
+    });
+  };
+
   const addAgenda = () => {
-    const newItem: NewAgendaItem & { _tempId: string } = {
+    const newItem: NewAgendaItem & { _tempId: string; explanation_html?: string } = {
       _tempId: crypto.randomUUID(),
       title: '',
       agenda_type: 'GENERAL',
@@ -34,6 +52,11 @@ export default function WizardStep3Agendas({ data, onChange }: WizardStep3Props)
   };
 
   const removeAgenda = (tempId: string) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      next.delete(tempId);
+      return next;
+    });
     onChange({
       agendaItems: data.agendaItems
         .filter((a) => a._tempId !== tempId)
@@ -41,7 +64,7 @@ export default function WizardStep3Agendas({ data, onChange }: WizardStep3Props)
     });
   };
 
-  const updateAgenda = (tempId: string, updates: Partial<NewAgendaItem>) => {
+  const updateAgenda = (tempId: string, updates: Partial<NewAgendaItem & { explanation_html?: string }>) => {
     onChange({
       agendaItems: data.agendaItems.map((a) =>
         a._tempId === tempId ? { ...a, ...updates } : a
@@ -57,6 +80,10 @@ export default function WizardStep3Agendas({ data, onChange }: WizardStep3Props)
       approval_threshold_pct: defaults.approvalThresholdPct,
       quorum_requires_direct: defaults.requiresDirect,
     });
+  };
+
+  const applyTemplate = (tempId: string) => {
+    updateAgenda(tempId, { explanation_html: EXPLANATION_TEMPLATE });
   };
 
   return (
@@ -80,106 +107,150 @@ export default function WizardStep3Agendas({ data, onChange }: WizardStep3Props)
       )}
 
       <div className="space-y-4">
-        {data.agendaItems.map((item, index) => (
-          <div
-            key={item._tempId}
-            className="bg-white rounded-lg border border-gray-200 p-4 space-y-3"
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <GripVertical className="w-4 h-4 text-gray-400 cursor-grab" />
-                <span className="text-sm font-medium text-gray-500">
-                  #{index + 1}
-                </span>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => removeAgenda(item._tempId)}
-                className="text-red-500 hover:text-red-700"
-              >
-                <Trash2 className="w-4 h-4" />
-              </Button>
-            </div>
+        {data.agendaItems.map((item, index) => {
+          const isExpanded = expandedIds.has(item._tempId);
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="sm:col-span-2">
-                <Label>안건 제목 *</Label>
-                <Input
-                  value={item.title}
-                  onChange={(e) => updateAgenda(item._tempId, { title: e.target.value })}
-                  placeholder="안건 제목을 입력하세요"
-                  className="mt-1"
-                />
-              </div>
-
-              <div>
-                <Label>안건 유형 *</Label>
-                <select
-                  value={item.agenda_type}
-                  onChange={(e) =>
-                    handleTypeChange(item._tempId, e.target.value as AgendaType)
-                  }
-                  className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
+          return (
+            <div
+              key={item._tempId}
+              className="bg-white rounded-lg border border-gray-200 p-4 space-y-3"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <GripVertical className="w-4 h-4 text-gray-400 cursor-grab" />
+                  <span className="text-sm font-medium text-gray-500">
+                    #{index + 1}
+                  </span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => removeAgenda(item._tempId)}
+                  className="text-red-500 hover:text-red-700"
                 >
-                  {(Object.entries(AGENDA_TYPE_LABELS) as [AgendaType, string][]).map(
-                    ([key, label]) => (
-                      <option key={key} value={key}>
-                        {label}
-                      </option>
-                    )
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="sm:col-span-2">
+                  <Label>안건 제목 *</Label>
+                  <Input
+                    value={item.title}
+                    onChange={(e) => updateAgenda(item._tempId, { title: e.target.value })}
+                    placeholder="안건 제목을 입력하세요"
+                    className="mt-1"
+                  />
+                </div>
+
+                <div>
+                  <Label>안건 유형 *</Label>
+                  <select
+                    value={item.agenda_type}
+                    onChange={(e) =>
+                      handleTypeChange(item._tempId, e.target.value as AgendaType)
+                    }
+                    className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
+                  >
+                    {(Object.entries(AGENDA_TYPE_LABELS) as [AgendaType, string][]).map(
+                      ([key, label]) => (
+                        <option key={key} value={key}>
+                          {label}
+                        </option>
+                      )
+                    )}
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label>정족수 (%)</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={100}
+                      value={item.quorum_threshold_pct ?? ''}
+                      onChange={(e) =>
+                        updateAgenda(item._tempId, {
+                          quorum_threshold_pct: Number(e.target.value),
+                        })
+                      }
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label>승인율 (%)</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={100}
+                      value={item.approval_threshold_pct ?? ''}
+                      onChange={(e) =>
+                        updateAgenda(item._tempId, {
+                          approval_threshold_pct: Number(e.target.value),
+                        })
+                      }
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+
+                <div className="sm:col-span-2">
+                  <Label>설명</Label>
+                  <Textarea
+                    value={item.description ?? ''}
+                    onChange={(e) =>
+                      updateAgenda(item._tempId, { description: e.target.value })
+                    }
+                    placeholder="안건에 대한 설명"
+                    rows={2}
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+
+              {/* 의안서 작성 토글 섹션 */}
+              <div className="border-t border-gray-100 pt-3">
+                <button
+                  type="button"
+                  onClick={() => toggleExpanded(item._tempId)}
+                  className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-gray-900"
+                >
+                  {isExpanded ? (
+                    <ChevronUp className="w-4 h-4" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4" />
                   )}
-                </select>
-              </div>
+                  의안서 작성
+                  {item.explanation_html && (
+                    <span className="text-xs text-green-600 font-normal">(작성됨)</span>
+                  )}
+                </button>
 
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <Label>정족수 (%)</Label>
-                  <Input
-                    type="number"
-                    min={0}
-                    max={100}
-                    value={item.quorum_threshold_pct ?? ''}
-                    onChange={(e) =>
-                      updateAgenda(item._tempId, {
-                        quorum_threshold_pct: Number(e.target.value),
-                      })
-                    }
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label>승인율 (%)</Label>
-                  <Input
-                    type="number"
-                    min={0}
-                    max={100}
-                    value={item.approval_threshold_pct ?? ''}
-                    onChange={(e) =>
-                      updateAgenda(item._tempId, {
-                        approval_threshold_pct: Number(e.target.value),
-                      })
-                    }
-                    className="mt-1"
-                  />
-                </div>
-              </div>
-
-              <div className="sm:col-span-2">
-                <Label>설명</Label>
-                <Textarea
-                  value={item.description ?? ''}
-                  onChange={(e) =>
-                    updateAgenda(item._tempId, { description: e.target.value })
-                  }
-                  placeholder="안건에 대한 설명"
-                  rows={2}
-                  className="mt-1"
-                />
+                {isExpanded && (
+                  <div className="mt-3 space-y-2">
+                    <div className="flex justify-end">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => applyTemplate(item._tempId)}
+                      >
+                        템플릿 적용
+                      </Button>
+                    </div>
+                    <TextEditorDynamic
+                      content={item.explanation_html ?? ''}
+                      onChange={(html) =>
+                        updateAgenda(item._tempId, { explanation_html: html })
+                      }
+                      placeholder="의안서 내용을 작성하세요..."
+                    />
+                  </div>
+                )}
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

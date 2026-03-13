@@ -11,6 +11,7 @@ interface RouteContext {
 const AGENDA_ALLOWED_FIELDS = [
   'title', 'description', 'agenda_type', 'seq_order',
   'quorum_threshold_pct', 'quorum_requires_direct', 'approval_threshold_pct',
+  'explanation_html',
 ];
 
 /**
