@@ -491,6 +491,7 @@ export type OfficialDocumentType =
   | 'E_VOTING_GUIDE'
   | 'CONSENT_FORM'
   | 'PROXY_FORM'
+  | 'WRITTEN_RESOLUTION'
   | 'MINUTES'
   | 'RESULT_PUBLICATION'
   | 'EVIDENCE_PACKAGE_SUMMARY';
@@ -512,6 +513,7 @@ export const DOCUMENT_TYPE_LABELS: Record<OfficialDocumentType, string> = {
   E_VOTING_GUIDE: '전자투표 안내문',
   CONSENT_FORM: '동의서',
   PROXY_FORM: '위임장',
+  WRITTEN_RESOLUTION: '서면결의서',
   MINUTES: '의사록',
   RESULT_PUBLICATION: '결과 공표문',
   EVIDENCE_PACKAGE_SUMMARY: '증거 패키지 요약',
@@ -554,6 +556,7 @@ export interface OfficialDocument {
   source_json: Record<string, unknown>;
   html_content: string | null;
   pdf_storage_path: string | null;
+  pdf_hash: string | null;
   content_hash: string | null;
   required_signers: DocumentRequiredSigner[];
   signature_threshold: number;
@@ -605,6 +608,8 @@ export interface DocumentSignature {
   signer_name: string;
   signer_role: SignerRole;
   signature_method: SignatureMethod;
+  signature_image_path: string | null;
+  signature_image_hash: string | null;
   signed_at: string;
   ip_address: string | null;
   user_agent: string | null;
@@ -928,4 +933,175 @@ export interface AssemblyPhase2Extensions {
   identity_verification_level: IdentityVerificationLevel;
   required_signature_type: SignatureMethod;
   channel_conflict_mode: ChannelConflictMode;
+}
+
+// ============================================
+// 공식 문서 시스템 — 추가 타입
+// ============================================
+
+// 문서 유형별 아이콘 (lucide 컴포넌트명)
+export const DOCUMENT_TYPE_ICONS: Record<OfficialDocumentType, string> = {
+  CONVOCATION_NOTICE: 'FileText',
+  AGENDA_EXPLANATION: 'ClipboardList',
+  E_VOTING_GUIDE: 'Smartphone',
+  CONSENT_FORM: 'UserCheck',
+  PROXY_FORM: 'Users',
+  WRITTEN_RESOLUTION: 'Vote',
+  MINUTES: 'BookOpen',
+  RESULT_PUBLICATION: 'BarChart3',
+  EVIDENCE_PACKAGE_SUMMARY: 'Package',
+};
+
+export const DOCUMENT_TYPE_ICON_COLORS: Record<OfficialDocumentType, string> = {
+  CONVOCATION_NOTICE: 'bg-blue-50 text-blue-600',
+  AGENDA_EXPLANATION: 'bg-purple-50 text-purple-600',
+  E_VOTING_GUIDE: 'bg-cyan-50 text-cyan-600',
+  CONSENT_FORM: 'bg-amber-50 text-amber-600',
+  PROXY_FORM: 'bg-indigo-50 text-indigo-600',
+  WRITTEN_RESOLUTION: 'bg-emerald-50 text-emerald-600',
+  MINUTES: 'bg-orange-50 text-orange-600',
+  RESULT_PUBLICATION: 'bg-green-50 text-green-600',
+  EVIDENCE_PACKAGE_SUMMARY: 'bg-gray-50 text-gray-600',
+};
+
+export const DOCUMENT_TYPE_DESCRIPTIONS: Record<OfficialDocumentType, string> = {
+  CONVOCATION_NOTICE: '총회 소집을 조합원에게 공지하는 문서',
+  AGENDA_EXPLANATION: '각 안건의 상세 설명 문서',
+  E_VOTING_GUIDE: '전자투표 절차 안내 문서',
+  CONSENT_FORM: '개인정보 수집/이용 및 전자투표 동의서',
+  PROXY_FORM: '대리 참석 위임 문서',
+  WRITTEN_RESOLUTION: '서면 투표 의사 표시 문서',
+  MINUTES: '총회 진행 기록 (법정 문서)',
+  RESULT_PUBLICATION: '투표 결과 공식 공표 문서',
+  EVIDENCE_PACKAGE_SUMMARY: '총회 전체 증거 자료 요약',
+};
+
+// DB: document_templates 테이블
+export interface DocumentTemplate {
+  id: string;
+  template_type: OfficialDocumentType;
+  html_template: string;
+  merge_field_schema: MergeFieldDef[];
+  version: number;
+  description: string | null;
+  legal_basis: string | null;
+  requires_signatures: boolean;
+  required_signer_roles: SignerRole[];
+  signature_threshold: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MergeFieldDef {
+  name: string;
+  label: string;
+  type: 'text' | 'number' | 'date' | 'boolean' | 'enum';
+  required: boolean;
+  source: 'snapshot' | 'assembly' | 'union_info' | 'static';
+}
+
+export interface MergeContext {
+  snapshot?: Record<string, unknown>;
+  assembly?: Record<string, unknown>;
+  unionInfo?: Record<string, unknown>;
+  staticData?: Record<string, string>;
+}
+
+// DB: document_personalized_instances 테이블
+export interface PersonalizedDocumentInstance {
+  id: string;
+  document_id: string;
+  assembly_id: string;
+  union_id: string;
+  snapshot_id: string;
+  user_id: string;
+  personalized_html: string;
+  personalization_hash: string;
+  has_signed: boolean;
+  signed_at: string | null;
+  signature_image_url: string | null;
+  viewed_at: string | null;
+  downloaded_at: string | null;
+  status: 'PENDING' | 'VIEWED' | 'SIGNED' | 'SEALED';
+  created_at: string;
+  updated_at: string;
+}
+
+// DB: document_download_logs 테이블
+export interface DocumentDownloadLog {
+  id: string;
+  document_id: string;
+  personalization_snapshot_id: string | null;
+  user_id: string;
+  user_role: string;
+  download_type: string;
+  downloaded_at: string;
+  ip_address: string | null;
+  user_agent: string | null;
+  created_at: string;
+}
+
+// PDF 생성 결과
+export interface PdfGenerationResult {
+  pdfStoragePath: string;
+  pdfHash: string;
+  generatedAt: string;
+}
+
+// 개인화 문서 API 응답 (조합원용)
+export interface PersonalizedDocumentResponse {
+  instanceId: string;
+  personalizedHtml: string;
+  personalizationHash: string;
+  status: 'PENDING' | 'VIEWED' | 'SIGNED' | 'SEALED';
+  canSign: boolean;
+  viewedAt: string | null;
+  signedAt: string | null;
+}
+
+// 개인화 문서 뷰 (조합원 문서 열람 페이지용)
+export interface PersonalizedDocumentView {
+  instanceId: string;
+  documentId: string;
+  documentType: OfficialDocumentType;
+  documentTitle: string;
+  version: number;
+  status: 'PENDING' | 'VIEWED' | 'SIGNED' | 'SEALED';
+  personalizedHtml: string;
+  contentHash: string;
+  canSign: boolean;
+  hasSigned: boolean;
+  signedAt: string | null;
+  signatureThreshold: number;
+  signerRole: SignerRole | null;
+}
+
+// 조합원 문서 수신함 요약
+export interface PersonalizedDocumentSummary {
+  documentId: string;
+  instanceId: string;
+  documentType: OfficialDocumentType;
+  version: number;
+  status: 'PENDING' | 'VIEWED' | 'SIGNED' | 'SEALED';
+  hasSigned: boolean;
+  requiresSignature: boolean;
+  signatureThreshold: number;
+  createdAt: string;
+  viewedAt: string | null;
+  signedAt: string | null;
+  pdfAvailable: boolean;
+}
+
+// 관리자용 개인화 인스턴스
+export interface PersonalizedInstance {
+  id: string;
+  documentId: string;
+  userId: string;
+  userName: string;
+  status: 'PENDING' | 'VIEWED' | 'SIGNED' | 'SEALED';
+  viewedAt: string | null;
+  signedAt: string | null;
+  personalizationHash: string;
+  signatureImageUrl: string | null;
 }

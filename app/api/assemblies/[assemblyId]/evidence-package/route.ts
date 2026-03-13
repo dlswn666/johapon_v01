@@ -101,82 +101,77 @@ export async function POST(request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: '총회를 찾을 수 없습니다.' }, { status: 404 });
     }
 
-    // 스냅샷 목록
-    const { data: snapshots } = await supabase
-      .from('assembly_member_snapshots')
-      .select('id, user_id, member_name, member_phone, property_address, voting_weight, member_type, proxy_user_id, proxy_name, identity_verified_at, is_active, created_at')
-      .eq('assembly_id', assemblyId)
-      .eq('union_id', unionId);
-
-    // 출석 로그
-    const { data: attendanceLogs } = await supabase
-      .from('assembly_attendance_logs')
-      .select('id, snapshot_id, user_id, attendance_type, entry_at, exit_at, qr_checkin_at, identity_verified, identity_verified_at, created_at')
-      .eq('assembly_id', assemblyId)
-      .eq('union_id', unionId)
-      .order('created_at');
-
-    // 투표 집계 결과
-    const { data: tallyResults } = await supabase
-      .from('vote_tally_results')
-      .select('id, poll_id, option_id, voting_method, vote_count, vote_weight_sum, tallied_at, tallied_by')
-      .eq('assembly_id', assemblyId)
-      .eq('union_id', unionId);
-
-    // Q&A 기록
-    const { data: questions } = await supabase
-      .from('assembly_questions')
-      .select('id, agenda_item_id, user_id, content, visibility, is_approved, answer, submitted_at')
-      .eq('assembly_id', assemblyId)
-      .eq('union_id', unionId)
-      .order('submitted_at');
-
-    // 발언 요청
-    const { data: speakerRequests } = await supabase
-      .from('speaker_requests')
-      .select('id, agenda_item_id, user_id, status, approved_by, approved_at, queue_position, requested_at')
-      .eq('assembly_id', assemblyId)
-      .eq('union_id', unionId)
-      .order('requested_at');
-
-    // M-7: 투표 참여 기록
-    const { data: participationRecords } = await supabase
-      .from('participation_records')
-      .select('id, poll_id, snapshot_id, user_id, voting_method, first_voted_at, last_voted_at, vote_count')
-      .eq('assembly_id', assemblyId)
-      .eq('union_id', unionId)
-      .order('first_voted_at');
-
-    // 자료 열람 로그
-    const { data: documentViewLogs } = await supabase
-      .from('document_view_logs')
-      .select('id, document_id, user_id, viewed_at')
-      .eq('assembly_id', assemblyId)
-      .eq('union_id', unionId)
-      .order('viewed_at');
-
-    // 동의 증거
-    const { data: consentEvidences } = await supabase
-      .from('assembly_consent_evidences')
-      .select('id, snapshot_id, actor_user_id, actor_role, consent_type, consent_version, consent_text_hash, signature_type, created_at')
-      .eq('assembly_id', assemblyId)
-      .eq('union_id', unionId)
-      .order('created_at');
-
-    // 결과 공개
-    const { data: resultPublications } = await supabase
-      .from('assembly_result_publications')
-      .select('id, published_by, published_at, result_hash, source_tally_hash')
-      .eq('assembly_id', assemblyId)
-      .eq('union_id', unionId);
-
-    // 감사 로그 (해시 체인 포함)
-    const { data: auditLogs } = await supabase
-      .from('assembly_audit_logs')
-      .select('id, event_type, actor_id, actor_role, target_type, target_id, event_data, ip_address, user_agent, prev_hash, current_hash, created_at')
-      .eq('assembly_id', assemblyId)
-      .eq('union_id', unionId)
-      .order('created_at');
+    // PERF-1: 모든 독립적 쿼리를 병렬 실행
+    const [
+      { data: snapshots },
+      { data: attendanceLogs },
+      { data: tallyResults },
+      { data: questions },
+      { data: speakerRequests },
+      { data: participationRecords },
+      { data: documentViewLogs },
+      { data: consentEvidences },
+      { data: resultPublications },
+      { data: auditLogs },
+    ] = await Promise.all([
+      supabase
+        .from('assembly_member_snapshots')
+        .select('id, user_id, member_name, member_phone, property_address, voting_weight, member_type, proxy_user_id, proxy_name, identity_verified_at, is_active, created_at')
+        .eq('assembly_id', assemblyId)
+        .eq('union_id', unionId),
+      supabase
+        .from('assembly_attendance_logs')
+        .select('id, snapshot_id, user_id, attendance_type, entry_at, exit_at, qr_checkin_at, identity_verified, identity_verified_at, created_at')
+        .eq('assembly_id', assemblyId)
+        .eq('union_id', unionId)
+        .order('created_at'),
+      supabase
+        .from('vote_tally_results')
+        .select('id, poll_id, option_id, voting_method, vote_count, vote_weight_sum, tallied_at, tallied_by')
+        .eq('assembly_id', assemblyId)
+        .eq('union_id', unionId),
+      supabase
+        .from('assembly_questions')
+        .select('id, agenda_item_id, user_id, content, visibility, is_approved, answer, submitted_at')
+        .eq('assembly_id', assemblyId)
+        .eq('union_id', unionId)
+        .order('submitted_at'),
+      supabase
+        .from('speaker_requests')
+        .select('id, agenda_item_id, user_id, status, approved_by, approved_at, queue_position, requested_at')
+        .eq('assembly_id', assemblyId)
+        .eq('union_id', unionId)
+        .order('requested_at'),
+      supabase
+        .from('participation_records')
+        .select('id, poll_id, snapshot_id, user_id, voting_method, first_voted_at, last_voted_at, vote_count')
+        .eq('assembly_id', assemblyId)
+        .eq('union_id', unionId)
+        .order('first_voted_at'),
+      supabase
+        .from('document_view_logs')
+        .select('id, document_id, user_id, viewed_at')
+        .eq('assembly_id', assemblyId)
+        .eq('union_id', unionId)
+        .order('viewed_at'),
+      supabase
+        .from('assembly_consent_evidences')
+        .select('id, snapshot_id, actor_user_id, actor_role, consent_type, consent_version, consent_text_hash, signature_type, created_at')
+        .eq('assembly_id', assemblyId)
+        .eq('union_id', unionId)
+        .order('created_at'),
+      supabase
+        .from('assembly_result_publications')
+        .select('id, published_by, published_at, result_hash, source_tally_hash')
+        .eq('assembly_id', assemblyId)
+        .eq('union_id', unionId),
+      supabase
+        .from('assembly_audit_logs')
+        .select('id, event_type, actor_id, actor_role, target_type, target_id, event_data, ip_address, user_agent, prev_hash, current_hash, created_at')
+        .eq('assembly_id', assemblyId)
+        .eq('union_id', unionId)
+        .order('created_at'),
+    ]);
 
     // 해시 체인 무결성 검증
     let chainIntegrity = true;

@@ -33,7 +33,7 @@ export function canTransition(from: AssemblyStatus, to: AssemblyStatus): boolean
 
 /** 가능한 다음 상태 목록 */
 export function getNextStates(current: AssemblyStatus): AssemblyStatus[] {
-  return VALID_TRANSITIONS[current] || [];
+  return [...(VALID_TRANSITIONS[current] || [])];
 }
 
 /** 상태 전이 시 필요한 컴플라이언스 체크포인트 (없으면 null) */

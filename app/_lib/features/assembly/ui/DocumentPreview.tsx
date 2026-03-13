@@ -1,9 +1,10 @@
 'use client';
 
 import React from 'react';
+import DOMPurify from 'dompurify';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Download, X, ExternalLink } from 'lucide-react';
+import { Download } from 'lucide-react';
 import StatusBadge from '@/app/_lib/widgets/common/StatusBadge';
 import HashDisplay from '@/app/_lib/widgets/common/HashDisplay';
 import type { OfficialDocument } from '@/app/_lib/shared/type/assembly.types';
@@ -31,7 +32,7 @@ export default function DocumentPreview({
 
   const handleDownloadPdf = () => {
     window.open(
-      `/api/assemblies/${assemblyId}/documents/${doc.id}/pdf`,
+      `/api/assemblies/${assemblyId}/official-documents/${doc.id}/pdf`,
       '_blank'
     );
   };
@@ -87,22 +88,17 @@ export default function DocumentPreview({
         </div>
 
         {/* 문서 내용 (A4 비율 프레임) */}
-        <div className="mt-4 bg-white border border-gray-300 shadow-sm rounded-lg overflow-hidden">
-          <div
-            className="p-8 min-h-[400px]"
-            style={{ aspectRatio: '210 / 297' }}
-          >
-            {doc.html_content ? (
-              <div
-                className="prose prose-sm max-w-none"
-                dangerouslySetInnerHTML={{ __html: doc.html_content }}
-              />
-            ) : (
-              <div className="flex items-center justify-center h-full text-gray-400">
-                <p>문서 내용이 없습니다.</p>
-              </div>
-            )}
-          </div>
+        <div className="mt-4 overflow-x-auto">
+          {doc.html_content ? (
+            <div
+              className="document-a4"
+              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(doc.html_content) }}
+            />
+          ) : (
+            <div className="flex items-center justify-center min-h-[400px] bg-white border border-gray-300 rounded-lg text-gray-400">
+              <p>문서 내용이 없습니다.</p>
+            </div>
+          )}
         </div>
 
         {/* 무효 사유 */}

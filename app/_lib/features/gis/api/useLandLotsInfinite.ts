@@ -28,6 +28,7 @@ export interface InfiniteLandLotsResponse {
 interface UseLandLotsInfiniteParams {
     unionId: string | undefined;
     searchQuery?: string;
+    pnuFilter?: string[];
     pageSize?: number;
 }
 
@@ -35,9 +36,9 @@ interface UseLandLotsInfiniteParams {
  * 지번 목록 무한 스크롤 조회 Hook
  * - land_lots 테이블에서 직접 조회 (union_land_lots 병합됨)
  */
-export function useLandLotsInfinite({ unionId, searchQuery = '', pageSize = 50 }: UseLandLotsInfiniteParams) {
+export function useLandLotsInfinite({ unionId, searchQuery = '', pnuFilter, pageSize = 50 }: UseLandLotsInfiniteParams) {
     return useInfiniteQuery<InfiniteLandLotsResponse>({
-        queryKey: ['land-lots-infinite', unionId, searchQuery],
+        queryKey: ['land-lots-infinite', unionId, searchQuery, pnuFilter],
         queryFn: async ({ pageParam }): Promise<InfiniteLandLotsResponse> => {
             if (!unionId) {
                 return { lots: [], total: 0, page: 1 };
@@ -57,7 +58,10 @@ export function useLandLotsInfinite({ unionId, searchQuery = '', pageSize = 50 }
                 .order('created_at', { ascending: false })
                 .range(from, to);
 
-            if (searchQuery) {
+            // PNU 필터가 있으면 PNU로 필터링 (소유주 검색용)
+            if (pnuFilter && pnuFilter.length > 0) {
+                query = query.in('pnu', pnuFilter);
+            } else if (searchQuery) {
                 // 검색어 정규화: 하이픈 제거 버전도 준비 (791-1982 → 7911982)
                 const queryNormalized = searchQuery.replace(/-/g, '');
                 const escaped = escapeLikeWildcards(searchQuery);

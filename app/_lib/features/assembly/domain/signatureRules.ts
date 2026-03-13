@@ -16,11 +16,19 @@ export const MINUTES_SIGNATURE_THRESHOLD = 3;
 export function getDefaultRequiredSignerRoles(docType: OfficialDocumentType): SignerRole[] {
   switch (docType) {
     case 'MINUTES':
-      return MINUTES_REQUIRED_ROLES;
+      return [...MINUTES_REQUIRED_ROLES];
     case 'RESULT_PUBLICATION':
       return ['CHAIRPERSON', 'ADMIN'];
     case 'EVIDENCE_PACKAGE_SUMMARY':
       return ['CHAIRPERSON', 'AUDITOR'];
+    case 'CONSENT_FORM':
+    case 'PROXY_FORM':
+    case 'WRITTEN_RESOLUTION':
+      return ['MEMBER'];
+    case 'CONVOCATION_NOTICE':
+    case 'AGENDA_EXPLANATION':
+    case 'E_VOTING_GUIDE':
+      return []; // 서명 불필요
     default:
       return ['ADMIN'];
   }
@@ -35,6 +43,14 @@ export function getDefaultSignatureThreshold(docType: OfficialDocumentType): num
       return 2;
     case 'EVIDENCE_PACKAGE_SUMMARY':
       return 2;
+    case 'CONSENT_FORM':
+    case 'PROXY_FORM':
+    case 'WRITTEN_RESOLUTION':
+      return 1;
+    case 'CONVOCATION_NOTICE':
+    case 'AGENDA_EXPLANATION':
+    case 'E_VOTING_GUIDE':
+      return 0; // 서명 불필요
     default:
       return 1;
   }

@@ -13,6 +13,7 @@ import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import AlertModal from '@/app/_lib/widgets/modal/AlertModal';
 import { FileUploader } from '@/app/_lib/widgets/common/file-uploader/FileUploader';
 import { TextEditor } from '@/app/_lib/widgets/common/text-editor';
+import { DateTimePicker } from '@/app/_lib/widgets/common/date-picker/DateTimePicker';
 import useNoticeStore from '@/app/_lib/features/notice/model/useNoticeStore';
 import { useFileStore } from '@/app/_lib/shared/stores/file/useFileStore';
 import { StartEndPicker } from '@/app/_lib/widgets/common/date-picker';
@@ -199,30 +200,24 @@ const NewNoticePage = () => {
                                         <div
                                             className={cn(
                                                 'overflow-hidden transition-all duration-300 ease-out',
-                                                alimtalkScheduleType === 'scheduled' ? 'max-h-[100px] opacity-100' : 'max-h-0 opacity-0'
+                                                alimtalkScheduleType === 'scheduled' ? 'max-h-[150px] opacity-100' : 'max-h-0 opacity-0'
                                             )}
                                         >
-                                            <div className="flex items-center gap-3">
-                                                <span className="text-sm text-gray-600">예약 일시:</span>
-                                                <input
-                                                    type="datetime-local"
-                                                    value={scheduledAt ? new Date(scheduledAt.getTime() - scheduledAt.getTimezoneOffset() * 60000).toISOString().slice(0, 16) : ''}
-                                                    onChange={(e) => {
-                                                        const value = e.target.value;
-                                                        if (value) {
-                                                            form.setValue('scheduled_at', new Date(value));
-                                                            form.clearErrors('scheduled_at');
-                                                        } else {
-                                                            form.setValue('scheduled_at', null);
-                                                        }
-                                                    }}
-                                                    min={new Date().toISOString().slice(0, 16)}
-                                                    className={cn(
-                                                        'px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-[#5FA37C] outline-none',
-                                                        form.formState.errors.scheduled_at ? 'border-red-500' : 'border-gray-300'
-                                                    )}
-                                                />
-                                            </div>
+                                            <DateTimePicker
+                                                label="예약 일시"
+                                                value={scheduledAt}
+                                                onChange={(date) => {
+                                                    if (date) {
+                                                        form.setValue('scheduled_at', date);
+                                                        form.clearErrors('scheduled_at');
+                                                    } else {
+                                                        form.setValue('scheduled_at', null);
+                                                    }
+                                                }}
+                                                min={new Date()}
+                                                placeholder="예약 발송 일시 선택"
+                                                hasError={!!form.formState.errors.scheduled_at}
+                                            />
                                             {form.formState.errors.scheduled_at && (
                                                 <p className="text-sm text-red-500 mt-1">
                                                     {form.formState.errors.scheduled_at.message}

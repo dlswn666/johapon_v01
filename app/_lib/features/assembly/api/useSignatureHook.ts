@@ -23,7 +23,7 @@ export const useDocumentSignatures = (
     queryKey: ['signatures', union?.id, assemblyId, documentId],
     queryFn: async () => {
       const res = await fetch(
-        `/api/assemblies/${assemblyId}/documents/${documentId}/signatures`
+        `/api/assemblies/${assemblyId}/official-documents/${documentId}/signatures`
       );
       if (!res.ok) {
         const err = await res.json();
@@ -50,21 +50,24 @@ export const useSignDocument = (assemblyId: string) => {
       signerRole,
       signatureMethod,
       expectedHash,
+      signatureImageData,
     }: {
       documentId: string;
       signerRole: SignerRole;
       signatureMethod: SignatureMethod;
       expectedHash: string;
+      signatureImageData?: string;
     }) => {
       const res = await fetch(
-        `/api/assemblies/${assemblyId}/documents/${documentId}/sign`,
+        `/api/assemblies/${assemblyId}/official-documents/${documentId}/sign`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            signer_role: signerRole,
-            signature_method: signatureMethod,
-            expected_hash: expectedHash,
+            signerRole,
+            signatureMethod,
+            expectedHash,
+            signatureImageData,
           }),
         }
       );
@@ -86,10 +89,10 @@ export const useSignDocument = (assemblyId: string) => {
         queryKey: ['signatures', union?.id, assemblyId, variables.documentId],
       });
       queryClient.invalidateQueries({
-        queryKey: ['documents', union?.id, assemblyId, variables.documentId],
+        queryKey: ['official-documents', union?.id, assemblyId, variables.documentId],
       });
       queryClient.invalidateQueries({
-        queryKey: ['documents', union?.id, assemblyId],
+        queryKey: ['official-documents', union?.id, assemblyId],
       });
 
       if (data.thresholdMet) {

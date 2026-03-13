@@ -22,7 +22,7 @@ export function canDocTransition(from: DocumentStatus, to: DocumentStatus): bool
 
 /** 가능한 다음 문서 상태 목록 */
 export function getNextDocStates(current: DocumentStatus): DocumentStatus[] {
-  return VALID_DOC_TRANSITIONS[current] || [];
+  return [...(VALID_DOC_TRANSITIONS[current] || [])];
 }
 
 /** 서명 가능 상태인지 확인 */

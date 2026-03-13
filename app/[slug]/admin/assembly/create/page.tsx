@@ -2,7 +2,7 @@
 
 import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import { useCreateAssembly } from '@/app/_lib/features/assembly/api/useAssemblyHook';
@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowLeft } from 'lucide-react';
 import { getUnionPath } from '@/app/_lib/shared/lib/utils/slug';
+import { DateTimePicker } from '@/app/_lib/widgets/common/date-picker/DateTimePicker';
 
 export default function CreateAssemblyPage() {
   const router = useRouter();
@@ -19,7 +20,7 @@ export default function CreateAssemblyPage() {
   const { isAdmin, isLoading: isAuthLoading } = useAuth();
   const createMutation = useCreateAssembly();
 
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<NewAssembly>({
+  const { register, handleSubmit, control, formState: { errors, isSubmitting } } = useForm<NewAssembly>({
     defaultValues: {
       assembly_type: 'REGULAR',
     },
@@ -89,12 +90,19 @@ export default function CreateAssemblyPage() {
 
         {/* 일시 */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">
-            총회 일시 <span className="text-red-500">*</span>
-          </label>
-          <Input
-            type="datetime-local"
-            {...register('scheduled_at', { required: '총회 일시를 설정해주세요.' })}
+          <Controller
+            name="scheduled_at"
+            control={control}
+            rules={{ required: '총회 일시를 설정해주세요.' }}
+            render={({ field }) => (
+              <DateTimePicker
+                label="총회 일시 *"
+                value={field.value ? new Date(field.value) : undefined}
+                onChange={(date) => field.onChange(date?.toISOString() ?? '')}
+                placeholder="총회 일시 선택"
+                hasError={!!errors.scheduled_at}
+              />
+            )}
           />
           {errors.scheduled_at && <p className="text-sm text-red-500 mt-1">{errors.scheduled_at.message}</p>}
         </div>

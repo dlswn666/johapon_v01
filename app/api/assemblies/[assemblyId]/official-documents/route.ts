@@ -10,9 +10,11 @@ interface RouteContext {
 
 const VALID_DOC_TYPES: OfficialDocumentType[] = [
   'CONVOCATION_NOTICE', 'AGENDA_EXPLANATION', 'E_VOTING_GUIDE',
-  'CONSENT_FORM', 'PROXY_FORM', 'MINUTES',
+  'CONSENT_FORM', 'PROXY_FORM', 'WRITTEN_RESOLUTION', 'MINUTES',
   'RESULT_PUBLICATION', 'EVIDENCE_PACKAGE_SUMMARY',
 ];
+
+const MAX_SOURCE_JSON_SIZE = 512 * 1024; // 512KB
 
 /**
  * 공식 문서 목록 조회
@@ -102,6 +104,15 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     if (!documentType || !VALID_DOC_TYPES.includes(documentType)) {
       return NextResponse.json({ error: '유효한 문서 유형을 지정하세요.' }, { status: 400 });
+    }
+
+    // SEC-4: sourceJson 크기 제한
+    const sourceJsonStr = JSON.stringify(sourceJson || {});
+    if (sourceJsonStr.length > MAX_SOURCE_JSON_SIZE) {
+      return NextResponse.json(
+        { error: `sourceJson 크기가 제한(${MAX_SOURCE_JSON_SIZE / 1024}KB)을 초과합니다.` },
+        { status: 400 }
+      );
     }
 
     // 총회 존재 확인

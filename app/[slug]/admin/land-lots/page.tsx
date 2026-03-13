@@ -1,14 +1,19 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
-import { Search, Info, Building2, MapPin } from 'lucide-react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import { Search, Info, Building2, MapPin, Users, X, Loader2 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/app/_lib/shared/supabase/client';
 import GisMapContainer from '@/app/_lib/features/gis/components/GisMapContainer';
 import ParcelDetailModal from '@/app/_lib/features/gis/components/ParcelDetailModal';
 import { DataTable, ColumnDef } from '@/app/_lib/widgets/common/data-table';
 import { useLandLotsInfinite, ExtendedLandLot } from '@/app/_lib/features/gis/api/useLandLotsInfinite';
+import { EChartsMapDynamic } from '@/app/_lib/features/gis/components/EChartsMapDynamic';
+import type { ParcelData } from '@/components/map/EChartsMap';
+import { escapeLikeWildcards } from '@/app/_lib/shared/utils/escapeLike';
 
 // 건물 유형 한글 매핑
 const BUILDING_TYPE_LABELS: Record<string, string> = {
@@ -45,22 +50,142 @@ export default function LandLotManagementPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [searchInput, setSearchInput] = useState('');
 
+    // 소유주 검색 상태
+    const [ownerSearchPnus, setOwnerSearchPnus] = useState<string[]>([]);
+    const [searchedOwnerName, setSearchedOwnerName] = useState('');
+
     // 모달 상태
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedPnu, setSelectedPnu] = useState<string | null>(null);
 
+    // 디바운스 타이머 ref
+    const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // 검색 실행 함수 (소유주 이름 → DB 직접 검색, PRE_REGISTERED 포함)
+    const executeSearch = useCallback(
+        async (input: string) => {
+            if (!input.trim()) {
+                setSearchQuery('');
+                setOwnerSearchPnus([]);
+                setSearchedOwnerName('');
+                return;
+            }
+
+            const query = input.trim();
+            const escaped = escapeLikeWildcards(query);
+
+            // 소유주 이름으로 DB 직접 검색 (APPROVED + PRE_REGISTERED 등 모든 상태)
+            const { data: ownerData } = await supabase
+                .from('user_property_units')
+                .select('pnu, users!inner(name)')
+                .ilike('users.name', `%${escaped}%`)
+                .not('pnu', 'is', null);
+
+            if (ownerData && ownerData.length > 0) {
+                const pnus = [...new Set(ownerData.map((d) => d.pnu).filter(Boolean))] as string[];
+                const names = [
+                    ...new Set(
+                        ownerData
+                            .map((d) => (d.users as unknown as { name: string })?.name)
+                            .filter(Boolean)
+                    ),
+                ];
+
+                setOwnerSearchPnus(pnus);
+                setSearchedOwnerName(names.join(', '));
+                setSearchQuery('');
+            } else {
+                setOwnerSearchPnus([]);
+                setSearchedOwnerName('');
+                setSearchQuery(input);
+            }
+        },
+        []
+    );
+
     // 검색 디바운스: 1초 후 자동 검색
     useEffect(() => {
-        const timer = setTimeout(() => {
-            setSearchQuery(searchInput);
-        }, 1000);
-        return () => clearTimeout(timer);
-    }, [searchInput]);
+        searchTimerRef.current = setTimeout(() => executeSearch(searchInput), 1000);
+        return () => {
+            if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+        };
+    }, [searchInput, executeSearch]);
+
+    // 즉시 검색 핸들러 (Enter 또는 버튼 클릭) - 디바운스 취소 후 즉시 실행
+    const handleSearch = () => {
+        if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+        executeSearch(searchInput);
+    };
+
+    // 검색 초기화
+    const handleClearSearch = () => {
+        if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+        setSearchInput('');
+        setSearchQuery('');
+        setOwnerSearchPnus([]);
+        setSearchedOwnerName('');
+    };
+
+    // 소유주 검색 시 지도 데이터 (필요할 때만 로드)
+    const showOwnerMap = ownerSearchPnus.length > 0;
+
+    const { data: mapRawData, isLoading: mapLoading } = useQuery({
+        queryKey: ['land-lots-owner-map', unionId],
+        queryFn: async () => {
+            const { data, error } = await supabase.rpc('get_union_registration_map_data', {
+                p_union_id: unionId!,
+            });
+            if (error) throw error;
+            return data;
+        },
+        enabled: !!unionId && showOwnerMap,
+        staleTime: 10 * 60 * 1000,
+    });
+
+    // 지도 GeoJSON 및 ParcelData 변환
+    const { ownerMapGeoJson, mapParcelData } = useMemo(() => {
+        if (!mapRawData || mapRawData.length === 0) {
+            return { ownerMapGeoJson: null, mapParcelData: [] };
+        }
+
+        const features = mapRawData
+            .filter(
+                (item: { boundary_geojson: unknown }) => item.boundary_geojson
+            )
+            .map(
+                (item: {
+                    pnu: string;
+                    address: string | null;
+                    boundary_geojson: GeoJSON.Geometry;
+                }) => ({
+                    type: 'Feature' as const,
+                    properties: { name: item.pnu, address: item.address },
+                    geometry: item.boundary_geojson,
+                })
+            );
+
+        const parcelData: ParcelData[] = mapRawData.map(
+            (item: { pnu: string; address: string | null }) => ({
+                pnu: item.pnu,
+                status: 'NO_OWNER' as const,
+                address: item.address || undefined,
+            })
+        );
+
+        return {
+            ownerMapGeoJson: {
+                type: 'FeatureCollection' as const,
+                features,
+            } as GeoJSON.FeatureCollection,
+            mapParcelData: parcelData,
+        };
+    }, [mapRawData]);
 
     // 무한 스크롤 데이터 조회
     const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useLandLotsInfinite({
         unionId,
         searchQuery,
+        pnuFilter: ownerSearchPnus.length > 0 ? ownerSearchPnus : undefined,
         pageSize: 50,
     });
 
@@ -70,11 +195,6 @@ export default function LandLotManagementPage() {
     }, [data?.pages]);
 
     const totalCount = data?.pages[0]?.total || 0;
-
-    // 검색 핸들러 (Enter 또는 버튼 클릭 시 즉시 검색)
-    const handleSearch = () => {
-        setSearchQuery(searchInput);
-    };
 
     // 행 클릭 핸들러
     const handleRowClick = (row: ExtendedLandLot) => {
@@ -217,50 +337,105 @@ export default function LandLotManagementPage() {
             {viewMode === 'map' ? (
                 <GisMapContainer />
             ) : (
-                <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col min-h-[600px]">
-                    {/* 검색 바 */}
-                    <div className="p-4 border-b border-gray-100 bg-gray-50/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div className="relative flex-1 max-w-md flex gap-2">
-                            <div className="relative flex-1">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                                <input
-                                    type="text"
-                                    placeholder="주소로 검색..."
-                                    value={searchInput}
-                                    onChange={(e) => setSearchInput(e.target.value)}
-                                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                                    className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm"
-                                />
+                <div className="space-y-4">
+                    {/* 소유주 검색 결과 지도 */}
+                    {showOwnerMap && (
+                        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                            <div className="p-3 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
+                                <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                                    <Users className="w-4 h-4 text-primary" />
+                                    <span>
+                                        소유주 <span className="text-primary font-bold">{searchedOwnerName}</span>의
+                                        지번 <span className="text-primary font-bold">{ownerSearchPnus.length}</span>개
+                                    </span>
+                                </div>
+                                <button
+                                    onClick={handleClearSearch}
+                                    className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+                                >
+                                    <X className="w-3 h-3" />
+                                    초기화
+                                </button>
                             </div>
-                            <button
-                                onClick={handleSearch}
-                                className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
-                            >
-                                검색
-                            </button>
+                            <div style={{ height: '450px' }}>
+                                {mapLoading || !ownerMapGeoJson ? (
+                                    <div className="w-full h-full flex items-center justify-center bg-gray-50">
+                                        <div className="flex flex-col items-center gap-2">
+                                            <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                                            <span className="text-sm text-gray-400">지도 로딩 중...</span>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <EChartsMapDynamic
+                                        geoJson={ownerMapGeoJson}
+                                        data={mapParcelData}
+                                        mode="address"
+                                        selectedPnuList={ownerSearchPnus}
+                                        onParcelClick={(pnu) => {
+                                            setSelectedPnu(pnu);
+                                            setIsModalOpen(true);
+                                        }}
+                                        minHeight={450}
+                                    />
+                                )}
+                            </div>
                         </div>
-                        <div className="text-sm text-gray-500">
-                            총 <span className="font-bold text-gray-900">{totalCount}</span>개의 지번
-                        </div>
-                    </div>
+                    )}
 
-                    {/* 무한 스크롤 테이블 */}
-                    <div className="flex-1">
-                        <DataTable
-                            data={landLots}
-                            columns={columns}
-                            keyExtractor={(row) => row.pnu}
-                            isLoading={isLoading}
-                            emptyMessage="데이터가 없습니다."
-                            onRowClick={handleRowClick}
-                            maxHeight="calc(100vh - 400px)"
-                            stickyHeader
-                            infiniteScroll={{
-                                hasNextPage: hasNextPage ?? false,
-                                isFetchingNextPage,
-                                fetchNextPage,
-                            }}
-                        />
+                    {/* 리스트 */}
+                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col min-h-[600px]">
+                        {/* 검색 바 */}
+                        <div className="p-4 border-b border-gray-100 bg-gray-50/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div className="relative flex-1 max-w-md flex gap-2">
+                                <div className="relative flex-1">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                    <input
+                                        type="text"
+                                        placeholder="주소 또는 소유주 이름으로 검색..."
+                                        value={searchInput}
+                                        onChange={(e) => setSearchInput(e.target.value)}
+                                        onKeyDown={(e) => e.key === 'Enter' && !e.nativeEvent.isComposing && handleSearch()}
+                                        className="w-full pl-10 pr-10 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm"
+                                    />
+                                    {searchInput && (
+                                        <button
+                                            onClick={handleClearSearch}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                                        >
+                                            <X className="w-4 h-4" />
+                                        </button>
+                                    )}
+                                </div>
+                                <button
+                                    onClick={handleSearch}
+                                    className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
+                                >
+                                    검색
+                                </button>
+                            </div>
+                            <div className="text-sm text-gray-500">
+                                총 <span className="font-bold text-gray-900">{totalCount}</span>개의 지번
+                            </div>
+                        </div>
+
+                        {/* 무한 스크롤 테이블 */}
+                        <div className="flex-1">
+                            <DataTable
+                                data={landLots}
+                                columns={columns}
+                                keyExtractor={(row) => row.pnu}
+                                isLoading={isLoading}
+                                emptyMessage="데이터가 없습니다."
+                                onRowClick={handleRowClick}
+                                maxHeight="calc(100vh - 400px)"
+                                stickyHeader
+                                infiniteScroll={{
+                                    hasNextPage: hasNextPage ?? false,
+                                    isFetchingNextPage,
+                                    fetchNextPage,
+                                }}
+                            />
+                        </div>
                     </div>
                 </div>
             )}

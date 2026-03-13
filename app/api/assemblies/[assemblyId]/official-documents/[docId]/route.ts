@@ -4,6 +4,8 @@ import { authenticateApiRequest } from '@/app/_lib/shared/api/auth';
 import { transitionDocumentStatus } from '@/app/_lib/features/assembly/services/documentService';
 import type { DocumentStatus } from '@/app/_lib/shared/type/assembly.types';
 
+const MAX_SOURCE_JSON_SIZE = 512 * 1024; // 512KB
+
 interface RouteContext {
   params: Promise<{ assemblyId: string; docId: string }>;
 }
@@ -120,6 +122,17 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       });
 
       return NextResponse.json({ data: result.data });
+    }
+
+    // SEC-4: sourceJson 크기 제한
+    if (body.sourceJson) {
+      const sourceJsonStr = JSON.stringify(body.sourceJson);
+      if (sourceJsonStr.length > MAX_SOURCE_JSON_SIZE) {
+        return NextResponse.json(
+          { error: `sourceJson 크기가 제한을 초과합니다.` },
+          { status: 400 }
+        );
+      }
     }
 
     // 내용 수정 (DRAFT/GENERATED 상태에서만)

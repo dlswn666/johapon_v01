@@ -5,7 +5,6 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { SignerRole, SignatureMethod } from '@/app/_lib/shared/type/assembly.types';
-import { isSealableStatus } from '../domain/documentStateMachine';
 
 interface SignDocumentParams {
   documentId: string;
@@ -69,41 +68,32 @@ export async function getDocumentSignatures(
   return { success: true, error: null, data: data || [] };
 }
 
-/** 문서 봉인 */
+/** 문서 봉인 (RPC 원자화 — TOCTOU 방지) */
 export async function sealDocument(
   supabase: SupabaseClient,
   documentId: string,
   actorId: string
 ) {
-  // 문서 상태 확인
-  const { data: doc } = await supabase
-    .from('official_documents')
-    .select('status')
-    .eq('id', documentId)
-    .single();
-
-  if (!doc) {
-    return { success: false, error: '문서를 찾을 수 없습니다.' };
-  }
-
-  if (!isSealableStatus(doc.status)) {
-    return { success: false, error: `현재 상태(${doc.status})에서는 봉인할 수 없습니다. SIGNED_COMPLETE 상태여야 합니다.` };
-  }
-
-  const { data, error } = await supabase
-    .from('official_documents')
-    .update({
-      status: 'SEALED',
-      sealed_at: new Date().toISOString(),
-      sealed_by: actorId,
-    })
-    .eq('id', documentId)
-    .select()
-    .single();
+  const { data, error } = await supabase.rpc('seal_document_atomic', {
+    p_document_id: documentId,
+    p_actor_id: actorId,
+  });
 
   if (error) {
-    return { success: false, error: '봉인 처리에 실패했습니다.' };
+    return { success: false, error: '봉인 처리 중 오류가 발생했습니다.' };
   }
 
-  return { success: true, data };
+  const result = data as { success: boolean; error?: string };
+  if (!result.success) {
+    return { success: false, error: result.error };
+  }
+
+  // 봉인 후 문서 재조회
+  const { data: sealedDoc } = await supabase
+    .from('official_documents')
+    .select('*')
+    .eq('id', documentId)
+    .single();
+
+  return { success: true, data: sealedDoc };
 }

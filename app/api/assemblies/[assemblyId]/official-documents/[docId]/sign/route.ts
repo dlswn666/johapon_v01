@@ -59,7 +59,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: '문서를 찾을 수 없습니다.' }, { status: 404 });
     }
 
-    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || undefined;
+    const forwardedFor = request.headers.get('x-forwarded-for');
+    const ip = forwardedFor ? forwardedFor.split(',')[0].trim() : (request.headers.get('x-real-ip') || undefined);
     const userAgent = request.headers.get('user-agent') || undefined;
 
     const result = await signDocument(supabase, {

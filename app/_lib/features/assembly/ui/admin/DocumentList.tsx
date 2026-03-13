@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { FileText, Eye, Lock, CheckCircle, Pen, AlertTriangle } from 'lucide-react';
+import { FileText, Eye, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import StatusBadge from '@/app/_lib/widgets/common/StatusBadge';
 import HashDisplay from '@/app/_lib/widgets/common/HashDisplay';
@@ -12,8 +12,7 @@ import {
   useTransitionDocumentStatus,
   useSealDocument,
 } from '@/app/_lib/features/assembly/api/useDocumentHook';
-import { useDocumentSignatures } from '@/app/_lib/features/assembly/api/useSignatureHook';
-import type { OfficialDocument } from '@/app/_lib/shared/type/assembly.types';
+import type { OfficialDocument, DocumentStatus } from '@/app/_lib/shared/type/assembly.types';
 import {
   DOCUMENT_TYPE_LABELS,
   DOCUMENT_STATUS_LABELS,
@@ -25,20 +24,26 @@ import useModalStore from '@/app/_lib/shared/stores/modal/useModalStore';
 
 interface DocumentListProps {
   assemblyId: string;
+  statusFilter?: DocumentStatus | 'ALL';
+  onDocumentClick?: (doc: OfficialDocument) => void;
+  showCreateButton?: boolean;
 }
 
 /** 관리자 문서 목록 — 상태 관리, 미리보기, 봉인 */
-export default function DocumentList({ assemblyId }: DocumentListProps) {
+export default function DocumentList({ assemblyId, statusFilter = 'ALL', onDocumentClick }: DocumentListProps) {
   const { data: documents, isLoading } = useDocuments(assemblyId);
   const transitionMutation = useTransitionDocumentStatus(assemblyId);
   const sealMutation = useSealDocument(assemblyId);
   const { openConfirmModal } = useModalStore();
   const [previewDoc, setPreviewDoc] = useState<OfficialDocument | null>(null);
 
-  // 활성 문서만 (SUPERSEDED, VOID 제외)
-  const activeDocuments = documents?.filter(
-    (d) => d.status !== 'SUPERSEDED' && d.status !== 'VOID'
-  );
+  // 필터 적용
+  const activeDocuments = documents?.filter((d) => {
+    if (statusFilter === 'ALL') {
+      return d.status !== 'SUPERSEDED' && d.status !== 'VOID';
+    }
+    return d.status === statusFilter;
+  });
 
   const handleTransition = (doc: OfficialDocument, nextStatus: OfficialDocument['status']) => {
     const label = DOCUMENT_STATUS_LABELS[nextStatus];
@@ -100,7 +105,11 @@ export default function DocumentList({ assemblyId }: DocumentListProps) {
         return (
           <div
             key={doc.id}
-            className="bg-white rounded-lg border border-gray-200 p-4"
+            className={`bg-white rounded-lg border border-gray-200 p-4 ${onDocumentClick ? 'cursor-pointer hover:bg-gray-50 transition-colors' : ''}`}
+            onClick={() => onDocumentClick?.(doc)}
+            role={onDocumentClick ? 'button' : undefined}
+            tabIndex={onDocumentClick ? 0 : undefined}
+            onKeyDown={(e) => e.key === 'Enter' && onDocumentClick?.(doc)}
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">

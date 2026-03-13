@@ -32,6 +32,7 @@ interface EChartsMapProps {
     selectedPnu?: string | null;
     selectedPnuList?: string[];
     onParcelHover?: (pnu: string | null) => void;
+    minHeight?: number;
 }
 
 // 동의 현황 색상 및 라벨 (불투명 색상으로 번짐 방지)
@@ -142,6 +143,7 @@ export default function EChartsMap({
     selectedPnu,
     selectedPnuList = [],
     onParcelHover,
+    minHeight = 1100,
 }: EChartsMapProps) {
     const chartRef = useRef<HTMLDivElement>(null);
     const chartInstance = useRef<echarts.ECharts | null>(null);
@@ -462,7 +464,7 @@ export default function EChartsMap({
         prevSelectedPnu.current = selectedPnu;
     }, [selectedPnu]);
 
-    return <div ref={chartRef} className="w-full h-full min-h-[1100px]" />;
+    return <div ref={chartRef} className="w-full h-full" style={{ minHeight: `${minHeight}px` }} />;
 }
 
 // 지도 범례 컴포넌트 (canvas 외부에 배치)
