@@ -24,7 +24,7 @@ export const useAssemblies = (enabled: boolean = true) => {
   const queryResult = useQuery({
     queryKey: ['assemblies', union?.id],
     queryFn: async () => {
-      const res = await fetch('/api/assemblies');
+      const res = await fetch(`/api/assemblies?union_id=${union!.id}`);
       if (!res.ok) {
         const err = await res.json();
         throw new Error(err.error || '총회 목록 조회 실패');

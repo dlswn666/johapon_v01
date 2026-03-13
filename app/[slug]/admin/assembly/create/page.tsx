@@ -2,17 +2,30 @@
 
 import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import { useCreateAssembly } from '@/app/_lib/features/assembly/api/useAssemblyHook';
 import { NewAssembly, ASSEMBLY_TYPE_LABELS, AssemblyType } from '@/app/_lib/shared/type/assembly.types';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Form } from '@/components/ui/form';
 import { ArrowLeft } from 'lucide-react';
 import { getUnionPath } from '@/app/_lib/shared/lib/utils/slug';
 import { DateTimePicker } from '@/app/_lib/widgets/common/date-picker/DateTimePicker';
+import { FormInputField, FormSelectField, FormTextareaField } from '@/app/_lib/widgets/common/form';
+import { FormField, FormItem, FormMessage } from '@/components/ui/form';
+
+/** 총회 유형 옵션 */
+const assemblyTypeOptions = (Object.entries(ASSEMBLY_TYPE_LABELS) as [AssemblyType, string][]).map(
+  ([value, label]) => ({ value, label })
+);
+
+/** 영상 송출 옵션 */
+const streamTypeOptions = [
+  { value: 'NONE', label: '미사용' },
+  { value: 'YOUTUBE', label: 'YouTube' },
+];
 
 export default function CreateAssemblyPage() {
   const router = useRouter();
@@ -20,11 +33,19 @@ export default function CreateAssemblyPage() {
   const { isAdmin, isLoading: isAuthLoading } = useAuth();
   const createMutation = useCreateAssembly();
 
-  const { register, handleSubmit, control, formState: { errors, isSubmitting } } = useForm<NewAssembly>({
+  const form = useForm<NewAssembly>({
     defaultValues: {
+      title: '',
       assembly_type: 'REGULAR',
+      scheduled_at: '',
+      venue_address: '',
+      description: '',
+      stream_type: 'NONE',
+      legal_basis: '',
     },
   });
+
+  const { handleSubmit, control, formState: { isSubmitting } } = form;
 
   useEffect(() => {
     if (!isAuthLoading && !isAdmin) {
@@ -62,111 +83,95 @@ export default function CreateAssemblyPage() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="bg-white rounded-lg border border-gray-200 p-6 space-y-5">
-        {/* 총회 제목 */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">
-            총회 제목 <span className="text-red-500">*</span>
-          </label>
-          <Input
-            {...register('title', { required: '총회 제목을 입력해주세요.' })}
-            placeholder="예: 제5차 정기총회"
-          />
-          {errors.title && <p className="text-sm text-red-500 mt-1">{errors.title.message}</p>}
-        </div>
-
-        {/* 총회 유형 */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">총회 유형</label>
-          <select
-            {...register('assembly_type')}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            {(Object.entries(ASSEMBLY_TYPE_LABELS) as [AssemblyType, string][]).map(([value, label]) => (
-              <option key={value} value={value}>{label}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* 일시 */}
-        <div>
-          <Controller
-            name="scheduled_at"
+      <Form {...form}>
+        <form onSubmit={handleSubmit(onSubmit)} className="bg-white rounded-lg border border-gray-200 p-6 space-y-5">
+          {/* 총회 제목 */}
+          <FormInputField
             control={control}
+            name="title"
+            label="총회 제목"
+            placeholder="예: 제5차 정기총회"
+            required
+          />
+
+          {/* 총회 유형 */}
+          <FormSelectField
+            control={control}
+            name="assembly_type"
+            label="총회 유형"
+            options={assemblyTypeOptions}
+          />
+
+          {/* 일시 */}
+          <FormField
+            control={control}
+            name="scheduled_at"
             rules={{ required: '총회 일시를 설정해주세요.' }}
             render={({ field }) => (
-              <DateTimePicker
-                label="총회 일시 *"
-                value={field.value ? new Date(field.value) : undefined}
-                onChange={(date) => field.onChange(date?.toISOString() ?? '')}
-                placeholder="총회 일시 선택"
-                hasError={!!errors.scheduled_at}
-              />
+              <FormItem>
+                <DateTimePicker
+                  label="총회 일시 *"
+                  value={field.value ? new Date(field.value) : undefined}
+                  onChange={(date) => field.onChange(date?.toISOString() ?? '')}
+                  placeholder="총회 일시 선택"
+                  hasError={!!form.formState.errors.scheduled_at}
+                />
+                <FormMessage />
+              </FormItem>
             )}
           />
-          {errors.scheduled_at && <p className="text-sm text-red-500 mt-1">{errors.scheduled_at.message}</p>}
-        </div>
 
-        {/* 장소 */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">장소 (선택)</label>
-          <Input
-            {...register('venue_address')}
+          {/* 장소 */}
+          <FormInputField
+            control={control}
+            name="venue_address"
+            label="장소"
             placeholder="예: 서울시 강남구 OO빌딩 대회의실"
           />
-        </div>
 
-        {/* 설명 */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">설명 (선택)</label>
-          <textarea
-            {...register('description')}
-            rows={3}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          {/* 설명 */}
+          <FormTextareaField
+            control={control}
+            name="description"
+            label="설명"
             placeholder="총회에 대한 간단한 설명을 입력하세요"
+            rows={3}
           />
-        </div>
 
-        {/* 스트림 설정 */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">영상 송출</label>
-          <select
-            {...register('stream_type')}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">미사용</option>
-            <option value="ZOOM">Zoom</option>
-            <option value="YOUTUBE">YouTube</option>
-            <option value="BOTH">Zoom + YouTube</option>
-          </select>
-        </div>
+          {/* 영상 송출 */}
+          <FormSelectField
+            control={control}
+            name="stream_type"
+            label="영상 송출"
+            options={streamTypeOptions}
+          />
 
-        {/* 법적 근거 */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">법적 근거 (선택)</label>
-          <Input
-            {...register('legal_basis')}
+          {/* 법적 근거 */}
+          <FormInputField
+            control={control}
+            name="legal_basis"
+            label="법적 근거"
             placeholder="예: 도시정비법 제45조"
           />
-        </div>
 
-        {/* 제출 버튼 */}
-        <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => router.push(getUnionPath(slug, '/admin/assembly'))}
-          >
-            취소
-          </Button>
-          <Button
-            type="submit"
-            disabled={isSubmitting || createMutation.isPending}
-          >
-            {createMutation.isPending ? '생성 중...' : '총회 생성'}
-          </Button>
-        </div>
-      </form>
+          {/* 제출 버튼 */}
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => router.push(getUnionPath(slug, '/admin/assembly'))}
+            >
+              취소
+            </Button>
+            <Button
+              type="submit"
+              disabled={isSubmitting || createMutation.isPending}
+            >
+              {createMutation.isPending ? '생성 중...' : '총회 생성'}
+            </Button>
+          </div>
+        </form>
+      </Form>
     </div>
   );
 }

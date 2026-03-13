@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/app/_lib/shared/supabase/server';
 import { authenticateApiRequest } from '@/app/_lib/shared/api/auth';
+import { resolveAssemblyUnionId } from '@/app/_lib/shared/api/resolveUnionId';
 import crypto from 'crypto';
 import { nanoid } from 'nanoid';
 
@@ -21,7 +22,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
     if (!auth.authenticated) return auth.response;
 
     const { assemblyId } = await context.params;
-    const unionId = auth.user.union_id;
+    const unionId = auth.user.union_id || await resolveAssemblyUnionId(assemblyId);
     if (!unionId) {
       return NextResponse.json({ error: '조합 정보를 확인할 수 없습니다.' }, { status: 400 });
     }
@@ -61,7 +62,7 @@ export async function POST(_request: NextRequest, context: RouteContext) {
     if (!auth.authenticated) return auth.response;
 
     const { assemblyId } = await context.params;
-    const unionId = auth.user.union_id;
+    const unionId = auth.user.union_id || await resolveAssemblyUnionId(assemblyId);
     if (!unionId) {
       return NextResponse.json({ error: '조합 정보를 확인할 수 없습니다.' }, { status: 400 });
     }
@@ -202,7 +203,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     if (!auth.authenticated) return auth.response;
 
     const { assemblyId } = await context.params;
-    const unionId = auth.user.union_id;
+    const unionId = auth.user.union_id || await resolveAssemblyUnionId(assemblyId);
     if (!unionId) {
       return NextResponse.json({ error: '조합 정보를 확인할 수 없습니다.' }, { status: 400 });
     }

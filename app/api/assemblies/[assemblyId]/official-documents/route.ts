@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/app/_lib/shared/supabase/server';
 import { authenticateApiRequest } from '@/app/_lib/shared/api/auth';
+import { resolveAssemblyUnionId } from '@/app/_lib/shared/api/resolveUnionId';
 import { generateDocument } from '@/app/_lib/features/assembly/services/documentService';
 import type { OfficialDocumentType } from '@/app/_lib/shared/type/assembly.types';
 
@@ -27,11 +28,11 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
     const { assemblyId } = await context.params;
 
-    if (!auth.user.union_id) {
+    const unionId = auth.user.union_id || await resolveAssemblyUnionId(assemblyId);
+    if (!unionId) {
       return NextResponse.json({ error: '조합 정보를 확인할 수 없습니다.' }, { status: 400 });
     }
 
-    const unionId = auth.user.union_id;
     const supabase = await createClient();
 
     // 총회 존재 확인
@@ -88,11 +89,11 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     const { assemblyId } = await context.params;
 
-    if (!auth.user.union_id) {
+    const unionId = auth.user.union_id || await resolveAssemblyUnionId(assemblyId);
+    if (!unionId) {
       return NextResponse.json({ error: '조합 정보를 확인할 수 없습니다.' }, { status: 400 });
     }
 
-    const unionId = auth.user.union_id;
     const supabase = await createClient();
 
     let body;

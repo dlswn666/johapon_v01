@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/app/_lib/shared/supabase/server';
 import { authenticateApiRequest } from '@/app/_lib/shared/api/auth';
+import { resolveAssemblyUnionId } from '@/app/_lib/shared/api/resolveUnionId';
 import crypto from 'crypto';
 
 interface RouteContext {
@@ -18,7 +19,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
     const { assemblyId } = await context.params;
 
-    if (!auth.user.union_id) {
+    const unionId = auth.user.union_id || await resolveAssemblyUnionId(assemblyId);
+    if (!unionId) {
       return NextResponse.json({ error: '조합 정보를 확인할 수 없습니다.' }, { status: 400 });
     }
 
@@ -37,7 +39,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       .select('id, member_name')
       .eq('id', snapshotId)
       .eq('assembly_id', assemblyId)
-      .eq('union_id', auth.user.union_id)
+      .eq('union_id', unionId)
       .eq('is_active', true)
       .single();
 

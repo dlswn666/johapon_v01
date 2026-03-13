@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/app/_lib/shared/supabase/server';
 import { authenticateApiRequest } from '@/app/_lib/shared/api/auth';
+import { resolveAssemblyUnionId } from '@/app/_lib/shared/api/resolveUnionId';
 
 interface RouteContext {
   params: Promise<{ assemblyId: string; agendaId: string }>;
@@ -24,13 +25,18 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     const { assemblyId, agendaId } = await context.params;
     const supabase = await createClient();
     const body = await request.json();
+    const unionId = auth.user.union_id || await resolveAssemblyUnionId(assemblyId);
+
+    if (!unionId) {
+      return NextResponse.json({ error: '조합 정보를 확인할 수 없습니다.' }, { status: 400 });
+    }
 
     // 총회 수정 가능 상태 확인
     const { data: assembly } = await supabase
       .from('assemblies')
       .select('status')
       .eq('id', assemblyId)
-      .eq('union_id', auth.user.union_id)
+      .eq('union_id', unionId)
       .single();
 
     if (!assembly || !['DRAFT', 'NOTICE_SENT'].includes(assembly.status)) {
@@ -47,7 +53,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       .update(safeUpdates)
       .eq('id', agendaId)
       .eq('assembly_id', assemblyId)
-      .eq('union_id', auth.user.union_id)
+      .eq('union_id', unionId)
       .select()
       .single();
 
@@ -77,13 +83,18 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
 
     const { assemblyId, agendaId } = await context.params;
     const supabase = await createClient();
+    const unionId = auth.user.union_id || await resolveAssemblyUnionId(assemblyId);
+
+    if (!unionId) {
+      return NextResponse.json({ error: '조합 정보를 확인할 수 없습니다.' }, { status: 400 });
+    }
 
     // 총회 수정 가능 상태 확인
     const { data: assembly } = await supabase
       .from('assemblies')
       .select('status')
       .eq('id', assemblyId)
-      .eq('union_id', auth.user.union_id)
+      .eq('union_id', unionId)
       .single();
 
     if (!assembly || !['DRAFT', 'NOTICE_SENT'].includes(assembly.status)) {
@@ -95,7 +106,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
       .delete()
       .eq('id', agendaId)
       .eq('assembly_id', assemblyId)
-      .eq('union_id', auth.user.union_id);
+      .eq('union_id', unionId);
 
     if (error) {
       console.error('안건 삭제 실패:', error);

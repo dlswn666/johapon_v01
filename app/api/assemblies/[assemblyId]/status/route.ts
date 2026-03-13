@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/app/_lib/shared/supabase/server';
 import { authenticateApiRequest } from '@/app/_lib/shared/api/auth';
+import { resolveAssemblyUnionId } from '@/app/_lib/shared/api/resolveUnionId';
 import { sendAlimTalk } from '@/app/_lib/features/alimtalk/actions/sendAlimTalk';
 
 const ASSEMBLY_TYPE_KR: Record<string, string> = {
@@ -66,13 +67,10 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: '유효하지 않은 상태 값입니다.' }, { status: 400 });
     }
 
-    // SYSTEM_ADMIN(union_id=NULL)은 총회 운영 API 접근 불가 — 설계 의도
-    // SYSTEM_ADMIN은 시스템 관리(조합 생성/삭제 등)만 담당하며, 총회는 조합 ADMIN이 운영
-    if (!auth.user.union_id) {
+    const unionId = auth.user.union_id || await resolveAssemblyUnionId(assemblyId);
+    if (!unionId) {
       return NextResponse.json({ error: '조합 정보를 확인할 수 없습니다.' }, { status: 400 });
     }
-
-    const unionId = auth.user.union_id;
 
     // 현재 상태 조회
     const { data: assembly } = await supabase

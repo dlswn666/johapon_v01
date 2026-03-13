@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/app/_lib/shared/supabase/server';
 import { authenticateApiRequest } from '@/app/_lib/shared/api/auth';
+import { resolveAssemblyUnionId } from '@/app/_lib/shared/api/resolveUnionId';
 
 interface RouteContext {
   params: Promise<{ assemblyId: string; agendaId: string; pollId: string }>;
@@ -24,10 +25,10 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: '유효하지 않은 투표 상태입니다.' }, { status: 400 });
     }
 
-    if (!auth.user.union_id) {
+    const unionId = auth.user.union_id || await resolveAssemblyUnionId(assemblyId);
+    if (!unionId) {
       return NextResponse.json({ error: '조합 정보를 확인할 수 없습니다.' }, { status: 400 });
     }
-    const unionId = auth.user.union_id;
 
     // 현재 poll 조회 (상태 전이 유효성 + 법적 창 검증)
     const { data: poll } = await supabase

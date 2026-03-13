@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/app/_lib/shared/supabase/server';
 import { authenticateApiRequest } from '@/app/_lib/shared/api/auth';
+import { resolveAssemblyUnionId } from '@/app/_lib/shared/api/resolveUnionId';
 
 interface RouteContext {
   params: Promise<{ assemblyId: string; requestId: string }>;
@@ -17,11 +18,10 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
     const { assemblyId, requestId } = await context.params;
 
-    if (!auth.user.union_id) {
+    const unionId = auth.user.union_id || await resolveAssemblyUnionId(assemblyId);
+    if (!unionId) {
       return NextResponse.json({ error: '조합 정보를 확인할 수 없습니다.' }, { status: 400 });
     }
-
-    const unionId = auth.user.union_id;
     const supabase = await createClient();
     const now = new Date().toISOString();
 

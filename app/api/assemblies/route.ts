@@ -6,15 +6,16 @@ import { authenticateApiRequest } from '@/app/_lib/shared/api/auth';
  * 총회 목록 조회
  * GET /api/assemblies
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const auth = await authenticateApiRequest({ requireAdmin: true });
     if (!auth.authenticated) return auth.response;
 
     const supabase = await createClient();
-    const unionId = auth.user.union_id;
+    // SYSTEM_ADMIN은 union_id가 null이므로 query param에서 가져옴
+    const { searchParams } = new URL(request.url);
+    const unionId = auth.user.union_id || searchParams.get('union_id');
 
-    // M-9: union_id null 체크
     if (!unionId) {
       return NextResponse.json({ error: '조합 정보를 확인할 수 없습니다.' }, { status: 400 });
     }

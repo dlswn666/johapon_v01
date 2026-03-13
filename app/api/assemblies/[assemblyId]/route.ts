@@ -18,7 +18,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
     const { assemblyId } = await context.params;
     const supabase = await createClient();
 
-    const { data, error } = await supabase
+    let query = supabase
       .from('assemblies')
       .select(`
         *,
@@ -29,9 +29,14 @@ export async function GET(request: NextRequest, context: RouteContext) {
           agenda_documents(*)
         )
       `)
-      .eq('id', assemblyId)
-      .eq('union_id', auth.user.union_id)
-      .single();
+      .eq('id', assemblyId);
+
+    // SYSTEM_ADMIN은 모든 총회 조회 가능, 일반 ADMIN은 자기 조합만
+    if (auth.user.union_id) {
+      query = query.eq('union_id', auth.user.union_id);
+    }
+
+    const { data, error } = await query.single();
 
     if (error) {
       if (error.code === 'PGRST116') {
@@ -69,12 +74,16 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     const body = await request.json();
 
     // 수정 가능 상태 확인
-    const { data: existing } = await supabase
+    let existingQuery = supabase
       .from('assemblies')
       .select('status, updated_at')
-      .eq('id', assemblyId)
-      .eq('union_id', auth.user.union_id)
-      .single();
+      .eq('id', assemblyId);
+
+    if (auth.user.union_id) {
+      existingQuery = existingQuery.eq('union_id', auth.user.union_id);
+    }
+
+    const { data: existing } = await existingQuery.single();
 
     if (!existing) {
       return NextResponse.json({ error: '총회를 찾을 수 없습니다.' }, { status: 404 });
@@ -104,8 +113,11 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     let query = supabase
       .from('assemblies')
       .update(safeUpdates)
-      .eq('id', assemblyId)
-      .eq('union_id', auth.user.union_id);
+      .eq('id', assemblyId);
+
+    if (auth.user.union_id) {
+      query = query.eq('union_id', auth.user.union_id);
+    }
 
     if (body.updated_at) {
       query = query.eq('updated_at', body.updated_at);

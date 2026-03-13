@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/app/_lib/shared/supabase/server';
 import { authenticateApiRequest } from '@/app/_lib/shared/api/auth';
+import { resolveAssemblyUnionId } from '@/app/_lib/shared/api/resolveUnionId';
 
 interface RouteContext {
   params: Promise<{ assemblyId: string }>;
@@ -27,12 +28,17 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
     const { assemblyId } = await context.params;
     const supabase = await createClient();
+    const unionId = auth.user.union_id || await resolveAssemblyUnionId(assemblyId);
+
+    if (!unionId) {
+      return NextResponse.json({ error: '조합 정보를 확인할 수 없습니다.' }, { status: 400 });
+    }
 
     const { data, error } = await supabase
       .from('agenda_items')
       .select('*, polls(*, poll_options(*)), agenda_documents(*)')
       .eq('assembly_id', assemblyId)
-      .eq('union_id', auth.user.union_id)
+      .eq('union_id', unionId)
       .order('seq_order', { ascending: true });
 
     if (error) {
@@ -59,6 +65,11 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const { assemblyId } = await context.params;
     const supabase = await createClient();
     const body = await request.json();
+    const unionId = auth.user.union_id || await resolveAssemblyUnionId(assemblyId);
+
+    if (!unionId) {
+      return NextResponse.json({ error: '조합 정보를 확인할 수 없습니다.' }, { status: 400 });
+    }
 
     if (!body.title || !body.title.trim()) {
       return NextResponse.json({ error: '안건 제목을 입력해주세요.' }, { status: 400 });
@@ -69,7 +80,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       .from('assemblies')
       .select('status, scheduled_at')
       .eq('id', assemblyId)
-      .eq('union_id', auth.user.union_id)
+      .eq('union_id', unionId)
       .single();
 
     if (!assembly) {
@@ -84,7 +95,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       .from('agenda_items')
       .select('*', { count: 'exact', head: true })
       .eq('assembly_id', assemblyId)
-      .eq('union_id', auth.user.union_id);
+      .eq('union_id', unionId);
 
     const seqOrder = body.seq_order || (count || 0) + 1;
     const agendaType = body.agenda_type || 'GENERAL';
@@ -94,7 +105,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       .from('agenda_items')
       .insert({
         assembly_id: assemblyId,
-        union_id: auth.user.union_id,
+        union_id: unionId,
         seq_order: seqOrder,
         title: body.title.trim(),
         description: body.description?.trim() || null,
@@ -117,7 +128,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       .insert({
         agenda_item_id: data.id,
         assembly_id: assemblyId,
-        union_id: auth.user.union_id,
+        union_id: unionId,
         opens_at: assembly.scheduled_at,
         closes_at: assembly.scheduled_at,
         allow_vote_revision: true,
@@ -135,9 +146,9 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     // 기본 선택지: 찬성/반대/기권
     const { error: optionsError } = await supabase.from('poll_options').insert([
-      { poll_id: poll.id, union_id: auth.user.union_id, label: '찬성', seq_order: 1, option_type: 'YES' },
-      { poll_id: poll.id, union_id: auth.user.union_id, label: '반대', seq_order: 2, option_type: 'NO' },
-      { poll_id: poll.id, union_id: auth.user.union_id, label: '기권', seq_order: 3, option_type: 'ABSTAIN' },
+      { poll_id: poll.id, union_id: unionId, label: '찬성', seq_order: 1, option_type: 'YES' },
+      { poll_id: poll.id, union_id: unionId, label: '반대', seq_order: 2, option_type: 'NO' },
+      { poll_id: poll.id, union_id: unionId, label: '기권', seq_order: 3, option_type: 'ABSTAIN' },
     ]);
 
     if (optionsError) {
