@@ -12,9 +12,10 @@ export async function GET(request: NextRequest) {
     if (!auth.authenticated) return auth.response;
 
     const supabase = await createClient();
-    // SYSTEM_ADMIN은 union_id가 null이므로 query param에서 가져옴
+    // SEC-C1 수정: SYSTEM_ADMIN만 query param에서 union_id 사용 가능
     const { searchParams } = new URL(request.url);
-    const unionId = auth.user.union_id || searchParams.get('union_id');
+    const unionId = auth.user.union_id
+      ?? (auth.user.role === 'SYSTEM_ADMIN' ? searchParams.get('union_id') : null);
 
     if (!unionId) {
       return NextResponse.json({ error: '조합 정보를 확인할 수 없습니다.' }, { status: 400 });
@@ -57,8 +58,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '총회 일시를 설정해주세요.' }, { status: 400 });
     }
 
-    // SYSTEM_ADMIN은 union_id가 null이므로 클라이언트에서 전달받은 union_id 사용
-    const unionId = auth.user.union_id || body.union_id;
+    // SEC-C1 수정: SYSTEM_ADMIN만 body.union_id 사용 가능 (권한 상승 방지)
+    const unionId = auth.user.union_id
+      ?? (auth.user.role === 'SYSTEM_ADMIN' ? body.union_id : null);
     if (!unionId) {
       return NextResponse.json({ error: '조합 정보를 확인할 수 없습니다.' }, { status: 400 });
     }

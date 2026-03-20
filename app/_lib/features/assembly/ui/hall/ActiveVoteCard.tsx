@@ -16,6 +16,7 @@ import {
   Copy,
   ShieldCheck,
 } from 'lucide-react';
+import StepUpAuthModal from '@/app/_lib/features/assembly/ui/StepUpAuthModal';
 
 export interface ActiveVoteCardProps {
   assemblyId: string;
@@ -35,8 +36,10 @@ export default function ActiveVoteCard({
   receiptToken: storedReceipt,
 }: ActiveVoteCardProps) {
   const castVoteMutation = useCastVote();
-  const { openConfirmModal, openAlertModal } = useModalStore();
+  const { openAlertModal } = useModalStore();
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [pendingOptionId, setPendingOptionId] = useState<string | null>(null);
 
   const pollIdForQuery = poll.status === 'OPEN' || poll.status === 'CLOSED' ? poll.id : undefined;
   const { data: myVote } = useMyVote(pollIdForQuery, assemblyId);
@@ -52,22 +55,22 @@ export default function ActiveVoteCard({
   const quorumText = `${quorumPct}% 이상 출석, 출석 ${approvalPct}% 이상 찬성`;
 
   const handleVote = (optionId: string) => {
-    const option = sortedOptions.find((o) => o.id === optionId);
-    const actionLabel = hasVoted ? '재투표' : '투표';
+    setPendingOptionId(optionId);
+    setIsAuthModalOpen(true);
+  };
 
-    openConfirmModal({
-      title: `${actionLabel} 확인`,
-      message: `"${option?.label}"(으)로 ${actionLabel}하시겠습니까?${hasVoted ? ' (기존 투표는 대체됩니다)' : ''}`,
-      confirmText: actionLabel,
-      cancelText: '취소',
-      variant: 'default',
-      onConfirm: () => {
-        castVoteMutation.mutate(
-          { pollId: poll.id, assemblyId, optionId },
-          { onSuccess: () => setSelectedOptionId(null) },
-        );
-      },
-    });
+  const handleAuthSuccess = (nonce: string) => {
+    setIsAuthModalOpen(false);
+    if (!pendingOptionId) return;
+    castVoteMutation.mutate(
+      { pollId: poll.id, assemblyId, optionId: pendingOptionId, authNonce: nonce },
+      {
+        onSuccess: () => {
+          setSelectedOptionId(null);
+          setPendingOptionId(null);
+        },
+      }
+    );
   };
 
   const copyReceipt = async () => {
@@ -168,6 +171,16 @@ export default function ActiveVoteCard({
         )}
         {receiptToken && <ReceiptDisplay token={receiptToken} onCopy={copyReceipt} />}
       </div>
+
+      <StepUpAuthModal
+        isOpen={isAuthModalOpen}
+        assemblyId={assemblyId}
+        pollId={poll.id}
+        agendaTitle={agenda.title}
+        selectedOptionLabel={sortedOptions.find((o) => o.id === pendingOptionId)?.label}
+        onSuccess={handleAuthSuccess}
+        onClose={() => setIsAuthModalOpen(false)}
+      />
     </div>
   );
 }

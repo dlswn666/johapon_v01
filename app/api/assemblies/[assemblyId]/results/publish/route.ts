@@ -55,6 +55,39 @@ export async function POST(request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: '투표 마감 후에만 결과를 공개할 수 있습니다.' }, { status: 400 });
     }
 
+    // [신규 1] 감사 로그 무결성 검증 (SR-009, SEC-07)
+    const { data: integrityResult } = await supabase
+      .rpc('verify_audit_log_integrity', { p_assembly_id: assemblyId, p_union_id: unionId });
+
+    if (!integrityResult?.valid) {
+      return NextResponse.json(
+        {
+          error: '감사 로그 해시 체인 무결성 오류. 결과를 공개할 수 없습니다.',
+          details: integrityResult?.errors,
+        },
+        { status: 422 }
+      );
+    }
+
+    // [신규 2] RESULT_CONFIRM multisig 완료 확인 (SEC-04, 합의 1)
+    const { data: multisig } = await supabase
+      .from('multisig_approvals')
+      .select('id, status, current_count, required_count')
+      .eq('assembly_id', assemblyId)
+      .eq('union_id', unionId)
+      .eq('action_type', 'RESULT_CONFIRM')
+      .eq('status', 'COMPLETED')
+      .maybeSingle();
+
+    if (!multisig) {
+      return NextResponse.json(
+        {
+          error: '결과 확정을 위한 다중 서명(선관위원장 + 감사 2/2)이 완료되지 않았습니다.',
+        },
+        { status: 403 }
+      );
+    }
+
     // 중복 공개 방지
     const { data: existing } = await supabase
       .from('assembly_result_publications')

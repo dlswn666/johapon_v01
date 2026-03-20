@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useCastVote, useMyVote } from '@/app/_lib/features/assembly/api/useVoteHook';
 import useModalStore from '@/app/_lib/shared/stores/modal/useModalStore';
+import StepUpAuthModal from '@/app/_lib/features/assembly/ui/StepUpAuthModal';
 import {
   AGENDA_TYPE_LABELS,
   AgendaItem,
@@ -104,8 +105,10 @@ function AgendaVoteCard({
   receiptToken?: string;
 }) {
   const castVoteMutation = useCastVote();
-  const { openConfirmModal, openAlertModal } = useModalStore();
+  const { openAlertModal } = useModalStore();
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [pendingOptionId, setPendingOptionId] = useState<string | null>(null);
 
   const pollIdForQuery = poll?.status === 'OPEN' || poll?.status === 'CLOSED' ? poll?.id : undefined;
   const { data: myVote } = useMyVote(pollIdForQuery, assemblyId);
@@ -120,22 +123,17 @@ function AgendaVoteCard({
 
   const handleVote = (optionId: string) => {
     if (!poll) return;
-    const option = sortedOptions.find((o) => o.id === optionId);
-    const actionLabel = hasVoted ? '재투표' : '투표';
+    setPendingOptionId(optionId);
+    setIsAuthModalOpen(true);
+  };
 
-    openConfirmModal({
-      title: `${actionLabel} 확인`,
-      message: `"${option?.label}"(으)로 ${actionLabel}하시겠습니까?${hasVoted ? ' (기존 투표는 대체됩니다)' : ''}`,
-      confirmText: actionLabel,
-      cancelText: '취소',
-      variant: 'default',
-      onConfirm: () => {
-        castVoteMutation.mutate(
-          { pollId: poll.id, assemblyId, optionId },
-          { onSuccess: () => setSelectedOptionId(null) },
-        );
-      },
-    });
+  const handleAuthSuccess = (nonce: string) => {
+    setIsAuthModalOpen(false);
+    if (!poll || !pendingOptionId) return;
+    castVoteMutation.mutate(
+      { pollId: poll.id, assemblyId, optionId: pendingOptionId, authNonce: nonce },
+      { onSuccess: () => { setSelectedOptionId(null); setPendingOptionId(null); } },
+    );
   };
 
   const copyReceipt = async () => {
@@ -149,6 +147,16 @@ function AgendaVoteCard({
   };
 
   return (
+    <>
+    <StepUpAuthModal
+      isOpen={isAuthModalOpen}
+      assemblyId={assemblyId}
+      pollId={poll?.id}
+      agendaTitle={agendaTitle}
+      selectedOptionLabel={pendingOptionId ? sortedOptions.find(o => o.id === pendingOptionId)?.label : undefined}
+      onSuccess={handleAuthSuccess}
+      onClose={() => { setIsAuthModalOpen(false); setPendingOptionId(null); }}
+    />
     <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
       <div className="px-5 py-4 border-b border-gray-100">
         <div className="flex items-center gap-2 mb-1">
@@ -253,6 +261,7 @@ function AgendaVoteCard({
         )}
       </div>
     </div>
+    </>
   );
 }
 

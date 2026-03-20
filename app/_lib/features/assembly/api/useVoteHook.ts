@@ -20,10 +20,12 @@ export const useCastVote = () => {
       pollId,
       assemblyId,
       optionId,
+      authNonce,
     }: {
       pollId: string;
       assemblyId: string;
       optionId: string;
+      authNonce: string;  // StepUpAuthModal에서 받아온 nonce
     }) => {
       // 투표 전 heartbeat 1회 발송 (실패해도 투표 계속)
       try {
@@ -42,7 +44,7 @@ export const useCastVote = () => {
       const res = await fetch('/api/votes/cast', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pollId, assemblyId, optionId }),
+        body: JSON.stringify({ pollId, assemblyId, optionId, authNonce }),
       });
       if (!res.ok) {
         let errorMessage = '투표에 실패했습니다.';

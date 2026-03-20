@@ -56,7 +56,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
  * 조합 소속 멤버(APPROVED, PRE_REGISTERED) → 스냅샷 + 접근 토큰 생성
  * 이미 스냅샷이 존재하면 중복 생성하지 않음
  */
-export async function POST(_request: NextRequest, context: RouteContext) {
+export async function POST(request: NextRequest, context: RouteContext) {
   try {
     const auth = await authenticateApiRequest({ requireAdmin: true });
     if (!auth.authenticated) return auth.response;
@@ -67,7 +67,30 @@ export async function POST(_request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: '조합 정보를 확인할 수 없습니다.' }, { status: 400 });
     }
 
+    // body를 읽어 action 확인 (confirm 액션은 multisig 완료 필수)
+    let requestBody: { action?: string } = {};
+    try { requestBody = await request.json(); } catch { /* body 없는 경우 허용 */ }
+
     const supabase = await createClient();
+
+    // [신규] SNAPSHOT_CONFIRM multisig 완료 확인 (SEC-02, 합의 1)
+    if (requestBody.action === 'confirm') {
+      const { data: multisig } = await supabase
+        .from('multisig_approvals')
+        .select('id, status')
+        .eq('assembly_id', assemblyId)
+        .eq('union_id', unionId)
+        .eq('action_type', 'SNAPSHOT_CONFIRM')
+        .eq('status', 'COMPLETED')
+        .maybeSingle();
+
+      if (!multisig) {
+        return NextResponse.json(
+          { error: '스냅샷 확정을 위한 다중 서명(조합장 + 선관위원장 2/2)이 완료되지 않았습니다.' },
+          { status: 403 }
+        );
+      }
+    }
 
     // 총회 상태 확인
     const { data: assembly } = await supabase

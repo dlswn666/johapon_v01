@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import useModalStore from '@/app/_lib/shared/stores/modal/useModalStore';
 import { supabase } from '@/app/_lib/shared/supabase/client';
+import type { DelegationRecord } from '@/app/_lib/shared/type/assembly.types';
 
 export interface ProxySnapshot {
   id: string;
@@ -121,5 +122,24 @@ export const useRevokeProxy = (assemblyId: string) => {
     onError: (error: Error) => {
       openAlertModal({ title: '대리인 해제 실패', message: error.message, type: 'error' });
     },
+  });
+};
+
+/**
+ * 관리자용 위임 전체 현황 조회
+ */
+export const useAdminDelegationList = (assemblyId: string | undefined) => {
+  return useQuery({
+    queryKey: ['delegation', 'admin', assemblyId],
+    queryFn: async () => {
+      const res = await fetch(`/api/assemblies/${assemblyId}/delegation/admin`);
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || '위임 현황 조회 실패');
+      }
+      const { data } = await res.json();
+      return data as DelegationRecord[];
+    },
+    enabled: !!assemblyId,
   });
 };

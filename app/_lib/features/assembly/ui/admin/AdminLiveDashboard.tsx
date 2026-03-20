@@ -13,6 +13,9 @@ import QuestionsModeration from './QuestionsModeration';
 import SpeakerQueueManager from './SpeakerQueueManager';
 import AgendaControl from './AgendaControl';
 import AttendanceList from './AttendanceList';
+import EmergencyControlPanel from './EmergencyControlPanel';
+import MultisigApprovalPanel from './MultisigApprovalPanel';
+import AssemblyPausedBanner from '@/app/_lib/features/assembly/ui/hall/AssemblyPausedBanner';
 
 interface AdminLiveDashboardProps {
   assemblyId: string;
@@ -58,8 +61,18 @@ export default function AdminLiveDashboard({ assemblyId, assembly }: AdminLiveDa
 
   const statusActions = LIVE_STATUS_ACTIONS[assembly.status] || [];
 
+  const isPaused = assembly.status === 'PAUSED';
+  const isVoting = assembly.status === 'VOTING';
+
   return (
     <div className="space-y-4">
+      {/* 일시중지 배너 */}
+      <AssemblyPausedBanner
+        isVisible={isPaused}
+        pauseReason={(assembly as unknown as { pause_reason?: string | null }).pause_reason ?? null}
+        pausedAt={(assembly as unknown as { paused_at?: string | null }).paused_at ?? null}
+      />
+
       {/* 상단 헤더: 총회명 + 상태 + 전환 버튼 */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-white rounded-lg border border-gray-200">
         <div className="flex items-center gap-3">
@@ -84,6 +97,12 @@ export default function AdminLiveDashboard({ assemblyId, assembly }: AdminLiveDa
           </div>
         )}
       </div>
+
+      {/* 비상 제어 + 다중 승인 */}
+      {(isVoting || isPaused) && (
+        <EmergencyControlPanel assemblyId={assemblyId} currentStatus={assembly.status} />
+      )}
+      <MultisigApprovalPanel assemblyId={assemblyId} />
 
       {/* 메인 그리드: 좌측 40% / 우측 60% */}
       <div className="grid grid-cols-1 lg:grid-cols-[40fr_60fr] gap-6">

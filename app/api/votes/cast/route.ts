@@ -18,10 +18,20 @@ export async function POST(request: NextRequest) {
     const auth = await authenticateApiRequest();
     if (!auth.authenticated) return auth.response;
 
-    const { pollId, assemblyId, optionId } = await request.json();
+    const { pollId, assemblyId, optionId, authNonce } = await request.json();
 
     if (!pollId || !assemblyId || !optionId) {
       return NextResponse.json({ error: '필수 파라미터가 누락되었습니다.' }, { status: 400 });
+    }
+
+    // authNonce 필수 검증 (PASS Step-up 본인인증 — 도시정비법 본인확인 요건)
+    if (!authNonce) {
+      return NextResponse.json({ error: '본인인증이 필요합니다. PASS 인증을 완료해주세요.' }, { status: 400 });
+    }
+
+    // authNonce 형식 검증 (64자 hex — PASS Step-up 인증 토큰)
+    if (!/^[0-9a-f]{64}$/i.test(authNonce)) {
+      return NextResponse.json({ error: '인증 토큰 형식이 올바르지 않습니다.' }, { status: 400 });
     }
 
     if (!auth.user.union_id) {
@@ -110,6 +120,7 @@ export async function POST(request: NextRequest) {
       p_snapshot_id: snapshot.id,
       p_option_id: optionId,
       p_voting_weight: snapshot.voting_weight,
+      p_auth_nonce: authNonce,  // PASS 인증 토큰 (60초 TTL, 필수)
     });
 
     if (error) {

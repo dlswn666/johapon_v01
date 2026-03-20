@@ -41,12 +41,21 @@ export default function QuorumDashboard({ assemblyId, showLiveStatus = false }: 
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-gray-900">정족수 현황</h2>
-        <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${quorum.quorumMet ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-          {quorum.quorumMet ? '정족수 충족' : '정족수 미달'}
-        </span>
-      </div>
+      {(() => {
+        const statusColor = quorum.quorumStatus === 'GREEN'
+          ? 'bg-green-100 text-green-700'
+          : quorum.quorumStatus === 'YELLOW'
+            ? 'bg-yellow-100 text-yellow-700'
+            : 'bg-red-100 text-red-700';
+        return (
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-gray-900">정족수 현황</h2>
+            <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${statusColor}`}>
+              {quorum.quorumMet ? '정족수 충족' : '정족수 미달'}
+            </span>
+          </div>
+        );
+      })()}
 
       {/* 출석 현황 요약 */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

@@ -91,14 +91,14 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     // 감사 로그 이벤트 매핑
     const eventMap: Record<string, string> = {
       APPROVED: 'PROXY_APPROVED',
-      REJECTED: 'PROXY_REGISTERED', // 거절도 기록
+      REJECTED: 'PROXY_REJECTED',
       REVOKED: 'PROXY_REVOKED',
     };
 
     await supabase.from('assembly_audit_logs').insert({
       assembly_id: assemblyId,
       union_id: unionId,
-      event_type: eventMap[newStatus] || 'PROXY_REGISTERED',
+      event_type: eventMap[newStatus] || 'PROXY_APPROVED',
       actor_id: auth.user.id,
       actor_role: 'ADMIN',
       target_type: 'proxy_registration',

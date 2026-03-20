@@ -1,6 +1,9 @@
 // Assembly 관련 타입 정의 (실제 DB 스키마 기반)
 
-export type AssemblyStatus = 'DRAFT' | 'NOTICE_SENT' | 'CONVENED' | 'IN_PROGRESS' | 'VOTING' | 'VOTING_CLOSED' | 'CLOSED' | 'ARCHIVED' | 'CANCELLED';
+export type AssemblyStatus = 'DRAFT' | 'NOTICE_SENT' | 'CONVENED' | 'IN_PROGRESS' | 'VOTING'
+  | 'PAUSED'              // 비상 일시정지 (선관위원장 + 감사 multisig 2/2)
+  | 'WRITTEN_TRANSITION'  // 서면투표 전환 결정 (3자 multisig 2/3)
+  | 'VOTING_CLOSED' | 'CLOSED' | 'ARCHIVED' | 'CANCELLED';
 export type AssemblyType = 'REGULAR' | 'EXTRAORDINARY' | 'ONLINE_ONLY';
 export type StreamType = 'ZOOM' | 'YOUTUBE' | 'BOTH' | 'NONE';
 export type PollStatus = 'SCHEDULED' | 'OPEN' | 'CLOSED' | 'CANCELLED';
@@ -174,6 +177,8 @@ export const ASSEMBLY_STATUS_LABELS: Record<AssemblyStatus, string> = {
   CONVENED: '소집완료',
   IN_PROGRESS: '진행중',
   VOTING: '투표진행',
+  PAUSED: '일시중지',
+  WRITTEN_TRANSITION: '서면전환',
   VOTING_CLOSED: '투표마감',
   CLOSED: '종료',
   ARCHIVED: '보관',
@@ -815,13 +820,29 @@ export interface NotificationBatch {
 export type ProxyType = 'MEMBER' | 'NON_MEMBER';
 export type ProxyRelationship = 'SPOUSE' | 'FAMILY' | 'AGENT' | 'OTHER';
 export type ProxyScope = 'ALL_AGENDAS' | 'SPECIFIC_AGENDAS';
-export type ProxyRegistrationStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'REVOKED';
+export type ProxyRegistrationStatus =
+  | 'DRAFT'      // 위임 생성됨, 아직 전송 전
+  | 'PENDING'    // 대리인에게 전송됨, 수락 대기 중
+  | 'CONFIRMED'  // 대리인 수락 완료
+  | 'USED'       // 대리투표 완료
+  | 'REVOKED'    // 위임자 또는 대리인이 취소
+  | 'EXPIRED'    // 만료됨
+  // 기존 DB 값과 호환 (소문자 6-state)
+  | 'confirmed' | 'pending' | 'revoked' | 'expired' | 'used' | 'draft';
 
-export const PROXY_STATUS_LABELS: Record<ProxyRegistrationStatus, string> = {
-  PENDING: '대기',
-  APPROVED: '승인',
-  REJECTED: '거절',
-  REVOKED: '해제',
+export const PROXY_STATUS_LABELS: Partial<Record<ProxyRegistrationStatus, string>> = {
+  DRAFT: '작성 중',
+  PENDING: '수락 대기',
+  CONFIRMED: '확정',
+  USED: '사용 완료',
+  REVOKED: '취소됨',
+  EXPIRED: '만료됨',
+  draft: '작성 중',
+  pending: '수락 대기',
+  confirmed: '확정',
+  used: '사용 완료',
+  revoked: '취소됨',
+  expired: '만료됨',
 };
 
 export const PROXY_RELATIONSHIP_LABELS: Record<ProxyRelationship, string> = {
@@ -1124,4 +1145,171 @@ export interface PersonalizedInstance {
   signedAt: string | null;
   personalizationHash: string;
   signatureImageUrl: string | null;
+}
+
+// ============================================
+// 투표 갭 보완 — 신규 타입 (2026-03-18)
+// ============================================
+
+// 투표 가중치 모드
+export type VotingWeightMode = 'EQUAL' | 'OWNERSHIP_SHARE';
+
+export const VOTING_WEIGHT_MODE_LABELS: Record<VotingWeightMode, string> = {
+  EQUAL: '1인 1표 (동등)',
+  OWNERSHIP_SHARE: '지분 비례',
+};
+
+// Multisig 액션 타입
+export type MultisigActionType =
+  | 'SNAPSHOT_CONFIRM'   // 유권자 스냅샷 확정
+  | 'VOTE_START'          // 투표 개시
+  | 'WRITTEN_TRANSITION'  // 서면투표 전환
+  | 'RESULT_CONFIRM'      // 결과 확정
+  | 'DISPUTE_RESOLVE';    // 참관인 이의 해소
+
+export type MultisigStatus = 'PENDING' | 'COMPLETED' | 'EXPIRED' | 'CANCELLED';
+
+export const MULTISIG_ACTION_LABELS: Record<MultisigActionType, string> = {
+  SNAPSHOT_CONFIRM: '유권자 명부 확정',
+  VOTE_START: '투표 개시',
+  WRITTEN_TRANSITION: '서면투표 전환',
+  RESULT_CONFIRM: '결과 확정',
+  DISPUTE_RESOLVE: '이의 해소',
+};
+
+// Multisig 서명자 역할
+export type MultisigSignerRole =
+  | 'UNION_PRESIDENT'
+  | 'ELECTION_CHAIR'
+  | 'AUDITOR'
+  | 'OBSERVER_REP';
+
+export interface MultisigApproval {
+  id:                   string;
+  assembly_id:          string;
+  union_id:             string;
+  action_type:          MultisigActionType;
+  required_count:       number;
+  current_count:        number;
+  status:               MultisigStatus;
+  payload?:             Record<string, unknown>;
+  expires_at:           string;
+  completed_at?:        string;
+  created_by:           string;
+  created_at:           string;
+  multisig_signatures?: MultisigSignature[];
+}
+
+export interface MultisigSignature {
+  id:             string;
+  approval_id:    string;
+  signer_user_id: string;
+  signer_role:    MultisigSignerRole;
+  signature_hash: string;
+  ip_address?:    string;
+  signed_at:      string;
+}
+
+// 총회 역할
+export type AssemblyRoleType =
+  | 'UNION_PRESIDENT'  // 조합장
+  | 'ELECTION_CHAIR'   // 선관위원장
+  | 'AUDITOR'          // 감사
+  | 'OBSERVER_REP'     // 참관인 대표
+  | 'ONSITE_OPERATOR'; // 현장운영자
+
+export const ASSEMBLY_ROLE_LABELS: Record<AssemblyRoleType, string> = {
+  UNION_PRESIDENT: '조합장',
+  ELECTION_CHAIR:  '선관위원장',
+  AUDITOR:         '감사',
+  OBSERVER_REP:    '참관인 대표',
+  ONSITE_OPERATOR: '현장운영자',
+};
+
+export interface AssemblyRole {
+  id:          string;
+  assembly_id: string;
+  union_id:    string;
+  user_id:     string;
+  role:        AssemblyRoleType;
+  assigned_at: string;
+  assigned_by: string;
+  revoked_at?: string;
+  // 조인 데이터 (선택적)
+  users?: { name: string; phone: string | null };
+}
+
+// Step-up 인증 nonce
+export interface AuthNonce {
+  nonce:      string;
+  expires_at: string;
+}
+
+export interface PassVerificationResult {
+  success:  boolean;
+  nonce?:   string;
+  method?:  string;
+}
+
+// 위임 상태 (소문자 6-state DB 값)
+export type DelegationState =
+  | 'draft' | 'pending' | 'confirmed' | 'used' | 'revoked' | 'expired';
+
+export interface DelegationRecord {
+  id:                 string;
+  assembly_id:        string;
+  delegator_user_id:  string;
+  delegate_user_id:   string | null;
+  delegate_name:      string;
+  delegate_phone:     string | null;
+  relationship:       ProxyRelationship | null;
+  status:             DelegationState;
+  expires_at:         string | null;
+  used_at:            string | null;
+  created_at:         string;
+  delegate_count?:    number;
+}
+
+// 투표 영수증
+export interface VotingReceipt {
+  assembly_name:            string;
+  agenda_title:             string;
+  voted_at:                 string;
+  receipt_token_truncated:  string;  // 앞 8자리만 표시
+  poll_id:                  string;
+}
+
+// Assembly Anchor (TSA/OTS)
+export type AnchorType   = 'TSA' | 'OTS';
+export type AnchorStatus = 'PENDING' | 'CONFIRMED' | 'FAILED';
+
+export interface AssemblyAnchor {
+  id:             string;
+  assembly_id:    string;
+  union_id:       string;
+  anchor_type:    AnchorType;
+  source_hash:    string;
+  anchor_data?:   Record<string, unknown>;
+  ots_file_path?: string;
+  bitcoin_txid?:  string;
+  status:         AnchorStatus;
+  created_at:     string;
+  confirmed_at?:  string;
+}
+
+// HeartbeatResponse 확장 (paused/written_transition 추가)
+export interface HeartbeatResponseExtended {
+  ok:                 boolean;
+  lastSeenAt:         string;
+  assemblyStatus:     AssemblyStatus;
+  activePollIds:      string[];
+  paused:             boolean;
+  written_transition: boolean;
+}
+
+// HallFeatureFlags 확장
+export interface HallFeatureFlagsExtended extends HallFeatureFlags {
+  isPaused:             boolean;
+  isWrittenTransition:  boolean;
+  hasActiveDelegation:  boolean;
 }

@@ -89,6 +89,32 @@ export async function POST(request: NextRequest, context: RouteContext) {
       }, { status: 400 });
     }
 
+    // [신규] 감사 로그 해시 체인 무결성 검증 (SR-009, SEC-06)
+    const { data: integrityResult, error: integrityError } = await supabase
+      .rpc('verify_audit_log_integrity', {
+        p_assembly_id: assemblyId,
+        p_union_id:    unionId,
+      });
+
+    if (integrityError) {
+      console.error('감사 로그 무결성 검증 실패:', integrityError);
+      return NextResponse.json(
+        { error: '감사 로그 무결성 검증에 실패했습니다. 관리자에게 문의해주세요.' },
+        { status: 500 }
+      );
+    }
+
+    if (!integrityResult?.valid) {
+      console.error('감사 로그 해시 체인 단절 감지:', integrityResult?.errors);
+      return NextResponse.json(
+        {
+          error: '감사 로그 해시 체인 무결성 오류가 감지되었습니다. 집계를 진행할 수 없습니다.',
+          details: integrityResult?.errors,
+        },
+        { status: 422 }
+      );
+    }
+
     // 해당 총회의 모든 poll 목록 조회
     const { data: polls, error: pollsError } = await supabase
       .from('polls')
@@ -109,7 +135,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const errors = [];
 
     for (const poll of polls) {
-      const { data: result, error: rpcError } = await supabase.rpc('tally_votes', { p_poll_id: poll.id });
+      const { data: result, error: rpcError } = await supabase.rpc('tally_votes', { p_poll_id: poll.id, p_tallied_by: auth.user.id });
       if (rpcError) {
         console.error(`poll ${poll.id} 집계 RPC 실패:`, rpcError);
         errors.push({ poll_id: poll.id, error: rpcError.message });

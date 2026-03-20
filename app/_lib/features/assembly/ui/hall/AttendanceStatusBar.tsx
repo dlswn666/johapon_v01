@@ -9,6 +9,12 @@ import { LogOut } from 'lucide-react';
 
 export interface AttendanceStatusBarProps {
   assemblyId: string;
+  votingMethodBreakdown?: {
+    electronic: number;
+    onsite: number;
+    written: number;
+    proxy: number;
+  } | null;
 }
 
 const STATUS_CONFIG: Record<string, { dot: string; label: string }> = {
@@ -24,7 +30,7 @@ const STATUS_CONFIG: Record<string, { dot: string; label: string }> = {
  * 출석 상태 바
  * 세션 상태 표시 + 입장 시각 + 의결권 수 + 퇴장 버튼
  */
-export default function AttendanceStatusBar({ assemblyId }: AttendanceStatusBarProps) {
+export default function AttendanceStatusBar({ assemblyId, votingMethodBreakdown }: AttendanceStatusBarProps) {
   const { sessionId, sessionStatus, entryAt, snapshot } = useVoteStore();
   const endSession = useEndSession(assemblyId);
   const { openConfirmModal } = useModalStore();
@@ -67,6 +73,16 @@ export default function AttendanceStatusBar({ assemblyId }: AttendanceStatusBarP
         <span className="text-xs text-gray-500">
           의결권 {snapshot.voting_weight}
         </span>
+      )}
+
+      {/* 투표 방법별 세분화 */}
+      {votingMethodBreakdown && (
+        <div className="flex items-center gap-2 text-xs text-gray-500">
+          <span title="전자투표">💻 {votingMethodBreakdown.electronic}</span>
+          <span title="현장투표">🏠 {votingMethodBreakdown.onsite}</span>
+          <span title="서면투표">📄 {votingMethodBreakdown.written}</span>
+          <span title="대리투표">👤 {votingMethodBreakdown.proxy}</span>
+        </div>
       )}
 
       {/* 퇴장 버튼 */}
