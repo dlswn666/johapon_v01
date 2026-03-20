@@ -32,7 +32,9 @@ const menuStructure: Record<string, { parent?: { label: string; href?: string };
     'admin/users': { parent: { label: '관리자' }, label: '사용자 관리' },
 
     // 총회 관리
-    'admin/assembly': { parent: { label: '관리자' }, label: '총회 관리' },
+    'admin/assembly': { label: '총회 관리' },
+    'admin/assembly/evote': { parent: { label: '총회 관리' }, label: '전자투표' },
+    'admin/assembly/evote/create': { parent: { label: '전자투표' }, label: '전자투표 생성' },
 
     // 알림톡 관리
     dashboard: { label: '알림톡 관리' },
@@ -92,6 +94,9 @@ export default function UnionBreadcrumb() {
                 breadcrumbItems.push({ label: '수정' });
             } else if (!isNaN(Number(segment))) {
                 // 숫자인 경우 상세 페이지
+                breadcrumbItems.push({ label: '상세' });
+            } else if (/^[0-9a-f]{8}-/.test(segment)) {
+                // UUID 동적 세그먼트인 경우 상세 페이지
                 breadcrumbItems.push({ label: '상세' });
             }
         }

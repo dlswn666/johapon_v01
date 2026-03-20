@@ -3,10 +3,11 @@
 
 import type { AssemblyStatus } from '@/app/_lib/shared/type/assembly.types';
 
-/** 허용된 상태 전이 맵 */
+/** 허용된 상태 전이 맵 (설계문서 정합: PRE_VOTING 추가) */
 const VALID_TRANSITIONS: Record<AssemblyStatus, AssemblyStatus[]> = {
   DRAFT: ['NOTICE_SENT', 'CANCELLED'],
-  NOTICE_SENT: ['CONVENED', 'CANCELLED'],
+  NOTICE_SENT: ['CONVENED', 'PRE_VOTING', 'CANCELLED'],
+  PRE_VOTING: ['CONVENED', 'IN_PROGRESS', 'CANCELLED'],  // 사전투표 → 총회 당일 전환
   CONVENED: ['IN_PROGRESS', 'CANCELLED'],
   IN_PROGRESS: ['VOTING', 'CANCELLED'],
   VOTING: ['VOTING_CLOSED', 'CANCELLED', 'PAUSED', 'WRITTEN_TRANSITION'],
@@ -21,7 +22,10 @@ const VALID_TRANSITIONS: Record<AssemblyStatus, AssemblyStatus[]> = {
 /** 상태 전이에 컴플라이언스 게이팅이 필요한 체크포인트 */
 export const TRANSITION_CHECKPOINTS: Partial<Record<string, string>> = {
   'DRAFT->NOTICE_SENT': 'BEFORE_NOTICE',
+  'NOTICE_SENT->PRE_VOTING': 'BEFORE_PRE_VOTING',
   'NOTICE_SENT->CONVENED': 'BEFORE_CONVENE',
+  'PRE_VOTING->CONVENED': 'BEFORE_CONVENE',
+  'PRE_VOTING->IN_PROGRESS': 'BEFORE_START',
   'CONVENED->IN_PROGRESS': 'BEFORE_START',
   'IN_PROGRESS->VOTING': 'BEFORE_VOTING',
   'VOTING_CLOSED->CLOSED': 'BEFORE_PUBLISH',
@@ -55,5 +59,15 @@ export function isEditableState(status: AssemblyStatus): boolean {
 
 /** 상태가 진행 중인지 확인 */
 export function isLiveState(status: AssemblyStatus): boolean {
-  return ['IN_PROGRESS', 'VOTING', 'VOTING_CLOSED'].includes(status);
+  return ['PRE_VOTING', 'IN_PROGRESS', 'VOTING', 'VOTING_CLOSED'].includes(status);
+}
+
+/** 사전투표 중인지 확인 */
+export function isPreVotingState(status: AssemblyStatus): boolean {
+  return status === 'PRE_VOTING';
+}
+
+/** 투표 가능한 상태인지 확인 (사전투표 또는 투표 진행 중) */
+export function isVotingAllowed(status: AssemblyStatus): boolean {
+  return status === 'PRE_VOTING' || status === 'VOTING';
 }

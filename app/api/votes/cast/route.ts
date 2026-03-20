@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
       if (attendanceLog && attendanceLog.attendance_type !== 'ONSITE') {
         // 온라인/서면대리: grace window 검증
         // 투표 중(poll OPEN)에는 180초, 기본 90초
-        const graceSeconds = assembly.status === 'VOTING' ? 180 : 90;
+        const graceSeconds = (assembly.status === 'VOTING' || assembly.status === 'PRE_VOTING') ? 180 : 90;
         const graceThreshold = new Date(Date.now() - graceSeconds * 1000).toISOString();
 
         if (!attendanceLog.last_seen_at || attendanceLog.last_seen_at < graceThreshold) {

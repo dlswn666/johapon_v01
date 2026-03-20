@@ -9,7 +9,7 @@ interface RouteContext {
 }
 
 // 총회장 입장 가능 상태
-const HALL_ALLOWED_STATUSES = ['CONVENED', 'IN_PROGRESS', 'VOTING', 'VOTING_CLOSED'];
+const HALL_ALLOWED_STATUSES = ['PRE_VOTING', 'CONVENED', 'IN_PROGRESS', 'VOTING', 'VOTING_CLOSED'];
 
 /**
  * 총회장 부트스트랩 데이터 조회

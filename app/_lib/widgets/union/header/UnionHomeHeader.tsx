@@ -72,6 +72,19 @@ export default function UnionHomeHeader() {
         },
     ];
 
+    // 총회 관리 메뉴 (조합 관리자 이상만 볼 수 있음)
+    if (isAdmin) {
+        navigationItems.push({
+            id: 'assembly-management',
+            label: '총회 관리',
+            href: `/${union?.slug || ''}/admin/assembly`,
+            subItems: [
+                { label: '전자투표', href: `/${union?.slug || ''}/admin/assembly/evote` },
+                { label: '온라인 총회', href: `/${union?.slug || ''}/admin/assembly` },
+            ],
+        });
+    }
+
     // 관리자 메뉴 (조합 관리자 이상만 볼 수 있음)
     if (isAdmin) {
         navigationItems.push({
@@ -85,7 +98,6 @@ export default function UnionHomeHeader() {
                 { label: '문자 발송', href: `/${union?.slug || ''}/admin/sms` },
                 { label: '조합원 관리', href: `/${union?.slug || ''}/admin/members` },
                 { label: '동의율 관리', href: `/${union?.slug || ''}/admin/land-lots` },
-                { label: '총회 관리', href: `/${union?.slug || ''}/admin/assembly` },
             ],
         });
     }

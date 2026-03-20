@@ -8,7 +8,7 @@ interface RouteContext {
 }
 
 // 자료 열람 가능한 총회 상태
-const DOC_VIEW_ALLOWED_STATUSES = ['CONVENED', 'IN_PROGRESS', 'VOTING', 'VOTING_CLOSED', 'CLOSED'];
+const DOC_VIEW_ALLOWED_STATUSES = ['PRE_VOTING', 'CONVENED', 'IN_PROGRESS', 'VOTING', 'VOTING_CLOSED', 'CLOSED'];
 
 /**
  * 총회 자료(안건 첨부 문서) 목록 조회

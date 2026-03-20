@@ -1,13 +1,21 @@
 // Assembly 관련 타입 정의 (실제 DB 스키마 기반)
 
-export type AssemblyStatus = 'DRAFT' | 'NOTICE_SENT' | 'CONVENED' | 'IN_PROGRESS' | 'VOTING'
+export type AssemblyStatus = 'DRAFT' | 'NOTICE_SENT' | 'PRE_VOTING' | 'CONVENED' | 'IN_PROGRESS' | 'VOTING'
   | 'PAUSED'              // 비상 일시정지 (선관위원장 + 감사 multisig 2/2)
   | 'WRITTEN_TRANSITION'  // 서면투표 전환 결정 (3자 multisig 2/3)
   | 'VOTING_CLOSED' | 'CLOSED' | 'ARCHIVED' | 'CANCELLED';
-export type AssemblyType = 'REGULAR' | 'EXTRAORDINARY' | 'ONLINE_ONLY';
+export type AssemblyType = 'REGULAR' | 'EXTRAORDINARY' | 'ONLINE_ONLY' | 'DELEGATE';
+export type QuorumType = 'GENERAL' | 'SPECIAL' | 'SPECIAL_TWO_THIRDS' | 'CONTRACTOR';
+export type DecisionResult = 'PASSED' | 'REJECTED' | 'VOID';
+export type ProxyRelation = 'SPOUSE' | 'LINEAL_ASCENDANT' | 'LINEAL_DESCENDANT' | 'SIBLING';
+export type DocCategory = 'CONVOCATION_NOTICE' | 'MINUTES' | 'RESULT' | 'ETC';
 export type StreamType = 'ZOOM' | 'YOUTUBE' | 'BOTH' | 'NONE';
 export type PollStatus = 'SCHEDULED' | 'OPEN' | 'CLOSED' | 'CANCELLED';
+export type VoteType = 'APPROVE' | 'ELECT' | 'SELECT';
 export type AgendaType = 'GENERAL' | 'CONTRACTOR_SELECTION' | 'DISSOLUTION' | 'BYLAW_AMENDMENT' | 'BUDGET_APPROVAL' | 'EXECUTIVE_ELECTION';
+export type PublishMode = 'IMMEDIATE' | 'SCHEDULED';
+export type NotificationChannel = 'KAKAO_ALIMTALK' | 'SMS' | 'EMAIL';
+export type NotificationLogStatus = 'PENDING' | 'SENT' | 'FAILED' | 'RETRIED';
 export type VotingMethod = 'ELECTRONIC' | 'ONSITE' | 'WRITTEN' | 'PROXY';
 export type AttendanceType = 'ONLINE' | 'ONSITE' | 'WRITTEN_PROXY';
 export type QuestionVisibility = 'PUBLIC' | 'ADMIN_ONLY' | 'AFTER_APPROVAL';
@@ -61,9 +69,32 @@ export interface Assembly {
   session_mode: SessionMode;
   minutes_confirmed_by: Record<string, unknown>[] | null;
   minutes_content_hash: string | null;
+  // 총회 기본 정족수 + 봉인 시각 (033 통합 보완)
+  quorum_type: QuorumType;
+  notice_actually_sent_at: string | null;
+  // 사전투표/공고 일정 (설계문서 정합)
+  announcement_date: string | null;
+  pre_vote_start_date: string | null;
+  pre_vote_end_date: string | null;
+  final_deadline: string | null;
+  publish_mode: PublishMode;
+  notification_config: NotificationConfig | null;
+  // 봉인 스냅샷 (CLOSED 시점 확정)
+  eligible_member_count: number | null;
+  total_attendance_count: number | null;
+  direct_attendance_count: number | null;
+  data_integrity_hash: string | null;
+
   created_by: string;
   created_at: string;
   updated_at: string;
+}
+
+// 알림 설정 JSON 구조
+export interface NotificationConfig {
+  channels: NotificationChannel[];
+  reminders: string[];  // 'D-3', 'D-1', 'DAY_OF' 등
+  customMessage?: string;
 }
 
 export type NewAssembly = Pick<Assembly, 'title' | 'scheduled_at' | 'assembly_type'> & Partial<Pick<Assembly, 'description' | 'venue_address' | 'stream_type' | 'zoom_meeting_id' | 'youtube_video_id' | 'legal_basis'>>;
@@ -79,9 +110,13 @@ export interface AgendaItem {
   title: string;
   description: string | null;
   agenda_type: AgendaType;
+  vote_type: VoteType | null;
   quorum_threshold_pct: number | null;
   quorum_requires_direct: boolean;
   approval_threshold_pct: number | null;
+  quorum_type_override: QuorumType | null;
+  decision_result: DecisionResult | null;
+  decision_note: string | null;
   explanation_html: string | null;
   created_at: string;
   updated_at: string;
@@ -114,6 +149,10 @@ export interface Poll {
   legal_window_locked_at: string | null;
   close_reason: string | null;
   close_reason_code: CloseReasonCode | null;
+  // 투표 유형 (설계문서 정합)
+  vote_type: VoteType;
+  elect_count: number | null;
+  encryption_enabled: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -137,6 +176,15 @@ export interface PollOption {
   label: string;
   option_type: string;
   description: string | null;
+  // 후보자 정보 (ELECT 투표, 설계문서 정합)
+  candidate_name: string | null;
+  candidate_info: string | null;
+  // 업체 정보 (SELECT 투표, 설계문서 정합)
+  company_name: string | null;
+  bid_amount: string | null;
+  company_info: string | null;
+  // 당선/선정 결과 (설계문서 정합)
+  is_elected: boolean | null;
   created_at: string;
 }
 
@@ -174,6 +222,7 @@ export interface AssemblyListItem extends Assembly {
 export const ASSEMBLY_STATUS_LABELS: Record<AssemblyStatus, string> = {
   DRAFT: '초안',
   NOTICE_SENT: '소집공고',
+  PRE_VOTING: '사전투표',
   CONVENED: '소집완료',
   IN_PROGRESS: '진행중',
   VOTING: '투표진행',
@@ -189,6 +238,31 @@ export const ASSEMBLY_TYPE_LABELS: Record<AssemblyType, string> = {
   REGULAR: '정기총회',
   EXTRAORDINARY: '임시총회',
   ONLINE_ONLY: '서면총회',
+  DELEGATE: '대의원회',
+};
+
+// 총회 레벨 문서 (033 통합 보완)
+export interface AssemblyDocument {
+  id: string;
+  assembly_id: string;
+  union_id: string;
+  file_name: string;
+  original_file_name: string | null;
+  file_url: string;
+  file_type: string | null;
+  file_size: number | null;
+  doc_category: DocCategory;
+  uploaded_by: string;
+  uploaded_at: string;
+  created_at: string;
+}
+
+// 정족수 유형 레이블
+export const QUORUM_TYPE_LABELS: Record<QuorumType, string> = {
+  GENERAL: '일반의결 (직접출석 10%)',
+  SPECIAL: '특별의결 (직접출석 20%)',
+  SPECIAL_TWO_THIRDS: '특별의결 가중 (2/3 찬성)',
+  CONTRACTOR: '시공사 선정 (직접출석 과반수)',
 };
 
 export const AGENDA_TYPE_LABELS: Record<AgendaType, string> = {
@@ -199,6 +273,29 @@ export const AGENDA_TYPE_LABELS: Record<AgendaType, string> = {
   BUDGET_APPROVAL: '예산 승인',
   EXECUTIVE_ELECTION: '임원 선출',
 };
+
+// 투표 유형 레이블 (설계문서 정합)
+export const VOTE_TYPE_LABELS: Record<VoteType, string> = {
+  APPROVE: '찬반투표',
+  ELECT: '선출투표',
+  SELECT: '시공사/업체 선정',
+};
+
+// 알림 발송 이력 (설계문서 정합)
+export interface NotificationLog {
+  id: string;
+  assembly_id: string;
+  union_id: string;
+  user_id: string | null;
+  channel: NotificationChannel;
+  template_type: string | null;
+  status: NotificationLogStatus;
+  sent_at: string | null;
+  fail_reason: string | null;
+  retry_count: number;
+  external_message_id: string | null;
+  created_at: string;
+}
 
 // DB: assembly_member_snapshots 테이블 (총회 시점 조합원 스냅샷)
 export interface AssemblyMemberSnapshot {

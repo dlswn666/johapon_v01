@@ -9,7 +9,7 @@ import crypto from 'crypto';
 const SUPPORTED_IDENTITY_METHODS: IdentityMethod[] = ['KAKAO_LOGIN', 'PASS_CERT', 'CERTIFICATE'];
 
 // 입장 허용 총회 상태
-const ENTRY_ALLOWED_STATUSES = ['CONVENED', 'IN_PROGRESS', 'VOTING', 'VOTING_CLOSED'];
+const ENTRY_ALLOWED_STATUSES = ['PRE_VOTING', 'CONVENED', 'IN_PROGRESS', 'VOTING', 'VOTING_CLOSED'];
 
 /**
  * 총회 접근 토큰 검증 + 카카오 인증 확인

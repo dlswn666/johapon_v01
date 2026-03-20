@@ -62,7 +62,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     }
     const { status: newStatus, reason } = body;
 
-    const VALID_STATUSES = ['DRAFT', 'NOTICE_SENT', 'CONVENED', 'IN_PROGRESS', 'VOTING', 'VOTING_CLOSED', 'CLOSED', 'ARCHIVED', 'CANCELLED'];
+    const VALID_STATUSES = ['DRAFT', 'NOTICE_SENT', 'PRE_VOTING', 'CONVENED', 'IN_PROGRESS', 'VOTING', 'VOTING_CLOSED', 'CLOSED', 'ARCHIVED', 'CANCELLED'];
     if (!newStatus || !VALID_STATUSES.includes(newStatus)) {
       return NextResponse.json({ error: '유효하지 않은 상태 값입니다.' }, { status: 400 });
     }
