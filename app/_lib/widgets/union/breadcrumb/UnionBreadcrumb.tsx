@@ -92,6 +92,10 @@ export default function UnionBreadcrumb() {
                 breadcrumbItems.push({ label: '작성' });
             } else if (segment === 'edit') {
                 breadcrumbItems.push({ label: '수정' });
+            } else if (segment === 'notifications') {
+                breadcrumbItems.push({ label: '알림 관리' });
+            } else if (segment === 'results') {
+                breadcrumbItems.push({ label: '결과/보고서' });
             } else if (!isNaN(Number(segment))) {
                 // 숫자인 경우 상세 페이지
                 breadcrumbItems.push({ label: '상세' });

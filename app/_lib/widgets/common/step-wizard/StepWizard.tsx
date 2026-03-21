@@ -39,16 +39,20 @@ export default function StepWizard({
           {steps.map((s) => {
             const isActive = s.step === currentStep;
             const isCompleted = completedSteps.has(s.step);
+            const isDisabled = s.step > currentStep && !isCompleted;
             return (
               <li key={s.step}>
                 <button
                   onClick={() => onStepClick(s.step)}
+                  disabled={isDisabled}
                   className={`w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 transition-colors ${
                     isActive
                       ? 'bg-blue-50 border border-blue-200 text-blue-700'
                       : isCompleted
                         ? 'bg-green-50 text-green-700 hover:bg-green-100'
-                        : 'text-gray-600 hover:bg-gray-50'
+                        : isDisabled
+                          ? 'text-gray-300 cursor-not-allowed'
+                          : 'text-gray-600 hover:bg-gray-50'
                   }`}
                   aria-current={isActive ? 'step' : undefined}
                 >
@@ -85,16 +89,20 @@ export default function StepWizard({
           {steps.map((s) => {
             const isActive = s.step === currentStep;
             const isCompleted = completedSteps.has(s.step);
+            const isDisabled = s.step > currentStep && !isCompleted;
             return (
               <li key={s.step}>
                 <button
                   onClick={() => onStepClick(s.step)}
+                  disabled={isDisabled}
                   className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
                     isActive
                       ? 'bg-blue-600 text-white'
                       : isCompleted
                         ? 'bg-green-500 text-white'
-                        : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                        : isDisabled
+                          ? 'bg-gray-100 text-gray-300 cursor-not-allowed'
+                          : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
                   }`}
                   aria-current={isActive ? 'step' : undefined}
                   title={s.label}
@@ -113,16 +121,20 @@ export default function StepWizard({
           {steps.map((s) => {
             const isActive = s.step === currentStep;
             const isCompleted = completedSteps.has(s.step);
+            const isDisabled = s.step > currentStep && !isCompleted;
             return (
               <li key={s.step}>
                 <button
                   onClick={() => onStepClick(s.step)}
+                  disabled={isDisabled}
                   className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium transition-colors ${
                     isActive
                       ? 'bg-blue-600 text-white'
                       : isCompleted
                         ? 'bg-green-500 text-white'
-                        : 'bg-gray-200 text-gray-600'
+                        : isDisabled
+                          ? 'bg-gray-100 text-gray-300 cursor-not-allowed'
+                          : 'bg-gray-200 text-gray-600'
                   }`}
                   aria-current={isActive ? 'step' : undefined}
                   title={s.label}

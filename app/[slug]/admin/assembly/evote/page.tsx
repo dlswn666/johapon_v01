@@ -7,7 +7,7 @@ import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import { useEvoteList } from '@/app/_lib/features/evote/api/useEvoteList';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Plus, Vote } from 'lucide-react';
+import { Plus, Vote, AlertTriangle, RotateCcw } from 'lucide-react';
 import { getUnionPath } from '@/app/_lib/shared/lib/utils/slug';
 import EvoteCard from './_components/EvoteCard';
 
@@ -15,7 +15,7 @@ export default function EvoteListPage() {
   const router = useRouter();
   const { slug, isLoading: isUnionLoading } = useSlug();
   const { isAdmin, isLoading: isAuthLoading } = useAuth();
-  const { data: evotes, isLoading: isEvotesLoading } = useEvoteList();
+  const { data: evotes, isLoading: isEvotesLoading, isError: isEvotesError, refetch: refetchEvotes } = useEvoteList();
 
   useEffect(() => {
     if (!isAuthLoading && !isAdmin) {
@@ -55,7 +55,21 @@ export default function EvoteListPage() {
         </Button>
       </div>
 
-      {isEvotesLoading ? (
+      {isEvotesError ? (
+        <div className="text-center py-16 bg-white rounded-lg border border-gray-200">
+          <AlertTriangle className="w-12 h-12 text-red-400 mx-auto mb-4" />
+          <p className="text-lg font-medium text-gray-700">목록을 불러올 수 없습니다.</p>
+          <p className="text-sm text-gray-500 mt-1">다시 시도해주세요.</p>
+          <Button
+            onClick={() => refetchEvotes()}
+            className="mt-4 gap-2"
+            variant="outline"
+          >
+            <RotateCcw className="w-4 h-4" />
+            새로고침
+          </Button>
+        </div>
+      ) : isEvotesLoading ? (
         <div className="grid gap-4">
           {[1, 2, 3].map((i) => (
             <Skeleton key={i} className="h-[160px] rounded-lg" />

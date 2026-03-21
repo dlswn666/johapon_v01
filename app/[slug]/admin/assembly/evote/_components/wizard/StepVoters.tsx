@@ -6,6 +6,7 @@ import { supabase } from '@/app/_lib/shared/supabase/client';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Skeleton } from '@/components/ui/skeleton';
+import { AlertTriangle } from 'lucide-react';
 import type { EvoteCreateForm, VoterFilterMode } from '@/app/_lib/features/evote/types/evote.types';
 
 interface StepVotersProps {
@@ -26,7 +27,7 @@ export default function StepVoters({ formData, updateForm }: StepVotersProps) {
   const [search, setSearch] = useState('');
 
   // 조합원 목록 조회
-  const { data: members, isLoading } = useQuery({
+  const { data: members, isLoading, isError } = useQuery({
     queryKey: ['evote-voters', union?.id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -43,8 +44,13 @@ export default function StepVoters({ formData, updateForm }: StepVotersProps) {
     enabled: !!union?.id,
   });
 
-  // 필터 모드 변경 시 선택 초기화
+  // 필터 모드 변경 시 선택 초기화 (선택된 항목이 있으면 경고)
   const handleFilterChange = (mode: VoterFilterMode) => {
+    if (mode === formData.voterFilter) return;
+    if (formData.selectedVoterIds.length > 0) {
+      const confirmed = confirm('필터를 변경하면 현재 선택이 초기화됩니다. 계속하시겠습니까?');
+      if (!confirmed) return;
+    }
     updateForm({ voterFilter: mode, selectedVoterIds: [] });
   };
 
@@ -162,7 +168,12 @@ export default function StepVoters({ formData, updateForm }: StepVotersProps) {
       </div>
 
       {/* 조합원 테이블 */}
-      {isLoading ? (
+      {isError ? (
+        <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
+          <AlertTriangle className="w-10 h-10 text-red-400 mx-auto mb-3" />
+          <p className="text-sm font-medium text-gray-700">조합원 목록을 불러올 수 없습니다.</p>
+        </div>
+      ) : isLoading ? (
         <div className="space-y-2">
           {[1, 2, 3, 4, 5].map((i) => (
             <Skeleton key={i} className="h-12 rounded-lg" />

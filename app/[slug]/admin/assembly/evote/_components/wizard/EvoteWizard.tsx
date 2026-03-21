@@ -62,16 +62,61 @@ export default function EvoteWizard() {
     setCurrentStep((prev) => Math.max(1, prev - 1) as WizardStep);
   }, []);
 
+  // 스텝별 유효성 검증
+  const validateCurrentStep = useCallback((): boolean => {
+    switch (currentStep) {
+      case 1:
+        if (!formData.title.trim() || !formData.scheduledAt) {
+          alert('총회명과 일시를 입력해주세요.');
+          return false;
+        }
+        return true;
+      case 2:
+        if (formData.agendas.length === 0) {
+          alert('최소 1개 이상의 안건을 등록해주세요.');
+          return false;
+        }
+        for (const agenda of formData.agendas) {
+          if (!agenda.title.trim()) {
+            alert('안건 제목을 입력해주세요.');
+            return false;
+          }
+          if (agenda.voteType === 'ELECT' && agenda.candidates.length === 0) {
+            alert(`"${agenda.title}" 안건에 후보자를 1명 이상 등록해주세요.`);
+            return false;
+          }
+          if (agenda.voteType === 'SELECT' && agenda.companies.length === 0) {
+            alert(`"${agenda.title}" 안건에 업체를 1개 이상 등록해주세요.`);
+            return false;
+          }
+        }
+        return true;
+      case 3:
+        if (formData.selectedVoterIds.length === 0) {
+          alert('투표 대상자를 1명 이상 선택해주세요.');
+          return false;
+        }
+        return true;
+      case 4:
+        // 선택 항목이므로 검증 없음
+        return true;
+      default:
+        return true;
+    }
+  }, [currentStep, formData]);
+
   // 다음 스텝
   const goNext = useCallback(() => {
+    if (!validateCurrentStep()) return;
     markStepCompleted(currentStep);
     setCurrentStep((prev) => Math.min(5, prev + 1) as WizardStep);
-  }, [currentStep, markStepCompleted]);
+  }, [currentStep, markStepCompleted, validateCurrentStep]);
 
-  // 스텝 클릭 네비게이션
+  // 스텝 클릭 네비게이션 (완료된 스텝 + 현재 스텝만 이동 가능)
   const goToStep = useCallback((step: number) => {
+    if (step > currentStep && !completedSteps.has(step)) return;
     setCurrentStep(step as WizardStep);
-  }, []);
+  }, [currentStep, completedSteps]);
 
   // 최종 생성
   const handleCreate = useCallback(() => {
