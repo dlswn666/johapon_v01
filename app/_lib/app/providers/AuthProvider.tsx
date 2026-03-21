@@ -17,6 +17,46 @@ export type UserRole = 'SYSTEM_ADMIN' | 'ADMIN' | 'USER' | 'APPLICANT';
  * 개발용 systemAdmin 목(mock) 사용자 데이터
  * localhost 개발 환경에서만 사용됨
  */
+// [DEV ONLY] union_id를 slug에서 resolve하여 세팅하는 mock 사용자 생성 함수
+function createDevUser(role: 'SYSTEM_ADMIN' | 'ADMIN' | 'USER', unionId: string | null, name: string): User {
+    return {
+        id: `dev-${role.toLowerCase()}-${unionId || 'system'}`,
+        name,
+        email: `dev-${role.toLowerCase()}@localhost.dev`,
+        phone_number: '010-0000-0000',
+        role,
+        user_status: 'APPROVED',
+        union_id: unionId,
+        created_at: new Date().toISOString(),
+        updated_at: null,
+        approved_at: new Date().toISOString(),
+        birth_date: null,
+        blocked_at: null,
+        blocked_reason: null,
+        executive_sort_order: null,
+        executive_title: null,
+        is_blocked: false,
+        is_executive: false,
+        notes: null,
+        property_address: null,
+        property_address_detail: null,
+        property_type: null,
+        property_zonecode: null,
+        rejected_at: null,
+        rejected_reason: null,
+        business_registration_no: null,
+        canonical_user_id: null,
+        entity_type: null,
+        representative_name: null,
+        resident_address: null,
+        resident_address_detail: null,
+        resident_address_jibun: null,
+        resident_address_road: null,
+        resident_zonecode: null,
+        voting_weight: 1,
+    };
+}
+
 const DEV_SYSTEM_ADMIN_USER: User = {
     id: 'd58babef-1a73-4da0-961c-09457667a07d',
     name: '시스템 관리자',
@@ -194,8 +234,44 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
         let isMounted = true;
 
         const initAuth = async () => {
-            // [DEV ONLY] localhost 환경에서는 인증 스킵하고 systemAdmin으로 자동 로그인
+            // [DEV ONLY] localhost 환경에서는 인증 스킵
             if (isLocalhost()) {
+                // slug가 있으면 해당 조합의 관리자/조합원으로 로그인
+                if (currentSlug && currentSlug !== 'systemAdmin') {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const testRole = urlParams.get('role'); // 'user' | null
+
+                    // unions 테이블에서 slug로 union_id 조회 (anon key로도 가능)
+                    let unionId: string | null = null;
+                    try {
+                        const { data: unionData } = await supabase
+                            .from('unions')
+                            .select('id')
+                            .eq('slug', currentSlug)
+                            .single();
+                        unionId = unionData?.id ?? null;
+                    } catch { /* ignore */ }
+
+                    if (testRole === 'user') {
+                        // 일반 조합원 mock — DB 조회 없이 바로 mock 생성
+                        const devUser = createDevUser('USER', unionId, '테스트 조합원');
+                        console.log(`[DEV] 테스트 조합원: ${devUser.name} (USER) @ ${currentSlug}`);
+                        setUser(devUser);
+                        setAuthUser(null);
+                        setSession(null);
+                        setIsLoading(false);
+                        return;
+                    } else {
+                        // 관리자 mock — union_id 세팅
+                        const devAdmin = createDevUser('ADMIN', unionId, '테스트 관리자');
+                        console.log(`[DEV] 테스트 관리자: ${devAdmin.name} (ADMIN) @ ${currentSlug}`);
+                        setUser(devAdmin);
+                        setAuthUser(null);
+                        setSession(null);
+                        setIsLoading(false);
+                        return;
+                    }
+                }
                 setUser(DEV_SYSTEM_ADMIN_USER);
                 setAuthUser(null);
                 setSession(null);
