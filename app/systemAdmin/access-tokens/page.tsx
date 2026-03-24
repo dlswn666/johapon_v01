@@ -35,6 +35,7 @@ export default function AccessTokensPage() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedToken, setSelectedToken] = useState<AccessTokenListItem | null>(null);
   const [newTokenKey, setNewTokenKey] = useState('');
+  const [newTokenUnionSlug, setNewTokenUnionSlug] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [selectedPreset, setSelectedPreset] = useState<TokenPreset>('kakao_review');
@@ -113,6 +114,10 @@ export default function AccessTokensPage() {
       const result = await response.json();
       if (result.data) {
         setNewTokenKey(result.data.key);
+        const selectedUnion = formData.union_id
+          ? unions.find((u) => u.id === formData.union_id)
+          : null;
+        setNewTokenUnionSlug(selectedUnion?.slug || null);
         setShowCreateDialog(false);
         setShowResultDialog(true);
         fetchTokens();
@@ -360,8 +365,8 @@ export default function AccessTokensPage() {
                 onValueChange={(value) => {
                   const unionId = value === 'all' ? null : value;
                   const unionName = unionId ? unions.find((u) => u.id === unionId)?.name : '';
-                  const newName = selectedPreset === 'kakao_review' && unionName
-                    ? `카카오 검수용 - ${unionName}`
+                  const newName = selectedPreset === 'kakao_review'
+                    ? (unionName ? `카카오 검수용 - ${unionName}` : '카카오 검수용')
                     : formData.name;
                   setFormData({ ...formData, union_id: unionId, name: newName });
                 }}
@@ -466,13 +471,17 @@ export default function AccessTokensPage() {
             </div>
 
             <div>
-              <Label>공유용 URL 예시</Label>
-              <div className="mt-1 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg text-sm break-all">
-                {typeof window !== 'undefined' && `${window.location.origin}/[조합slug]?tokenKey=${newTokenKey}`}
+              <Label>공유용 URL</Label>
+              <div className="mt-1 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg text-sm break-all text-blue-300 font-mono">
+                {typeof window !== 'undefined' && newTokenUnionSlug
+                  ? `${window.location.origin}/${newTokenUnionSlug}?tokenKey=${newTokenKey}`
+                  : `${typeof window !== 'undefined' ? window.location.origin : ''}/[조합slug]?tokenKey=${newTokenKey}`}
               </div>
-              <p className="mt-2 text-xs text-slate-400">
-                [조합slug] 부분을 실제 조합 slug로 변경하여 사용하세요.
-              </p>
+              {!newTokenUnionSlug && (
+                <p className="mt-2 text-xs text-slate-500">
+                  [조합slug] 부분을 실제 조합 slug로 변경하여 사용하세요.
+                </p>
+              )}
             </div>
 
             <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3">
@@ -482,7 +491,20 @@ export default function AccessTokensPage() {
               </p>
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="gap-2">
+            {newTokenUnionSlug && (
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  const url = `${window.location.origin}/${newTokenUnionSlug}?tokenKey=${newTokenKey}`;
+                  await navigator.clipboard.writeText(url);
+                }}
+                className="gap-1"
+              >
+                <Copy className="w-4 h-4" />
+                URL 복사
+              </Button>
+            )}
             <Button onClick={() => setShowResultDialog(false)}>확인</Button>
           </DialogFooter>
         </DialogContent>
