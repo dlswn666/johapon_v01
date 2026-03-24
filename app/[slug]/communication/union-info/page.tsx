@@ -19,7 +19,7 @@ import { formatDate, formatAuthorName } from '@/app/_lib/shared/utils/commonUtil
 const UnionInfoListPage = () => {
     const router = useRouter();
     const { slug, isLoading: isUnionLoading } = useSlug();
-    const { user } = useAuth();
+    const { user, isAdmin, isSystemAdmin } = useAuth();
     const { filters, setFilters, totalCount, resetFilters } = useUnionInfoStore();
     
     const [searchInput, setSearchInput] = useState('');
@@ -91,12 +91,14 @@ const UnionInfoListPage = () => {
             <div className={cn('container mx-auto max-w-[1280px] px-4 py-8')}>
                 <div className={cn('flex justify-between items-center mb-6')}>
                     <h2 className={cn('text-[32px] font-bold text-[#5FA37C]')}>조합 정보 공유</h2>
-                    <Button 
-                        className="bg-[#4E8C6D] hover:bg-[#5FA37C] text-white text-[16px] px-6 py-2 rounded-[8px] cursor-pointer" 
-                        onClick={() => router.push(`/${slug}/communication/union-info/new`)}
-                    >
-                        글쓰기
-                    </Button>
+                    {(isAdmin || isSystemAdmin) && (
+                        <Button
+                            className="bg-[#4E8C6D] hover:bg-[#5FA37C] text-white text-[16px] px-6 py-2 rounded-[8px] cursor-pointer"
+                            onClick={() => router.push(`/${slug}/communication/union-info/new`)}
+                        >
+                            글쓰기
+                        </Button>
+                    )}
                 </div>
 
                 {/* 검색 영역 */}

@@ -38,6 +38,7 @@ export default function AccessTokensPage() {
   const [newTokenUnionSlug, setNewTokenUnionSlug] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [resultUrlCopied, setResultUrlCopied] = useState(false);
   const [selectedPreset, setSelectedPreset] = useState<TokenPreset>('kakao_review');
 
   // 조합 목록 조회 (기존 훅 사용)
@@ -498,11 +499,17 @@ export default function AccessTokensPage() {
                 onClick={async () => {
                   const url = `${window.location.origin}/${newTokenUnionSlug}?tokenKey=${newTokenKey}`;
                   await navigator.clipboard.writeText(url);
+                  setResultUrlCopied(true);
+                  setTimeout(() => setResultUrlCopied(false), 2000);
                 }}
                 className="gap-1"
               >
-                <Copy className="w-4 h-4" />
-                URL 복사
+                {resultUrlCopied ? (
+                  <CheckCircle className="w-4 h-4 text-green-400" />
+                ) : (
+                  <Copy className="w-4 h-4" />
+                )}
+                {resultUrlCopied ? '복사됨' : 'URL 복사'}
               </Button>
             )}
             <Button onClick={() => setShowResultDialog(false)}>확인</Button>

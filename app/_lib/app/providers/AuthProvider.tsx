@@ -18,24 +18,29 @@ export type UserRole = 'SYSTEM_ADMIN' | 'ADMIN' | 'USER' | 'APPLICANT';
  * localhost 개발 환경에서만 사용됨
  */
 // [DEV ONLY] union_id를 slug에서 resolve하여 세팅하는 mock 사용자 생성 함수
-function createDevUser(role: 'SYSTEM_ADMIN' | 'ADMIN' | 'USER', unionId: string | null, name: string): User {
+function createDevUser(
+    role: 'SYSTEM_ADMIN' | 'ADMIN' | 'USER',
+    unionId: string | null,
+    name: string,
+    options?: { user_status?: string; is_blocked?: boolean; blocked_reason?: string | null }
+): User {
     return {
         id: `dev-${role.toLowerCase()}-${unionId || 'system'}`,
         name,
         email: `dev-${role.toLowerCase()}@localhost.dev`,
         phone_number: '010-0000-0000',
         role,
-        user_status: 'APPROVED',
+        user_status: options?.user_status || 'APPROVED',
         union_id: unionId,
         created_at: new Date().toISOString(),
         updated_at: null,
         approved_at: new Date().toISOString(),
         birth_date: null,
-        blocked_at: null,
-        blocked_reason: null,
+        blocked_at: options?.is_blocked ? new Date().toISOString() : null,
+        blocked_reason: options?.blocked_reason || null,
         executive_sort_order: null,
         executive_title: null,
-        is_blocked: false,
+        is_blocked: options?.is_blocked || false,
         is_executive: false,
         notes: null,
         property_address: null,
@@ -240,6 +245,19 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
                 if (currentSlug && currentSlug !== 'systemAdmin') {
                     const urlParams = new URLSearchParams(window.location.search);
                     const testRole = urlParams.get('role'); // 'user' | null
+                    const testStatus = urlParams.get('status'); // 'PENDING_APPROVAL' 등
+                    const testBlocked = urlParams.get('blocked'); // 'true' | null
+                    const testNoAuth = urlParams.get('noauth'); // 'true' | null
+
+                    // [DEV] 비로그인 시뮬레이션: user=null
+                    if (testNoAuth === 'true') {
+                        console.log('[DEV] 비로그인 시뮬레이션 (noauth=true)');
+                        setUser(null);
+                        setAuthUser(null);
+                        setSession(null);
+                        setIsLoading(false);
+                        return;
+                    }
 
                     // unions 테이블에서 slug로 union_id 조회 (anon key로도 가능)
                     let unionId: string | null = null;
@@ -252,10 +270,17 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
                         unionId = unionData?.id ?? null;
                     } catch { /* ignore */ }
 
+                    // status/blocked 옵션 (접근 테스트용)
+                    const mockOptions = {
+                        user_status: testStatus || 'APPROVED',
+                        is_blocked: testBlocked === 'true',
+                        blocked_reason: testBlocked === 'true' ? '테스트 차단' : null,
+                    };
+
                     if (testRole === 'user') {
                         // 일반 조합원 mock — DB 조회 없이 바로 mock 생성
-                        const devUser = createDevUser('USER', unionId, '테스트 조합원');
-                        console.log(`[DEV] 테스트 조합원: ${devUser.name} (USER) @ ${currentSlug}`);
+                        const devUser = createDevUser('USER', unionId, '테스트 조합원', mockOptions);
+                        console.log(`[DEV] 테스트 조합원: ${devUser.name} (USER, status=${mockOptions.user_status}, blocked=${mockOptions.is_blocked}) @ ${currentSlug}`);
                         setUser(devUser);
                         setAuthUser(null);
                         setSession(null);
@@ -263,7 +288,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
                         return;
                     } else {
                         // 관리자 mock — union_id 세팅
-                        const devAdmin = createDevUser('ADMIN', unionId, '테스트 관리자');
+                        const devAdmin = createDevUser('ADMIN', unionId, '테스트 관리자', mockOptions);
                         console.log(`[DEV] 테스트 관리자: ${devAdmin.name} (ADMIN) @ ${currentSlug}`);
                         setUser(devAdmin);
                         setAuthUser(null);

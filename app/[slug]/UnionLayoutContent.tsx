@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { AlertCircle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
@@ -33,6 +33,7 @@ export default function UnionLayoutContent({ children }: UnionLayoutContentProps
     const { union, slug, isLoading: isUnionLoading } = useSlug();
     const { isAuthenticated, isLoading: isAuthLoading, isUserFetching, authUser, user } = useAuth();
     const pathname = usePathname();
+    const router = useRouter();
 
     // 홈 페이지 여부 확인
     const isHomePage = pathname === `/${slug}`;
@@ -45,6 +46,18 @@ export default function UnionLayoutContent({ children }: UnionLayoutContentProps
 
     // 랜딩 페이지 여부 확인 (비로그인 또는 회원가입 필요 + 홈페이지)
     const isLandingPage = isHomePage && (!isAuthenticated || needsRegistration);
+
+    // 비인증 사용자가 보호된 페이지 접근 시 랜딩으로 리다이렉트
+    // (미들웨어가 localhost에서 스킵되므로 클라이언트 사이드 가드 필요)
+    const isRegisterPage = pathname.startsWith(`/${slug}/register`) || pathname.startsWith(`/${slug}/invite`);
+    const isStillLoading = isUnionLoading || isAuthLoading || isUserFetching;
+    const shouldRedirectToLanding = !isStillLoading && !isAuthenticated && !isHomePage && !isRegisterPage;
+
+    React.useEffect(() => {
+        if (shouldRedirectToLanding) {
+            router.replace(`/${slug}`);
+        }
+    }, [shouldRedirectToLanding, router, slug]);
 
     // 로딩 중
     if (isUnionLoading || isAuthLoading || isUserFetching) {
@@ -84,6 +97,11 @@ export default function UnionLayoutContent({ children }: UnionLayoutContentProps
                 </div>
             </div>
         );
+    }
+
+    // 비인증 사용자 리다이렉트 (로딩 완료 후)
+    if (shouldRedirectToLanding) {
+        return null;
     }
 
     // 랜딩 페이지 레이아웃 (비로그인 + 홈페이지): Header, 사이드 광고 없이 Footer만 표시
