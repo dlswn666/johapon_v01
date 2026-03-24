@@ -126,7 +126,7 @@ export default function UnionMobileSidebar({ isOpen, onClose }: UnionMobileSideb
 
     return (
         <Sheet open={isOpen} onOpenChange={onClose}>
-            <SheetContent side="left" className="w-[280px] p-0 bg-white flex flex-col [&>button]:hidden" id="mobile-sidebar">
+            <SheetContent side="left" className="w-[280px] p-0 bg-white flex flex-col [&>button]:hidden z-[60]" id="mobile-sidebar">
                 <SheetHeader className="sr-only">
                     <SheetTitle>네비게이션 메뉴</SheetTitle>
                     <SheetDescription>조합 네비게이션 메뉴입니다.</SheetDescription>

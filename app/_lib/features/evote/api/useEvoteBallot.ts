@@ -23,6 +23,7 @@ export interface BallotMyVote {
   vote_count: number;
   receipt_token: string | null;
   voting_method: string;
+  can_revise?: boolean;
 }
 
 // 내 스냅샷

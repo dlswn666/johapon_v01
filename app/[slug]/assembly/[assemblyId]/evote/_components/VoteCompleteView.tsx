@@ -40,7 +40,7 @@ export default function VoteCompleteView({
   };
 
   return (
-    <div className="flex flex-col items-center justify-center px-6 py-12">
+    <div data-testid="vote-complete" className="flex flex-col items-center justify-center px-6 py-12">
       {/* 성공 아이콘 */}
       <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mb-4">
         <CheckCircle className="w-8 h-8 text-green-600" aria-hidden="true" />

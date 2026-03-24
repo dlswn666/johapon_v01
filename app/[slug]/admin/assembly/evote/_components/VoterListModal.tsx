@@ -82,11 +82,16 @@ export default function VoterListModal({ evoteId, open, onClose }: VoterListModa
           ) : (
             voters.map((voter) => (
               <div
-                key={voter.id}
+                key={voter.user_id}
                 className="flex items-center justify-between px-4 py-3 rounded-lg hover:bg-gray-50"
               >
                 <div className="flex items-center gap-3">
-                  <span className="text-sm font-medium text-gray-900">{voter.name}</span>
+                  <span className="text-sm font-medium text-gray-900">{voter.member_name}</span>
+                  {voter.is_executive && (
+                    <span className="ml-1 px-1.5 py-0.5 text-xs font-medium bg-purple-100 text-purple-700 rounded">
+                      대의원
+                    </span>
+                  )}
                   {voter.has_voted ? (
                     <Badge className="bg-green-100 text-green-700 border-transparent">
                       <CheckCircle2 className="w-3 h-3" />

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/app/_lib/shared/supabase/server';
 import { authenticateApiRequest } from '@/app/_lib/shared/api/auth';
 import { escapeLikeWildcards } from '@/app/_lib/shared/utils/escapeLike';
+import { sanitizeRpcError } from '@/app/_lib/shared/utils/sanitizeRpcError';
 
 /**
  * 전자투표 목록 조회
@@ -20,6 +21,18 @@ export async function GET(request: NextRequest) {
 
     if (!unionId) {
       return NextResponse.json({ error: '조합 정보를 확인할 수 없습니다.' }, { status: 400 });
+    }
+
+    if (auth.user.role === 'SYSTEM_ADMIN' && searchParams.get('union_id')) {
+      const { data: union } = await supabase
+        .from('unions')
+        .select('id')
+        .eq('id', unionId)
+        .single();
+
+      if (!union) {
+        return NextResponse.json({ error: '존재하지 않는 조합입니다.' }, { status: 404 });
+      }
     }
 
     let query = supabase
@@ -78,6 +91,18 @@ export async function POST(request: NextRequest) {
 
     if (!unionId) {
       return NextResponse.json({ error: '조합 정보를 확인할 수 없습니다.' }, { status: 400 });
+    }
+
+    if (auth.user.role === 'SYSTEM_ADMIN' && body.union_id) {
+      const { data: union } = await supabase
+        .from('unions')
+        .select('id')
+        .eq('id', unionId)
+        .single();
+
+      if (!union) {
+        return NextResponse.json({ error: '존재하지 않는 조합입니다.' }, { status: 404 });
+      }
     }
 
     // 필수 필드 검증
@@ -208,7 +233,7 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error('전자투표 생성 RPC 실패:', error);
-      const message = error.message || '전자투표 생성에 실패했습니다.';
+      const message = sanitizeRpcError(error.message);
       return NextResponse.json({ error: message }, { status: 500 });
     }
 

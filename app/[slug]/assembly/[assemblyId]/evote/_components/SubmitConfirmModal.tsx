@@ -21,7 +21,8 @@ interface SubmitConfirmModalProps {
   assemblyId: string;
   assemblyTitle: string;
   agendas: BallotAgenda[];
-  selections: Record<string, string>; // pollId -> optionId
+  selections: Record<string, string>; // pollId -> optionId (단일)
+  multiSelections?: Record<string, string[]>; // pollId -> optionIds (복수 선출)
   onSubmit: (authNonce: string) => void;
   isSubmitting: boolean;
 }
@@ -36,6 +37,7 @@ export default function SubmitConfirmModal({
   assemblyTitle,
   agendas,
   selections,
+  multiSelections = {},
   onSubmit,
   isSubmitting,
 }: SubmitConfirmModalProps) {
@@ -64,7 +66,7 @@ export default function SubmitConfirmModal({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-h-[80dvh] overflow-y-auto">
+        <DialogContent data-testid="submit-confirm-modal" className="max-h-[80dvh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>투표 내용을 확인해 주세요</DialogTitle>
             <DialogDescription>{assemblyTitle}</DialogDescription>
@@ -75,8 +77,10 @@ export default function SubmitConfirmModal({
             {agendas.map((agenda, index) => {
               const poll = agenda.polls?.[0];
               if (!poll) return null;
-              const selectedOptionId = selections[poll.id];
               const voteType: VoteType = poll.vote_type;
+              const isMultiElect = voteType === 'ELECT' && (poll.elect_count ?? 1) > 1;
+              const multiIds = multiSelections[poll.id] ?? [];
+              const selectedOptionId = selections[poll.id];
 
               return (
                 <div key={agenda.id} className="p-3 rounded-lg border border-gray-200 bg-gray-50">
@@ -85,7 +89,19 @@ export default function SubmitConfirmModal({
                     <span className="text-xs text-gray-400">{VOTE_TYPE_LABELS[voteType]}</span>
                   </div>
                   <p className="text-sm font-medium text-gray-900 mb-1">{agenda.title}</p>
-                  {selectedOptionId ? (
+                  {isMultiElect ? (
+                    multiIds.length > 0 ? (
+                      <div className="space-y-0.5">
+                        {multiIds.map((id) => (
+                          <p key={id} className="text-sm text-blue-700 font-medium">
+                            {getOptionLabel(agenda, poll.id, id)}
+                          </p>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-red-500">선택없음</p>
+                    )
+                  ) : selectedOptionId ? (
                     <p className="text-sm text-blue-700 font-medium">
                       {getOptionLabel(agenda, poll.id, selectedOptionId)}
                     </p>

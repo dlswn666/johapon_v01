@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/app/_lib/shared/supabase/server';
 import { authenticateApiRequest } from '@/app/_lib/shared/api/auth';
+import { sanitizeRpcError } from '@/app/_lib/shared/utils/sanitizeRpcError';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -84,7 +85,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     if (error) {
       console.error('일괄 투표 제출 실패:', error);
-      const message = error.message || '투표에 실패했습니다.';
+      const message = sanitizeRpcError(error.message);
       return NextResponse.json({ error: message }, { status: 400 });
     }
 

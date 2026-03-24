@@ -8,12 +8,15 @@ export type VoterFilter = 'ALL' | 'VOTED' | 'NOT_VOTED';
 
 // 투표 대상자 항목
 export interface EvoteVoter {
-  id: string;
   user_id: string;
-  name: string;
-  phone?: string | null;
+  member_name: string;
+  member_phone?: string | null;
+  member_type: string;
+  voting_weight: number;
+  is_executive: boolean;
   has_voted: boolean;
   voted_at: string | null;
+  voting_method?: string | null;
 }
 
 /**

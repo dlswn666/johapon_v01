@@ -49,10 +49,10 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
     const effectiveUnionId = unionId || assembly.union_id;
 
-    // 1. 활성 스냅샷 조회 (투표 대상자 목록)
+    // 1. 활성 스냅샷 조회 (투표 대상자 목록, users.is_executive 조인)
     const { data: snapshots, error: snapshotError } = await supabase
       .from('assembly_member_snapshots')
-      .select('id, user_id, member_name, member_phone, member_type, voting_weight')
+      .select('id, user_id, member_name, member_phone, member_type, voting_weight, users!assembly_member_snapshots_user_id_fkey(is_executive)')
       .eq('assembly_id', id)
       .eq('union_id', effectiveUnionId)
       .eq('is_active', true)
@@ -88,12 +88,14 @@ export async function GET(request: NextRequest, context: RouteContext) {
     // 3. 스냅샷 + 참여 기록 병합
     const voters = snapshots.map((s) => {
       const participation = participationMap.get(s.user_id);
+      const usersData = Array.isArray(s.users) ? s.users[0] : s.users as { is_executive: boolean | null } | null;
       return {
         user_id: s.user_id,
         member_name: s.member_name,
         member_phone: s.member_phone,
         member_type: s.member_type,
         voting_weight: s.voting_weight,
+        is_executive: usersData?.is_executive ?? false,
         has_voted: !!participation,
         voted_at: participation?.voted_at || null,
         voting_method: participation?.voting_method || null,

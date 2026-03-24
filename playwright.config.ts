@@ -1,4 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
+import path from 'path';
+
+// .env 파일에서 환경변수 로드 (Supabase 키 등)
+require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 
 export default defineConfig({
   testDir: './tests/e2e',

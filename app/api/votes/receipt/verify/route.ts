@@ -24,6 +24,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '필수 파라미터가 누락되었습니다.' }, { status: 400 });
     }
 
+    if (!receiptToken || receiptToken.length > 128) {
+      return NextResponse.json({ error: '유효하지 않은 영수증입니다.' }, { status: 400 });
+    }
+    if (!assemblyId || assemblyId.length > 36 || !pollId || pollId.length > 36) {
+      return NextResponse.json({ error: '유효하지 않은 요청입니다.' }, { status: 400 });
+    }
+
     const supabase = await createClient();
     const tokenHash = crypto.createHash('sha256').update(receiptToken).digest('hex');
 
@@ -38,8 +45,6 @@ export async function POST(request: NextRequest) {
     if (!registry) {
       return NextResponse.json({
         valid: false,
-        assemblyId,
-        pollId,
         issuedAt: null,
         revokedAt: null,
         verifyCount: 0,
@@ -57,8 +62,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       valid: registry.revoked_at === null,
-      assemblyId,
-      pollId,
       issuedAt: registry.issued_at,
       revokedAt: registry.revoked_at,
       verifyCount: registry.verify_count + 1,

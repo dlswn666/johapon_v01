@@ -14,7 +14,12 @@ interface BallotAgendaCardProps {
   index: number;
   selectedOptionId: string | null;
   onSelect: (pollId: string, optionId: string) => void;
+  /** 복수 선출 ELECT용: pipe-separated option IDs */
+  selectedOptionIds?: string[];
+  onMultiSelect?: (pollId: string, optionIds: string[]) => void;
   myVote?: BallotMyVote;
+  canRevise?: boolean;
+  onRevise?: (pollId: string) => void;
 }
 
 /**
@@ -25,17 +30,26 @@ export default function BallotAgendaCard({
   index,
   selectedOptionId,
   onSelect,
+  selectedOptionIds = [],
+  onMultiSelect,
   myVote,
+  canRevise,
+  onRevise,
 }: BallotAgendaCardProps) {
   const poll = agenda.polls?.[0];
   if (!poll) return null;
 
   const options: PollOption[] = poll.poll_options || [];
   const voteType: VoteType = poll.vote_type;
+  const electCount = poll.elect_count ?? 1;
   const hasVoted = !!myVote;
 
   const handleSelect = (optionId: string) => {
     onSelect(poll.id, optionId);
+  };
+
+  const handleMultiSelect = (optionIds: string[]) => {
+    onMultiSelect?.(poll.id, optionIds);
   };
 
   // 유형 배지 색상
@@ -46,7 +60,7 @@ export default function BallotAgendaCard({
   }[voteType] || 'bg-gray-100 text-gray-700';
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+    <div data-testid="agenda-card" className="bg-white rounded-lg border border-gray-200 overflow-hidden">
       {/* 안건 헤더 */}
       <div className="px-4 py-3 border-b border-gray-100">
         <div className="flex items-center gap-2 mb-1">
@@ -84,6 +98,14 @@ export default function BallotAgendaCard({
                 영수증: {myVote.receipt_token}
               </p>
             )}
+            {canRevise && onRevise && (
+              <button
+                onClick={() => onRevise(poll.id)}
+                className="mt-2 text-sm text-blue-600 hover:text-blue-800 underline"
+              >
+                투표 수정하기
+              </button>
+            )}
           </div>
         )}
 
@@ -99,8 +121,11 @@ export default function BallotAgendaCard({
             {voteType === 'ELECT' && (
               <BallotElectOptions
                 options={options}
+                electCount={electCount}
                 selectedOptionId={selectedOptionId}
                 onSelect={handleSelect}
+                selectedOptionIds={selectedOptionIds}
+                onMultiSelect={handleMultiSelect}
               />
             )}
             {voteType === 'SELECT' && (

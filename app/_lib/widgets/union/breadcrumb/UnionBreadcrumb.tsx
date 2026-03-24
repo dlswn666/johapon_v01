@@ -112,7 +112,7 @@ export default function UnionBreadcrumb() {
     }
 
     return (
-        <nav className="bg-gray-50 border-b border-gray-100">
+        <nav className="bg-gray-50 border-b border-gray-100" aria-label="현재 위치">
             <div className="container mx-auto px-4">
                 <ol className="flex items-center gap-2 py-3 text-sm">
                     {/* 홈 아이콘 */}

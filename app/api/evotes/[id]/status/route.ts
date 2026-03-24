@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createHash } from 'crypto';
 import { createClient } from '@/app/_lib/shared/supabase/server';
 import { authenticateApiRequest } from '@/app/_lib/shared/api/auth';
 import { canTransition } from '@/app/_lib/features/assembly/domain/assemblyStateMachine';
@@ -13,6 +14,16 @@ const VALID_STATUSES: AssemblyStatus[] = [
   'VOTING', 'PAUSED', 'WRITTEN_TRANSITION', 'VOTING_CLOSED',
   'CLOSED', 'ARCHIVED', 'CANCELLED',
 ];
+
+/**
+ * GET /api/evotes/[id]/status — 미지원 메서드 JSON 응답
+ */
+export async function GET() {
+  return NextResponse.json(
+    { error: '이 엔드포인트는 PATCH 메서드만 지원합니다.' },
+    { status: 405 }
+  );
+}
 
 /**
  * 전자투표 상태 전환
@@ -106,6 +117,15 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
         }
 
         // 감사 로그
+        const eventData = {
+          from_status: assembly.status,
+          to_status: newStatus,
+          ...(newStatus === 'CANCELLED' && reason && { cancellation_reason: reason.trim() }),
+        };
+        const currentHash = createHash('sha256')
+          .update(JSON.stringify(eventData) + new Date().toISOString())
+          .digest('hex');
+
         await supabase.from('assembly_audit_logs').insert({
           assembly_id: id,
           union_id: effectiveUnionId,
@@ -114,11 +134,8 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
           actor_role: 'ADMIN',
           target_type: 'assembly',
           target_id: id,
-          event_data: {
-            from_status: assembly.status,
-            to_status: newStatus,
-            ...(newStatus === 'CANCELLED' && reason && { cancellation_reason: reason.trim() }),
-          },
+          event_data: eventData,
+          current_hash: currentHash,
         });
 
         return NextResponse.json({ data: updated });

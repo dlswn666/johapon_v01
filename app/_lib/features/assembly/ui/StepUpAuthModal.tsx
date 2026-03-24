@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { useRequestPassVerification, useConsumePassNonce } from '../api/useStepUpAuthHook';
 
@@ -36,6 +36,9 @@ export default function StepUpAuthModal({
   const [retryCount, setRetryCount] = useState(0);
   const [countdown, setCountdown] = useState(COUNTDOWN_SECONDS);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const modalRef = useRef<HTMLDivElement>(null);
+  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
 
   const requestVerification = useRequestPassVerification(assemblyId);
   const consumeNonce = useConsumePassNonce(assemblyId);
@@ -96,12 +99,79 @@ export default function StepUpAuthModal({
     }
   };
 
+  // 포커스 트랩 및 ESC 키 처리
+  useEffect(() => {
+    if (!isOpen) return;
+
+    previouslyFocusedRef.current = document.activeElement as HTMLElement | null;
+
+    const focusableSelector =
+      'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+        return;
+      }
+
+      if (e.key === 'Tab') {
+        const modal = modalRef.current;
+        if (!modal) return;
+        const focusableElements = modal.querySelectorAll<HTMLElement>(focusableSelector);
+        if (focusableElements.length === 0) {
+          e.preventDefault();
+          return;
+        }
+        const first = focusableElements[0];
+        const last = focusableElements[focusableElements.length - 1];
+
+        if (e.shiftKey) {
+          if (document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+          }
+        } else {
+          if (document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
+      }
+    };
+
+    // 모달 열릴 때 첫 번째 포커스 가능 요소로 포커스 이동
+    requestAnimationFrame(() => {
+      const modal = modalRef.current;
+      if (!modal) return;
+      const firstFocusable = modal.querySelector<HTMLElement>(focusableSelector);
+      if (firstFocusable) {
+        firstFocusable.focus();
+      } else {
+        modal.focus();
+      }
+    });
+
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      // 모달 닫힐 때 이전 포커스 복원
+      previouslyFocusedRef.current?.focus();
+    };
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div
+      ref={modalRef}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="step-up-auth-title"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+    >
       <div className="bg-white rounded-lg shadow-xl w-full max-w-sm mx-4 p-6">
-        <h2 className="text-lg font-bold text-gray-900 mb-2">본인 인증</h2>
+        <h2 id="step-up-auth-title" className="text-lg font-bold text-gray-900 mb-2">본인 인증</h2>
         <p className="text-sm text-gray-500 mb-4">투표를 위해 PASS 본인인증이 필요합니다.</p>
 
         {/* C-07: 투표 의사 확인 표시 */}
@@ -146,7 +216,7 @@ export default function StepUpAuthModal({
 
         {authState === 'failed' && (
           <div className="flex flex-col gap-3">
-            <div className="flex items-center gap-2 p-3 bg-red-50 rounded-lg">
+            <div className="flex items-center gap-2 p-3 bg-red-50 rounded-lg" role="alert">
               <svg className="w-5 h-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { BallotAgenda, BallotMyVote } from '@/app/_lib/features/evote/api/useEvoteBallot';
@@ -29,14 +29,18 @@ export default function EvoteBallot({
   onSubmitWithNonce,
   isSubmitting,
 }: EvoteBallotProps) {
-  // selections: pollId -> optionId
+  // selections: pollId -> optionId (단일 선택)
   const [selections, setSelections] = useState<Record<string, string>>({});
+  // multiSelections: pollId -> optionId[] (복수 선출용)
+  const [multiSelections, setMultiSelections] = useState<Record<string, string[]>>({});
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  // 투표 수정 중인 poll ID 목록
+  const [revisingPollIds, setRevisingPollIds] = useState<Set<string>>(new Set());
 
-  // 투표가 필요한 안건만 필터 (이미 투표한 안건 제외)
+  // 투표가 필요한 안건만 필터 (이미 투표한 안건 제외, 수정 중인 안건은 미투표 취급)
   const votedPollIds = useMemo(
-    () => new Set(myVotes.map((v) => v.poll_id)),
-    [myVotes],
+    () => new Set(myVotes.map((v) => v.poll_id).filter((id) => !revisingPollIds.has(id))),
+    [myVotes, revisingPollIds],
   );
 
   // 투표 가능한 (OPEN) 안건
@@ -49,10 +53,21 @@ export default function EvoteBallot({
     [agendas, votedPollIds],
   );
 
+  // 투표 수정 핸들러: 해당 poll을 미투표 상태로 전환
+  const handleRevise = useCallback((pollId: string) => {
+    setRevisingPollIds((prev) => new Set(prev).add(pollId));
+  }, []);
+
   const totalCount = votableAgendas.length;
   const selectedCount = votableAgendas.filter((a) => {
     const poll = a.polls?.[0];
-    return poll && selections[poll.id];
+    if (!poll) return false;
+    const isMultiElect = poll.vote_type === 'ELECT' && (poll.elect_count ?? 1) > 1;
+    if (isMultiElect) {
+      const ids = multiSelections[poll.id];
+      return ids && ids.length === poll.elect_count;
+    }
+    return !!selections[poll.id];
   }).length;
 
   const allSelected = totalCount > 0 && selectedCount === totalCount;
@@ -61,16 +76,32 @@ export default function EvoteBallot({
     setSelections((prev) => ({ ...prev, [pollId]: optionId }));
   };
 
+  const handleMultiSelect = useCallback((pollId: string, optionIds: string[]) => {
+    setMultiSelections((prev) => ({ ...prev, [pollId]: optionIds }));
+  }, []);
+
   const handleSubmit = (authNonce: string) => {
-    const votes = votableAgendas
-      .map((a) => {
-        const poll = a.polls?.[0];
-        if (!poll) return null;
+    const votes: { pollId: string; optionId: string }[] = [];
+
+    for (const a of votableAgendas) {
+      const poll = a.polls?.[0];
+      if (!poll) continue;
+
+      const isMultiElect = poll.vote_type === 'ELECT' && (poll.elect_count ?? 1) > 1;
+      if (isMultiElect) {
+        const ids = multiSelections[poll.id];
+        if (ids) {
+          for (const optionId of ids) {
+            votes.push({ pollId: poll.id, optionId });
+          }
+        }
+      } else {
         const optionId = selections[poll.id];
-        if (!optionId) return null;
-        return { pollId: poll.id, optionId };
-      })
-      .filter((v): v is { pollId: string; optionId: string } => v !== null);
+        if (optionId) {
+          votes.push({ pollId: poll.id, optionId });
+        }
+      }
+    }
 
     onSubmitWithNonce(votes, authNonce);
     setIsConfirmOpen(false);
@@ -121,7 +152,11 @@ export default function EvoteBallot({
                 index={index}
                 selectedOptionId={poll ? (selections[poll.id] ?? null) : null}
                 onSelect={handleSelect}
-                myVote={myVote}
+                selectedOptionIds={poll ? (multiSelections[poll.id] ?? []) : []}
+                onMultiSelect={handleMultiSelect}
+                myVote={revisingPollIds.has(poll?.id ?? '') ? undefined : myVote}
+                canRevise={myVote?.can_revise}
+                onRevise={handleRevise}
               />
             );
           })}
@@ -131,7 +166,7 @@ export default function EvoteBallot({
       {totalCount > 0 && (
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-20">
           <div className="max-w-lg mx-auto">
-            <p className="text-sm text-gray-500 text-center mb-2">
+            <p className="text-sm text-gray-500 text-center mb-2" aria-live="polite" aria-atomic="true">
               {totalCount}개 중 {selectedCount}개 선택 완료
             </p>
             <Button
@@ -152,6 +187,7 @@ export default function EvoteBallot({
         assemblyTitle={assemblyTitle}
         agendas={votableAgendas}
         selections={selections}
+        multiSelections={multiSelections}
         onSubmit={handleSubmit}
         isSubmitting={isSubmitting}
       />

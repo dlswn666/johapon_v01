@@ -88,6 +88,14 @@ export default function EvotePage({ params }: { params: Promise<{ assemblyId: st
           <p className="text-sm text-gray-500">
             {error?.message || '잠시 후 다시 시도해주세요.'}
           </p>
+          {error?.message?.includes('인증') && (
+            <a
+              href={`/auth/callback?redirect=${encodeURIComponent(window.location.pathname)}`}
+              className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#FEE500] text-[#3C1E1E] rounded-lg font-medium hover:bg-[#F5DC00] transition-colors"
+            >
+              카카오 로그인 후 참여하기
+            </a>
+          )}
         </div>
       </div>
     );

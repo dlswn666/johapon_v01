@@ -3,6 +3,7 @@ import { createClient } from '@/app/_lib/shared/supabase/server';
 import { authenticateApiRequest } from '@/app/_lib/shared/api/auth';
 import { sendAlimTalk } from '@/app/_lib/features/alimtalk/actions/sendAlimTalk';
 import { isSessionMode } from '@/app/_lib/shared/utils/featureFlags';
+import { sanitizeRpcError } from '@/app/_lib/shared/utils/sanitizeRpcError';
 
 /**
  * 투표 실행 (cast_vote RPC 호출)
@@ -125,8 +126,7 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error('투표 실행 실패:', error);
-      // RPC 함수에서 RAISE EXCEPTION으로 반환하는 에러 메시지 전달
-      const message = error.message || '투표에 실패했습니다.';
+      const message = sanitizeRpcError(error.message);
       return NextResponse.json({ error: message }, { status: 400 });
     }
 
