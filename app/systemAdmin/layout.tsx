@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Shield, Building2, Users, LogOut, Home, MessageSquare, ChevronDown, MapPin, ClipboardList, Send, FileText } from 'lucide-react';
+import { Shield, Building2, Users, LogOut, Home, MessageSquare, ChevronDown, MapPin, ClipboardList, Send, FileText, KeyRound } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import AuthProvider, { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import { Button } from '@/components/ui/button';
@@ -50,6 +50,7 @@ function SystemAdminHeader() {
         { href: '/systemAdmin/consent-versions', label: '약관 관리', icon: FileText },
         { href: '/systemAdmin/sms', label: 'SMS 발송', icon: Send },
         { href: '/systemAdmin/access-logs', label: '접속 로그', icon: ClipboardList },
+        { href: '/systemAdmin/access-tokens', label: '접근 토큰', icon: KeyRound },
     ];
 
     const handleLogout = async () => {
