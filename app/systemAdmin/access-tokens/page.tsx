@@ -151,7 +151,7 @@ export default function AccessTokensPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+        <Loader2 className="w-8 h-8 animate-spin text-slate-500" />
       </div>
     );
   }
@@ -161,11 +161,11 @@ export default function AccessTokensPage() {
       {/* 헤더 */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
             <Key className="w-7 h-7" />
             접근 토큰 관리
           </h1>
-          <p className="text-gray-500 mt-1">
+          <p className="text-slate-400 mt-1">
             카카오톡 등 외부 공유용 일회성 접근 토큰을 관리합니다
           </p>
         </div>
@@ -176,11 +176,11 @@ export default function AccessTokensPage() {
       </div>
 
       {/* 토큰 목록 */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
         {tokens.length === 0 ? (
           <div className="text-center py-12">
-            <Key className="w-12 h-12 mx-auto text-gray-300 mb-4" />
-            <p className="text-gray-500">생성된 토큰이 없습니다</p>
+            <Key className="w-12 h-12 mx-auto text-slate-600 mb-4" />
+            <p className="text-slate-400">생성된 토큰이 없습니다</p>
             <Button
               variant="outline"
               className="mt-4"
@@ -191,49 +191,49 @@ export default function AccessTokensPage() {
           </div>
         ) : (
           <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
+            <thead className="bg-slate-700/50 border-b border-slate-700">
               <tr>
-                <th className="px-6 py-4 text-left text-sm font-medium text-gray-700">이름</th>
-                <th className="px-6 py-4 text-left text-sm font-medium text-gray-700">조합</th>
-                <th className="px-6 py-4 text-left text-sm font-medium text-gray-700">상태</th>
-                <th className="px-6 py-4 text-left text-sm font-medium text-gray-700">만료일</th>
-                <th className="px-6 py-4 text-left text-sm font-medium text-gray-700">사용</th>
-                <th className="px-6 py-4 text-right text-sm font-medium text-gray-700">액션</th>
+                <th className="px-6 py-4 text-left text-sm font-medium text-slate-300">이름</th>
+                <th className="px-6 py-4 text-left text-sm font-medium text-slate-300">조합</th>
+                <th className="px-6 py-4 text-left text-sm font-medium text-slate-300">상태</th>
+                <th className="px-6 py-4 text-left text-sm font-medium text-slate-300">만료일</th>
+                <th className="px-6 py-4 text-left text-sm font-medium text-slate-300">사용</th>
+                <th className="px-6 py-4 text-right text-sm font-medium text-slate-300">액션</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-slate-700/50">
               {tokens.map((token) => (
-                <tr key={token.id} className="hover:bg-gray-50">
+                <tr key={token.id} className="hover:bg-slate-700/50">
                   <td className="px-6 py-4">
                     <div>
-                      <p className="font-medium text-gray-900">{token.name}</p>
-                      <p className="text-xs text-gray-400 font-mono">
+                      <p className="font-medium text-white">{token.name}</p>
+                      <p className="text-xs text-slate-500 font-mono">
                         {token.key.substring(0, 12)}...
                       </p>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
+                  <td className="px-6 py-4 text-sm text-slate-300">
                     {token.union_name || '전체'}
                   </td>
                   <td className="px-6 py-4">
                     {token.is_active ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-500/10 text-green-400">
                         <CheckCircle className="w-3 h-3" />
                         활성
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-red-500/10 text-red-400">
                         <XCircle className="w-3 h-3" />
                         만료
                       </span>
                     )}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
+                  <td className="px-6 py-4 text-sm text-slate-300">
                     {formatDate(token.expires_at)}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
+                  <td className="px-6 py-4 text-sm text-slate-300">
                     {token.usage_count}회
-                    {token.max_usage && <span className="text-gray-400"> / {token.max_usage}</span>}
+                    {token.max_usage && <span className="text-slate-500"> / {token.max_usage}</span>}
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-2">
@@ -244,7 +244,7 @@ export default function AccessTokensPage() {
                         className="gap-1"
                       >
                         {copiedId === token.id ? (
-                          <CheckCircle className="w-4 h-4 text-green-600" />
+                          <CheckCircle className="w-4 h-4 text-green-400" />
                         ) : (
                           <Copy className="w-4 h-4" />
                         )}
@@ -257,7 +257,7 @@ export default function AccessTokensPage() {
                           setSelectedToken(token);
                           setShowDeleteDialog(true);
                         }}
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
@@ -271,14 +271,14 @@ export default function AccessTokensPage() {
       </div>
 
       {/* 통계 */}
-      <div className="text-sm text-gray-500">
+      <div className="text-sm text-slate-400">
         총 {tokens.length}개 토큰 (활성: {tokens.filter((t) => t.is_active).length}개, 만료:{' '}
         {tokens.filter((t) => !t.is_active).length}개)
       </div>
 
       {/* 토큰 생성 모달 */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md bg-slate-800 border-slate-700 text-white">
           <DialogHeader>
             <DialogTitle>새 접근 토큰 생성</DialogTitle>
           </DialogHeader>
@@ -377,33 +377,33 @@ export default function AccessTokensPage() {
 
       {/* 토큰 생성 결과 모달 */}
       <Dialog open={showResultDialog} onOpenChange={setShowResultDialog}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg bg-slate-800 border-slate-700 text-white">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <CheckCircle className="w-5 h-5 text-green-600" />
+              <CheckCircle className="w-5 h-5 text-green-400" />
               토큰이 생성되었습니다
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div>
               <Label>토큰 키</Label>
-              <div className="mt-1 p-3 bg-gray-100 rounded-lg font-mono text-sm break-all">
+              <div className="mt-1 p-3 bg-slate-700 rounded-lg font-mono text-sm break-all">
                 {newTokenKey}
               </div>
             </div>
 
             <div>
               <Label>공유용 URL 예시</Label>
-              <div className="mt-1 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm break-all">
+              <div className="mt-1 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg text-sm break-all">
                 {typeof window !== 'undefined' && `${window.location.origin}/[조합slug]?tokenKey=${newTokenKey}`}
               </div>
-              <p className="mt-2 text-xs text-gray-500">
+              <p className="mt-2 text-xs text-slate-400">
                 [조합slug] 부분을 실제 조합 slug로 변경하여 사용하세요.
               </p>
             </div>
 
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-              <p className="text-sm text-amber-800">
+            <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3">
+              <p className="text-sm text-amber-400">
                 이 토큰으로 조합 페이지에 로그인 없이 접근할 수 있습니다.
                 공유 시 주의해주세요.
               </p>
@@ -417,15 +417,15 @@ export default function AccessTokensPage() {
 
       {/* 토큰 삭제 확인 모달 */}
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md bg-slate-800 border-slate-700 text-white">
           <DialogHeader>
             <DialogTitle>토큰 삭제 확인</DialogTitle>
           </DialogHeader>
           <div className="py-4">
-            <p className="text-gray-600">
+            <p className="text-slate-300">
               &quot;{selectedToken?.name}&quot; 토큰을 삭제하시겠습니까?
             </p>
-            <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-800">
+            <div className="mt-4 bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-sm text-red-400">
               <ul className="list-disc list-inside space-y-1">
                 <li>이 토큰으로 더 이상 접근할 수 없습니다</li>
                 <li>이미 공유된 링크도 작동하지 않습니다</li>
