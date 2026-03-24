@@ -2,13 +2,30 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { Plus, Copy, Trash2, Key, CheckCircle, XCircle, Loader2 } from 'lucide-react';
-import { AccessTokenListItem, CreateAccessTokenRequest } from '@/app/_lib/shared/type/accessToken.types';
+import { AccessTokenListItem, CreateAccessTokenRequest, AccessScope } from '@/app/_lib/shared/type/accessToken.types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useUnions } from '@/app/_lib/entities/union/api/useUnionHook';
+
+type TokenPreset = 'kakao_review' | 'custom';
+
+const PRESETS: Record<TokenPreset, { label: string; expires_in_days: number | null; max_usage: number | null; access_scope: AccessScope }> = {
+  kakao_review: {
+    label: '카카오 검수',
+    expires_in_days: 1,
+    max_usage: 100,
+    access_scope: 'all',
+  },
+  custom: {
+    label: '커스텀',
+    expires_in_days: 7,
+    max_usage: null,
+    access_scope: 'all',
+  },
+};
 
 export default function AccessTokensPage() {
   const [tokens, setTokens] = useState<AccessTokenListItem[]>([]);
@@ -20,6 +37,7 @@ export default function AccessTokensPage() {
   const [newTokenKey, setNewTokenKey] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [selectedPreset, setSelectedPreset] = useState<TokenPreset>('kakao_review');
 
   // 조합 목록 조회 (기존 훅 사용)
   const { data: unions = [] } = useUnions();
@@ -29,8 +47,8 @@ export default function AccessTokensPage() {
     name: '',
     union_id: null,
     access_scope: 'all',
-    expires_in_days: 7,
-    max_usage: null,
+    expires_in_days: 1,
+    max_usage: 100,
   });
 
   // 토큰 목록 조회
@@ -51,6 +69,31 @@ export default function AccessTokensPage() {
   useEffect(() => {
     fetchTokens();
   }, [fetchTokens]);
+
+  // 프리셋 변경
+  const handlePresetChange = (preset: TokenPreset) => {
+    setSelectedPreset(preset);
+    const config = PRESETS[preset];
+    if (preset === 'kakao_review') {
+      const unionName = formData.union_id
+        ? unions.find((u) => u.id === formData.union_id)?.name
+        : '';
+      setFormData({
+        ...formData,
+        name: unionName ? `카카오 검수용 - ${unionName}` : '카카오 검수용',
+        expires_in_days: config.expires_in_days,
+        max_usage: config.max_usage,
+        access_scope: config.access_scope,
+      });
+    } else {
+      setFormData({
+        ...formData,
+        expires_in_days: config.expires_in_days,
+        max_usage: config.max_usage,
+        access_scope: config.access_scope,
+      });
+    }
+  };
 
   // 토큰 생성
   const handleCreate = async () => {
@@ -129,12 +172,13 @@ export default function AccessTokensPage() {
 
   // 폼 리셋
   const resetForm = () => {
+    setSelectedPreset('kakao_review');
     setFormData({
       name: '',
       union_id: null,
       access_scope: 'all',
-      expires_in_days: 7,
-      max_usage: null,
+      expires_in_days: 1,
+      max_usage: 100,
     });
   };
 
@@ -284,6 +328,22 @@ export default function AccessTokensPage() {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
+              <Label>용도</Label>
+              <Select
+                value={selectedPreset}
+                onValueChange={(value) => handlePresetChange(value as TokenPreset)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="kakao_review">카카오 검수 (1일, 100회)</SelectItem>
+                  <SelectItem value="custom">커스텀</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="name">토큰 이름 (메모용)</Label>
               <Input
                 id="name"
@@ -297,9 +357,14 @@ export default function AccessTokensPage() {
               <Label>조합 설정</Label>
               <Select
                 value={formData.union_id || 'all'}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, union_id: value === 'all' ? null : value })
-                }
+                onValueChange={(value) => {
+                  const unionId = value === 'all' ? null : value;
+                  const unionName = unionId ? unions.find((u) => u.id === unionId)?.name : '';
+                  const newName = selectedPreset === 'kakao_review' && unionName
+                    ? `카카오 검수용 - ${unionName}`
+                    : formData.name;
+                  setFormData({ ...formData, union_id: unionId, name: newName });
+                }}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="조합 선택" />
@@ -325,6 +390,7 @@ export default function AccessTokensPage() {
                     expires_in_days: value === 'unlimited' ? null : parseInt(value),
                   })
                 }
+                disabled={selectedPreset === 'kakao_review'}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -337,6 +403,9 @@ export default function AccessTokensPage() {
                   <SelectItem value="unlimited">무제한</SelectItem>
                 </SelectContent>
               </Select>
+              {selectedPreset === 'kakao_review' && (
+                <p className="text-xs text-slate-500">카카오 검수 프리셋: 1일 후 만료</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -349,6 +418,7 @@ export default function AccessTokensPage() {
                     max_usage: value === 'unlimited' ? null : parseInt(value),
                   })
                 }
+                disabled={selectedPreset === 'kakao_review'}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -361,6 +431,9 @@ export default function AccessTokensPage() {
                   <SelectItem value="unlimited">무제한</SelectItem>
                 </SelectContent>
               </Select>
+              {selectedPreset === 'kakao_review' && (
+                <p className="text-xs text-slate-500">카카오 검수 프리셋: 100회 제한</p>
+              )}
             </div>
           </div>
           <DialogFooter>
