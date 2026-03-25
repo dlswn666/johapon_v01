@@ -859,6 +859,7 @@ export type Database = {
           property_address: string | null
           property_units_snapshot: Json | null
           proxy_authorized_at: string | null
+          proxy_document_url: string | null
           proxy_name: string | null
           proxy_user_id: string | null
           token_expires_at: string | null
@@ -883,6 +884,7 @@ export type Database = {
           property_address?: string | null
           property_units_snapshot?: Json | null
           proxy_authorized_at?: string | null
+          proxy_document_url?: string | null
           proxy_name?: string | null
           proxy_user_id?: string | null
           token_expires_at?: string | null
@@ -907,6 +909,7 @@ export type Database = {
           property_address?: string | null
           property_units_snapshot?: Json | null
           proxy_authorized_at?: string | null
+          proxy_document_url?: string | null
           proxy_name?: string | null
           proxy_user_id?: string | null
           token_expires_at?: string | null

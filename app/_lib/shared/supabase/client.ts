@@ -32,5 +32,8 @@ if (isDevMode) {
     supabase = createBrowserClient(supabaseUrl || '', supabaseAnonKey || '');
 }
 
-export { supabase };
-export default supabase;
+// supabase 클라이언트를 SupabaseClient 타입으로 export (조건부 초기화에 의한 implicit any 방지)
+const typedSupabase = supabase!;
+
+export { typedSupabase as supabase };
+export default typedSupabase;
