@@ -77,7 +77,7 @@ export default function ParcelDetailModal({
     unionId,
     onDeleted,
 }: ParcelDetailModalProps) {
-    const { data: parcel, isLoading, refetch } = useParcelDetail(pnu, stageId);
+    const { data: parcel, isLoading, refetch } = useParcelDetail(pnu, stageId, unionId);
     // 모드: detail(상세보기) 또는 edit(수정) - 중첩 모달 제거
     const [mode, setMode] = useState<'detail' | 'edit'>('detail');
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);

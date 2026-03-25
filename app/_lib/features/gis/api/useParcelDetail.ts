@@ -78,21 +78,26 @@ export interface BuildingUnit {
 }
 
 // 필지 상세 정보 조회 Hook
-export const useParcelDetail = (pnu: string | null, stageId: string | null) => {
+export const useParcelDetail = (pnu: string | null, stageId: string | null, unionId?: string) => {
     // PNU 정규화 (trim)
     const normalizedPnu = pnu?.trim() || null;
-    
+
     return useQuery({
-        queryKey: ['parcel-detail', normalizedPnu, stageId],
+        queryKey: ['parcel-detail', normalizedPnu, stageId, unionId],
         queryFn: async (): Promise<ParcelDetail | null> => {
             if (!normalizedPnu) return null;
 
             // 1. 필지 기본 정보 조회 (land_category, road_address, union_id 포함)
-            const { data: landLot, error: landError } = await supabase
+            let landLotQuery = supabase
                 .from('land_lots')
                 .select('pnu, address, address_text, area, official_price, owner_count, land_category, road_address, union_id')
-                .eq('pnu', normalizedPnu)
-                .single();
+                .eq('pnu', normalizedPnu);
+
+            if (unionId) {
+                landLotQuery = landLotQuery.eq('union_id', unionId);
+            }
+
+            const { data: landLot, error: landError } = await landLotQuery.single();
 
             if (landError) {
                 // 에러 발생 시 throw (규칙 준수)
@@ -138,8 +143,8 @@ export const useParcelDetail = (pnu: string | null, stageId: string | null) => {
                 buildingUnitsCount = count || 0;
             }
 
-            // 3. land_lots에서 union_id 조회 (union_land_lots는 병합됨)
-            const unionId = landLot?.union_id;
+            // 3. land_lots에서 union_id 조회 (파라미터로 전달된 unionId가 없으면 land_lots에서 가져옴)
+            const effectiveUnionId = unionId || landLot?.union_id;
 
             // 3.1. 건물에 연결된 모든 PNU 목록 조회 (건물 매칭된 필지들의 소유주 병합 표시용)
             let allLinkedPnus: string[] = [normalizedPnu];
@@ -182,7 +187,7 @@ export const useParcelDetail = (pnu: string | null, stageId: string | null) => {
 
             let propertyUnitsWithUsers: PropertyUnitWithUser[] = [];
 
-            if (unionId) {
+            if (effectiveUnionId) {
                 const { data: propertyUnits, error: usersError } = await supabase
                     .from('user_property_units')
                     .select(
@@ -217,7 +222,7 @@ export const useParcelDetail = (pnu: string | null, stageId: string | null) => {
                         const user = pu.users as unknown as PropertyUnitWithUser['users'];
                         return (
                             user &&
-                            user.union_id === unionId &&
+                            user.union_id === effectiveUnionId &&
                             (user.user_status === 'APPROVED' || user.user_status === 'PRE_REGISTERED')
                         );
                     })
