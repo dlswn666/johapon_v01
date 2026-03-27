@@ -109,39 +109,26 @@ export async function GET(request: NextRequest) {
         }
     }
 
-    if (existingUser) {
-        // 해당 조합에 이미 가입됨 - 사용자 상태에 따라 리다이렉트
-        const userUnionSlug = existingUser.union?.slug || slug;
-        const redirectUrl = getRedirectByUserStatus(origin, slug, existingUser.user_status, userUnionSlug);
-        return NextResponse.redirect(redirectUrl);
-    }
-
-    // 해당 조합에 미가입 - 다른 조합에 가입되어 있는지 확인 (로깅용)
-    const { data: _otherLinks } = await supabase
-        .from('user_auth_links')
-        .select('user_id')
-        .eq('auth_user_id', authUser.id);
-
-    // 초대 토큰이 있는 경우 - prefill 데이터를 쿠키에 저장하고 메인 페이지로 이동
+    // 관리자 초대 토큰이 있는 경우 - existingUser 체크보다 우선 처리
+    // (이미 다른 조합에 가입되어 있어도 새 조합 ADMIN으로 등록)
     if (inviteToken) {
-        const result = await handleAdminInvitePrefill(supabase, inviteToken, origin, slug);
+        const result = await handleAdminInviteAutoRegister(supabase, inviteToken, authUser.id, origin);
 
         if (result) {
-            const response = NextResponse.redirect(result.redirectUrl);
-            response.cookies.set('register-prefill', JSON.stringify(result.prefillData), {
-                httpOnly: false,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: 'lax',
-                maxAge: 60 * 60, // 1시간
-            });
-            return response;
+            return NextResponse.redirect(result.redirectUrl);
         } else {
-            // 초대 토큰이 유효하지 않거나 만료됨
             const errorRedirect = slug
                 ? `${origin}/${slug}?invite_error=expired`
                 : `${origin}?invite_error=expired`;
             return NextResponse.redirect(errorRedirect);
         }
+    }
+
+    // 해당 조합에 이미 가입됨 - 사용자 상태에 따라 리다이렉트
+    if (existingUser) {
+        const userUnionSlug = existingUser.union?.slug || slug;
+        const redirectUrl = getRedirectByUserStatus(origin, slug, existingUser.user_status, userUnionSlug);
+        return NextResponse.redirect(redirectUrl);
     }
 
     // 조합원 초대 토큰이 있는 경우 - prefill 데이터를 쿠키에 저장하고 메인 페이지로 이동
@@ -171,17 +158,18 @@ export async function GET(request: NextRequest) {
 }
 
 /**
- * 관리자 초대 prefill 데이터 처리 (자동 계정 생성 대신 prefill 데이터만 반환)
+ * 관리자 초대 자동 등록 처리
+ * 카카오 로그인 후 바로 ADMIN 계정 생성 → 관리자 페이지로 이동
  */
-async function handleAdminInvitePrefill(
+async function handleAdminInviteAutoRegister(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     supabase: any,
     inviteToken: string,
-    origin: string,
-    slug: string
-): Promise<{ redirectUrl: string; prefillData: object } | null> {
+    authUserId: string,
+    origin: string
+): Promise<{ redirectUrl: string } | null> {
     try {
-        // 초대 정보 조회
+        // 1. 초대 정보 조회
         const { data: invite, error: inviteError } = await supabase
             .from('admin_invites')
             .select('*, union:unions(id, name, slug)')
@@ -190,33 +178,90 @@ async function handleAdminInvitePrefill(
             .single();
 
         if (inviteError || !invite) {
+            console.error('[auth/callback] Admin invite not found or not PENDING:', inviteToken);
             return null;
         }
 
-        // 만료 여부 확인
+        // 2. 만료 여부 확인
         const now = new Date();
         const expiresAt = new Date(invite.expires_at);
-
         if (now > expiresAt) {
             await supabase.from('admin_invites').update({ status: 'EXPIRED' }).eq('id', invite.id);
             return null;
         }
 
-        const unionSlug = invite.union?.slug || slug;
-        const mainPageUrl = unionSlug ? `${origin}/${unionSlug}` : origin;
+        const unionId = invite.union_id;
+        const unionSlug = invite.union?.slug || '';
 
-        return {
-            redirectUrl: mainPageUrl,
-            prefillData: {
-                name: invite.name || '',
-                phone_number: invite.phone_number || '',
-                property_address: '',
-                invite_type: 'admin',
-                invite_token: inviteToken,
-            },
-        };
+        // 3. 이미 해당 조합에 user가 있는지 확인
+        const { data: existingLinks } = await supabase
+            .from('user_auth_links')
+            .select('user_id')
+            .eq('auth_user_id', authUserId);
+
+        let existingUserId: string | null = null;
+        if (existingLinks && existingLinks.length > 0) {
+            const userIds = existingLinks.map((l: { user_id: string }) => l.user_id);
+            const { data: existingUser } = await supabase
+                .from('users')
+                .select('id')
+                .in('id', userIds)
+                .eq('union_id', unionId)
+                .single();
+
+            if (existingUser) {
+                existingUserId = existingUser.id;
+            }
+        }
+
+        if (existingUserId) {
+            // 이미 존재하면 role만 ADMIN으로 업그레이드
+            await supabase
+                .from('users')
+                .update({ role: 'ADMIN', user_status: 'APPROVED' })
+                .eq('id', existingUserId);
+        } else {
+            // 4. 새 user 생성 (ADMIN, APPROVED)
+            const newUserId = authUserId; // auth user id를 user id로 사용
+            const { error: insertError } = await supabase.from('users').insert({
+                id: newUserId,
+                name: invite.name || '관리자',
+                email: invite.email || null,
+                role: 'ADMIN',
+                user_status: 'APPROVED',
+                union_id: unionId,
+            });
+
+            if (insertError) {
+                console.error('[auth/callback] Failed to create admin user:', insertError.message);
+                return null;
+            }
+
+            // 5. user_auth_links 연결
+            const { error: linkError } = await supabase.from('user_auth_links').insert({
+                auth_user_id: authUserId,
+                user_id: newUserId,
+            });
+
+            if (linkError) {
+                console.error('[auth/callback] Failed to create auth link:', linkError.message);
+                // user는 생성되었으므로 계속 진행
+            }
+        }
+
+        // 6. 초대 상태를 USED로 업데이트
+        await supabase
+            .from('admin_invites')
+            .update({ status: 'USED', used_at: new Date().toISOString() })
+            .eq('id', invite.id);
+
+        // 7. 관리자 페이지로 리다이렉트
+        const redirectUrl = `${origin}/${unionSlug}/admin/land-lots`;
+        console.log(`[auth/callback] Admin auto-registered: ${invite.name} → ${unionSlug} (ADMIN)`);
+
+        return { redirectUrl };
     } catch (error) {
-        console.error('[auth/callback] Error handling admin invite prefill:', error instanceof Error ? error.message : error);
+        console.error('[auth/callback] Error in admin auto-register:', error instanceof Error ? error.message : error);
         return null;
     }
 }
