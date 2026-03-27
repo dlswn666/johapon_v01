@@ -241,6 +241,7 @@ async function handleAdminInviteAutoRegister(
             const { error: linkError } = await supabase.from('user_auth_links').insert({
                 auth_user_id: authUserId,
                 user_id: newUserId,
+                provider: 'kakao',
             });
 
             if (linkError) {
