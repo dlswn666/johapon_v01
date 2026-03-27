@@ -36,7 +36,7 @@ export default function CompliancePage({ params }: { params: Promise<{ assemblyI
   if (!isAdmin || !assembly) return null;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       <div className="flex items-center gap-3">
         <Button
           variant="ghost"

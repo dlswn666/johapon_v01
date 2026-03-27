@@ -77,9 +77,9 @@ export default function CreateAssemblyPage() {
         >
           <ArrowLeft className="w-5 h-5" />
         </Button>
-        <div>
+        <div className="flex items-baseline gap-3">
           <h1 className="text-2xl font-bold text-gray-900">총회 생성</h1>
-          <p className="text-sm text-gray-500">새로운 총회를 생성합니다</p>
+          <p className="text-sm text-gray-400">새로운 총회를 생성합니다</p>
         </div>
       </div>
 

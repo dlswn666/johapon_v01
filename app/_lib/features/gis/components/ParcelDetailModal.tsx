@@ -23,7 +23,6 @@ import {
     Building2,
     CheckCircle2,
     XCircle,
-    Clock,
     Percent,
     User,
     Phone,
@@ -112,7 +111,7 @@ export default function ParcelDetailModal({
     return (
         <>
             <Dialog open={open} onOpenChange={handleOpenChange}>
-                <DialogContent className="max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
+                <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <MapPin className="w-5 h-5 text-primary" />
@@ -297,8 +296,8 @@ function ParcelBasicInfo({ parcel }: { parcel: ParcelDetail }) {
                         <Users className="w-4 h-4" />
                         <span className="text-xs">소유주 수</span>
                     </div>
-                    <p className="text-lg font-bold text-gray-900">
-                        {parcel.building_units_count > 0 ? parcel.building_units_count : '-'}
+                    <p className="text-sm font-bold text-gray-900">
+                        {parcel.building_units_count > 0 ? `${parcel.building_units_count}명` : '-'}
                     </p>
                 </div>
                 <div className="text-center">
@@ -1341,7 +1340,7 @@ function OwnerRow({ owner, parcel }: { owner: Owner; parcel: ParcelDetail }) {
     const statusConfig = {
         AGREED: { icon: CheckCircle2, color: 'text-green-500', bg: 'bg-green-50', label: '동의' },
         DISAGREED: { icon: XCircle, color: 'text-red-500', bg: 'bg-red-50', label: '미동의' },
-        PENDING: { icon: Clock, color: 'text-gray-400', bg: 'bg-gray-50', label: '미제출' },
+        PENDING: { icon: User, color: 'text-gray-400', bg: 'bg-gray-50', label: '미제출' },
     };
 
     const status = statusConfig[owner.consent_status || 'PENDING'];

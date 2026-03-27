@@ -642,7 +642,11 @@ export default function GisMapContainer() {
                                                 'p-3 flex items-center gap-3 hover:bg-slate-50 cursor-pointer transition-colors',
                                                 searchedPnu === pnu && 'bg-primary/5'
                                             )}
-                                            onClick={() => setSearchedPnu(pnu)}
+                                            onClick={() => {
+                                                setSearchedPnu(pnu);
+                                                setSelectedPnu(pnu);
+                                                setIsModalOpen(true);
+                                            }}
                                         >
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center gap-2 mb-1">

@@ -281,11 +281,11 @@ export default function LandLotManagementPage() {
     );
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-3">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
+                <div className="flex items-baseline gap-3">
                     <h1 className="text-2xl font-bold text-gray-900">대시보드</h1>
-                    <p className="text-gray-500 text-sm mt-1">
+                    <p className="text-gray-400 text-sm">
                         우리 구역의 전체 지번 목록과 GIS 지도 현황, 가입율/동의율을 확인합니다.
                     </p>
                 </div>

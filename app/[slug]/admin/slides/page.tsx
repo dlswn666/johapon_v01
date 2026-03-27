@@ -69,11 +69,11 @@ export default function SlidesPage() {
     }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-3">
             {/* 페이지 타이틀 */}
-            <div>
+            <div className="flex items-baseline gap-3">
                 <h1 className="text-2xl font-bold text-gray-900">슬라이드 관리</h1>
-                <p className="mt-1 text-sm text-gray-500">홈페이지 상단에 표시되는 슬라이드 이미지를 관리합니다</p>
+                <p className="text-sm text-gray-400">홈페이지 상단에 표시되는 슬라이드 이미지를 관리합니다</p>
             </div>
 
             {/* 슬라이드 리스트 */}

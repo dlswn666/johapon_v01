@@ -138,7 +138,7 @@ export default function AssemblyDashboardPage({ params }: { params: Promise<{ as
   // 총회 진행 중에는 통합 라이브 대시보드 표시
   if (showLiveDashboard) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-3">
         {/* 헤더 (뒤로가기) */}
         <div className="flex items-center gap-3">
           <Button

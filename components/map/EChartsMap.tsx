@@ -102,18 +102,21 @@ const PREVIEW_CONFIG = {
 const ADDRESS_SELECTED_COLOR = '#3b82f6'; // blue-500 (선택된 필지 색상)
 
 // 주소 보기 모드 설정 (새로 추가)
+const ADDRESS_PARCEL_COLOR = '#eef0f4'; // 지번 있는 필지: 트렌디한 연한 회색
+const ADDRESS_EMPTY_COLOR = '#ffffff';   // 지번 없는 필지: 흰색
 const ADDRESS_CONFIG = {
-    pieces: [{ value: 'ALL', label: '필지', color: '#f8fafc' }],
+    pieces: [{ value: 'ALL', label: '필지', color: ADDRESS_PARCEL_COLOR }],
     labels: {},
     colors: {
-        // 모든 상태를 동일한 연한 회색으로 처리 (경계선이 잘 보이도록)
-        FULL_AGREED: '#f8fafc',
-        PARTIAL_AGREED: '#f8fafc',
-        NONE_AGREED: '#f8fafc',
-        NO_OWNER: '#f8fafc',
-        ALL_REGISTERED: '#f8fafc',
-        PARTIAL_REGISTERED: '#f8fafc',
-        NONE_REGISTERED: '#f8fafc',
+        // 지번이 있는 필지: 연한 회색
+        FULL_AGREED: ADDRESS_PARCEL_COLOR,
+        PARTIAL_AGREED: ADDRESS_PARCEL_COLOR,
+        NONE_AGREED: ADDRESS_PARCEL_COLOR,
+        ALL_REGISTERED: ADDRESS_PARCEL_COLOR,
+        PARTIAL_REGISTERED: ADDRESS_PARCEL_COLOR,
+        NONE_REGISTERED: ADDRESS_PARCEL_COLOR,
+        // 지번 없는 필지: 흰색
+        NO_OWNER: ADDRESS_EMPTY_COLOR,
     },
     seriesName: '필지 주소',
 };
@@ -332,8 +335,8 @@ export default function EChartsMap({
                         },
                     },
                     itemStyle: {
-                        borderColor: '#000000', // 검은색 경계선
-                        borderWidth: 1, // 경계선 두께 강화
+                        borderColor: mode === 'address' ? '#94a3b8' : '#000000', // 주소 모드: slate-400, 기타: 검은색
+                        borderWidth: mode === 'address' ? 1.5 : 1, // 주소 모드: 더 두꺼운 경계선
                     },
                     emphasis: {
                         label: { show: false },
@@ -353,13 +356,13 @@ export default function EChartsMap({
                     },
                     data: data.map((item) => {
                         const isSelected = selectedPnuSet.has(item.pnu);
+                        const baseColor = (config.colors as Record<string, string>)[item.status] || '#f1f5f9';
                         let areaColor: string;
                         let emphasisColor: string;
                         if (mode === 'address') {
-                            areaColor = isSelected ? ADDRESS_SELECTED_COLOR : '#f8fafc';
+                            areaColor = isSelected ? ADDRESS_SELECTED_COLOR : baseColor;
                             emphasisColor = isSelected ? '#2563eb' : '#cbd5e1';
                         } else {
-                            const baseColor = (config.colors as Record<string, string>)[item.status] || '#f1f5f9';
                             areaColor = isSelected ? ADDRESS_SELECTED_COLOR : baseColor;
                             emphasisColor = isSelected ? '#2563eb' : '#60a5fa';
                         }
@@ -401,13 +404,13 @@ export default function EChartsMap({
                             },
                             data: data.map((item) => {
                                 const isSelected = selectedPnuSet.has(item.pnu);
+                                const baseColor = (config.colors as Record<string, string>)[item.status] || '#f1f5f9';
                                 let areaColor: string;
                                 let emphasisColor: string;
                                 if (mode === 'address') {
-                                    areaColor = isSelected ? ADDRESS_SELECTED_COLOR : '#f8fafc';
+                                    areaColor = isSelected ? ADDRESS_SELECTED_COLOR : baseColor;
                                     emphasisColor = isSelected ? '#2563eb' : '#cbd5e1';
                                 } else {
-                                    const baseColor = (config.colors as Record<string, string>)[item.status] || '#f1f5f9';
                                     areaColor = isSelected ? ADDRESS_SELECTED_COLOR : baseColor;
                                     emphasisColor = isSelected ? '#2563eb' : '#60a5fa';
                                 }

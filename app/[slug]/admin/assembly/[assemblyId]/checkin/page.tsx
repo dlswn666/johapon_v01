@@ -137,7 +137,7 @@ export default function CheckinPage({ params }: { params: Promise<{ assemblyId: 
   const recentLogs = (attendanceLogs || []).slice(0, 10);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       {/* 헤더 */}
       <div className="flex items-center gap-3">
         <Button

@@ -67,7 +67,7 @@ export default function EvoteDashboardPage({ params }: { params: Promise<{ evote
   const badge = badgeKey ? EVOTE_STATUS_BADGE[badgeKey] : { bg: 'bg-gray-100', text: 'text-gray-600' };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       {/* 헤더: 뒤로가기 + 투표명 + 상태 배지 */}
       <div className="flex items-center gap-3">
         <Button

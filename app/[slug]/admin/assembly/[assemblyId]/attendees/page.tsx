@@ -55,7 +55,7 @@ export default function AttendeesPage({ params }: { params: Promise<{ assemblyId
   const activeLogs = (attendanceLogs || []).filter((log) => !log.exit_at);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       {/* 헤더 */}
       <div className="flex items-center gap-3">
         <Button

@@ -40,11 +40,11 @@ export default function EvoteListPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <div>
+        <div className="flex items-baseline gap-3">
           <h1 className="text-2xl font-bold text-gray-900">전자투표 관리</h1>
-          <p className="mt-1 text-sm text-gray-500">전자투표를 생성하고 관리합니다</p>
+          <p className="text-sm text-gray-400">전자투표를 생성하고 관리합니다</p>
         </div>
         <Button
           onClick={() => router.push(getUnionPath(slug, '/admin/assembly/evote/create'))}

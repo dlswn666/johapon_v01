@@ -116,11 +116,11 @@ export default function UnionAlimtalkPage() {
     }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-3">
                 {/* 페이지 헤더 */}
-                <div className="mb-8">
-                    <h1 className="text-2xl font-bold text-gray-900 mb-2">알림톡 발송 내역</h1>
-                    <p className="text-gray-600">{currentUnion.name}의 알림톡 발송 내역을 확인합니다</p>
+                <div className="mb-2 flex items-baseline gap-3">
+                    <h1 className="text-2xl font-bold text-gray-900">알림톡 발송 내역</h1>
+                    <p className="text-sm text-gray-400">{currentUnion.name}의 알림톡 발송 내역을 확인합니다</p>
                 </div>
 
                 {/* 통계 카드 */}

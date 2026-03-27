@@ -176,7 +176,7 @@ export default function OnsiteBallotPage({ params }: { params: Promise<{ assembl
   if (!isAdmin) return null;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       {/* 헤더 */}
       <div className="flex items-center gap-3">
         <Button

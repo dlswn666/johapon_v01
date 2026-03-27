@@ -742,9 +742,9 @@ export default function MemberManagementPage() {
     }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-3">
                 {/* 페이지 헤더 */}
-                <div className="mb-4">
+                <div className="mb-2">
                     <h1 className="text-2xl font-bold text-gray-900">조합원 관리</h1>
                 </div>
 
