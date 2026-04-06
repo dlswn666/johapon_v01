@@ -114,7 +114,6 @@ export default function UnionMobileSidebar({ isOpen, onClose }: UnionMobileSideb
     const handleLogout = () => {
         logout();
         onClose();
-        router.push('/');
     };
 
     // 링크 클릭 시 사이드바 닫기

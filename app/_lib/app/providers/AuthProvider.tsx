@@ -397,8 +397,8 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null);
         setAuthUser(null);
         setSession(null);
-        router.push('/');
-    }, [router]);
+        router.push(currentSlug ? `/${currentSlug}` : '/');
+    }, [router, currentSlug]);
 
     const refreshUser = useCallback(async () => {
         const { data: { user: latestAuthUser } } = await supabase.auth.getUser();

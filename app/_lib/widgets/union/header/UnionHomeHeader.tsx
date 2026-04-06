@@ -129,7 +129,6 @@ export default function UnionHomeHeader() {
     const handleLogout = () => {
         logout();
         setIsUserMenuOpen(false);
-        router.push('/');
     };
 
     // 사이드바 토글
