@@ -962,7 +962,6 @@ export default function GisSyncPage() {
                                                 data={mapData.mapDataArray}
                                                 mode="preview"
                                                 onParcelClick={handleParcelClick}
-                                                minHeight={500}
                                             />
                                         ) : (
                                             <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400">

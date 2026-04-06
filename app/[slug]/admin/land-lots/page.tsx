@@ -150,71 +150,51 @@ export default function LandLotManagementPage() {
         setIsPdfGenerating(true);
 
         try {
-            // 1. 전체 보기로 리셋
-            mapRef.current.resetZoom();
+            // 1. 용지 사이즈 계산
+            const paper = PAPER_SIZES[paperSize];
+            const isLandscape = orientation === 'landscape';
+            const pageWidth = isLandscape ? paper.width : paper.height;
+            const pageHeight = isLandscape ? paper.height : paper.width;
+            const margin = 10;
+            const availableWidth = pageWidth - margin * 2;
+            const availableHeight = pageHeight - margin * 2;
 
-            // 2. 렌더링 완료 대기
-            await new Promise((resolve) => setTimeout(resolve, 200));
+            // 2. 캔버스를 용지 비율에 맞게 리사이즈 + 줌 리셋
+            mapRef.current.prepareForPrint(availableWidth, availableHeight);
 
-            // 3. 고해상도 PNG 캡처
+            // 3. 렌더링 완료 대기
+            await new Promise((resolve) => setTimeout(resolve, 500));
+
+            // 4. 고해상도 PNG 캡처
             const dataURL = mapRef.current.getDataURL(3);
 
-            // 4. 원래 줌으로 복원
-            mapRef.current.restoreZoom();
+            // 5. 원래 ���태로 복원
+            mapRef.current.restoreFromPrint();
 
             if (!dataURL) {
                 setIsPdfGenerating(false);
                 return;
             }
 
-            // 5. 선택된 용지/방향으로 PDF 생성
-            const paper = PAPER_SIZES[paperSize];
-            const isLandscape = orientation === 'landscape';
-            const pageWidth = isLandscape ? paper.width : paper.height;
-            const pageHeight = isLandscape ? paper.height : paper.width;
-
+            // 6. PDF 생�� — 캡처 이미지가 용지 비율과 동일하므로 꽉 채움
             const pdf = new jsPDF({
                 orientation: isLandscape ? 'landscape' : 'portrait',
                 unit: 'mm',
                 format: [pageWidth, pageHeight],
             });
 
-            // 6. 이미지를 여백 10mm로 비율 유지하며 삽입
-            const margin = 10;
-            const availableWidth = pageWidth - margin * 2;
-            const availableHeight = pageHeight - margin * 2;
+            pdf.addImage(dataURL, 'PNG', margin, margin, availableWidth, availableHeight);
 
-            const img = new Image();
-            img.onload = () => {
-                const imgRatio = img.width / img.height;
-                const areaRatio = availableWidth / availableHeight;
+            // 7. 파일명: 구역도_YYYY-MM-DD.pdf
+            const today = new Date();
+            const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+            pdf.save(`구역도_${dateStr}.pdf`);
 
-                let drawWidth: number;
-                let drawHeight: number;
-
-                if (imgRatio > areaRatio) {
-                    drawWidth = availableWidth;
-                    drawHeight = availableWidth / imgRatio;
-                } else {
-                    drawHeight = availableHeight;
-                    drawWidth = availableHeight * imgRatio;
-                }
-
-                const x = margin + (availableWidth - drawWidth) / 2;
-                const y = margin + (availableHeight - drawHeight) / 2;
-
-                pdf.addImage(dataURL, 'PNG', x, y, drawWidth, drawHeight);
-
-                // 7. 파일명: 구역도_YYYY-MM-DD.pdf
-                const today = new Date();
-                const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-                pdf.save(`구역도_${dateStr}.pdf`);
-
-                setIsPdfGenerating(false);
-                setPrintDialogOpen(false);
-            };
-            img.src = dataURL;
+            setIsPdfGenerating(false);
+            setPrintDialogOpen(false);
         } catch {
+            // 에러 시에도 반드시 복원
+            mapRef.current?.restoreFromPrint();
             setIsPdfGenerating(false);
         }
     }, [paperSize, orientation]);
@@ -477,7 +457,6 @@ export default function LandLotManagementPage() {
                                             setSelectedPnu(pnu);
                                             setIsModalOpen(true);
                                         }}
-                                        minHeight={450}
                                     />
                                 )}
                             </div>

@@ -26,8 +26,8 @@ export interface ParcelData {
 
 export interface EChartsMapRef {
     getDataURL: (pixelRatio?: number) => string | null;
-    resetZoom: () => void;
-    restoreZoom: () => void;
+    prepareForPrint: (pageWidth: number, pageHeight: number) => void;
+    restoreFromPrint: () => void;
 }
 
 interface EChartsMapProps {
@@ -38,7 +38,6 @@ interface EChartsMapProps {
     selectedPnu?: string | null;
     selectedPnuList?: string[];
     onParcelHover?: (pnu: string | null) => void;
-    minHeight?: number;
 }
 
 // 동의 현황 색상 및 라벨 (불투명 색상으로 번짐 방지)
@@ -152,14 +151,14 @@ const EChartsMap = forwardRef<EChartsMapRef, EChartsMapProps>(function EChartsMa
     selectedPnu,
     selectedPnuList = [],
     onParcelHover,
-    minHeight = 1100,
 }, ref) {
     const chartRef = useRef<HTMLDivElement>(null);
     const chartInstance = useRef<echarts.ECharts | null>(null);
     const prevSelectedPnu = useRef<string | null>(null);
     const isInitialRender = useRef<boolean>(true);
     const prevGeoJsonRef = useRef<GeoJSON.FeatureCollection | null>(null);
-    const savedZoomState = useRef<{ zoom: number; center: number[] } | null>(null);
+    const savedOption = useRef<Record<string, unknown> | null>(null);
+    const savedSize = useRef<{ width: number; height: number } | null>(null);
 
     useImperativeHandle(ref, () => ({
         getDataURL: (pixelRatio?: number) => {
@@ -170,27 +169,36 @@ const EChartsMap = forwardRef<EChartsMapRef, EChartsMapProps>(function EChartsMa
                 backgroundColor: '#fff',
             });
         },
-        resetZoom: () => {
-            if (!chartInstance.current) return;
-            // 현재 줌 상태 저장
-            const option = chartInstance.current.getOption() as { series: Array<{ zoom?: number; center?: number[] }> };
-            if (option.series?.[0]) {
-                savedZoomState.current = {
-                    zoom: option.series[0].zoom || 1,
-                    center: option.series[0].center || [0, 0],
-                };
-            }
-            chartInstance.current.dispatchAction({ type: 'restore' });
-        },
-        restoreZoom: () => {
-            if (!chartInstance.current || !savedZoomState.current) return;
+        prepareForPrint: (pageWidth: number, pageHeight: number) => {
+            if (!chartInstance.current || !chartRef.current) return;
+            // 1. 현재 옵션과 컨테이너 ��이즈 저장
+            savedOption.current = chartInstance.current.getOption() as Record<string, unknown>;
+            savedSize.current = {
+                width: chartRef.current.clientWidth,
+                height: chartRef.current.clientHeight,
+            };
+            // 2. 컨테이너를 용지 비율에 맞게 리사이즈 (너비 기준으로 높이 계산)
+            const containerWidth = chartRef.current.clientWidth;
+            const paperRatio = pageHeight / pageWidth;
+            const newHeight = Math.round(containerWidth * paperRatio);
+            chartRef.current.style.height = `${newHeight}px`;
+            // 3. ECharts 리사이즈 + 줌 리셋
+            chartInstance.current.resize();
             chartInstance.current.setOption({
-                series: [{
-                    zoom: savedZoomState.current.zoom,
-                    center: savedZoomState.current.center,
-                }],
-            });
-            savedZoomState.current = null;
+                series: [{ zoom: 1, center: undefined }],
+            }, false);
+        },
+        restoreFromPrint: () => {
+            if (!chartInstance.current || !chartRef.current) return;
+            // 1. 컨테이너 사이즈 복원
+            chartRef.current.style.height = '';
+            chartInstance.current.resize();
+            // 2. 옵션 복원
+            if (savedOption.current) {
+                chartInstance.current.setOption(savedOption.current, true);
+                savedOption.current = null;
+            }
+            savedSize.current = null;
         },
     }));
 
@@ -219,9 +227,14 @@ const EChartsMap = forwardRef<EChartsMapRef, EChartsMapProps>(function EChartsMa
             chartInstance.current = echarts.init(chartRef.current);
             chartInstance.current.on('click', (params: { componentType: string; name: string }) => {
                 if (params.componentType === 'series' && onParcelClick) {
-                    // 클릭 시 emphasis 상태를 즉시 해제하여 data areaColor가 바로 반영되도록 함
+                    // 클릭 시 emphasis + select 상태를 즉시 해제하여 data areaColor가 바로 반영되도록 함
                     chartInstance.current?.dispatchAction({
                         type: 'downplay',
+                        seriesIndex: 0,
+                        name: params.name,
+                    });
+                    chartInstance.current?.dispatchAction({
+                        type: 'unselect',
                         seriesIndex: 0,
                         name: params.name,
                     });
@@ -360,7 +373,7 @@ const EChartsMap = forwardRef<EChartsMapRef, EChartsMapProps>(function EChartsMa
                     type: 'map',
                     map: 'GIS_MAP',
                     roam: true, // 드래그 이동 + 줌 활성화
-                    zoom: 1.44, // 1.2 * 1.2 = 1.44 (기존보다 1.2배 확대)
+                    zoom: 1, // 전체 지도가 컨테이너에 맞게 표시
                     label: {
                         show: false, // 모든 모드에서 라벨 숨김
                         color: '#000',
@@ -486,28 +499,38 @@ const EChartsMap = forwardRef<EChartsMapRef, EChartsMapProps>(function EChartsMa
 
     // 외부에서 선택된 필지 포커스 (툴팁만 표시, highlight는 사용하지 않음 - data areaColor로 처리)
     useEffect(() => {
-        if (!chartInstance.current || !selectedPnu) return;
+        if (!chartInstance.current) return;
 
-        // 이전 선택 해제 (emphasis 상태 제거)
-        if (prevSelectedPnu.current && prevSelectedPnu.current !== selectedPnu) {
+        // 이전 선택 해제 (emphasis + select 상태 모두 제거)
+        if (prevSelectedPnu.current) {
             chartInstance.current.dispatchAction({
                 type: 'downplay',
                 seriesIndex: 0,
                 name: prevSelectedPnu.current,
             });
+            chartInstance.current.dispatchAction({
+                type: 'unselect',
+                seriesIndex: 0,
+                name: prevSelectedPnu.current,
+            });
         }
 
-        // 툴팁만 표시 (highlight는 emphasis 색상을 적용해서 data areaColor를 덮으므로 사용하지 않음)
-        chartInstance.current.dispatchAction({
-            type: 'showTip',
-            seriesIndex: 0,
-            name: selectedPnu,
-        });
+        if (selectedPnu) {
+            // 툴팁만 표시 (highlight는 emphasis 색상을 적용해서 data areaColor를 덮으므로 사용하지 않음)
+            chartInstance.current.dispatchAction({
+                type: 'showTip',
+                seriesIndex: 0,
+                name: selectedPnu,
+            });
+        } else {
+            // 선택 해제 시 툴팁도 닫기
+            chartInstance.current.dispatchAction({ type: 'hideTip' });
+        }
 
-        prevSelectedPnu.current = selectedPnu;
+        prevSelectedPnu.current = selectedPnu ?? null;
     }, [selectedPnu]);
 
-    return <div ref={chartRef} className="w-full h-full" style={{ minHeight: `${minHeight}px` }} />;
+    return <div ref={chartRef} className="w-full h-full" />;
 });
 
 export default EChartsMap;

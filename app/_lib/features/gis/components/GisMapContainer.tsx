@@ -61,8 +61,8 @@ const GisMapContainer = forwardRef<GisMapContainerRef>(function GisMapContainer(
     // 외부 ref에서 내부 EChartsMap ref로 전달
     useImperativeHandle(ref, () => ({
         getDataURL: (pixelRatio?: number) => internalMapRef.current?.getDataURL(pixelRatio) ?? null,
-        resetZoom: () => internalMapRef.current?.resetZoom(),
-        restoreZoom: () => internalMapRef.current?.restoreZoom(),
+        prepareForPrint: (pageWidth: number, pageHeight: number) => internalMapRef.current?.prepareForPrint(pageWidth, pageHeight),
+        restoreFromPrint: () => internalMapRef.current?.restoreFromPrint(),
     }));
 
     // 조회 모드: 'consent' (동의 현황) | 'registration' (가입 현황) | 'address' (지번 현황)
