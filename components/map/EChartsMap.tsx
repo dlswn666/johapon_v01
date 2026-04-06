@@ -171,13 +171,13 @@ const EChartsMap = forwardRef<EChartsMapRef, EChartsMapProps>(function EChartsMa
         },
         prepareForPrint: (pageWidth: number, pageHeight: number) => {
             if (!chartInstance.current || !chartRef.current) return;
-            // 1. 현재 옵션과 컨테이너 ��이즈 저장
+            // 1. 현재 옵션과 컨테이너 사이즈 저장
             savedOption.current = chartInstance.current.getOption() as Record<string, unknown>;
             savedSize.current = {
                 width: chartRef.current.clientWidth,
                 height: chartRef.current.clientHeight,
             };
-            // 2. 컨테이너를 용지 비율에 맞게 리사이즈 (너비 기준으로 높이 계산)
+            // 2. 컨테이너를 용지 비율에 맞게 리사이즈
             const containerWidth = chartRef.current.clientWidth;
             const paperRatio = pageHeight / pageWidth;
             const newHeight = Math.round(containerWidth * paperRatio);
@@ -216,6 +216,7 @@ const EChartsMap = forwardRef<EChartsMapRef, EChartsMapProps>(function EChartsMa
         data.forEach((item) => map.set(item.pnu, item));
         return map;
     }, [data]);
+
 
     // 선택된 PNU 세트 (빠른 조회용)
     const selectedPnuSet = useMemo(() => new Set(selectedPnuList), [selectedPnuList]);
@@ -452,9 +453,6 @@ const EChartsMap = forwardRef<EChartsMapRef, EChartsMapProps>(function EChartsMa
                 {
                     series: [
                         {
-                            label: {
-                                show: false,
-                            },
                             data: data.map((item) => {
                                 const isSelected = selectedPnuSet.has(item.pnu);
                                 const baseColor = (config.colors as Record<string, string>)[item.status] || '#f1f5f9';
