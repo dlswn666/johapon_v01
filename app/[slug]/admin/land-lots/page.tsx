@@ -1,19 +1,30 @@
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
-import { Search, Info, Building2, MapPin, Users, X, Loader2 } from 'lucide-react';
+import { Search, Info, Building2, MapPin, Users, X, Loader2, Printer } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/app/_lib/shared/supabase/client';
-import GisMapContainer from '@/app/_lib/features/gis/components/GisMapContainer';
+import GisMapContainer, { GisMapContainerRef } from '@/app/_lib/features/gis/components/GisMapContainer';
 import ParcelDetailModal from '@/app/_lib/features/gis/components/ParcelDetailModal';
 import { DataTable, ColumnDef } from '@/app/_lib/widgets/common/data-table';
 import { useLandLotsInfinite, ExtendedLandLot } from '@/app/_lib/features/gis/api/useLandLotsInfinite';
 import { EChartsMapDynamic } from '@/app/_lib/features/gis/components/EChartsMapDynamic';
 import type { ParcelData } from '@/components/map/EChartsMap';
 import { escapeLikeWildcards } from '@/app/_lib/shared/utils/escapeLike';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { jsPDF } from 'jspdf';
+
+// PDF 용지 사이즈 (mm 단위, 가로x세로 기준)
+const PAPER_SIZES: Record<string, { label: string; width: number; height: number }> = {
+    A2: { label: 'A2', width: 594, height: 420 },
+    A3: { label: 'A3', width: 420, height: 297 },
+    A4: { label: 'A4', width: 297, height: 210 },
+    B4: { label: 'B4', width: 364, height: 257 },
+};
 
 // 건물 유형 한글 매핑
 const BUILDING_TYPE_LABELS: Record<string, string> = {
@@ -49,6 +60,13 @@ export default function LandLotManagementPage() {
     const [viewMode, setViewMode] = useState<'list' | 'map'>('map');
     const [searchQuery, setSearchQuery] = useState('');
     const [searchInput, setSearchInput] = useState('');
+
+    // PDF 프린트 관련 상태
+    const mapRef = useRef<GisMapContainerRef>(null);
+    const [printDialogOpen, setPrintDialogOpen] = useState(false);
+    const [paperSize, setPaperSize] = useState<string>('A4');
+    const [orientation, setOrientation] = useState<'landscape' | 'portrait'>('landscape');
+    const [isPdfGenerating, setIsPdfGenerating] = useState(false);
 
     // 소유주 검색 상태
     const [ownerSearchPnus, setOwnerSearchPnus] = useState<string[]>([]);
@@ -125,6 +143,81 @@ export default function LandLotManagementPage() {
         setOwnerSearchPnus([]);
         setSearchedOwnerName('');
     };
+
+    // PDF 다운로드 핸들러
+    const handlePdfDownload = useCallback(async () => {
+        if (!mapRef.current) return;
+        setIsPdfGenerating(true);
+
+        try {
+            // 1. 전체 보기로 리셋
+            mapRef.current.resetZoom();
+
+            // 2. 렌더링 완료 대기
+            await new Promise((resolve) => setTimeout(resolve, 200));
+
+            // 3. 고해상도 PNG 캡처
+            const dataURL = mapRef.current.getDataURL(3);
+
+            // 4. 원래 줌으로 복원
+            mapRef.current.restoreZoom();
+
+            if (!dataURL) {
+                setIsPdfGenerating(false);
+                return;
+            }
+
+            // 5. 선택된 용지/방향으로 PDF 생성
+            const paper = PAPER_SIZES[paperSize];
+            const isLandscape = orientation === 'landscape';
+            const pageWidth = isLandscape ? paper.width : paper.height;
+            const pageHeight = isLandscape ? paper.height : paper.width;
+
+            const pdf = new jsPDF({
+                orientation: isLandscape ? 'landscape' : 'portrait',
+                unit: 'mm',
+                format: [pageWidth, pageHeight],
+            });
+
+            // 6. 이미지를 여백 10mm로 비율 유지하며 삽입
+            const margin = 10;
+            const availableWidth = pageWidth - margin * 2;
+            const availableHeight = pageHeight - margin * 2;
+
+            const img = new Image();
+            img.onload = () => {
+                const imgRatio = img.width / img.height;
+                const areaRatio = availableWidth / availableHeight;
+
+                let drawWidth: number;
+                let drawHeight: number;
+
+                if (imgRatio > areaRatio) {
+                    drawWidth = availableWidth;
+                    drawHeight = availableWidth / imgRatio;
+                } else {
+                    drawHeight = availableHeight;
+                    drawWidth = availableHeight * imgRatio;
+                }
+
+                const x = margin + (availableWidth - drawWidth) / 2;
+                const y = margin + (availableHeight - drawHeight) / 2;
+
+                pdf.addImage(dataURL, 'PNG', x, y, drawWidth, drawHeight);
+
+                // 7. 파일명: 구역도_YYYY-MM-DD.pdf
+                const today = new Date();
+                const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                pdf.save(`구역도_${dateStr}.pdf`);
+
+                setIsPdfGenerating(false);
+                setPrintDialogOpen(false);
+            };
+            img.src = dataURL;
+        } catch {
+            setIsPdfGenerating(false);
+        }
+    }, [paperSize, orientation]);
 
     // 소유주 검색 시 지도 데이터 (필요할 때만 로드)
     const showOwnerMap = ownerSearchPnus.length > 0;
@@ -316,7 +409,7 @@ export default function LandLotManagementPage() {
             </div>
 
             {/* 안내 사항 - 상세 내용은 tooltip으로 표시 */}
-            <div className="flex items-center gap-2 text-sm text-blue-700">
+            <div className="flex items-center justify-between text-sm text-blue-700">
                 <Tooltip>
                     <TooltipTrigger asChild>
                         <span className="inline-flex items-center gap-1.5 cursor-help">
@@ -332,10 +425,19 @@ export default function LandLotManagementPage() {
                         </ul>
                     </TooltipContent>
                 </Tooltip>
+                {viewMode === 'map' && (
+                    <button
+                        onClick={() => setPrintDialogOpen(true)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                    >
+                        <Printer className="w-4 h-4" />
+                        <span>구역도 출력</span>
+                    </button>
+                )}
             </div>
 
             {viewMode === 'map' ? (
-                <GisMapContainer />
+                <GisMapContainer ref={mapRef} />
             ) : (
                 <div className="space-y-4">
                     {/* 소유주 검색 결과 지도 */}
@@ -449,6 +551,85 @@ export default function LandLotManagementPage() {
                 unionId={unionId}
                 onDeleted={() => setSelectedPnu(null)}
             />
+
+            {/* PDF 출력 다이얼로그 */}
+            <Dialog open={printDialogOpen} onOpenChange={setPrintDialogOpen}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>구역도 PDF 출력</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-2">
+                        {/* 용지 사이즈 */}
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium text-slate-700">용지 사이즈</label>
+                            <div className="flex gap-2">
+                                {Object.entries(PAPER_SIZES).map(([key, { label }]) => (
+                                    <button
+                                        key={key}
+                                        onClick={() => setPaperSize(key)}
+                                        className={cn(
+                                            'flex-1 py-2 px-3 rounded-lg border text-sm font-medium transition-colors cursor-pointer',
+                                            paperSize === key
+                                                ? 'border-primary bg-primary/10 text-primary'
+                                                : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                                        )}
+                                    >
+                                        {label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* 방향 */}
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium text-slate-700">방향</label>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => setOrientation('landscape')}
+                                    className={cn(
+                                        'flex-1 py-2 px-3 rounded-lg border text-sm font-medium transition-colors cursor-pointer',
+                                        orientation === 'landscape'
+                                            ? 'border-primary bg-primary/10 text-primary'
+                                            : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                                    )}
+                                >
+                                    가로
+                                </button>
+                                <button
+                                    onClick={() => setOrientation('portrait')}
+                                    className={cn(
+                                        'flex-1 py-2 px-3 rounded-lg border text-sm font-medium transition-colors cursor-pointer',
+                                        orientation === 'portrait'
+                                            ? 'border-primary bg-primary/10 text-primary'
+                                            : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                                    )}
+                                >
+                                    세로
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            onClick={handlePdfDownload}
+                            disabled={isPdfGenerating}
+                            className="w-full"
+                        >
+                            {isPdfGenerating ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    PDF 생성 중...
+                                </>
+                            ) : (
+                                <>
+                                    <Printer className="w-4 h-4 mr-2" />
+                                    PDF 다운로드
+                                </>
+                            )}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

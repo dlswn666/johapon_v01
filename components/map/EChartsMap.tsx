@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useMemo } from 'react';
+import { useEffect, useRef, useMemo, forwardRef, useImperativeHandle } from 'react';
 import * as echarts from 'echarts';
 
 // 조회 모드
@@ -22,6 +22,12 @@ export interface ParcelData {
     totalOwners?: number;
     agreedOwners?: number;
     registeredCount?: number;
+}
+
+export interface EChartsMapRef {
+    getDataURL: (pixelRatio?: number) => string | null;
+    resetZoom: () => void;
+    restoreZoom: () => void;
 }
 
 interface EChartsMapProps {
@@ -138,7 +144,7 @@ function formatArea(area: number | undefined): string {
     return `${area.toLocaleString()}㎡`;
 }
 
-export default function EChartsMap({
+const EChartsMap = forwardRef<EChartsMapRef, EChartsMapProps>(function EChartsMap({
     geoJson,
     data,
     mode = 'address',
@@ -147,12 +153,46 @@ export default function EChartsMap({
     selectedPnuList = [],
     onParcelHover,
     minHeight = 1100,
-}: EChartsMapProps) {
+}, ref) {
     const chartRef = useRef<HTMLDivElement>(null);
     const chartInstance = useRef<echarts.ECharts | null>(null);
     const prevSelectedPnu = useRef<string | null>(null);
     const isInitialRender = useRef<boolean>(true);
     const prevGeoJsonRef = useRef<GeoJSON.FeatureCollection | null>(null);
+    const savedZoomState = useRef<{ zoom: number; center: number[] } | null>(null);
+
+    useImperativeHandle(ref, () => ({
+        getDataURL: (pixelRatio?: number) => {
+            if (!chartInstance.current) return null;
+            return chartInstance.current.getDataURL({
+                type: 'png',
+                pixelRatio: pixelRatio || 3,
+                backgroundColor: '#fff',
+            });
+        },
+        resetZoom: () => {
+            if (!chartInstance.current) return;
+            // 현재 줌 상태 저장
+            const option = chartInstance.current.getOption() as { series: Array<{ zoom?: number; center?: number[] }> };
+            if (option.series?.[0]) {
+                savedZoomState.current = {
+                    zoom: option.series[0].zoom || 1,
+                    center: option.series[0].center || [0, 0],
+                };
+            }
+            chartInstance.current.dispatchAction({ type: 'restore' });
+        },
+        restoreZoom: () => {
+            if (!chartInstance.current || !savedZoomState.current) return;
+            chartInstance.current.setOption({
+                series: [{
+                    zoom: savedZoomState.current.zoom,
+                    center: savedZoomState.current.center,
+                }],
+            });
+            savedZoomState.current = null;
+        },
+    }));
 
     // 현재 모드에 따른 설정 선택
     const config = useMemo(() => {
@@ -468,7 +508,9 @@ export default function EChartsMap({
     }, [selectedPnu]);
 
     return <div ref={chartRef} className="w-full h-full" style={{ minHeight: `${minHeight}px` }} />;
-}
+});
+
+export default EChartsMap;
 
 // 지도 범례 컴포넌트 (canvas 외부에 배치)
 interface MapLegendProps {

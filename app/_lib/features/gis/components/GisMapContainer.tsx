@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, forwardRef, useRef, useImperativeHandle } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/app/_lib/shared/supabase/client';
 import { useConsentMap } from '../hooks/useConsentMap';
 import { useRegistrationMap } from '../hooks/useRegistrationMap';
-import EChartsMap, { MapViewMode, MapLegend } from '@/components/map/EChartsMap';
+import EChartsMap, { MapViewMode, MapLegend, EChartsMapRef } from '@/components/map/EChartsMap';
 import ParcelDetailModal from './ParcelDetailModal';
 import ConsentStatusBar from './ConsentStatusBar';
 import { useUnionConsentRate } from '../api/useParcelDetail';
@@ -51,9 +51,19 @@ function formatPrice(price: number | undefined): string {
     return `${price.toLocaleString()}원`;
 }
 
-export default function GisMapContainer() {
+export type GisMapContainerRef = EChartsMapRef;
+
+const GisMapContainer = forwardRef<GisMapContainerRef>(function GisMapContainer(_, ref) {
     const { union } = useSlug();
+    const internalMapRef = useRef<EChartsMapRef>(null);
     const unionId = union?.id;
+
+    // 외부 ref에서 내부 EChartsMap ref로 전달
+    useImperativeHandle(ref, () => ({
+        getDataURL: (pixelRatio?: number) => internalMapRef.current?.getDataURL(pixelRatio) ?? null,
+        resetZoom: () => internalMapRef.current?.resetZoom(),
+        restoreZoom: () => internalMapRef.current?.restoreZoom(),
+    }));
 
     // 조회 모드: 'consent' (동의 현황) | 'registration' (가입 현황) | 'address' (지번 현황)
     const [viewMode, setViewMode] = useState<MapViewMode>('address');
@@ -440,6 +450,7 @@ export default function GisMapContainer() {
                             </div>
                         ) : currentGeoJson && currentGeoJson.features.length > 0 ? (
                             <EChartsMap
+                                ref={internalMapRef}
                                 geoJson={currentGeoJson}
                                 data={currentData as Parameters<typeof EChartsMap>[0]['data']}
                                 mode={viewMode}
@@ -772,4 +783,6 @@ export default function GisMapContainer() {
             />
         </div>
     );
-}
+});
+
+export default GisMapContainer;

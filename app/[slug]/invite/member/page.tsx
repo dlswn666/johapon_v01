@@ -29,6 +29,7 @@ export default function MemberInvitePage() {
                 // 카카오싱크: 간편 로그인 + 서비스 약관 동의
                 queryParams: {
                     service_terms: KAKAO_SERVICE_TERMS_STRING,
+                    prompt: 'select_account',
                 },
             },
         });
