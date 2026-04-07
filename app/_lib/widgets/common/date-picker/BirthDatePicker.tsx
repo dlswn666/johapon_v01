@@ -1,63 +1,68 @@
 'use client';
 
-import React, { useMemo, useCallback, useState, useEffect } from 'react';
+import React, { useMemo, useCallback, useState, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
-import { ChevronDown } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface BirthDatePickerProps {
     value: string; // "YYYY-MM-DD" 형식
     onChange: (date: string) => void;
+    onPartialChange?: (isPartial: boolean) => void; // 부분 선택 상태 알림 (년/월만 선택한 경우)
     className?: string;
     disabled?: boolean;
 }
 
+type Step = 'year' | 'month' | 'day';
+
 /**
  * 생년월일 선택 공통 컴포넌트
- * 년, 월, 일을 각각 SelectBox로 선택
- * - 년도: 1900년 ~ 현재년도
- * - 월: 1월 ~ 12월
- * - 일: 선택된 년/월에 따라 동적 변경 (윤년 고려)
- * - 어떤 순서로 선택해도 값이 유지됨 (로컬 상태 사용)
+ * 단계별 선택: 년 → 월 → 일
+ * - 년/월 선택 시 하단에 이전/다음 버튼
+ * - 일 선택 시 완료 처리
  */
-export function BirthDatePicker({ value, onChange, className, disabled = false }: BirthDatePickerProps) {
+export function BirthDatePicker({ value, onChange, onPartialChange, className, disabled = false }: BirthDatePickerProps) {
     const currentYear = new Date().getFullYear();
 
-    // 로컬 상태: 부분 선택을 저장하기 위해 사용
-    const [localYear, setLocalYear] = useState<string>('');
-    const [localMonth, setLocalMonth] = useState<string>('');
-    const [localDay, setLocalDay] = useState<string>('');
+    const [step, setStep] = useState<Step>('year');
+    const [selectedYear, setSelectedYear] = useState<number | null>(null);
+    const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
+    const [selectedDay, setSelectedDay] = useState<number | null>(null);
+
+    // 년도 스크롤 영역 ref
+    const yearGridRef = useRef<HTMLDivElement>(null);
 
     // value prop이 변경되면 로컬 상태도 동기화
     useEffect(() => {
         if (value) {
             const parts = value.split('-');
             if (parts.length === 3) {
-                // eslint-disable-next-line react-hooks/set-state-in-effect -- value prop 동기화 필요
-                setLocalYear(parts[0]);
-                setLocalMonth(parts[1].replace(/^0/, '')); // 앞의 0 제거
-                setLocalDay(parts[2].replace(/^0/, '')); // 앞의 0 제거
+                const y = parseInt(parts[0]);
+                const m = parseInt(parts[1]);
+                const d = parseInt(parts[2]);
+                if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
+                    setSelectedYear(y);
+                    setSelectedMonth(m);
+                    setSelectedDay(d);
+                    setStep('day'); // 이미 값이 있으면 일 선택 단계로
+                }
             }
         } else {
-            // value가 비어있으면 로컬 상태도 초기화
-            setLocalYear('');
-            setLocalMonth('');
-            setLocalDay('');
+            setSelectedYear(null);
+            setSelectedMonth(null);
+            setSelectedDay(null);
+            setStep('year');
         }
     }, [value]);
 
-    // 년도 옵션 생성 (현재년도 ~ 1900년, 내림차순)
-    const yearOptions = useMemo(() => {
-        const years: number[] = [];
-        for (let y = currentYear; y >= 1900; y--) {
-            years.push(y);
+    // 년도 선택 시 선택된 년도가 보이도록 스크롤
+    useEffect(() => {
+        if (step === 'year' && yearGridRef.current && selectedYear) {
+            const selectedEl = yearGridRef.current.querySelector('[data-selected="true"]');
+            if (selectedEl) {
+                selectedEl.scrollIntoView({ block: 'center', behavior: 'instant' });
+            }
         }
-        return years;
-    }, [currentYear]);
-
-    // 월 옵션 생성 (1 ~ 12)
-    const monthOptions = useMemo(() => {
-        return Array.from({ length: 12 }, (_, i) => i + 1);
-    }, []);
+    }, [step, selectedYear]);
 
     // 윤년 체크
     const isLeapYear = useCallback((y: number): boolean => {
@@ -76,138 +81,278 @@ export function BirthDatePicker({ value, onChange, className, disabled = false }
         [isLeapYear]
     );
 
-    // 일 옵션 생성 (선택된 년/월에 따라 - 로컬 상태 사용)
+    // 년도 옵션 (현재년도 ~ 1900년, 내림차순)
+    const yearOptions = useMemo(() => {
+        const years: number[] = [];
+        for (let y = currentYear; y >= 1900; y--) {
+            years.push(y);
+        }
+        return years;
+    }, [currentYear]);
+
+    // 일 옵션
     const dayOptions = useMemo(() => {
-        const y = parseInt(localYear) || currentYear;
-        const m = parseInt(localMonth) || 1;
+        const y = selectedYear || currentYear;
+        const m = selectedMonth || 1;
         const maxDay = getDaysInMonth(y, m);
         return Array.from({ length: maxDay }, (_, i) => i + 1);
-    }, [localYear, localMonth, currentYear, getDaysInMonth]);
+    }, [selectedYear, selectedMonth, currentYear, getDaysInMonth]);
 
-    // 3개 값이 모두 있을 때 onChange 호출
-    const triggerOnChange = useCallback(
-        (newYear: string, newMonth: string, newDay: string) => {
-            if (newYear && newMonth && newDay) {
-                const formattedMonth = newMonth.padStart(2, '0');
+    // 부분 선택 상태 알림
+    useEffect(() => {
+        const hasPartialSelection = (selectedYear !== null || selectedMonth !== null) && selectedDay === null;
+        onPartialChange?.(hasPartialSelection);
+    }, [selectedYear, selectedMonth, selectedDay, onPartialChange]);
 
-                // 선택된 월에 유효한 일인지 확인
-                const y = parseInt(newYear);
-                const m = parseInt(newMonth);
-                const d = parseInt(newDay);
-                const maxDay = getDaysInMonth(y, m);
+    // 년도 선택 핸들러
+    const handleYearSelect = useCallback((year: number) => {
+        setSelectedYear(year);
+    }, []);
 
-                // 일이 최대 일수를 초과하면 최대 일수로 조정
-                const validDay = Math.min(d, maxDay);
-                const finalDay = String(validDay).padStart(2, '0');
+    // 월 선택 핸들러
+    const handleMonthSelect = useCallback((month: number) => {
+        setSelectedMonth(month);
+    }, []);
 
-                onChange(`${newYear}-${formattedMonth}-${finalDay}`);
+    // 일 선택 핸들러 → 완료
+    const handleDaySelect = useCallback(
+        (day: number) => {
+            setSelectedDay(day);
+            if (selectedYear && selectedMonth) {
+                const maxDay = getDaysInMonth(selectedYear, selectedMonth);
+                const validDay = Math.min(day, maxDay);
+                const formatted = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-${String(validDay).padStart(2, '0')}`;
+                onChange(formatted);
             }
         },
-        [getDaysInMonth, onChange]
+        [selectedYear, selectedMonth, getDaysInMonth, onChange]
     );
 
-    // 년도 변경 핸들러: 로컬 상태 업데이트 후 3개 모두 있으면 onChange 호출
-    const handleYearChange = useCallback(
-        (e: React.ChangeEvent<HTMLSelectElement>) => {
-            const newYear = e.target.value;
-            setLocalYear(newYear);
-            triggerOnChange(newYear, localMonth, localDay);
-        },
-        [triggerOnChange, localMonth, localDay]
-    );
+    // 다음 단계
+    const handleNext = useCallback(() => {
+        if (step === 'year' && selectedYear !== null) {
+            setStep('month');
+        } else if (step === 'month' && selectedMonth !== null) {
+            setStep('day');
+        }
+    }, [step, selectedYear, selectedMonth]);
 
-    // 월 변경 핸들러: 로컬 상태 업데이트 후 3개 모두 있으면 onChange 호출
-    const handleMonthChange = useCallback(
-        (e: React.ChangeEvent<HTMLSelectElement>) => {
-            const newMonth = e.target.value;
-            setLocalMonth(newMonth);
-            triggerOnChange(localYear, newMonth, localDay);
-        },
-        [triggerOnChange, localYear, localDay]
-    );
+    // 이전 단계
+    const handlePrev = useCallback(() => {
+        if (step === 'month') {
+            setStep('year');
+        } else if (step === 'day') {
+            setStep('month');
+        }
+    }, [step]);
 
-    // 일 변경 핸들러: 로컬 상태 업데이트 후 3개 모두 있으면 onChange 호출
-    const handleDayChange = useCallback(
-        (e: React.ChangeEvent<HTMLSelectElement>) => {
-            const newDay = e.target.value;
-            setLocalDay(newDay);
-            triggerOnChange(localYear, localMonth, newDay);
-        },
-        [triggerOnChange, localYear, localMonth]
-    );
+    // 현재 선택 상태를 보여주는 요약 텍스트
+    const summaryText = useMemo(() => {
+        const parts: string[] = [];
+        if (selectedYear) parts.push(`${selectedYear}년`);
+        if (selectedMonth) parts.push(`${selectedMonth}월`);
+        if (selectedDay) parts.push(`${selectedDay}일`);
+        return parts.length > 0 ? parts.join(' ') : '생년월일을 선택하세요';
+    }, [selectedYear, selectedMonth, selectedDay]);
 
-    const selectClassName = cn(
-        'appearance-none bg-white border border-gray-300 rounded-lg',
-        'px-3 py-3 pr-8',
-        'text-base md:text-lg text-center',
-        'focus:outline-none focus:ring-2 focus:ring-[#4E8C6D] focus:border-transparent',
-        'transition-all cursor-pointer',
-        'disabled:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-500'
-    );
+    // 단계 제목
+    const stepTitle = useMemo(() => {
+        if (step === 'year') return '년도 선택';
+        if (step === 'month') return '월 선택';
+        return '일 선택';
+    }, [step]);
 
-    const selectWrapperClassName = 'relative flex-1';
+    // 단계 인디케이터
+    const stepIndicator = useMemo(() => {
+        const steps: { key: Step; label: string }[] = [
+            { key: 'year', label: '년' },
+            { key: 'month', label: '월' },
+            { key: 'day', label: '일' },
+        ];
+        return steps.map((s) => ({
+            ...s,
+            active: s.key === step,
+            completed:
+                (s.key === 'year' && selectedYear !== null) ||
+                (s.key === 'month' && selectedMonth !== null) ||
+                (s.key === 'day' && selectedDay !== null),
+        }));
+    }, [step, selectedYear, selectedMonth, selectedDay]);
+
+    if (disabled) {
+        return (
+            <div className={cn('text-center py-4 text-gray-500 bg-gray-100 rounded-lg', className)}>
+                {summaryText}
+            </div>
+        );
+    }
 
     return (
-        <div className={cn('flex gap-2 md:gap-3 items-center w-full', className)}>
-            {/* 년도 선택 */}
-            <div className={selectWrapperClassName}>
-                <select
-                    value={localYear}
-                    onChange={handleYearChange}
-                    disabled={disabled}
-                    className={cn(selectClassName, 'w-full')}
-                    aria-label="년도 선택"
-                >
-                    <option value="">년도</option>
-                    {yearOptions.map((y) => (
-                        <option key={y} value={y}>
-                            {y}년
-                        </option>
+        <div className={cn('w-full', className)}>
+            {/* 상단: 선택된 값 요약 + 단계 인디케이터 */}
+            <div className="mb-3">
+                <p className="text-sm text-gray-500 text-center mb-2">{summaryText}</p>
+                <div className="flex justify-center gap-2">
+                    {stepIndicator.map((s) => (
+                        <button
+                            key={s.key}
+                            type="button"
+                            onClick={() => {
+                                // 이전 단계로만 이동 가능 (또는 완료된 단계)
+                                if (s.key === 'year') setStep('year');
+                                else if (s.key === 'month' && selectedYear !== null) setStep('month');
+                                else if (s.key === 'day' && selectedYear !== null && selectedMonth !== null) setStep('day');
+                            }}
+                            className={cn(
+                                'px-3 py-1 rounded-full text-xs font-medium transition-all',
+                                s.active
+                                    ? 'bg-[#4E8C6D] text-white'
+                                    : s.completed
+                                      ? 'bg-[#4E8C6D]/20 text-[#4E8C6D]'
+                                      : 'bg-gray-100 text-gray-400'
+                            )}
+                        >
+                            {s.label}
+                        </button>
                     ))}
-                </select>
-                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                </div>
             </div>
 
-            {/* 월 선택 */}
-            <div className={selectWrapperClassName}>
-                <select
-                    value={localMonth}
-                    onChange={handleMonthChange}
-                    disabled={disabled}
-                    className={cn(selectClassName, 'w-full')}
-                    aria-label="월 선택"
-                >
-                    <option value="">월</option>
-                    {monthOptions.map((m) => (
-                        <option key={m} value={m}>
-                            {m}월
-                        </option>
-                    ))}
-                </select>
-                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+            {/* 단계 제목 */}
+            <p className="text-center text-base font-semibold text-gray-700 mb-2">{stepTitle}</p>
+
+            {/* 컨텐츠 영역 */}
+            <div className="bg-gray-50 rounded-xl p-3">
+                {/* 년도 선택 */}
+                {step === 'year' && (
+                    <div
+                        ref={yearGridRef}
+                        className="grid grid-cols-3 gap-2 max-h-56 overflow-y-auto px-1"
+                    >
+                        {yearOptions.map((year) => (
+                            <button
+                                key={year}
+                                type="button"
+                                data-selected={selectedYear === year}
+                                onClick={() => handleYearSelect(year)}
+                                className={cn(
+                                    'py-2.5 rounded-lg text-sm font-medium transition-all',
+                                    selectedYear === year
+                                        ? 'bg-[#4E8C6D] text-white shadow-sm'
+                                        : 'bg-white text-gray-700 hover:bg-[#4E8C6D]/10 border border-gray-200'
+                                )}
+                            >
+                                {year}
+                            </button>
+                        ))}
+                    </div>
+                )}
+
+                {/* 월 선택 */}
+                {step === 'month' && (
+                    <div className="grid grid-cols-4 gap-2 px-1">
+                        {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => (
+                            <button
+                                key={month}
+                                type="button"
+                                onClick={() => handleMonthSelect(month)}
+                                className={cn(
+                                    'py-3.5 rounded-lg text-base font-medium transition-all',
+                                    selectedMonth === month
+                                        ? 'bg-[#4E8C6D] text-white shadow-sm'
+                                        : 'bg-white text-gray-700 hover:bg-[#4E8C6D]/10 border border-gray-200'
+                                )}
+                            >
+                                {month}월
+                            </button>
+                        ))}
+                    </div>
+                )}
+
+                {/* 일 선택 */}
+                {step === 'day' && (
+                    <div className="grid grid-cols-5 gap-2 px-1">
+                        {dayOptions.map((day) => (
+                            <button
+                                key={day}
+                                type="button"
+                                onClick={() => handleDaySelect(day)}
+                                className={cn(
+                                    'py-2.5 rounded-lg text-sm font-medium transition-all',
+                                    selectedDay === day
+                                        ? 'bg-[#4E8C6D] text-white shadow-sm'
+                                        : 'bg-white text-gray-700 hover:bg-[#4E8C6D]/10 border border-gray-200'
+                                )}
+                            >
+                                {day}
+                            </button>
+                        ))}
+                    </div>
+                )}
             </div>
 
-            {/* 일 선택 */}
-            <div className={selectWrapperClassName}>
-                <select
-                    value={localDay}
-                    onChange={handleDayChange}
-                    disabled={disabled}
-                    className={cn(selectClassName, 'w-full')}
-                    aria-label="일 선택"
-                >
-                    <option value="">일</option>
-                    {dayOptions.map((d) => (
-                        <option key={d} value={d}>
-                            {d}일
-                        </option>
-                    ))}
-                </select>
-                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+            {/* 하단 네비게이션 버튼 */}
+            <div className="flex gap-3 mt-3">
+                {/* 년도 단계: 다음 버튼만 */}
+                {step === 'year' && (
+                    <button
+                        type="button"
+                        onClick={handleNext}
+                        disabled={selectedYear === null}
+                        className={cn(
+                            'flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl text-base font-semibold transition-all',
+                            selectedYear !== null
+                                ? 'bg-[#4E8C6D] text-white active:bg-[#3d7159]'
+                                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                        )}
+                    >
+                        다음 (월 선택)
+                        <ChevronRight className="w-5 h-5" />
+                    </button>
+                )}
+
+                {/* 월 단계: 이전 + 다음 */}
+                {step === 'month' && (
+                    <>
+                        <button
+                            type="button"
+                            onClick={handlePrev}
+                            className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl text-base font-semibold bg-gray-100 text-gray-700 active:bg-gray-200 transition-all"
+                        >
+                            <ChevronLeft className="w-5 h-5" />
+                            이전
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleNext}
+                            disabled={selectedMonth === null}
+                            className={cn(
+                                'flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl text-base font-semibold transition-all',
+                                selectedMonth !== null
+                                    ? 'bg-[#4E8C6D] text-white active:bg-[#3d7159]'
+                                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                            )}
+                        >
+                            다음 (일 선택)
+                            <ChevronRight className="w-5 h-5" />
+                        </button>
+                    </>
+                )}
+
+                {/* 일 단계: 이전 버튼만 (일을 누르면 바로 완료) */}
+                {step === 'day' && (
+                    <button
+                        type="button"
+                        onClick={handlePrev}
+                        className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl text-base font-semibold bg-gray-100 text-gray-700 active:bg-gray-200 transition-all"
+                    >
+                        <ChevronLeft className="w-5 h-5" />
+                        이전 (월 선택)
+                    </button>
+                )}
             </div>
         </div>
     );
 }
 
 export default BirthDatePicker;
-

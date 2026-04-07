@@ -1,9 +1,11 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
+import { RegisterModal } from '@/app/_lib/widgets/modal/RegisterModal';
 import { useHeroSlides } from '@/app/_lib/features/hero-slides/api/useHeroSlidesHook';
 import { usePopupNotices } from '@/app/_lib/features/notice/api/useNoticeHook';
 import { HeroSlider } from '@/app/_lib/widgets/hero-slider';
@@ -19,12 +21,24 @@ export default function UnionHomePage() {
     const { isAuthenticated, isLoading: isAuthLoading, isUserFetching, authUser, user } = useAuth();
     const { data: heroSlides, isLoading: isSlidesLoading } = useHeroSlides(union?.id);
     const { data: popupNotices } = usePopupNotices(union?.id);
+    const searchParams = useSearchParams();
+
+    // 테스트용: ?register=true 쿼리 파라미터로 회원가입 모달 강제 표시
+    const forceRegister = searchParams.get('register') === 'true';
+    const [testRegisterOpen, setTestRegisterOpen] = useState(false);
 
     // 로그인 성공 후 홈페이지로 전환하기 위한 상태
     const [forceShowHome, setForceShowHome] = useState(false);
 
     // 신규 사용자: authUser는 있지만 user가 없는 경우 (회원가입 필요)
     const needsRegistration = !!authUser && !user;
+
+    // 테스트용 모달 자동 열기
+    React.useEffect(() => {
+        if (forceRegister) {
+            setTestRegisterOpen(true);
+        }
+    }, [forceRegister]);
 
     // 커뮤니티 링크 존재 여부 (PC 레이아웃 결정용)
     const hasCommunityLinks = useMemo(() => {
@@ -167,6 +181,14 @@ export default function UnionHomePage() {
 
             {/* 사용자 상태 모달 (승인 대기, 승인 거부) */}
             <UserStatusModal />
+
+            {/* 테스트용: ?register=true 쿼리 파라미터로 회원가입 모달 강제 표시 */}
+            {forceRegister && (
+                <RegisterModal
+                    isOpen={testRegisterOpen}
+                    onClose={() => setTestRegisterOpen(false)}
+                />
+            )}
         </>
     );
 }

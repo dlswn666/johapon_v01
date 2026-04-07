@@ -90,13 +90,13 @@ export function TermsModal({ isOpen, onClose }: TermsModalProps) {
                                     <span className="inline-block px-2 py-1 bg-red-100 text-red-700 text-xs font-medium rounded mr-2">
                                         필수
                                     </span>
-                                    <span className="text-gray-700">이름, 휴대폰 번호, 물건지 주소</span>
+                                    <span className="text-gray-700">이름, 생년월일, 휴대폰 번호, 물건지 주소</span>
                                 </div>
                                 <div>
                                     <span className="inline-block px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded mr-2">
                                         선택
                                     </span>
-                                    <span className="text-gray-700">생년월일, 상세 주소</span>
+                                    <span className="text-gray-700">상세 주소</span>
                                 </div>
                             </div>
                         </section>

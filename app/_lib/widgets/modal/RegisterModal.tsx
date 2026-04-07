@@ -168,8 +168,7 @@ const STEPS: StepConfig[] = [
         label: '생년월일',
         placeholder: '1960-01-01',
         description: '본인 확인을 위해 필요합니다.',
-        subDescription: '입력하지 않아도 진행 가능합니다.',
-        required: false,
+        required: true,
         type: 'date',
         icon: <Calendar className="w-6 h-6 md:w-7 md:h-7" />,
     },
@@ -381,6 +380,9 @@ export function RegisterModal({
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const isSubmittingRef = useRef(false);
+
+    // 생년월일 부분 선택 상태 (년/월만 선택하고 일은 아직인 경우)
+    const [isBirthDatePartial, setIsBirthDatePartial] = useState(false);
 
     // 중복 사용자 모달
     const [showDuplicateModal, setShowDuplicateModal] = useState(false);
@@ -904,6 +906,23 @@ export function RegisterModal({
     const handlePrev = useCallback(() => {
         setError('');
 
+        const currentStepKey = STEPS[currentStep]?.key as StepKey;
+
+        // 추가 물건지(2번째 이상)의 첫 스텝(property_address)에서 이전을 누르면
+        // 추가된 물건지를 제거하고 add_property_confirm 스텝으로 돌아감
+        if (currentStepKey === 'property_address' && currentPropertyIndex > 0) {
+            setFormData((prev) => ({
+                ...prev,
+                properties: prev.properties.slice(0, currentPropertyIndex),
+            }));
+            setCurrentPropertyIndex(currentPropertyIndex - 1);
+            const addPropertyStepIndex = STEPS.findIndex((s) => s.key === 'add_property_confirm');
+            if (addPropertyStepIndex >= 0) {
+                setCurrentStep(addPropertyStepIndex);
+            }
+            return;
+        }
+
         // 이전 스텝 찾기 (스킵해야 할 스텝은 건너뛰기)
         let prevStep = currentStep - 1;
         while (prevStep >= 0) {
@@ -917,7 +936,7 @@ export function RegisterModal({
         if (prevStep >= 0) {
             setCurrentStep(prevStep);
         }
-    }, [currentStep, shouldSkipStep]);
+    }, [currentStep, shouldSkipStep, currentPropertyIndex]);
 
     // 물건지 삭제 핸들러 (최종 확인 단계에서 사용)
     const handleDeleteProperty = useCallback(
@@ -1419,12 +1438,9 @@ export function RegisterModal({
                                                             <span className="text-sm font-medium text-gray-600">
                                                                 층 구분
                                                             </span>
-                                                            <div className="mt-1">
-                                                                <FloorIndicator
-                                                                  isBasement={property.property_is_basement}
-                                                                  size="md"
-                                                                />
-                                                            </div>
+                                                            <p className="mt-1 text-base text-gray-900">
+                                                                {property.property_is_basement ? '지하' : '지상'}
+                                                            </p>
                                                         </div>
                                                     )}
 
@@ -1564,7 +1580,7 @@ export function RegisterModal({
                                     <div className="w-full max-w-sm">
                                         {stepConfig.key === 'birth_date' ? (
                                             // 생년월일: BirthDatePicker 사용
-                                            <BirthDatePicker value={getCurrentValue()} onChange={handleValueChange} />
+                                            <BirthDatePicker value={getCurrentValue()} onChange={handleValueChange} onPartialChange={setIsBirthDatePartial} />
                                         ) : stepConfig.key === 'property_address' ? (
                                             // 물건지 주소: KakaoAddressSearch 사용
                                             <KakaoAddressSearch
@@ -1868,11 +1884,13 @@ export function RegisterModal({
                             ) : (
                                 <button
                                     onClick={handleNext}
+                                    disabled={stepConfig?.key === 'birth_date' && !getCurrentValue().trim()}
                                     className={cn(
                                         'flex-1 h-14 md:h-16 rounded-xl',
                                         'text-base md:text-lg font-medium text-white',
                                         'bg-[#4E8C6D] hover:bg-[#3d7058]',
                                         'transition-colors cursor-pointer',
+                                        'disabled:opacity-50 disabled:cursor-not-allowed',
                                         'flex items-center justify-center gap-2'
                                     )}
                                 >
