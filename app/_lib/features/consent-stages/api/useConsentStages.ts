@@ -188,7 +188,6 @@ export const searchMembersForConsent = async (params: SearchMembersParams): Prom
 
     // 통합 검색어가 있으면 개별 필드 대신 통합 검색 로직 사용
     const effectiveAddress = searchKeyword || searchAddress;
-    const effectiveName = searchKeyword || searchName;
     const effectiveBuilding = searchKeyword || searchBuilding;
 
     // 주소 검색 시 user_property_units에서 먼저 조회

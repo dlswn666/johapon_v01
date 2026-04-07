@@ -59,7 +59,7 @@ export async function updateNotificationBatchResult(
     failureDetails?: Record<string, unknown>;
   }
 ) {
-  const totalRecipients = result.deliveredCount + result.failedCount;
+  const _totalRecipients = result.deliveredCount + result.failedCount;
   let status: string;
   if (result.failedCount === 0) {
     status = 'DELIVERED';

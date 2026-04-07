@@ -117,6 +117,7 @@ export default function StepVoters({ formData, updateForm }: StepVotersProps) {
     if (members && formData.selectedVoterIds.length === 0) {
       updateForm({ selectedVoterIds: members.map((m) => m.id) });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [members]);
 
   return (

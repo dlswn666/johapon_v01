@@ -35,7 +35,6 @@ import {
     isBasementHo,
     extractHoNumber,
 } from '@/app/_lib/shared/utils/dong-ho-utils';
-import { FloorIndicator } from '@/components/ui/FloorIndicator';
 import { useFocusTrap } from '@/app/_lib/shared/hooks/useFocusTrap';
 
 // 거주 유형 타입 정의
@@ -382,7 +381,7 @@ export function RegisterModal({
     const isSubmittingRef = useRef(false);
 
     // 생년월일 부분 선택 상태 (년/월만 선택하고 일은 아직인 경우)
-    const [isBirthDatePartial, setIsBirthDatePartial] = useState(false);
+    const [_isBirthDatePartial, setIsBirthDatePartial] = useState(false);
 
     // 중복 사용자 모달
     const [showDuplicateModal, setShowDuplicateModal] = useState(false);

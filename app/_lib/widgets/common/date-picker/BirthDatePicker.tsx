@@ -31,8 +31,10 @@ export function BirthDatePicker({ value, onChange, onPartialChange, className, d
     // 년도 스크롤 영역 ref
     const yearGridRef = useRef<HTMLDivElement>(null);
 
-    // value prop이 변경되면 로컬 상태도 동기화
-    useEffect(() => {
+    // value prop이 변경되면 로컬 상태도 동기화 (렌더 타임 동기화)
+    const [prevValue, setPrevValue] = useState(value);
+    if (value !== prevValue) {
+        setPrevValue(value);
         if (value) {
             const parts = value.split('-');
             if (parts.length === 3) {
@@ -52,7 +54,7 @@ export function BirthDatePicker({ value, onChange, onPartialChange, className, d
             setSelectedDay(null);
             setStep('year');
         }
-    }, [value]);
+    }
 
     // 년도 선택 시 선택된 년도가 보이도록 스크롤
     useEffect(() => {

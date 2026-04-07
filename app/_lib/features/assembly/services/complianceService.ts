@@ -9,8 +9,6 @@ import {
   evaluateCheckpoint,
   hasBlockingFailures,
   summarize,
-  findRuleByCode,
-  type EvaluationEntry,
 } from '../domain/compliance/engine';
 import type { ComplianceContext } from '../domain/compliance/types';
 

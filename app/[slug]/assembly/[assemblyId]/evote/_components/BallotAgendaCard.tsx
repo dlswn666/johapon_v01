@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { CheckCircle, FileText } from 'lucide-react';
+import { CheckCircle } from 'lucide-react';
 import { VOTE_TYPE_LABELS } from '@/app/_lib/shared/type/assembly.types';
 import type { PollOption, VoteType } from '@/app/_lib/shared/type/assembly.types';
 import type { BallotAgenda, BallotMyVote } from '@/app/_lib/features/evote/api/useEvoteBallot';

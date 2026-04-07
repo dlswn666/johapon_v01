@@ -9,7 +9,7 @@ import { useEvote } from '@/app/_lib/features/evote/api/useEvoteList';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, CheckCircle2, XCircle, Minus, Trophy, Inbox } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, XCircle, Trophy, Inbox } from 'lucide-react';
 import { getUnionPath } from '@/app/_lib/shared/lib/utils/slug';
 import type { VoteType } from '@/app/_lib/features/evote/types/evote.types';
 

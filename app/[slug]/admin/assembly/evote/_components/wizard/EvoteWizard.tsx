@@ -39,8 +39,8 @@ const INITIAL_FORM: EvoteCreateForm = {
 };
 
 export default function EvoteWizard() {
-  const router = useRouter();
-  const { slug } = useSlug();
+  const _router = useRouter();
+  const { slug: _slug } = useSlug();
   const createMutation = useCreateEvote();
 
   const [currentStep, setCurrentStep] = useState<WizardStep>(1);

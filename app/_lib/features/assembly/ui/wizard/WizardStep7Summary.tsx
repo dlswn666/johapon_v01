@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Check, AlertTriangle } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import ChecklistGroup, { type ChecklistItem } from '@/app/_lib/widgets/common/ChecklistGroup';
 import type {
   Assembly,

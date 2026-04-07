@@ -2,8 +2,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Send, Calendar, AlertTriangle } from 'lucide-react';
-import InfoCard from '@/app/_lib/widgets/common/InfoCard';
+import { Send, Calendar } from 'lucide-react';
 import NotificationTimeline from '@/app/_lib/features/assembly/ui/NotificationTimeline';
 import {
   useNotificationBatches,

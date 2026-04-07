@@ -4,7 +4,7 @@ import React from 'react';
 import { usePublicAssemblyResults } from '@/app/_lib/features/assembly/api/useResultPublicationHook';
 import useVoteStore from '@/app/_lib/features/assembly/model/useVoteStore';
 import { Skeleton } from '@/components/ui/skeleton';
-import { BarChart2, CheckCircle, AlertCircle, Lock } from 'lucide-react';
+import { CheckCircle, AlertCircle, Lock } from 'lucide-react';
 import type { PublicAgendaResult, PublicOptionResult } from '@/app/_lib/shared/type/assembly.types';
 
 export interface ResultsSectionProps {

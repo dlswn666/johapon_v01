@@ -26,7 +26,7 @@ interface NavigationItem {
 export default function UnionMobileSidebar({ isOpen, onClose }: UnionMobileSidebarProps) {
     const { union } = useSlug();
     const { user, isAdmin, isSystemAdmin, logout } = useAuth();
-    const router = useRouter();
+    const _router = useRouter();
     const pathname = usePathname();
 
     // 열려있는 메뉴 상태 관리

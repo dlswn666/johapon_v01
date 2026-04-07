@@ -3,7 +3,7 @@
 import React from 'react';
 import { ShieldAlert, ShieldCheck, ChevronRight } from 'lucide-react';
 import type { ComplianceCheckResult, ComplianceSeverity } from '@/app/_lib/shared/type/assembly.types';
-import { COMPLIANCE_SEVERITY_COLORS, COMPLIANCE_SEVERITY_ICONS } from '@/app/_lib/shared/type/assembly.types';
+import { COMPLIANCE_SEVERITY_COLORS } from '@/app/_lib/shared/type/assembly.types';
 
 interface ComplianceBannerProps {
   checkResult: ComplianceCheckResult | undefined;
