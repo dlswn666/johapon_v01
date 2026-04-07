@@ -51,7 +51,7 @@ const loadDaumPostcodeScript = (): Promise<void> => {
         isScriptLoading = true;
 
         const script = document.createElement('script');
-        script.src = '//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js';
+        script.src = 'https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js';
         script.async = true;
 
         script.onload = () => {
@@ -71,7 +71,7 @@ const loadDaumPostcodeScript = (): Promise<void> => {
 
 /**
  * 카카오 주소 검색 공통 컴포넌트
- * - Input 클릭/터치 시 카카오 주소 검색 모달 표시
+ * - Input 클릭/터치 시 카카오 주소 검색 팝업 표시
  * - 주소 선택 시 도로명 주소(신주소), 지번 주소(구주소) 모두 반환
  */
 export function KakaoAddressSearch({
@@ -140,7 +140,9 @@ export function KakaoAddressSearch({
             },
             width: '100%',
             height: '100%',
-        }).open();
+        }).open({
+            popupTitle: '주소 검색',
+        });
     }, [disabled, onAddressSelect]);
 
     return (
@@ -168,4 +170,3 @@ export function KakaoAddressSearch({
 }
 
 export default KakaoAddressSearch;
-

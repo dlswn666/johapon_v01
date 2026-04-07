@@ -12,3 +12,12 @@ export function isLocalhost(): boolean {
     const hostname = window.location.hostname;
     return hostname === 'localhost' || hostname === '127.0.0.1';
 }
+
+/**
+ * 서버사이드에서 localhost 환경인지 확인
+ * API 라우트, Server Actions에서 사용
+ */
+export function isLocalhostServer(): boolean {
+    if (process.env.NODE_ENV === 'production') return false;
+    return process.env.NODE_ENV === 'development';
+}

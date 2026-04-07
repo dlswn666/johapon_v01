@@ -34,11 +34,13 @@ export default function RootLayout({
     return (
         <html lang="ko">
             <body className={`${notoSansKR.variable} font-sans antialiased`}>
-                <Providers>
-                    {children}
-                    <ConfirmModal />
-                    <AlertModal />
-                </Providers>
+                <div style={{ isolation: 'isolate' }}>
+                    <Providers>
+                        {children}
+                        <ConfirmModal />
+                        <AlertModal />
+                    </Providers>
+                </div>
             </body>
         </html>
     );

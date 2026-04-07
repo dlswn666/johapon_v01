@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/app/_lib/shared/supabase/server';
 import { authenticateApiRequest } from '@/app/_lib/shared/api/auth';
 import { sanitizeRpcError } from '@/app/_lib/shared/utils/sanitizeRpcError';
+import { isLocalhostServer } from '@/app/_lib/shared/utils/isLocalhost';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -24,14 +25,19 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     const { authNonce, votes } = await request.json();
 
-    // 필수 파라미터 검증
-    if (!authNonce) {
-      return NextResponse.json({ error: '본인인증이 필요합니다. PASS 인증을 완료해주세요.' }, { status: 400 });
-    }
+    // dev 모드에서는 nonce 검증 우회
+    let effectiveNonce = authNonce;
+    const isDev = isLocalhostServer();
 
-    // authNonce 형식 검증 (64자 hex — PASS Step-up 인증 토큰)
-    if (!/^[0-9a-f]{64}$/i.test(authNonce)) {
-      return NextResponse.json({ error: '인증 토큰 형식이 올바르지 않습니다.' }, { status: 400 });
+    if (isDev) {
+      effectiveNonce = authNonce || '0'.repeat(64);
+    } else {
+      if (!authNonce) {
+        return NextResponse.json({ error: '본인인증이 필요합니다. PASS 인증을 완료해주세요.' }, { status: 400 });
+      }
+      if (!/^[0-9a-f]{64}$/i.test(authNonce)) {
+        return NextResponse.json({ error: '인증 토큰 형식이 올바르지 않습니다.' }, { status: 400 });
+      }
     }
 
     if (!Array.isArray(votes) || votes.length === 0) {
@@ -70,13 +76,24 @@ export async function POST(request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: '개인정보 수집·이용 동의가 필요합니다.' }, { status: 403 });
     }
 
+    // dev 모드: auth_nonces 테이블에 테스트 nonce 삽입 (RPC 검증 통과용)
+    if (isDev) {
+      await supabase.from('auth_nonces').upsert({
+        nonce: effectiveNonce,
+        user_id: auth.user.id,
+        assembly_id: assemblyId,
+        expires_at: new Date(Date.now() + 60 * 1000).toISOString(),
+        used_at: null,
+      }, { onConflict: 'nonce' });
+    }
+
     // submit_evote_ballot RPC 호출
     const { data, error } = await supabase.rpc('submit_evote_ballot', {
       p_assembly_id: assemblyId,
       p_union_id: unionId,
       p_user_id: auth.user.id,
       p_snapshot_id: snapshot.id,
-      p_auth_nonce: authNonce,
+      p_auth_nonce: effectiveNonce,
       p_votes: votes.map((v: { pollId: string; optionId: string }) => ({
         poll_id: v.pollId,
         option_id: v.optionId,

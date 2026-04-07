@@ -377,7 +377,7 @@ export const useCreateManualInvites = () => {
             unionSlug: string;
             domain: string;
             createdBy: string;
-            members: { name: string; phone_number: string; property_address: string; property_pnu: string }[];
+            members: { name: string; phone_number: string; property_address?: string; property_pnu?: string }[];
         }) => {
             const { unionId, unionName, unionSlug, domain, createdBy, members } = input;
 
@@ -385,16 +385,37 @@ export const useCreateManualInvites = () => {
                 throw new Error('등록할 회원이 없습니다.');
             }
 
+            // 이미 가입 완료(USED)된 회원 체크
+            const { data: existingUsed } = await supabase
+                .from('member_invites')
+                .select('name, phone_number')
+                .eq('union_id', unionId)
+                .eq('status', 'USED')
+                .in('phone_number', members.map((m) => m.phone_number));
+
+            const usedPhones = new Set(existingUsed?.map((u) => u.phone_number) || []);
+            const alreadyRegistered = members.filter((m) => usedPhones.has(m.phone_number));
+            const newMembers = members.filter((m) => !usedPhones.has(m.phone_number));
+
+            // 전원 이미 가입 완료된 경우
+            if (newMembers.length === 0) {
+                return {
+                    insertedCount: 0,
+                    alimtalkResult: { success: true, sentCount: 0 },
+                    alreadyRegistered,
+                };
+            }
+
             // 만료 시간: 1년 후
             const expiresAt = new Date();
             expiresAt.setFullYear(expiresAt.getFullYear() + 1);
 
-            // 초대 데이터 생성
-            const invitesToInsert = members.map((member) => ({
+            // 초대 데이터 생성 (가입 완료된 회원 제외)
+            const invitesToInsert = newMembers.map((member) => ({
                 union_id: unionId,
                 name: member.name,
                 phone_number: member.phone_number,
-                property_address: member.property_address,
+                property_address: member.property_address || '',
                 property_pnu: member.property_pnu || null,
                 invite_token: generateUUID(),
                 status: 'PENDING' as const,
@@ -402,10 +423,12 @@ export const useCreateManualInvites = () => {
                 expires_at: expiresAt.toISOString(),
             }));
 
-            // Bulk INSERT
+            // Upsert: 기존 PENDING/EXPIRED 초대가 있으면 토큰/만료시간 갱신, 없으면 신규 생성
             const { data: insertedInvites, error: insertError } = await supabase
                 .from('member_invites')
-                .insert(invitesToInsert)
+                .upsert(invitesToInsert, {
+                    onConflict: 'union_id,name,phone_number,property_address',
+                })
                 .select();
 
             if (insertError) {
@@ -439,6 +462,7 @@ export const useCreateManualInvites = () => {
             return {
                 insertedCount: insertedInvites.length,
                 alimtalkResult,
+                alreadyRegistered,
             };
         },
         onSuccess: (_, variables) => {

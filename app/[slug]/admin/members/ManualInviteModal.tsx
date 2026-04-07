@@ -4,21 +4,17 @@ import React, { useState, useCallback } from 'react';
 import { X, Plus, Trash2, Loader2, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import toast from 'react-hot-toast';
-import { KakaoAddressSearch, AddressData } from '@/app/_lib/widgets/common/address/KakaoAddressSearch';
-import { generatePNU } from '@/app/_lib/shared/utils/pnu-utils';
 
 interface MemberInput {
     id: string;
     name: string;
     phoneNumber: string;
-    propertyAddress: string;
-    propertyPnu: string;
 }
 
 interface ManualInviteModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSubmit: (members: { name: string; phone_number: string; property_address: string; property_pnu: string }[]) => Promise<void>;
+    onSubmit: (members: { name: string; phone_number: string }[]) => Promise<void>;
     isSubmitting: boolean;
 }
 
@@ -51,10 +47,10 @@ const generateId = (): string => {
 };
 
 export default function ManualInviteModal({ isOpen, onClose, onSubmit, isSubmitting }: ManualInviteModalProps) {
-    const [members, setMembers] = useState<MemberInput[]>([{ id: generateId(), name: '', phoneNumber: '', propertyAddress: '', propertyPnu: '' }]);
+    const [members, setMembers] = useState<MemberInput[]>([{ id: generateId(), name: '', phoneNumber: '' }]);
 
     // 입력값 변경 핸들러
-    const handleInputChange = useCallback((id: string, field: 'name' | 'phoneNumber' | 'propertyAddress', value: string) => {
+    const handleInputChange = useCallback((id: string, field: 'name' | 'phoneNumber', value: string) => {
         setMembers((prev) =>
             prev.map((member) => {
                 if (member.id !== id) return member;
@@ -67,30 +63,9 @@ export default function ManualInviteModal({ isOpen, onClose, onSubmit, isSubmitt
         );
     }, []);
 
-    // 주소 선택 핸들러 (PNU 생성 포함)
-    const handleAddressSelect = useCallback((id: string, addressData: AddressData) => {
-        const pnu = generatePNU({
-            b_code: addressData.bcode,
-            main_address_no: addressData.main_address_no,
-            sub_address_no: addressData.sub_address_no,
-            mountain_yn: addressData.mountain_yn,
-        });
-
-        setMembers((prev) =>
-            prev.map((member) => {
-                if (member.id !== id) return member;
-                return {
-                    ...member,
-                    propertyAddress: addressData.address,
-                    propertyPnu: pnu,
-                };
-            })
-        );
-    }, []);
-
     // 행 추가
     const handleAddRow = useCallback(() => {
-        setMembers((prev) => [...prev, { id: generateId(), name: '', phoneNumber: '', propertyAddress: '', propertyPnu: '' }]);
+        setMembers((prev) => [...prev, { id: generateId(), name: '', phoneNumber: '' }]);
     }, []);
 
     // 행 삭제
@@ -117,10 +92,6 @@ export default function ManualInviteModal({ isOpen, onClose, onSubmit, isSubmitt
                 toast.error('올바른 전화번호를 입력해주세요.');
                 return false;
             }
-            if (!member.propertyAddress.trim()) {
-                toast.error('주소를 입력해주세요.');
-                return false;
-            }
         }
         return true;
     };
@@ -132,14 +103,12 @@ export default function ManualInviteModal({ isOpen, onClose, onSubmit, isSubmitt
         const formattedMembers = members.map((member) => ({
             name: member.name.trim(),
             phone_number: stripPhoneNumber(member.phoneNumber),
-            property_address: member.propertyAddress.trim(),
-            property_pnu: member.propertyPnu,
         }));
 
         try {
             await onSubmit(formattedMembers);
             // 성공 시 초기화
-            setMembers([{ id: generateId(), name: '', phoneNumber: '', propertyAddress: '', propertyPnu: '' }]);
+            setMembers([{ id: generateId(), name: '', phoneNumber: '' }]);
         } catch (error) {
             console.error('회원 등록 오류:', error);
         }
@@ -148,7 +117,7 @@ export default function ManualInviteModal({ isOpen, onClose, onSubmit, isSubmitt
     // 모달 닫기 핸들러
     const handleClose = () => {
         if (!isSubmitting) {
-            setMembers([{ id: generateId(), name: '', phoneNumber: '', propertyAddress: '', propertyPnu: '' }]);
+            setMembers([{ id: generateId(), name: '', phoneNumber: '' }]);
             onClose();
         }
     };
@@ -218,16 +187,6 @@ export default function ManualInviteModal({ isOpen, onClose, onSubmit, isSubmitt
                                             className="w-full h-11 px-4 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4E8C6D] focus:border-transparent text-[14px] disabled:bg-gray-100"
                                         />
                                     </div>
-                                </div>
-                                <div className="space-y-1">
-                                    <label className="text-[12px] text-gray-500 ml-1">물건지 주소</label>
-                                    <KakaoAddressSearch
-                                        value={member.propertyAddress}
-                                        onAddressSelect={(data) => handleAddressSelect(member.id, data)}
-                                        placeholder="주소를 검색해주세요"
-                                        disabled={isSubmitting}
-                                        className="h-11 md:h-11"
-                                    />
                                 </div>
                             </div>
                         ))}

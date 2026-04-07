@@ -48,9 +48,11 @@ const useMemberInviteStore = create<MemberInviteStore>((set, get) => ({
         })),
     
     addMemberInvites: (invites: MemberInvite[]) =>
-        set((state) => ({
-            memberInvites: [...state.memberInvites, ...invites],
-        })),
+        set((state) => {
+            const newIds = new Set(invites.map((i) => i.id));
+            const filtered = state.memberInvites.filter((i) => !newIds.has(i.id));
+            return { memberInvites: [...filtered, ...invites] };
+        }),
     
     updateMemberInvite: (id: string, updatedInvite: Partial<MemberInvite>) =>
         set((state) => ({

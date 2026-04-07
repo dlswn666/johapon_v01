@@ -334,11 +334,18 @@ export default function LandLotManagementPage() {
             {
                 key: 'official_price',
                 header: '공시지가',
-                width: '110px',
+                width: '150px',
                 align: 'right',
-                render: (_, row) => (
-                    <span className="text-gray-600">{formatPrice(row.official_price)}</span>
-                ),
+                render: (_, row) => {
+                    if (!row.official_price) return <span className="text-gray-400">-</span>;
+                    const total = row.land_area ? row.land_area * row.official_price : null;
+                    return (
+                        <div className="flex flex-col items-end">
+                            <span className="text-gray-600">{formatPrice(total)}</span>
+                            <span className="text-[11px] text-gray-400">{Number(row.official_price).toLocaleString()}원/㎡</span>
+                        </div>
+                    );
+                },
             },
             {
                 key: 'owner_count',

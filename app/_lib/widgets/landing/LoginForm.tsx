@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
+import { isLocalhost } from '@/app/_lib/shared/utils/isLocalhost';
 
 interface LoginFormProps {
     className?: string;
@@ -55,6 +56,32 @@ export function LoginForm({ className, unionName, onLoginSuccess: _onLoginSucces
         } catch (err) {
             console.error('Kakao login error:', err);
             setManualError('카카오 로그인 중 오류가 발생했습니다.');
+            setIsLoading(false);
+        }
+    };
+
+    const handleTestLogin = async (testRole: 'admin' | 'member') => {
+        setManualError('');
+        setIsLoading(true);
+
+        try {
+            const res = await fetch('/api/test/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ slug, role: testRole }),
+            });
+            const data = await res.json();
+
+            if (!res.ok) {
+                setManualError(data.error || '테스트 로그인 실패');
+                setIsLoading(false);
+                return;
+            }
+
+            window.location.href = data.redirectTo;
+        } catch (err) {
+            console.error('Test login error:', err);
+            setManualError('테스트 로그인 중 오류 발생');
             setIsLoading(false);
         }
     };
@@ -132,6 +159,48 @@ export function LoginForm({ className, unionName, onLoginSuccess: _onLoginSucces
                     </svg>
                     <span>네이버로 시작하기</span>
                 </button> */}
+
+                {/* 테스트 로그인 (localhost only) */}
+                {isLocalhost() && (
+                    <>
+                        <div className="relative my-2">
+                            <div className="absolute inset-0 flex items-center">
+                                <span className="w-full border-t border-gray-300" />
+                            </div>
+                            <div className="relative flex justify-center text-xs">
+                                <span className="bg-white px-2 text-gray-400">테스트 로그인</span>
+                            </div>
+                        </div>
+                        <div className="flex gap-2">
+                            <button
+                                type="button"
+                                onClick={() => handleTestLogin('admin')}
+                                disabled={isLoading}
+                                className={cn(
+                                    'flex-1 h-10 rounded-lg text-sm font-medium',
+                                    'bg-blue-500 text-white hover:bg-blue-600',
+                                    'transition-colors cursor-pointer',
+                                    'disabled:opacity-50 disabled:cursor-not-allowed'
+                                )}
+                            >
+                                관리자 로그인
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => handleTestLogin('member')}
+                                disabled={isLoading}
+                                className={cn(
+                                    'flex-1 h-10 rounded-lg text-sm font-medium',
+                                    'bg-gray-500 text-white hover:bg-gray-600',
+                                    'transition-colors cursor-pointer',
+                                    'disabled:opacity-50 disabled:cursor-not-allowed'
+                                )}
+                            >
+                                조합원 로그인
+                            </button>
+                        </div>
+                    </>
+                )}
             </div>
 
             {/* 로딩 상태 */}

@@ -33,7 +33,7 @@ const formatArea = (area: number | null | undefined): string => {
 // 공시지가 단가 포맷 함수 (원/㎡)
 const formatUnitPrice = (price: number | null | undefined): string => {
     if (price === null || price === undefined) return '-';
-    return `${Number(price).toLocaleString()} 원/㎡`;
+    return `${Number(price).toLocaleString()}원 / ㎡`;
 };
 
 // 공시지가 총액 계산 및 포맷 함수
@@ -54,7 +54,8 @@ const formatTotalPrice = (area: number | null | undefined, unitPrice: number | n
 // 지분율 포맷 함수 (%)
 const formatRatio = (ratio: number | null | undefined): string => {
     if (ratio === null || ratio === undefined) return '-';
-    return `${Number(ratio).toFixed(1)}%`;
+    const num = Number(ratio);
+    return num % 1 === 0 ? `${num}%` : `${num.toFixed(1)}%`;
 };
 
 // 차단 필터 버튼 정의
@@ -126,14 +127,14 @@ export default function MemberListTab() {
                 key: 'name',
                 header: '이름',
                 align: 'left',
-                width: '100px',
+                width: '150px',
                 render: (_, row) => (
                     <div className="flex items-center gap-2">
                             <span
-                                className="text-[14px] font-medium text-gray-900 whitespace-nowrap max-w-[80px] overflow-hidden text-ellipsis inline-block"
+                                className="text-[14px] font-medium text-gray-900 whitespace-nowrap max-w-[130px] overflow-hidden text-ellipsis inline-block"
                                 title={row.name || ''}
                             >
-                                {truncateName(row.name, 8)}
+                                {truncateName(row.name, 10)}
                             </span>
                             {!row.isPnuMatched && row.property_units?.[0]?.pnu && (
                                 <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 whitespace-nowrap">
@@ -167,7 +168,7 @@ export default function MemberListTab() {
                             {ownershipType && (
                                 <span
                                     className={cn(
-                                        'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium',
+                                        'inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-medium',
                                         OWNERSHIP_TYPE_STYLES[ownershipType]
                                     )}
                                 >
@@ -177,7 +178,7 @@ export default function MemberListTab() {
                             {entityType && entityType !== 'INDIVIDUAL' && (
                                 <span
                                     className={cn(
-                                        'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium',
+                                        'inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-medium',
                                         ENTITY_TYPE_STYLES[entityType]
                                     )}
                                 >
@@ -241,6 +242,9 @@ export default function MemberListTab() {
                 align: 'center',
                 width: '100px',
                 render: (_, row) => {
+                    if ((row.land_ownership_ratio === null || row.land_ownership_ratio === undefined) && row.land_area) {
+                        return '100%';
+                    }
                     return formatRatio(row.land_ownership_ratio);
                 },
             },
@@ -269,8 +273,12 @@ export default function MemberListTab() {
                 key: 'building_ownership_ratio',
                 header: '건축지분율',
                 align: 'center',
-                width: '120px',
+                width: '80px',
                 render: (_, row) => {
+                    // building_area가 있는데 ratio가 없으면 100% (단독소유)
+                    if ((row.building_ownership_ratio === null || row.building_ownership_ratio === undefined) && row.building_area) {
+                        return '100%';
+                    }
                     return formatRatio(row.building_ownership_ratio);
                 },
             },
@@ -294,8 +302,8 @@ export default function MemberListTab() {
 
                     return (
                         <div className="flex flex-col items-end">
-                            <span className="text-[13px] text-gray-900">{unitPriceStr}</span>
-                            <span className="text-[12px] text-gray-500">(총 {totalPriceStr})</span>
+                            <span className="text-[13px] text-gray-900">{totalPriceStr}</span>
+                            <span className="text-[12px] text-gray-500">({unitPriceStr})</span>
                         </div>
                     );
                 },
@@ -314,7 +322,7 @@ export default function MemberListTab() {
             {
                 key: 'notes',
                 header: '특이사항',
-                width: '200px',
+                width: '120px',
                 align: 'center',
                 className: 'text-gray-600',
                 render: (value) => (

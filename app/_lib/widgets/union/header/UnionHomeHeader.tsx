@@ -3,25 +3,22 @@
 import React, { useRef, useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { Home, User, ChevronDown, LogOut, UserCircle, PanelLeft, MapPin } from 'lucide-react';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
-import {
-    NavigationMenu,
-    NavigationMenuContent,
-    NavigationMenuItem,
-    NavigationMenuLink,
-    NavigationMenuList,
-    NavigationMenuTrigger,
-} from '@/components/ui/navigation-menu';
+import { NavigationMenu } from '@base-ui/react/navigation-menu';
 import { cn } from '@/lib/utils';
 import UnionMobileSidebar from './UnionMobileSidebar';
+
+// Next.js Link를 Base UI NavigationMenu.Link와 통합
+function NavLink(props: NavigationMenu.Link.Props & { href: string }) {
+    return <NavigationMenu.Link render={<Link href={props.href} />} {...props} />;
+}
 
 export default function UnionHomeHeader() {
     const { union } = useSlug();
     const { user, isAdmin, isSystemAdmin, logout } = useAuth();
-    const router = useRouter();
     const pathname = usePathname();
 
     // 드롭다운 상태 관리
@@ -183,148 +180,166 @@ export default function UnionHomeHeader() {
                 </div>
 
                 {/* 데스크탑 헤더 (lg 이상) */}
-                <div className="h-[90px] hidden lg:block relative">
+                <div className="h-16 hidden lg:block relative">
                     <div className="container mx-auto px-4 h-full flex items-center justify-between">
                         {/* 왼쪽: 로고 영역 */}
                         <Link
                             href={`/${union.slug}`}
-                            className="flex items-center gap-[13.5px] hover:opacity-80 transition-opacity"
+                            className="flex items-center gap-3 hover:opacity-80 transition-opacity"
                             aria-label={`${union.name} 홈으로 이동`}
                         >
-                            <div className="bg-[#4e8c6d] rounded-full size-[54px] flex items-center justify-center shrink-0 relative overflow-hidden">
+                            <div className="bg-[#4e8c6d] rounded-full size-10 flex items-center justify-center shrink-0 relative overflow-hidden">
                                 {union.logo_url ? (
                                     <Image
                                         src={union.logo_url}
                                         alt={`${union.name} 로고`}
                                         fill
-                                        sizes="54px"
+                                        sizes="40px"
                                         className="rounded-full object-cover"
                                     />
                                 ) : (
-                                    <Home className="size-[27px] text-white" aria-hidden="true" />
+                                    <Home className="size-5 text-white" aria-hidden="true" />
                                 )}
                             </div>
-                            <div className="flex flex-col">
-                                <p className="text-[18px] leading-[27px] font-bold text-[#4e8c6d] max-w-[200px] truncate" title={union.name}>{union.name}</p>
-                            </div>
+                            <p className="text-base font-bold text-[#4e8c6d] max-w-[200px] truncate" title={union.name}>{union.name}</p>
                         </Link>
 
-                        {/* 중앙: 네비게이션 - shadcn NavigationMenu 적용 */}
-                        <NavigationMenu viewport={false} className="flex items-center">
-                            <NavigationMenuList className="gap-[9px]">
+                        {/* 중앙: 네비게이션 - Base UI NavigationMenu */}
+                        <NavigationMenu.Root className="flex items-center">
+                            <NavigationMenu.List className="flex items-center gap-1">
                                 {navigationItems.map((item) => (
-                                    <NavigationMenuItem key={item.id}>
+                                    <NavigationMenu.Item key={item.id} value={item.id}>
                                         {item.subItems.length > 0 ? (
-                                            // 하위 메뉴가 있는 경우 - Trigger 사용
                                             <>
-                                                <NavigationMenuTrigger
+                                                <NavigationMenu.Trigger
                                                     className={cn(
-                                                        'cursor-pointer h-[54px] px-[27px] py-[13.5px] rounded-[13.5px] text-[18px] leading-[27px] text-neutral-950 font-normal bg-transparent',
-                                                        'hover:bg-gray-50 focus:bg-gray-50 data-[state=open]:bg-gray-100',
-                                                        isActiveRoute(item.href) && 'bg-gray-100'
+                                                        'cursor-pointer h-[44px] px-5 rounded-lg text-[16px] leading-[24px] text-neutral-700 font-medium bg-transparent inline-flex items-center gap-1.5',
+                                                        'hover:bg-gray-50 hover:text-neutral-900 transition-colors',
+                                                        'focus-visible:ring-2 focus-visible:ring-[#4E8C6D] focus-visible:ring-offset-2 outline-none',
+                                                        'data-[popup-open]:bg-gray-100 data-[popup-open]:text-neutral-900',
+                                                        isActiveRoute(item.href) && 'bg-gray-100 text-neutral-900'
                                                     )}
-                                                    onClick={(e) => e.preventDefault()}
-                                                    onPointerDown={(e) => e.preventDefault()}
                                                 >
                                                     {item.label}
-                                                </NavigationMenuTrigger>
-                                                <NavigationMenuContent className="min-w-[180px]">
-                                                    <ul className="p-0">
+                                                    <NavigationMenu.Icon className="nav-trigger-icon">
+                                                        <ChevronDown className="size-4 text-gray-400" aria-hidden="true" />
+                                                    </NavigationMenu.Icon>
+                                                </NavigationMenu.Trigger>
+                                                <NavigationMenu.Content className="nav-content">
+                                                    <ul className="min-w-[180px]">
                                                         {item.subItems.map((subItem) => (
                                                             <li key={subItem.href}>
-                                                                <NavigationMenuLink asChild>
-                                                                    <Link
-                                                                        href={subItem.href}
-                                                                        className={cn(
-                                                                            'block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors first:rounded-t-lg last:rounded-b-lg cursor-pointer',
-                                                                            pathname === subItem.href &&
-                                                                                'bg-gray-50 font-medium'
-                                                                        )}
-                                                                    >
-                                                                        {subItem.label}
-                                                                    </Link>
-                                                                </NavigationMenuLink>
+                                                                <NavLink
+                                                                    href={subItem.href}
+                                                                    active={pathname === subItem.href}
+                                                                    className={cn(
+                                                                        'block px-4 py-2.5 text-[14px] text-gray-600 rounded-lg transition-colors cursor-pointer',
+                                                                        'hover:bg-gray-50 hover:text-gray-900',
+                                                                        'focus-visible:bg-gray-50 focus-visible:outline-none',
+                                                                        'data-[active]:bg-[#4E8C6D]/5 data-[active]:text-[#4E8C6D] data-[active]:font-medium',
+                                                                        'data-[active]:border-l-2 data-[active]:border-[#4E8C6D] data-[active]:pl-3.5'
+                                                                    )}
+                                                                >
+                                                                    {subItem.label}
+                                                                </NavLink>
                                                             </li>
                                                         ))}
                                                     </ul>
-                                                </NavigationMenuContent>
+                                                </NavigationMenu.Content>
                                             </>
                                         ) : (
-                                            // 하위 메뉴가 없는 경우 - 직접 링크
-                                            <NavigationMenuLink asChild>
-                                                <Link
-                                                    href={item.href}
-                                                    className={cn(
-                                                        'h-[54px] px-[27px] py-[13.5px] rounded-[13.5px] flex items-center text-[18px] leading-[27px] text-neutral-950 transition-colors cursor-pointer',
-                                                        isActiveRoute(item.href) ? 'bg-gray-100' : 'hover:bg-gray-50'
-                                                    )}
-                                                >
-                                                    {item.label}
-                                                </Link>
-                                            </NavigationMenuLink>
+                                            <NavLink
+                                                href={item.href}
+                                                active={isActiveRoute(item.href)}
+                                                className={cn(
+                                                    'h-[44px] px-5 rounded-lg flex items-center text-[16px] leading-[24px] text-neutral-700 font-medium transition-colors cursor-pointer',
+                                                    'hover:bg-gray-50 hover:text-neutral-900',
+                                                    'focus-visible:ring-2 focus-visible:ring-[#4E8C6D] focus-visible:ring-offset-2 outline-none',
+                                                    isActiveRoute(item.href) && 'bg-gray-100 text-neutral-900'
+                                                )}
+                                            >
+                                                {item.label}
+                                            </NavLink>
                                         )}
-                                    </NavigationMenuItem>
+                                    </NavigationMenu.Item>
                                 ))}
-                            </NavigationMenuList>
-                        </NavigationMenu>
+                            </NavigationMenu.List>
 
-                        {/* 오른쪽: 사용자 인사 문구 + 아이콘 영역 */}
-                        <div className="flex items-center gap-3">
-                            {/* 인사 문구 */}
-                            {user && (
-                                <div className="flex flex-col items-end">
-                                    <span className="text-[14px] font-medium text-gray-800 max-w-[100px] truncate inline-block" title={user.name}>{user.name}님</span>
-                                    <span className="text-[12px] text-gray-500">안녕하세요</span>
+                            {/* Portal: 드롭다운 팝업이 렌더링되는 영역 */}
+                            <NavigationMenu.Portal>
+                                <NavigationMenu.Positioner
+                                    className="nav-positioner"
+                                    sideOffset={8}
+                                    collisionPadding={{ top: 5, bottom: 5, left: 20, right: 20 }}
+                                    collisionAvoidance={{ side: 'none' }}
+                                >
+                                    <NavigationMenu.Popup className="nav-popup">
+                                        <NavigationMenu.Viewport />
+                                    </NavigationMenu.Popup>
+                                </NavigationMenu.Positioner>
+                            </NavigationMenu.Portal>
+                        </NavigationMenu.Root>
+
+                        {/* 오른쪽: 사용자 영역 */}
+                        <div className="relative" ref={userMenuRef} onMouseLeave={() => setIsUserMenuOpen(false)}>
+                            <button
+                                onClick={toggleUserMenu}
+                                className="h-10 pl-3 pr-2.5 rounded-full flex items-center gap-2 hover:bg-gray-50 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#4E8C6D] focus-visible:ring-offset-2 outline-none"
+                                aria-label="사용자 메뉴 열기"
+                                aria-expanded={isUserMenuOpen}
+                                aria-haspopup="menu"
+                            >
+                                <div className="size-7 rounded-full bg-[#4e8c6d]/10 flex items-center justify-center">
+                                    {user ? (
+                                        <UserCircle className="size-5 text-[#4e8c6d]" aria-hidden="true" />
+                                    ) : (
+                                        <User className="size-5 text-[#4e8c6d]" aria-hidden="true" />
+                                    )}
+                                </div>
+                                {user && (
+                                    <span className="text-sm font-medium text-gray-700 max-w-[80px] truncate" title={user.name}>{user.name}님</span>
+                                )}
+                                <ChevronDown className={cn(
+                                    'size-4 text-gray-400 transition-transform duration-200',
+                                    isUserMenuOpen && 'rotate-180'
+                                )} aria-hidden="true" />
+                            </button>
+
+                            {/* 사용자 메뉴 팝오버 */}
+                            {isUserMenuOpen && (
+                                <div
+                                    className="absolute top-full right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-[0_10px_40px_-8px_rgba(0,0,0,0.12),0_4px_12px_-4px_rgba(0,0,0,0.06)] z-50 min-w-[200px] p-1.5"
+                                    onMouseEnter={() => setIsUserMenuOpen(true)}
+                                    onMouseLeave={() => setIsUserMenuOpen(false)}
+                                    role="menu"
+                                    aria-label="사용자 메뉴"
+                                >
+                                    {/* 사용자 정보 */}
+                                    {user && (
+                                        <div className="px-3 py-2.5 mb-1 border-b border-gray-100">
+                                            <p className="text-sm font-medium text-gray-900">{user.name}님</p>
+                                            <p className="text-xs text-gray-500 mt-0.5">안녕하세요</p>
+                                        </div>
+                                    )}
+                                    <Link
+                                        href={`/${union.slug}/my-property`}
+                                        className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors rounded-lg cursor-pointer focus-visible:bg-gray-50 focus-visible:outline-none"
+                                        onClick={() => setIsUserMenuOpen(false)}
+                                        role="menuitem"
+                                    >
+                                        <MapPin className="size-4" aria-hidden="true" />
+                                        내 공시지가 보기
+                                    </Link>
+                                    <button
+                                        onClick={handleLogout}
+                                        className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors rounded-lg cursor-pointer focus-visible:bg-gray-50 focus-visible:outline-none"
+                                        role="menuitem"
+                                    >
+                                        <LogOut className="size-4" aria-hidden="true" />
+                                        로그아웃
+                                    </button>
                                 </div>
                             )}
-
-                            {/* 사용자 메뉴 드롭다운 */}
-                            <div className="relative" ref={userMenuRef} onMouseLeave={() => setIsUserMenuOpen(false)}>
-                                <button
-                                    onClick={toggleUserMenu}
-                                    className="h-[45px] px-[18px] py-0 rounded-[13.5px] flex items-center gap-[9px] hover:bg-gray-50 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#4E8C6D] focus-visible:ring-offset-2 outline-none"
-                                    aria-label="사용자 메뉴 열기"
-                                    aria-expanded={isUserMenuOpen}
-                                    aria-haspopup="menu"
-                                >
-                                    <div className="size-[27px] flex items-center justify-center">
-                                        {user ? (
-                                            <UserCircle className="size-[27px] text-[#4e8c6d]" aria-hidden="true" />
-                                        ) : (
-                                            <User className="size-[27px] text-[#4e8c6d]" aria-hidden="true" />
-                                        )}
-                                    </div>
-                                    <ChevronDown className="size-[18px] text-[#4e8c6d]" aria-hidden="true" />
-                                </button>
-
-                                {/* 사용자 메뉴 드롭다운 */}
-                                {isUserMenuOpen && (
-                                    <div
-                                        className="absolute top-full right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-[180px]"
-                                        onMouseEnter={() => setIsUserMenuOpen(true)}
-                                        onMouseLeave={() => setIsUserMenuOpen(false)}
-                                        role="menu"
-                                        aria-label="사용자 메뉴"
-                                    >
-                                        <Link
-                                            href={`/${union.slug}/my-property`}
-                                            className="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors rounded-t-lg cursor-pointer flex items-center gap-2 focus-visible:bg-gray-100 focus-visible:outline-none"
-                                            onClick={() => setIsUserMenuOpen(false)}
-                                            role="menuitem"
-                                        >
-                                            <MapPin className="size-4" aria-hidden="true" />내 공시지가 보기
-                                        </Link>
-                                        <button
-                                            onClick={handleLogout}
-                                            className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors rounded-b-lg flex items-center gap-2 cursor-pointer focus-visible:bg-gray-100 focus-visible:outline-none"
-                                            role="menuitem"
-                                        >
-                                            <LogOut className="size-4" aria-hidden="true" />
-                                            로그아웃
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
                         </div>
                     </div>
                 </div>

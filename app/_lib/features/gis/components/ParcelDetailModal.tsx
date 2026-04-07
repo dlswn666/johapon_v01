@@ -314,7 +314,12 @@ function ParcelBasicInfo({ parcel }: { parcel: ParcelDetail }) {
                         <Percent className="w-4 h-4" />
                         <span className="text-xs">공시지가</span>
                     </div>
-                    <p className="text-sm font-bold text-gray-900">{formatPrice(parcel.official_price)}</p>
+                    <p className="text-sm font-bold text-gray-900">
+                        {formatPrice(parcel.land_area && parcel.official_price ? parcel.land_area * parcel.official_price : null)}
+                    </p>
+                    {parcel.official_price && (
+                        <p className="text-[11px] text-gray-400">{Number(parcel.official_price).toLocaleString()}원/㎡</p>
+                    )}
                 </div>
             </div>
         </div>
@@ -1318,7 +1323,7 @@ function OwnersSection({ parcel }: { parcel: ParcelDetail }) {
                                 </span>
                             </div>
                             {unit.exclusive_area && (
-                                <span className="text-xs text-gray-500">전용 {unit.exclusive_area}㎡</span>
+                                <span className="text-xs text-gray-500">전용 {parseFloat(unit.exclusive_area.toFixed(3))}㎡</span>
                             )}
                         </div>
 

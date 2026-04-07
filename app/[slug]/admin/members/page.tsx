@@ -397,10 +397,15 @@ export default function MemberManagementPage() {
         // 컬럼 너비 설정
         worksheet['!cols'] = [{ wch: 15 }, { wch: 20 }];
 
-        // 핸드폰번호 컬럼을 텍스트 형식으로 설정 (0으로 시작하는 숫자 유지)
-        // B2, B3 셀에 텍스트 형식 적용
-        if (worksheet['B2']) worksheet['B2'].t = 's';
-        if (worksheet['B3']) worksheet['B3'].t = 's';
+        // 핸드폰번호 컬럼(B열) 전체를 텍스트 형식으로 설정 (0으로 시작하는 숫자 유지)
+        const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1:B3');
+        for (let row = range.s.r; row <= range.e.r; row++) {
+            const cellAddr = XLSX.utils.encode_cell({ r: row, c: 1 }); // B열
+            if (worksheet[cellAddr]) {
+                worksheet[cellAddr].t = 's'; // 문자열 타입
+                worksheet[cellAddr].z = '@'; // 텍스트 표시 형식
+            }
+        }
 
         XLSX.writeFile(workbook, '예비조합원_템플릿.xlsx');
         toast.success('템플릿이 다운로드되었습니다.');
@@ -429,9 +434,13 @@ export default function MemberManagementPage() {
 
                 jsonData.forEach((row, index) => {
                     const name = row['이름']?.toString().trim();
-                    // 핸드폰번호 처리: 하이픈 제거 및 숫자만 추출
+                    // 핸드폰번호 처리: 하이픈 제거 및 숫자만 추출, 앞자리 0 복원
                     let phoneNumber = row['핸드폰번호']?.toString().trim() || '';
                     phoneNumber = phoneNumber.replace(/[^\d]/g, ''); // 숫자만 추출
+                    // 엑셀에서 숫자로 인식되어 앞의 0이 빠진 경우 복원 (예: 1035048164 → 01035048164)
+                    if (phoneNumber.length === 10 && !phoneNumber.startsWith('0')) {
+                        phoneNumber = '0' + phoneNumber;
+                    }
 
                     if (!name) {
                         errors.push(`${index + 2}행: 이름이 비어있습니다.`);
@@ -569,7 +578,7 @@ export default function MemberManagementPage() {
     };
 
     // 수동 회원 등록 핸들러
-    const handleManualInvite = async (members: { name: string; phone_number: string; property_address: string; property_pnu: string }[]) => {
+    const handleManualInvite = async (members: { name: string; phone_number: string }[]) => {
         if (!unionId || !union || !user?.id) {
             toast.error('조합 정보를 불러올 수 없습니다.');
             return;
@@ -586,6 +595,17 @@ export default function MemberManagementPage() {
                 createdBy: user.id,
                 members,
             });
+
+            // 이미 가입 완료된 회원 안내
+            if (result.alreadyRegistered && result.alreadyRegistered.length > 0) {
+                const names = result.alreadyRegistered.map((m) => m.name).join(', ');
+                alert(`이미 가입된 회원입니다: ${names}`);
+            }
+
+            if (result.insertedCount === 0) {
+                // 전원 이미 가입 완료
+                return;
+            }
 
             if (result.alimtalkResult.success) {
                 toast.success(

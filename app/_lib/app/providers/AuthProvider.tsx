@@ -62,42 +62,29 @@ function createDevUser(
     };
 }
 
-const DEV_SYSTEM_ADMIN_USER: User = {
-    id: 'd58babef-1a73-4da0-961c-09457667a07d',
-    name: '시스템 관리자',
-    email: 'dev-admin@localhost.dev',
-    phone_number: '010-0000-0000',
-    role: 'SYSTEM_ADMIN',
-    user_status: 'APPROVED',
-    union_id: null,
-    created_at: new Date().toISOString(),
-    updated_at: null,
-    approved_at: new Date().toISOString(),
-    birth_date: null,
-    blocked_at: null,
-    blocked_reason: null,
-    executive_sort_order: null,
-    executive_title: null,
-    is_blocked: false,
-    is_executive: false,
-    notes: null,
-    property_address: null,
-    property_address_detail: null,
-    property_type: null,
-    property_zonecode: null,
-    rejected_at: null,
-    rejected_reason: null,
-    business_registration_no: null,
-    canonical_user_id: null,
-    entity_type: null,
-    representative_name: null,
-    resident_address: null,
-    resident_address_detail: null,
-    resident_address_jibun: null,
-    resident_address_road: null,
-    resident_zonecode: null,
-    voting_weight: 1,
-};
+// [DEV ONLY] DB에서 실제 시스템 관리자를 조회하는 함수
+async function fetchDevSystemAdmin(): Promise<User | null> {
+    try {
+        const { data, error } = await supabase
+            .from('users')
+            .select('*')
+            .eq('role', 'SYSTEM_ADMIN')
+            .eq('user_status', 'APPROVED')
+            .limit(1)
+            .single();
+
+        if (error || !data) {
+            console.warn('[DEV] DB에서 시스템 관리자를 찾을 수 없습니다:', error?.message);
+            return null;
+        }
+
+        console.log(`[DEV] 시스템 관리자 로드: ${data.name} (${data.id})`);
+        return data as User;
+    } catch (err) {
+        console.error('[DEV] 시스템 관리자 조회 실패:', err);
+        return null;
+    }
+}
 
 interface AuthContextType {
     user: User | null; // 현재 조합에서의 프로필
@@ -278,26 +265,54 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
                     };
 
                     if (testRole === 'user') {
-                        // 일반 조합원 mock — DB 조회 없이 바로 mock 생성
-                        const devUser = createDevUser('USER', unionId, '테스트 조합원', mockOptions);
-                        console.log(`[DEV] 테스트 조합원: ${devUser.name} (USER, status=${mockOptions.user_status}, blocked=${mockOptions.is_blocked}) @ ${currentSlug}`);
-                        setUser(devUser);
+                        // 일반 조합원 — DB에서 해당 조합의 실제 USER 조회
+                        const { data: dbUser } = await supabase
+                            .from('users')
+                            .select('*')
+                            .eq('union_id', unionId)
+                            .eq('role', 'USER')
+                            .eq('user_status', mockOptions.user_status || 'APPROVED')
+                            .limit(1)
+                            .single();
+
+                        if (dbUser) {
+                            console.log(`[DEV] 조합원 로드: ${dbUser.name} (USER) @ ${currentSlug}`);
+                            setUser(dbUser as User);
+                        } else {
+                            // DB에 조합원이 없으면 mock으로 fallback
+                            const devUser = createDevUser('USER', unionId, '테스트 조합원', mockOptions);
+                            console.log(`[DEV] 조합원 mock (DB에 USER 없음): ${devUser.name} @ ${currentSlug}`);
+                            setUser(devUser);
+                        }
                         setAuthUser(null);
                         setSession(null);
                         setIsLoading(false);
                         return;
                     } else {
-                        // 관리자 mock — union_id 세팅
-                        const devAdmin = createDevUser('ADMIN', unionId, '테스트 관리자', mockOptions);
-                        console.log(`[DEV] 테스트 관리자: ${devAdmin.name} (ADMIN) @ ${currentSlug}`);
-                        setUser(devAdmin);
+                        // 기본: 시스템 관리자로 접속 (조합 페이지에서도)
+                        const devSystemAdmin = await fetchDevSystemAdmin();
+                        if (devSystemAdmin) {
+                            // 조합 페이지에서는 union_id를 세팅
+                            setUser({ ...devSystemAdmin, union_id: unionId });
+                            console.log(`[DEV] 시스템 관리자: ${devSystemAdmin.name} @ ${currentSlug}`);
+                        } else {
+                            // DB에 시스템 관리자가 없으면 mock으로 fallback
+                            const devAdmin = createDevUser('ADMIN', unionId, '테스트 관리자', mockOptions);
+                            console.log(`[DEV] 관리자 mock (DB에 SYSTEM_ADMIN 없음): ${devAdmin.name} @ ${currentSlug}`);
+                            setUser(devAdmin);
+                        }
                         setAuthUser(null);
                         setSession(null);
                         setIsLoading(false);
                         return;
                     }
                 }
-                setUser(DEV_SYSTEM_ADMIN_USER);
+                const devSystemAdmin = await fetchDevSystemAdmin();
+                if (devSystemAdmin) {
+                    setUser(devSystemAdmin);
+                } else {
+                    console.error('[DEV] 시스템 관리자가 DB에 없습니다. users 테이블에 SYSTEM_ADMIN을 추가하세요.');
+                }
                 setAuthUser(null);
                 setSession(null);
                 setIsLoading(false);

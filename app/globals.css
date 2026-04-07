@@ -585,6 +585,90 @@
     }
 }
 
+/* =============================================
+   Base UI NavigationMenu 스타일
+   ============================================= */
+
+/* Positioner: 메뉴 간 이동 시 부드러운 위치 전환 */
+.nav-positioner {
+    --nav-easing: cubic-bezier(0.22, 1, 0.36, 1);
+    --nav-duration: 0.3s;
+    transition-property: top, left, right, bottom;
+    transition-duration: var(--nav-duration);
+    transition-timing-function: var(--nav-easing);
+}
+.nav-positioner[data-instant] {
+    transition: none;
+}
+
+/* Popup: 열기/닫기 애니메이션 */
+.nav-popup {
+    position: relative;
+    overflow: visible;
+    border-radius: 12px;
+    background-color: white;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 10px 40px -8px rgba(0, 0, 0, 0.12), 0 4px 12px -4px rgba(0, 0, 0, 0.06);
+    transform-origin: var(--transform-origin);
+    transition-property: opacity, transform, width, height;
+    transition-duration: var(--nav-duration);
+    transition-timing-function: var(--nav-easing);
+    width: var(--popup-width);
+    height: var(--popup-height);
+}
+.nav-popup[data-starting-style],
+.nav-popup[data-ending-style] {
+    opacity: 0;
+    transform: scale(0.95) translateY(-4px);
+}
+.nav-popup[data-ending-style] {
+    transition-timing-function: ease;
+    transition-duration: 0.15s;
+}
+
+/* Content: 방향성 슬라이드 전환 */
+.nav-content {
+    padding: 8px;
+    transition:
+        opacity calc(var(--nav-duration) * 0.5) ease,
+        transform var(--nav-duration) var(--nav-easing);
+}
+.nav-content[data-starting-style],
+.nav-content[data-ending-style] {
+    opacity: 0;
+}
+.nav-content[data-starting-style][data-activation-direction='left'] {
+    transform: translateX(-20px);
+}
+.nav-content[data-starting-style][data-activation-direction='right'] {
+    transform: translateX(20px);
+}
+.nav-content[data-ending-style][data-activation-direction='left'] {
+    transform: translateX(20px);
+}
+.nav-content[data-ending-style][data-activation-direction='right'] {
+    transform: translateX(-20px);
+}
+
+/* Backdrop */
+.nav-backdrop {
+    position: fixed;
+    inset: 0;
+    transition: opacity 0.2s ease;
+}
+.nav-backdrop[data-starting-style],
+.nav-backdrop[data-ending-style] {
+    opacity: 0;
+}
+
+/* Trigger Icon 회전 */
+.nav-trigger-icon {
+    transition: transform 0.2s ease;
+}
+.nav-trigger-icon[data-popup-open] {
+    transform: rotate(180deg);
+}
+
 /* 고대비 모드 (접근성) */
 .high-contrast {
     --background: #000;

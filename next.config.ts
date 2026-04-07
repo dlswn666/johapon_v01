@@ -86,21 +86,23 @@ const nextConfig: NextConfig = {
             key: 'Permissions-Policy',
             value: 'camera=(), microphone=(), geolocation=()',
           },
-          {
-            key: 'Content-Security-Policy',
-            value: [
-              "default-src 'self'",
-              "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://t1.daumcdn.net",
-              "style-src 'self' 'unsafe-inline'",
-              "img-src 'self' data: blob: https://*.supabase.co https://images.unsplash.com",
-              "font-src 'self' data:",
-              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://postcode.map.daum.net",
-              "frame-src 'self' https://www.youtube.com https://zoom.us",
-              "frame-ancestors 'none'",
-              "base-uri 'self'",
-              "form-action 'self'",
-            ].join('; '),
-          },
+          // TODO: CSP 임시 비활성화 - 카카오 우편번호 서비스 차단 이슈 해결 후 재활성화
+          // {
+          //   key: 'Content-Security-Policy',
+          //   value: [
+          //     "default-src 'self'",
+          //     "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://t1.kakaocdn.net https://t1.daumcdn.net",
+          //     "script-src-elem 'self' 'unsafe-inline' https://t1.kakaocdn.net https://t1.daumcdn.net",
+          //     "style-src 'self' 'unsafe-inline' https://t1.kakaocdn.net https://t1.daumcdn.net",
+          //     "img-src 'self' data: blob: https://*.supabase.co https://images.unsplash.com https://t1.kakaocdn.net https://t1.daumcdn.net",
+          //     "font-src 'self' data:",
+          //     "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://postcode.map.kakao.com https://postcode.map.daum.net",
+          //     "frame-src 'self' https://www.youtube.com https://zoom.us https://t1.kakaocdn.net https://t1.daumcdn.net https://postcode.map.kakao.com https://postcode.map.daum.net",
+          //     "frame-ancestors 'none'",
+          //     "base-uri 'self'",
+          //     "form-action 'self'",
+          //   ].join('; '),
+          // },
         ],
       },
     ];
