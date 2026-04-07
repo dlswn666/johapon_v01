@@ -61,7 +61,41 @@ const FreeBoardDetailPage = () => {
     if (isUnionLoading || isLoading) {
         return (
             <div className="container mx-auto max-w-[1280px] px-4 py-8">
-                <Skeleton className="w-full h-[600px] rounded-[24px]" />
+                <div className="space-y-8">
+                    {/* 제목 + 메타 정보 */}
+                    <div className="border-b border-[#CCCCCC] pb-6 space-y-4">
+                        <Skeleton className="h-9 w-3/4" />
+                        <div className="flex flex-wrap items-center justify-between gap-4">
+                            <div className="flex gap-6">
+                                <Skeleton className="h-4 w-24" style={{ animationDelay: '75ms' }} />
+                                <Skeleton className="h-4 w-28" style={{ animationDelay: '100ms' }} />
+                                <Skeleton className="h-4 w-20" style={{ animationDelay: '125ms' }} />
+                            </div>
+                            <div className="flex gap-2">
+                                <Skeleton className="h-9 w-16 rounded-md" style={{ animationDelay: '150ms' }} />
+                                <Skeleton className="h-9 w-16 rounded-md" style={{ animationDelay: '175ms' }} />
+                            </div>
+                        </div>
+                    </div>
+                    {/* 본문 영역 */}
+                    <div className="space-y-4 min-h-[200px]">
+                        <Skeleton className="h-4 w-full" style={{ animationDelay: '200ms' }} />
+                        <Skeleton className="h-4 w-full" style={{ animationDelay: '225ms' }} />
+                        <Skeleton className="h-4 w-5/6" style={{ animationDelay: '250ms' }} />
+                        <Skeleton className="h-4 w-2/3" style={{ animationDelay: '275ms' }} />
+                        <Skeleton className="h-32 w-full" style={{ animationDelay: '300ms' }} />
+                    </div>
+                    {/* 첨부파일 영역 */}
+                    <div className="border-t border-[#CCCCCC] pt-6">
+                        <Skeleton className="h-4 w-20 mb-3" style={{ animationDelay: '350ms' }} />
+                        <Skeleton className="h-10 w-48 rounded-[8px]" style={{ animationDelay: '375ms' }} />
+                    </div>
+                    {/* 댓글 영역 */}
+                    <div className="space-y-4">
+                        <Skeleton className="h-5 w-24" style={{ animationDelay: '400ms' }} />
+                        <Skeleton className="h-20 w-full rounded-[8px]" style={{ animationDelay: '425ms' }} />
+                    </div>
+                </div>
             </div>
         );
     }

@@ -108,9 +108,48 @@ export default function AssemblyDashboardPage({ params }: { params: Promise<{ as
 
   if (isUnionLoading || isAuthLoading || isLoading) {
     return (
-      <div className="container mx-auto px-4 py-8 space-y-4">
-        <Skeleton className="h-10 w-48" />
-        <Skeleton className="h-[300px] rounded-lg" />
+      <div className="space-y-6">
+        {/* 헤더: 뒤로가기 + 제목 + 배지 */}
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-10 w-10 rounded-md" />
+          <div className="flex-1 space-y-2">
+            <div className="flex items-center gap-3">
+              <Skeleton className="h-7 w-48" />
+              <Skeleton className="h-6 w-16 rounded-full" />
+            </div>
+            <Skeleton className="h-4 w-36" />
+          </div>
+        </div>
+        {/* 상태 전이 바 */}
+        <div className="flex gap-3 p-4 bg-white rounded-lg">
+          <Skeleton className="h-4 w-16 self-center" />
+          <Skeleton className="h-9 w-28 rounded-md" style={{ animationDelay: '100ms' }} />
+          <Skeleton className="h-9 w-20 rounded-md" style={{ animationDelay: '200ms' }} />
+        </div>
+        {/* 총회 정보 카드 */}
+        <div className="bg-white rounded-lg p-6 space-y-4">
+          <Skeleton className="h-5 w-24" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="space-y-1">
+                <Skeleton className="h-3 w-12" style={{ animationDelay: `${300 + i * 100}ms` }} />
+                <Skeleton className="h-4 w-32" style={{ animationDelay: `${350 + i * 100}ms` }} />
+              </div>
+            ))}
+          </div>
+        </div>
+        {/* 관리 메뉴 그리드 */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[0, 1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="flex items-center gap-3 p-4 bg-white rounded-lg">
+              <Skeleton className="w-10 h-10 rounded-lg" style={{ animationDelay: `${700 + i * 75}ms` }} />
+              <div className="space-y-1.5">
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-3 w-28" />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }

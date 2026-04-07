@@ -48,9 +48,19 @@ export default function UnionHomePage() {
 
     if (isUnionLoading || isAuthLoading || isUserFetching) {
         return (
-            <div className="container mx-auto max-w-[1280px] px-4 py-8">
-                <Skeleton className="w-full h-[600px] rounded-[24px]" />
-                <p className="text-center text-gray-400 mt-4">로딩 중...</p>
+            <div className="container mx-auto max-w-[1280px] px-4 py-8 space-y-6">
+                {/* 히어로 슬라이더 영역 */}
+                <Skeleton className="w-full h-[376px] md:h-[400px] lg:h-[500px] xl:h-[700px] rounded-[8px] lg:rounded-none" />
+                {/* 게시판 섹션 */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Skeleton className="h-[200px] rounded-xl" />
+                    <Skeleton className="h-[200px] rounded-xl" style={{ animationDelay: '150ms' }} />
+                </div>
+                {/* 커뮤니티 + 정보 섹션 */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Skeleton className="h-[160px] rounded-xl" style={{ animationDelay: '300ms' }} />
+                    <Skeleton className="h-[160px] rounded-xl" style={{ animationDelay: '450ms' }} />
+                </div>
             </div>
         );
     }

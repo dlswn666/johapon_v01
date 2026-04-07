@@ -1,3 +1,5 @@
+import { Skeleton } from '@/components/ui/skeleton';
+
 interface CardSkeletonProps {
     count?: number;
 }
@@ -8,18 +10,16 @@ export function CardSkeleton({ count = 3 }: CardSkeletonProps) {
             {Array.from({ length: count }).map((_, i) => (
                 <div
                     key={i}
-                    className="p-4 border border-slate-200 rounded-xl animate-pulse"
-                    style={{ animationDelay: `${i * 100}ms` }}
+                    className="p-5 rounded-xl bg-white shadow-sm space-y-3"
                 >
-                    <div className="h-6 bg-slate-200 rounded w-2/3 mb-3" />
+                    <Skeleton className="h-5 w-2/3" style={{ animationDelay: `${i * 150}ms` }} />
                     <div className="space-y-2">
-                        <div className="h-4 bg-slate-100 rounded w-full" />
-                        <div className="h-4 bg-slate-100 rounded w-4/5" />
-                        <div className="h-4 bg-slate-100 rounded w-3/5" />
+                        <Skeleton className="h-4 w-full" style={{ animationDelay: `${i * 150 + 50}ms` }} />
+                        <Skeleton className="h-4 w-4/5" style={{ animationDelay: `${i * 150 + 100}ms` }} />
                     </div>
-                    <div className="mt-4 flex gap-2">
-                        <div className="h-8 bg-slate-100 rounded flex-1" />
-                        <div className="h-8 bg-slate-100 rounded w-20" />
+                    <div className="flex gap-2 pt-2">
+                        <Skeleton className="h-8 flex-1 rounded-md" />
+                        <Skeleton className="h-8 w-20 rounded-md" />
                     </div>
                 </div>
             ))}

@@ -45,9 +45,29 @@ export default function MemberDocumentsPage({ params }: { params: Promise<{ asse
 
   if (isLoading) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-8 space-y-4">
-        <Skeleton className="h-10 w-32" />
-        <Skeleton className="h-[300px] rounded-lg" />
+      <div className="max-w-2xl mx-auto px-4 py-8 space-y-6">
+        {/* 헤더: 뒤로가기 + 제목 */}
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-10 w-10 rounded-md" />
+          <div className="space-y-1.5">
+            <Skeleton className="h-6 w-20" />
+            <Skeleton className="h-4 w-36" style={{ animationDelay: '50ms' }} />
+          </div>
+        </div>
+
+        {/* 문서 목록 카드 */}
+        <div className="space-y-3">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="flex items-center gap-3 p-4 bg-white rounded-lg border border-gray-200">
+              <Skeleton className="w-10 h-10 rounded-lg" style={{ animationDelay: `${100 + i * 70}ms` }} />
+              <div className="flex-1 space-y-1.5">
+                <Skeleton className="h-4 w-32" style={{ animationDelay: `${120 + i * 70}ms` }} />
+                <Skeleton className="h-3 w-20" style={{ animationDelay: `${140 + i * 70}ms` }} />
+              </div>
+              <Skeleton className="h-6 w-14 rounded-full" style={{ animationDelay: `${160 + i * 70}ms` }} />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }

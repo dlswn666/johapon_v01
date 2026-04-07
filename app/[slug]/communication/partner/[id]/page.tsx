@@ -42,8 +42,37 @@ const PartnerDetailPage = () => {
 
     if (isUnionLoading || isLoading) {
         return (
-            <div className="container mx-auto max-w-[1280px] px-4 py-8">
-                <Skeleton className="w-full h-[600px] rounded-[24px]" />
+            <div className="container mx-auto max-w-[1280px] px-4 py-8 md:py-12">
+                <div className="max-w-4xl mx-auto space-y-8">
+                    {/* 상단 네비게이션 */}
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-100 pb-8">
+                        <div className="space-y-2">
+                            <Skeleton className="h-4 w-32" />
+                            <Skeleton className="h-10 w-64" style={{ animationDelay: '50ms' }} />
+                        </div>
+                        <Skeleton className="h-10 w-32 rounded-xl" style={{ animationDelay: '100ms' }} />
+                    </div>
+                    {/* 업체 정보 */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                        <div className="md:col-span-2">
+                            <div className="bg-white rounded-3xl p-8 border border-gray-100 space-y-4">
+                                <Skeleton className="h-6 w-28" style={{ animationDelay: '150ms' }} />
+                                <Skeleton className="h-4 w-full" style={{ animationDelay: '200ms' }} />
+                                <Skeleton className="h-4 w-full" style={{ animationDelay: '225ms' }} />
+                                <Skeleton className="h-4 w-5/6" style={{ animationDelay: '250ms' }} />
+                                <Skeleton className="h-4 w-2/3" style={{ animationDelay: '275ms' }} />
+                            </div>
+                        </div>
+                        <div>
+                            <div className="bg-slate-50 rounded-3xl p-6 border border-slate-100 space-y-4">
+                                <Skeleton className="h-4 w-24" style={{ animationDelay: '300ms' }} />
+                                <Skeleton className="h-5 w-32" style={{ animationDelay: '325ms' }} />
+                                <Skeleton className="h-4 w-20" style={{ animationDelay: '350ms' }} />
+                                <Skeleton className="h-5 w-28" style={{ animationDelay: '375ms' }} />
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         );
     }

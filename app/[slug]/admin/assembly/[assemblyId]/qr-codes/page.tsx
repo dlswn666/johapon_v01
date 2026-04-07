@@ -202,9 +202,40 @@ export default function QrCodesPage({ params }: { params: Promise<{ assemblyId: 
 
   if (isUnionLoading || isAuthLoading) {
     return (
-      <div className="space-y-4">
-        <Skeleton className="h-10 w-48" />
-        <Skeleton className="h-[400px] rounded-lg" />
+      <div className="space-y-3">
+        {/* 헤더 */}
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-10 w-10 rounded-md" />
+          <div className="flex-1 space-y-1.5">
+            <Skeleton className="h-7 w-44" />
+            <Skeleton className="h-4 w-24" style={{ animationDelay: '50ms' }} />
+          </div>
+        </div>
+        {/* 상단 요약 + 검색 */}
+        <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-4 w-16" style={{ animationDelay: '100ms' }} />
+              <Skeleton className="h-4 w-16" style={{ animationDelay: '130ms' }} />
+              <Skeleton className="h-4 w-16" style={{ animationDelay: '160ms' }} />
+            </div>
+            <div className="ml-auto flex items-center gap-2">
+              <Skeleton className="h-9 w-[200px] rounded-md" style={{ animationDelay: '190ms' }} />
+              <Skeleton className="h-8 w-24 rounded-md" style={{ animationDelay: '220ms' }} />
+            </div>
+          </div>
+        </div>
+        {/* QR 카드 그리드 */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+          {Array.from({ length: 12 }).map((_, i) => (
+            <div key={i} className="bg-white rounded-lg border border-gray-200 p-3 text-center space-y-2">
+              <Skeleton className="h-[140px] w-[140px] mx-auto rounded" style={{ animationDelay: `${250 + i * 30}ms` }} />
+              <Skeleton className="h-4 w-16 mx-auto" style={{ animationDelay: `${270 + i * 30}ms` }} />
+              <Skeleton className="h-3 w-20 mx-auto" style={{ animationDelay: `${290 + i * 30}ms` }} />
+              <Skeleton className="h-5 w-14 mx-auto rounded-full" style={{ animationDelay: `${310 + i * 30}ms` }} />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -375,9 +406,14 @@ export default function QrCodesPage({ params }: { params: Promise<{ assemblyId: 
 
       {/* 로딩 */}
       {isLoading && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-          {[...Array(10)].map((_, i) => (
-            <Skeleton key={i} className="h-[220px] rounded-lg" />
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+          {Array.from({ length: 10 }).map((_, i) => (
+            <div key={i} className="bg-white rounded-lg border border-gray-200 p-3 text-center space-y-2">
+              <Skeleton className="h-[140px] w-[140px] mx-auto rounded" style={{ animationDelay: `${i * 40}ms` }} />
+              <Skeleton className="h-4 w-16 mx-auto" style={{ animationDelay: `${i * 40 + 15}ms` }} />
+              <Skeleton className="h-3 w-20 mx-auto" style={{ animationDelay: `${i * 40 + 30}ms` }} />
+              <Skeleton className="h-5 w-14 mx-auto rounded-full" style={{ animationDelay: `${i * 40 + 45}ms` }} />
+            </div>
           ))}
         </div>
       )}

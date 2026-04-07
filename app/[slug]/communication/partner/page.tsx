@@ -19,7 +19,18 @@ const PartnerListPage = () => {
     if (isUnionLoading || isLoading) {
         return (
             <div className="container mx-auto max-w-[1280px] px-4 py-8">
-                <Skeleton className="w-full h-[600px] rounded-[24px]" />
+                <div className="space-y-6">
+                    {/* 페이지 제목 */}
+                    <Skeleton className="h-10 w-36" />
+                    {/* 협력 업체 목록 */}
+                    {[0, 1, 2, 3, 4].map((i) => (
+                        <div key={i} className="flex items-center gap-4 py-3 border-b border-gray-100">
+                            <Skeleton className="h-5 flex-1" style={{ animationDelay: `${i * 75}ms` }} />
+                            <Skeleton className="h-4 w-24" style={{ animationDelay: `${i * 75}ms` }} />
+                            <Skeleton className="h-4 w-20" style={{ animationDelay: `${i * 75}ms` }} />
+                        </div>
+                    ))}
+                </div>
             </div>
         );
     }

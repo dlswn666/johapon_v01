@@ -62,17 +62,32 @@ export default function EvotePage({ params }: { params: Promise<{ assemblyId: st
   // 로딩 상태
   if (isLoading) {
     return (
-      <div className="p-4 space-y-4">
+      <div className="bg-gray-50 min-h-dvh p-4 space-y-4">
+        {/* 총회 제목 */}
         <Skeleton className="h-8 w-3/4" />
-        <Skeleton className="h-4 w-1/2" />
+        <Skeleton className="h-4 w-1/2" style={{ animationDelay: '50ms' }} />
+
+        {/* 안건별 투표 카드 */}
         <div className="space-y-4 mt-6">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="space-y-2">
-              <Skeleton className="h-6 w-1/3" />
-              <Skeleton className="h-24 w-full" />
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="bg-white rounded-lg border border-gray-200 p-5 space-y-3">
+              {/* 안건 제목 */}
+              <Skeleton className="h-6 w-2/5" style={{ animationDelay: `${100 + i * 100}ms` }} />
+              {/* 선택지들 */}
+              <div className="space-y-2">
+                {[0, 1, 2].map((j) => (
+                  <div key={j} className="flex items-center gap-3 p-3 rounded-lg border border-gray-100">
+                    <Skeleton className="h-5 w-5 rounded-full" style={{ animationDelay: `${140 + i * 100 + j * 40}ms` }} />
+                    <Skeleton className="h-4 w-24" style={{ animationDelay: `${160 + i * 100 + j * 40}ms` }} />
+                  </div>
+                ))}
+              </div>
             </div>
           ))}
         </div>
+
+        {/* 제출 버튼 */}
+        <Skeleton className="h-12 w-full rounded-lg" style={{ animationDelay: '550ms' }} />
       </div>
     );
   }

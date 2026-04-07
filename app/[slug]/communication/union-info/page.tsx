@@ -53,7 +53,23 @@ const UnionInfoListPage = () => {
     if (showSkeleton) {
         return (
             <div className="container mx-auto max-w-[1280px] px-4 py-8">
-                <Skeleton className="w-full h-[600px] rounded-[24px]" />
+                <div className="space-y-6">
+                    {/* 페이지 제목 + 글쓰기 버튼 */}
+                    <div className="flex justify-between items-center">
+                        <Skeleton className="h-10 w-44" />
+                        <Skeleton className="h-10 w-24 rounded-[8px]" style={{ animationDelay: '50ms' }} />
+                    </div>
+                    {/* 검색바 */}
+                    <Skeleton className="h-[44px] w-full max-w-[400px] rounded-[8px]" style={{ animationDelay: '100ms' }} />
+                    {/* 게시글 목록 */}
+                    {[0, 1, 2, 3, 4].map((i) => (
+                        <div key={i} className="flex items-center gap-4 py-3 border-b border-gray-100">
+                            <Skeleton className="h-5 flex-1" style={{ animationDelay: `${150 + i * 75}ms` }} />
+                            <Skeleton className="h-4 w-20" style={{ animationDelay: `${150 + i * 75}ms` }} />
+                            <Skeleton className="h-4 w-16" style={{ animationDelay: `${150 + i * 75}ms` }} />
+                        </div>
+                    ))}
+                </div>
             </div>
         );
     }

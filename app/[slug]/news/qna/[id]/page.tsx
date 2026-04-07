@@ -106,7 +106,38 @@ const QuestionDetailPage = () => {
     if (isUnionLoading || isLoading) {
         return (
             <div className="container mx-auto max-w-[1280px] px-4 py-8">
-                <Skeleton className="w-full h-[600px] rounded-[24px]" />
+                <div className="space-y-8">
+                    {/* 제목 영역 */}
+                    <div className="border-b border-[#CCCCCC] pb-6 space-y-4">
+                        <div className="flex items-center gap-3">
+                            <Skeleton className="h-9 w-3/4" />
+                            <Skeleton className="h-7 w-20 rounded-full" style={{ animationDelay: '50ms' }} />
+                        </div>
+                        <div className="flex flex-wrap items-center justify-between gap-4">
+                            <div className="flex gap-6">
+                                <Skeleton className="h-4 w-28" style={{ animationDelay: '100ms' }} />
+                                <Skeleton className="h-4 w-28" style={{ animationDelay: '125ms' }} />
+                                <Skeleton className="h-4 w-20" style={{ animationDelay: '150ms' }} />
+                            </div>
+                            <div className="flex gap-2">
+                                <Skeleton className="h-[40px] w-16 rounded-lg" style={{ animationDelay: '175ms' }} />
+                                <Skeleton className="h-[40px] w-16 rounded-lg" style={{ animationDelay: '200ms' }} />
+                            </div>
+                        </div>
+                    </div>
+                    {/* 질문 본문 */}
+                    <div className="rounded-[12px] border border-[#CCCCCC] p-6 space-y-3">
+                        <Skeleton className="h-4 w-full" style={{ animationDelay: '225ms' }} />
+                        <Skeleton className="h-4 w-full" style={{ animationDelay: '250ms' }} />
+                        <Skeleton className="h-4 w-5/6" style={{ animationDelay: '275ms' }} />
+                        <Skeleton className="h-4 w-2/3" style={{ animationDelay: '300ms' }} />
+                    </div>
+                    {/* 답변 영역 */}
+                    <div className="border-t-2 border-[#4E8C6D] pt-6 space-y-4">
+                        <Skeleton className="h-7 w-32" style={{ animationDelay: '350ms' }} />
+                        <Skeleton className="h-24 w-full rounded-[12px]" style={{ animationDelay: '375ms' }} />
+                    </div>
+                </div>
             </div>
         );
     }

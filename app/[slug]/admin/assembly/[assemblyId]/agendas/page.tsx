@@ -70,8 +70,32 @@ export default function AgendasPage({ params }: { params: Promise<{ assemblyId: 
 
   if (isUnionLoading || isAuthLoading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <Skeleton className="w-full h-[400px] rounded-lg" />
+      <div className="space-y-3">
+        {/* 헤더 */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Skeleton className="h-10 w-10 rounded-md" />
+            <div className="space-y-1.5">
+              <Skeleton className="h-7 w-28" />
+              <Skeleton className="h-4 w-40" />
+            </div>
+          </div>
+          <Skeleton className="h-10 w-28 rounded-md" style={{ animationDelay: '100ms' }} />
+        </div>
+        {/* 안건 아이템 */}
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="bg-white rounded-lg p-4 flex items-start gap-3">
+            <Skeleton className="w-5 h-5 mt-1" style={{ animationDelay: `${200 + i * 150}ms` }} />
+            <div className="flex-1 space-y-2">
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-4 w-12" />
+                <Skeleton className="h-5 w-14 rounded" />
+              </div>
+              <Skeleton className="h-5 w-3/4" />
+              <Skeleton className="h-3 w-48" />
+            </div>
+          </div>
+        ))}
       </div>
     );
   }
@@ -164,8 +188,18 @@ export default function AgendasPage({ params }: { params: Promise<{ assemblyId: 
       {/* 안건 목록 */}
       {isAgendasLoading ? (
         <div className="space-y-3">
-          {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-[100px] rounded-lg" />
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="bg-white rounded-lg p-4 flex items-start gap-3">
+              <Skeleton className="w-5 h-5 mt-1" style={{ animationDelay: `${i * 150}ms` }} />
+              <div className="flex-1 space-y-2">
+                <div className="flex items-center gap-2">
+                  <Skeleton className="h-4 w-12" />
+                  <Skeleton className="h-5 w-14 rounded" />
+                </div>
+                <Skeleton className="h-5 w-3/4" />
+                <Skeleton className="h-3 w-48" />
+              </div>
+            </div>
           ))}
         </div>
       ) : agendaItems && agendaItems.length > 0 ? (

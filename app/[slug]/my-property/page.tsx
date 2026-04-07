@@ -55,7 +55,47 @@ export default function MyPropertyPage() {
     if (isUnionLoading || isAuthLoading) {
         return (
             <div className="container mx-auto max-w-[1280px] px-4 py-8">
-                <Skeleton className="w-full h-[400px] rounded-lg" />
+                {/* 페이지 헤더 */}
+                <div className="mb-8">
+                    <Skeleton className="h-9 w-24 mb-4" />
+                    <div className="flex items-center gap-3">
+                        <Skeleton className="size-12 rounded-full" style={{ animationDelay: '50ms' }} />
+                        <div className="space-y-1.5">
+                            <Skeleton className="h-8 w-32" style={{ animationDelay: '80ms' }} />
+                            <Skeleton className="h-4 w-52" style={{ animationDelay: '100ms' }} />
+                        </div>
+                    </div>
+                </div>
+
+                {/* 요약 카드 4개 */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                    {[0, 1, 2, 3].map((i) => (
+                        <Card key={i}>
+                            <CardContent className="pt-6">
+                                <div className="flex items-center gap-3">
+                                    <Skeleton className="size-10 rounded-lg" style={{ animationDelay: `${150 + i * 50}ms` }} />
+                                    <div className="space-y-1">
+                                        <Skeleton className="h-4 w-16" style={{ animationDelay: `${170 + i * 50}ms` }} />
+                                        <Skeleton className="h-6 w-20" style={{ animationDelay: `${190 + i * 50}ms` }} />
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
+
+                {/* 상세 테이블 카드 */}
+                <Card>
+                    <CardContent className="pt-6">
+                        <Skeleton className="h-6 w-32 mb-2" style={{ animationDelay: '400ms' }} />
+                        <Skeleton className="h-4 w-64 mb-6" style={{ animationDelay: '430ms' }} />
+                        <div className="space-y-3">
+                            {[0, 1, 2].map((i) => (
+                                <Skeleton key={i} className="h-12 w-full" style={{ animationDelay: `${460 + i * 50}ms` }} />
+                            ))}
+                        </div>
+                    </CardContent>
+                </Card>
             </div>
         );
     }
@@ -181,10 +221,25 @@ export default function MyPropertyPage() {
                 </CardHeader>
                 <CardContent>
                     {isPropertyLoading ? (
-                        <div className="space-y-4">
-                            <Skeleton className="h-12 w-full" />
-                            <Skeleton className="h-12 w-full" />
-                            <Skeleton className="h-12 w-full" />
+                        <div className="space-y-0">
+                            {/* 테이블 헤더 */}
+                            <div className="flex items-center gap-4 py-3 border-b">
+                                {['w-48', 'w-16', 'w-20', 'w-16', 'w-24', 'w-24', 'w-16'].map((w, i) => (
+                                    <Skeleton key={i} className={`h-4 ${w}`} style={{ animationDelay: `${i * 25}ms` }} />
+                                ))}
+                            </div>
+                            {/* 테이블 행 */}
+                            {[0, 1, 2].map((i) => (
+                                <div key={i} className="flex items-center gap-4 py-3 border-b last:border-0">
+                                    <Skeleton className="h-4 w-48" style={{ animationDelay: `${200 + i * 60}ms` }} />
+                                    <Skeleton className="h-4 w-16" style={{ animationDelay: `${220 + i * 60}ms` }} />
+                                    <Skeleton className="h-4 w-20" style={{ animationDelay: `${240 + i * 60}ms` }} />
+                                    <Skeleton className="h-4 w-16" style={{ animationDelay: `${260 + i * 60}ms` }} />
+                                    <Skeleton className="h-4 w-24" style={{ animationDelay: `${280 + i * 60}ms` }} />
+                                    <Skeleton className="h-4 w-24" style={{ animationDelay: `${300 + i * 60}ms` }} />
+                                    <Skeleton className="h-5 w-16 rounded-full" style={{ animationDelay: `${320 + i * 60}ms` }} />
+                                </div>
+                            ))}
                         </div>
                     ) : error ? (
                         <div className="text-center py-8 text-red-500">

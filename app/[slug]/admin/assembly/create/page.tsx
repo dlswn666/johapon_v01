@@ -59,8 +59,58 @@ export default function CreateAssemblyPage() {
 
   if (isUnionLoading || isAuthLoading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <Skeleton className="w-full h-[600px] rounded-lg" />
+      <div className="max-w-2xl mx-auto space-y-6">
+        {/* 헤더 */}
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-10 w-10 rounded-md" />
+          <div className="flex items-baseline gap-3">
+            <Skeleton className="h-7 w-24" />
+            <Skeleton className="h-4 w-36" style={{ animationDelay: '50ms' }} />
+          </div>
+        </div>
+        {/* 폼 */}
+        <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-5">
+          {/* 총회 제목 */}
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-16" style={{ animationDelay: '100ms' }} />
+            <Skeleton className="h-10 w-full rounded-md" style={{ animationDelay: '120ms' }} />
+          </div>
+          {/* 총회 유형 */}
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-16" style={{ animationDelay: '160ms' }} />
+            <Skeleton className="h-10 w-full rounded-md" style={{ animationDelay: '180ms' }} />
+          </div>
+          {/* 일시 */}
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-16" style={{ animationDelay: '220ms' }} />
+            <Skeleton className="h-10 w-full rounded-md" style={{ animationDelay: '240ms' }} />
+          </div>
+          {/* 장소 */}
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-10" style={{ animationDelay: '280ms' }} />
+            <Skeleton className="h-10 w-full rounded-md" style={{ animationDelay: '300ms' }} />
+          </div>
+          {/* 설명 */}
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-10" style={{ animationDelay: '340ms' }} />
+            <Skeleton className="h-20 w-full rounded-md" style={{ animationDelay: '360ms' }} />
+          </div>
+          {/* 영상 송출 */}
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-16" style={{ animationDelay: '400ms' }} />
+            <Skeleton className="h-10 w-full rounded-md" style={{ animationDelay: '420ms' }} />
+          </div>
+          {/* 법적 근거 */}
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-16" style={{ animationDelay: '460ms' }} />
+            <Skeleton className="h-10 w-full rounded-md" style={{ animationDelay: '480ms' }} />
+          </div>
+          {/* 버튼 */}
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+            <Skeleton className="h-9 w-16 rounded-md" style={{ animationDelay: '520ms' }} />
+            <Skeleton className="h-9 w-24 rounded-md" style={{ animationDelay: '550ms' }} />
+          </div>
+        </div>
       </div>
     );
   }

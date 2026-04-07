@@ -53,9 +53,35 @@ export default function DocumentCreatePage({ params }: { params: Promise<{ assem
 
   if (isUnionLoading || isAuthLoading || isLoading) {
     return (
-      <div className="container mx-auto px-4 py-8 space-y-4">
-        <Skeleton className="h-10 w-48" />
-        <Skeleton className="h-[400px] rounded-lg" />
+      <div className="space-y-3">
+        {/* 헤더 */}
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-10 w-10 rounded-md" />
+          <div className="space-y-1.5">
+            <Skeleton className="h-7 w-32" />
+            <Skeleton className="h-4 w-24" style={{ animationDelay: '50ms' }} />
+          </div>
+        </div>
+        {/* 스텝 인디케이터 */}
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-8 w-28 rounded-full" style={{ animationDelay: '100ms' }} />
+          <Skeleton className="h-4 w-4 rounded" style={{ animationDelay: '130ms' }} />
+          <Skeleton className="h-8 w-28 rounded-full" style={{ animationDelay: '160ms' }} />
+        </div>
+        {/* 템플릿 선택 카드 그리드 */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="p-4 rounded-lg border border-gray-200 space-y-2">
+              <Skeleton className="h-5 w-28" style={{ animationDelay: `${200 + i * 50}ms` }} />
+              <Skeleton className="h-3 w-full" style={{ animationDelay: `${220 + i * 50}ms` }} />
+              <Skeleton className="h-3 w-3/4" style={{ animationDelay: `${240 + i * 50}ms` }} />
+            </div>
+          ))}
+        </div>
+        {/* 하단 버튼 */}
+        <div className="flex justify-end">
+          <Skeleton className="h-9 w-20 rounded-md" style={{ animationDelay: '550ms' }} />
+        </div>
       </div>
     );
   }

@@ -19,9 +19,39 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
 
     if (isLoading) {
         return (
-            <div className="container mx-auto px-4 py-8">
-                <Skeleton className="w-full h-[600px] rounded-[24px]" />
-                <p className="text-center text-gray-400 mt-4">로딩 중...</p>
+            <div className="min-h-screen bg-gray-50">
+                {/* 헤더 바 */}
+                <div className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
+                    <div className="container mx-auto px-4">
+                        <div className="flex items-center justify-between h-16">
+                            <div className="flex items-center gap-4">
+                                <Skeleton className="w-10 h-10 rounded-xl" />
+                                <Skeleton className="h-6 w-20" style={{ animationDelay: '50ms' }} />
+                                <div className="hidden md:flex items-center gap-2 ml-4">
+                                    {[0, 1, 2].map((i) => (
+                                        <Skeleton key={i} className="h-9 w-20 rounded-lg" style={{ animationDelay: `${80 + i * 40}ms` }} />
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <Skeleton className="w-9 h-9 rounded-full" style={{ animationDelay: '220ms' }} />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* 콘텐츠 영역 */}
+                <main className="container mx-auto px-4 py-8">
+                    <div className="space-y-4">
+                        <Skeleton className="h-8 w-36" style={{ animationDelay: '280ms' }} />
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {[0, 1, 2].map((i) => (
+                                <Skeleton key={i} className="h-28 rounded-lg" style={{ animationDelay: `${320 + i * 50}ms` }} />
+                            ))}
+                        </div>
+                        <Skeleton className="h-48 rounded-lg" style={{ animationDelay: '500ms' }} />
+                    </div>
+                </main>
             </div>
         );
     }

@@ -166,9 +166,34 @@ export default function OnsiteBallotPage({ params }: { params: Promise<{ assembl
 
   if (isUnionLoading || isAuthLoading) {
     return (
-      <div className="space-y-4">
-        <Skeleton className="h-10 w-48" />
-        <Skeleton className="h-[400px] rounded-lg" />
+      <div className="space-y-3">
+        {/* 헤더 */}
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-10 w-10 rounded-md" />
+          <div className="space-y-1.5">
+            <Skeleton className="h-7 w-32" />
+            <Skeleton className="h-4 w-24" style={{ animationDelay: '50ms' }} />
+          </div>
+        </div>
+        {/* 이중 승인 안내 배너 */}
+        <Skeleton className="h-10 w-full rounded-lg" style={{ animationDelay: '100ms' }} />
+        {/* 탭 */}
+        <div className="flex gap-1 bg-gray-100 p-1 rounded-lg w-fit">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-9 w-24 rounded-md" style={{ animationDelay: `${150 + i * 30}ms` }} />
+          ))}
+        </div>
+        {/* 폼 영역 */}
+        <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-5">
+          <Skeleton className="h-5 w-28" style={{ animationDelay: '270ms' }} />
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="space-y-2">
+              <Skeleton className="h-4 w-24" style={{ animationDelay: `${300 + i * 60}ms` }} />
+              <Skeleton className="h-10 w-full rounded-md" style={{ animationDelay: `${320 + i * 60}ms` }} />
+            </div>
+          ))}
+          <Skeleton className="h-10 w-full rounded-md" style={{ animationDelay: '560ms' }} />
+        </div>
       </div>
     );
   }
@@ -370,7 +395,19 @@ export default function OnsiteBallotPage({ params }: { params: Promise<{ assembl
           </div>
           {isBallotLoading ? (
             <div className="p-4 space-y-3">
-              {[1, 2].map((i) => <Skeleton key={i} className="h-16 rounded" />)}
+              {[1, 2].map((i) => (
+                <div key={i} className="flex items-center justify-between px-4 py-3">
+                  <div className="flex-1 space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <Skeleton className="h-5 w-16 rounded-full" style={{ animationDelay: `${i * 80}ms` }} />
+                      <Skeleton className="h-3 w-24" style={{ animationDelay: `${i * 80 + 20}ms` }} />
+                    </div>
+                    <Skeleton className="h-4 w-48" style={{ animationDelay: `${i * 80 + 40}ms` }} />
+                    <Skeleton className="h-3 w-32" style={{ animationDelay: `${i * 80 + 60}ms` }} />
+                  </div>
+                  <Skeleton className="h-8 w-16 rounded-md ml-3" style={{ animationDelay: `${i * 80 + 80}ms` }} />
+                </div>
+              ))}
             </div>
           ) : pendingList.length > 0 ? (
             <div className="divide-y divide-gray-100">
@@ -402,7 +439,19 @@ export default function OnsiteBallotPage({ params }: { params: Promise<{ assembl
           </div>
           {isBallotLoading ? (
             <div className="p-4 space-y-3">
-              {[1, 2].map((i) => <Skeleton key={i} className="h-16 rounded" />)}
+              {[1, 2].map((i) => (
+                <div key={i} className="flex items-center justify-between px-4 py-3">
+                  <div className="flex-1 space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <Skeleton className="h-5 w-16 rounded-full" style={{ animationDelay: `${i * 80}ms` }} />
+                      <Skeleton className="h-3 w-24" style={{ animationDelay: `${i * 80 + 20}ms` }} />
+                    </div>
+                    <Skeleton className="h-4 w-48" style={{ animationDelay: `${i * 80 + 40}ms` }} />
+                    <Skeleton className="h-3 w-32" style={{ animationDelay: `${i * 80 + 60}ms` }} />
+                  </div>
+                  <Skeleton className="h-8 w-16 rounded-md ml-3" style={{ animationDelay: `${i * 80 + 80}ms` }} />
+                </div>
+              ))}
             </div>
           ) : disputedList.length > 0 ? (
             <div className="divide-y divide-gray-100">
@@ -448,7 +497,19 @@ export default function OnsiteBallotPage({ params }: { params: Promise<{ assembl
           </div>
           {isBallotLoading ? (
             <div className="p-4 space-y-3">
-              {[1, 2].map((i) => <Skeleton key={i} className="h-16 rounded" />)}
+              {[1, 2].map((i) => (
+                <div key={i} className="flex items-center justify-between px-4 py-3">
+                  <div className="flex-1 space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <Skeleton className="h-5 w-16 rounded-full" style={{ animationDelay: `${i * 80}ms` }} />
+                      <Skeleton className="h-3 w-24" style={{ animationDelay: `${i * 80 + 20}ms` }} />
+                    </div>
+                    <Skeleton className="h-4 w-48" style={{ animationDelay: `${i * 80 + 40}ms` }} />
+                    <Skeleton className="h-3 w-32" style={{ animationDelay: `${i * 80 + 60}ms` }} />
+                  </div>
+                  <Skeleton className="h-8 w-16 rounded-md ml-3" style={{ animationDelay: `${i * 80 + 80}ms` }} />
+                </div>
+              ))}
             </div>
           ) : verifiedList.length > 0 ? (
             <div className="divide-y divide-gray-100">

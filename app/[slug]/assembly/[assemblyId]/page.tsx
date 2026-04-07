@@ -136,11 +136,31 @@ export default function AssemblyGatePage({ params }: { params: Promise<{ assembl
 
   if (isUnionLoading || isAuthLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center space-y-4">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+        <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full text-center space-y-6">
+          {/* 아이콘 */}
           <Skeleton className="h-16 w-16 rounded-full mx-auto" />
-          <Skeleton className="h-6 w-48 mx-auto" />
-          <Skeleton className="h-4 w-64 mx-auto" />
+          {/* 제목 */}
+          <Skeleton className="h-8 w-40 mx-auto" style={{ animationDelay: '50ms' }} />
+          {/* 총회 정보 박스 */}
+          <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+            <Skeleton className="h-5 w-3/4 mx-auto" style={{ animationDelay: '100ms' }} />
+            <Skeleton className="h-4 w-1/2 mx-auto" style={{ animationDelay: '130ms' }} />
+          </div>
+          {/* 인증 방법 선택 */}
+          <div className="space-y-2">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="flex items-center gap-3 p-3 rounded-lg border-2 border-gray-200">
+                <Skeleton className="w-5 h-5 rounded" style={{ animationDelay: `${180 + i * 50}ms` }} />
+                <div className="flex-1 space-y-1">
+                  <Skeleton className="h-4 w-28" style={{ animationDelay: `${200 + i * 50}ms` }} />
+                  <Skeleton className="h-3 w-36" style={{ animationDelay: `${220 + i * 50}ms` }} />
+                </div>
+              </div>
+            ))}
+          </div>
+          {/* 로딩 스피너 영역 */}
+          <Skeleton className="h-4 w-48 mx-auto" style={{ animationDelay: '400ms' }} />
         </div>
       </div>
     );

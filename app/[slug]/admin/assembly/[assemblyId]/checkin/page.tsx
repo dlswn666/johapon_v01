@@ -125,9 +125,41 @@ export default function CheckinPage({ params }: { params: Promise<{ assemblyId: 
 
   if (isUnionLoading || isAuthLoading) {
     return (
-      <div className="space-y-4">
-        <Skeleton className="h-10 w-48" />
-        <Skeleton className="h-[300px] rounded-lg" />
+      <div className="space-y-3">
+        {/* 헤더 */}
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-10 w-10 rounded-md" />
+          <div className="space-y-1.5">
+            <Skeleton className="h-7 w-28" />
+            <Skeleton className="h-4 w-24" style={{ animationDelay: '50ms' }} />
+          </div>
+        </div>
+        {/* 모드 전환 탭 */}
+        <div className="flex gap-2 bg-gray-100 p-1 rounded-lg w-fit">
+          <Skeleton className="h-9 w-24 rounded-md" style={{ animationDelay: '100ms' }} />
+          <Skeleton className="h-9 w-24 rounded-md" style={{ animationDelay: '130ms' }} />
+        </div>
+        {/* 2컬럼 그리드 */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* QR 스캐너 영역 */}
+          <div className="bg-white rounded-lg border border-gray-200 p-4 space-y-3">
+            <Skeleton className="h-5 w-24" style={{ animationDelay: '160ms' }} />
+            <Skeleton className="h-[240px] w-full rounded-lg" style={{ animationDelay: '200ms' }} />
+          </div>
+          {/* 최근 체크인 영역 */}
+          <div className="bg-white rounded-lg border border-gray-200 p-4 space-y-3">
+            <Skeleton className="h-5 w-32" style={{ animationDelay: '250ms' }} />
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded">
+                <div className="space-y-1">
+                  <Skeleton className="h-4 w-24" style={{ animationDelay: `${300 + i * 50}ms` }} />
+                  <Skeleton className="h-3 w-16" style={{ animationDelay: `${320 + i * 50}ms` }} />
+                </div>
+                <Skeleton className="h-5 w-12 rounded-full" style={{ animationDelay: `${340 + i * 50}ms` }} />
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
@@ -295,7 +327,15 @@ export default function CheckinPage({ params }: { params: Promise<{ assemblyId: 
           </h2>
           {isAttendanceLoading ? (
             <div className="space-y-2">
-              {[1, 2, 3].map((i) => <Skeleton key={i} className="h-14 rounded" />)}
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded">
+                  <div className="space-y-1">
+                    <Skeleton className="h-4 w-24" style={{ animationDelay: `${i * 60}ms` }} />
+                    <Skeleton className="h-3 w-16" style={{ animationDelay: `${i * 60 + 20}ms` }} />
+                  </div>
+                  <Skeleton className="h-5 w-12 rounded-full" style={{ animationDelay: `${i * 60 + 40}ms` }} />
+                </div>
+              ))}
             </div>
           ) : recentLogs.length > 0 ? (
             <div className="space-y-2 max-h-96 overflow-y-auto">

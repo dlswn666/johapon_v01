@@ -63,9 +63,23 @@ export default function UnionLayoutContent({ children }: UnionLayoutContentProps
     if (isUnionLoading || isAuthLoading || isUserFetching) {
         return (
             <div className="min-h-screen bg-gray-50">
-                <div className="container mx-auto max-w-[1280px] px-4 py-8">
-                    <Skeleton className="w-full h-[600px] rounded-[24px]" />
-                    <p className="text-center text-gray-400 mt-4">로딩 중...</p>
+                {/* 헤더 영역 */}
+                <div className="h-[64px] bg-white border-b border-gray-200">
+                    <div className="container mx-auto max-w-[1280px] px-4 flex items-center justify-between h-full">
+                        <Skeleton className="h-8 w-32" />
+                        <div className="flex gap-3">
+                            <Skeleton className="h-8 w-16" />
+                            <Skeleton className="h-8 w-16" style={{ animationDelay: '100ms' }} />
+                        </div>
+                    </div>
+                </div>
+                {/* 메인 콘텐츠 영역 */}
+                <div className="container mx-auto max-w-[1280px] px-4 py-8 space-y-4">
+                    <Skeleton className="h-[376px] md:h-[500px] rounded-[8px]" style={{ animationDelay: '200ms' }} />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Skeleton className="h-[180px] rounded-xl" style={{ animationDelay: '350ms' }} />
+                        <Skeleton className="h-[180px] rounded-xl" style={{ animationDelay: '500ms' }} />
+                    </div>
                 </div>
             </div>
         );

@@ -334,8 +334,41 @@ function SystemAdminLayoutContent({ children }: { children: React.ReactNode }) {
     // 초기 로딩 또는 user 정보 fetch 중
     if (isFullLoading) {
         return (
-            <div className="container mx-auto px-4 py-8">
-                <Skeleton className="w-full h-[600px] rounded-[24px]" />
+            <div className="min-h-screen bg-slate-900">
+                {/* 헤더 바 */}
+                <div className="sticky top-0 z-50 bg-slate-900 border-b border-slate-700 shadow-lg">
+                    <div className="container mx-auto px-4">
+                        <div className="flex items-center justify-between h-16">
+                            <div className="flex items-center gap-4">
+                                <Skeleton className="w-10 h-10 rounded-xl bg-slate-700" />
+                                <Skeleton className="h-6 w-24 bg-slate-700" style={{ animationDelay: '50ms' }} />
+                                {/* 네비게이션 아이템 */}
+                                <div className="hidden lg:flex items-center gap-2 ml-4">
+                                    {[0, 1, 2, 3, 4].map((i) => (
+                                        <Skeleton key={i} className="h-9 w-20 rounded-lg bg-slate-700" style={{ animationDelay: `${80 + i * 40}ms` }} />
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <Skeleton className="h-4 w-20 bg-slate-700 hidden xl:block" style={{ animationDelay: '300ms' }} />
+                                <Skeleton className="w-9 h-9 rounded-full bg-slate-700" style={{ animationDelay: '330ms' }} />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* 콘텐츠 영역 */}
+                <main className="container mx-auto px-4 py-8">
+                    <div className="space-y-4">
+                        <Skeleton className="h-8 w-40 bg-slate-700" style={{ animationDelay: '380ms' }} />
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                            {[0, 1, 2, 3].map((i) => (
+                                <Skeleton key={i} className="h-28 rounded-lg bg-slate-700" style={{ animationDelay: `${420 + i * 50}ms` }} />
+                            ))}
+                        </div>
+                        <Skeleton className="h-64 rounded-lg bg-slate-700" style={{ animationDelay: '650ms' }} />
+                    </div>
+                </main>
             </div>
         );
     }

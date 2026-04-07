@@ -79,8 +79,37 @@ export default function NewSlidePage() {
     // 로딩 중
     if (isUnionLoading || isAuthLoading) {
         return (
-            <div>
-                <Skeleton className="w-full h-[600px] rounded-[24px]" />
+            <div className="space-y-6">
+                {/* 헤더 */}
+                <div className="flex items-center gap-3">
+                    <Skeleton className="h-10 w-10 rounded-md" />
+                    <div className="space-y-1.5">
+                        <Skeleton className="h-7 w-40" />
+                        <Skeleton className="h-4 w-52" style={{ animationDelay: '50ms' }} />
+                    </div>
+                </div>
+
+                {/* 이미지 업로드 영역 */}
+                <Skeleton className="h-48 w-full rounded-lg" style={{ animationDelay: '100ms' }} />
+
+                {/* 폼 필드들 */}
+                <div className="space-y-4">
+                    <div className="space-y-2">
+                        <Skeleton className="h-4 w-20" style={{ animationDelay: '150ms' }} />
+                        <Skeleton className="h-10 w-full rounded-md" style={{ animationDelay: '170ms' }} />
+                    </div>
+                    <div className="space-y-2">
+                        <Skeleton className="h-4 w-24" style={{ animationDelay: '200ms' }} />
+                        <Skeleton className="h-10 w-full rounded-md" style={{ animationDelay: '220ms' }} />
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <Skeleton className="h-5 w-5 rounded" style={{ animationDelay: '250ms' }} />
+                        <Skeleton className="h-4 w-16" style={{ animationDelay: '270ms' }} />
+                    </div>
+                </div>
+
+                {/* 제출 버튼 */}
+                <Skeleton className="h-11 w-full rounded-md" style={{ animationDelay: '300ms' }} />
             </div>
         );
     }

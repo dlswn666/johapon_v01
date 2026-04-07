@@ -61,8 +61,20 @@ function AuthErrorContent() {
 export default function AuthErrorPage() {
     return (
         <Suspense fallback={
-            <div className="min-h-screen flex items-center justify-center bg-slate-900 p-4">
-                <Skeleton className="w-full max-w-md h-[400px] rounded-[24px] opacity-20" />
+            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4">
+                <div className="w-full max-w-md bg-slate-800/80 backdrop-blur-sm border border-slate-700 shadow-2xl rounded-lg p-8 space-y-6">
+                    {/* 에러 아이콘 */}
+                    <Skeleton className="w-16 h-16 rounded-2xl mx-auto bg-slate-700" />
+                    {/* 제목 */}
+                    <div className="text-center space-y-2">
+                        <Skeleton className="h-8 w-32 mx-auto bg-slate-700" style={{ animationDelay: '50ms' }} />
+                        <Skeleton className="h-4 w-56 mx-auto bg-slate-700" style={{ animationDelay: '100ms' }} />
+                    </div>
+                    {/* 버튼 */}
+                    <Skeleton className="h-10 w-full rounded-md bg-slate-700" style={{ animationDelay: '150ms' }} />
+                    {/* 안내 텍스트 */}
+                    <Skeleton className="h-3 w-48 mx-auto bg-slate-700" style={{ animationDelay: '200ms' }} />
+                </div>
             </div>
         }>
             <AuthErrorContent />

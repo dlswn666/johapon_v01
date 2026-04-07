@@ -26,9 +26,34 @@ export default function NotificationsPage({ params }: { params: Promise<{ assemb
 
   if (isUnionLoading || isAuthLoading || isLoading) {
     return (
-      <div className="container mx-auto px-4 py-8 space-y-4">
-        <Skeleton className="h-10 w-48" />
-        <Skeleton className="h-[300px] rounded-lg" />
+      <div className="space-y-3">
+        {/* 헤더 */}
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-10 w-10 rounded-md" />
+          <div className="space-y-1.5">
+            <Skeleton className="h-7 w-28" />
+            <Skeleton className="h-4 w-24" style={{ animationDelay: '50ms' }} />
+          </div>
+        </div>
+        {/* 빠른 발송 버튼 */}
+        <div className="flex flex-wrap gap-2">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-8 w-28 rounded-md" style={{ animationDelay: `${100 + i * 40}ms` }} />
+          ))}
+        </div>
+        {/* 타임라인 */}
+        <div className="space-y-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="flex gap-3 p-4 bg-white rounded-lg border border-gray-200">
+              <Skeleton className="h-8 w-8 rounded-full shrink-0" style={{ animationDelay: `${260 + i * 70}ms` }} />
+              <div className="flex-1 space-y-1.5">
+                <Skeleton className="h-4 w-32" style={{ animationDelay: `${280 + i * 70}ms` }} />
+                <Skeleton className="h-3 w-48" style={{ animationDelay: `${300 + i * 70}ms` }} />
+                <Skeleton className="h-3 w-20" style={{ animationDelay: `${320 + i * 70}ms` }} />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }

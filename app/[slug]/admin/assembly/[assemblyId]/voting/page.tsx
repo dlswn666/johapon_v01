@@ -110,9 +110,31 @@ export default function VotingPage({ params }: { params: Promise<{ assemblyId: s
 
   if (isUnionLoading || isAuthLoading || isAssemblyLoading) {
     return (
-      <div className="space-y-4">
-        <Skeleton className="h-10 w-48" />
-        <Skeleton className="h-[300px] rounded-lg" />
+      <div className="space-y-3">
+        {/* 헤더 */}
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-10 w-10 rounded-md" />
+          <div className="space-y-1.5">
+            <Skeleton className="h-7 w-28" />
+            <Skeleton className="h-4 w-48" />
+          </div>
+        </div>
+        {/* 안건+투표 카드 */}
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="bg-white rounded-lg p-5 space-y-3" style={{ animationDelay: `${100 + i * 150}ms` }}>
+            <div className="space-y-1">
+              <Skeleton className="h-3 w-14" />
+              <Skeleton className="h-5 w-2/3" />
+            </div>
+            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <div className="flex items-center gap-3">
+                <Skeleton className="h-5 w-14 rounded-full" />
+                <Skeleton className="h-4 w-24" />
+              </div>
+              <Skeleton className="h-8 w-20 rounded-md" />
+            </div>
+          </div>
+        ))}
       </div>
     );
   }
@@ -142,9 +164,21 @@ export default function VotingPage({ params }: { params: Promise<{ assemblyId: s
 
       {/* 안건 목록 */}
       {isAgendasLoading ? (
-        <div className="space-y-3">
-          {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-24 rounded-lg" />
+        <div className="space-y-4">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="bg-white rounded-lg p-5 space-y-3">
+              <div className="space-y-1">
+                <Skeleton className="h-3 w-14" style={{ animationDelay: `${i * 150}ms` }} />
+                <Skeleton className="h-5 w-2/3" />
+              </div>
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <Skeleton className="h-5 w-14 rounded-full" />
+                  <Skeleton className="h-4 w-24" />
+                </div>
+                <Skeleton className="h-8 w-20 rounded-md" />
+              </div>
+            </div>
           ))}
         </div>
       ) : agendas.length === 0 ? (

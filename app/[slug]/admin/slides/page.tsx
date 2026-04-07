@@ -50,8 +50,25 @@ export default function SlidesPage() {
     // 로딩 중
     if (isUnionLoading || isAuthLoading) {
         return (
-            <div className="container mx-auto px-4 py-8">
-                <Skeleton className="w-full h-[600px] rounded-[24px]" />
+            <div className="space-y-3">
+                {/* 헤더 */}
+                <div className="flex items-baseline gap-3">
+                    <Skeleton className="h-8 w-36" />
+                    <Skeleton className="h-4 w-64" style={{ animationDelay: '50ms' }} />
+                </div>
+
+                {/* 슬라이드 카드 그리드 */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {[0, 1, 2].map((i) => (
+                        <div key={i} className="rounded-lg border border-gray-200 overflow-hidden">
+                            <Skeleton className="h-40 w-full rounded-none" style={{ animationDelay: `${100 + i * 80}ms` }} />
+                            <div className="p-4 space-y-2">
+                                <Skeleton className="h-4 w-3/4" style={{ animationDelay: `${150 + i * 80}ms` }} />
+                                <Skeleton className="h-3 w-1/2" style={{ animationDelay: `${180 + i * 80}ms` }} />
+                            </div>
+                        </div>
+                    ))}
+                </div>
             </div>
         );
     }

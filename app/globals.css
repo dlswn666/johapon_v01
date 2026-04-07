@@ -50,6 +50,9 @@
     --breakpoint-lg: 1100px;
     --breakpoint-xl: 1650px;
     --breakpoint-2xl: 1920px;
+
+    /* 스켈레톤 shimmer 애니메이션 */
+    --animate-shimmer: shimmer 1.5s ease-in-out infinite;
 }
 
 :root {
@@ -398,6 +401,20 @@
 
     .animate-scroll {
         animation: none !important;
+    }
+
+    .animate-shimmer {
+        animation: none !important;
+    }
+}
+
+/* 스켈레톤 shimmer 애니메이션 */
+@keyframes shimmer {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
     }
 }
 

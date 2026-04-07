@@ -143,9 +143,56 @@ export default function AssemblyReportPage({ params }: { params: Promise<{ assem
 
   if (isLoading) {
     return (
-      <div className="container mx-auto px-4 py-8 space-y-4">
-        <Skeleton className="h-10 w-48" />
-        <Skeleton className="h-[400px] rounded-lg" />
+      <div className="space-y-3">
+        {/* 헤더 */}
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-10 w-10 rounded-md" />
+          <div className="space-y-1.5">
+            <Skeleton className="h-7 w-48" />
+            <Skeleton className="h-4 w-24" style={{ animationDelay: '50ms' }} />
+          </div>
+        </div>
+        {/* 탭 */}
+        <div className="flex border-b border-gray-200">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-2 px-5 py-3">
+              <Skeleton className="h-4 w-4 rounded" style={{ animationDelay: `${100 + i * 40}ms` }} />
+              <Skeleton className="h-4 w-16" style={{ animationDelay: `${120 + i * 40}ms` }} />
+            </div>
+          ))}
+        </div>
+        {/* 집계 영역 */}
+        <div className="bg-white rounded-lg border border-gray-200 p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <Skeleton className="h-5 w-24" style={{ animationDelay: '220ms' }} />
+              <Skeleton className="h-3 w-48" style={{ animationDelay: '250ms' }} />
+            </div>
+            <Skeleton className="h-9 w-24 rounded-md" style={{ animationDelay: '280ms' }} />
+          </div>
+        </div>
+        {/* 출석 현황 카드 */}
+        <div className="bg-white rounded-lg border border-gray-200 p-5">
+          <Skeleton className="h-5 w-20 mb-4" style={{ animationDelay: '310ms' }} />
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="text-center p-3 bg-gray-50 rounded-lg space-y-1">
+                <Skeleton className="h-8 w-12 mx-auto" style={{ animationDelay: `${340 + i * 40}ms` }} />
+                <Skeleton className="h-3 w-10 mx-auto" style={{ animationDelay: `${360 + i * 40}ms` }} />
+              </div>
+            ))}
+          </div>
+        </div>
+        {/* 안건별 결과 */}
+        {Array.from({ length: 2 }).map((_, i) => (
+          <div key={i} className="bg-white rounded-lg border border-gray-200 p-5 space-y-3">
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-5 w-12 rounded" style={{ animationDelay: `${500 + i * 80}ms` }} />
+              <Skeleton className="h-5 w-36" style={{ animationDelay: `${520 + i * 80}ms` }} />
+            </div>
+            <Skeleton className="h-24 w-full rounded" style={{ animationDelay: `${540 + i * 80}ms` }} />
+          </div>
+        ))}
       </div>
     );
   }
@@ -266,7 +313,17 @@ export default function AssemblyReportPage({ params }: { params: Promise<{ assem
 
           {/* 보고서 요약 */}
           {isReportLoading ? (
-            <Skeleton className="h-48 rounded-lg" />
+            <div className="bg-white rounded-lg border border-gray-200 p-5">
+              <Skeleton className="h-5 w-20 mb-4" />
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="text-center p-3 bg-gray-50 rounded-lg space-y-1">
+                    <Skeleton className="h-8 w-12 mx-auto" style={{ animationDelay: `${i * 40}ms` }} />
+                    <Skeleton className="h-3 w-10 mx-auto" style={{ animationDelay: `${i * 40 + 20}ms` }} />
+                  </div>
+                ))}
+              </div>
+            </div>
           ) : report ? (
             <div className="space-y-4">
               {/* 출석 현황 */}
@@ -443,7 +500,18 @@ export default function AssemblyReportPage({ params }: { params: Promise<{ assem
           </div>
 
           {isMinutesLoading ? (
-            <Skeleton className="h-96 rounded-lg" />
+            <div className="bg-white rounded-lg border border-gray-200 p-5 space-y-3">
+              {[85, 92, 70, 88, 76, 95, 68, 82, 90, 73, 87, 78].map((w, i) => (
+                <Skeleton
+                  key={i}
+                  className="h-4 rounded"
+                  style={{
+                    width: `${w}%`,
+                    animationDelay: `${i * 30}ms`,
+                  }}
+                />
+              ))}
+            </div>
           ) : minutesData?.minutes_draft ? (
             <div className="bg-white rounded-lg border border-gray-200">
               {isEditingMinutes ? (
@@ -575,7 +643,15 @@ export default function AssemblyReportPage({ params }: { params: Promise<{ assem
             </div>
 
             {isEvidenceLoading ? (
-              <Skeleton className="h-24 rounded-lg" />
+              <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200 space-y-2">
+                <div className="flex items-start gap-3">
+                  <Skeleton className="h-5 w-5 rounded-full shrink-0" />
+                  <div className="flex-1 space-y-1.5">
+                    <Skeleton className="h-4 w-36" style={{ animationDelay: '30ms' }} />
+                    <Skeleton className="h-3 w-24" style={{ animationDelay: '60ms' }} />
+                  </div>
+                </div>
+              </div>
             ) : evidenceData?.evidence_packaged_at ? (
               <div className="mt-4 p-4 bg-green-50 rounded-lg border border-green-200">
                 <div className="flex items-start gap-3">

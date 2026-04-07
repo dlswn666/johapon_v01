@@ -72,9 +72,37 @@ export default function EvoteNotificationsPage({
 
   if (isUnionLoading || isAuthLoading || isEvoteLoading) {
     return (
-      <div className="container mx-auto px-4 py-8 space-y-4">
-        <Skeleton className="h-10 w-48" />
-        <Skeleton className="h-[300px] rounded-lg" />
+      <div className="space-y-3">
+        {/* 헤더: 뒤로가기 + 제목 + 버튼 */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Skeleton className="h-10 w-10 rounded-md" />
+            <div className="space-y-1.5">
+              <Skeleton className="h-7 w-28" />
+              <Skeleton className="h-4 w-40" style={{ animationDelay: '50ms' }} />
+            </div>
+          </div>
+          <Skeleton className="h-10 w-32 rounded-md" style={{ animationDelay: '80ms' }} />
+        </div>
+
+        {/* 테이블 */}
+        <div className="bg-white border rounded-lg overflow-hidden">
+          {/* 테이블 헤더 */}
+          <div className="bg-gray-50 border-b border-gray-200 px-4 py-3 flex gap-8">
+            {['w-16', 'w-12', 'w-12', 'w-24'].map((w, i) => (
+              <Skeleton key={i} className={`h-4 ${w}`} style={{ animationDelay: `${100 + i * 30}ms` }} />
+            ))}
+          </div>
+          {/* 테이블 행 */}
+          {[0, 1, 2, 3, 4].map((i) => (
+            <div key={i} className="px-4 py-3 flex gap-8 border-b border-gray-100">
+              <Skeleton className="h-4 w-20" style={{ animationDelay: `${200 + i * 60}ms` }} />
+              <Skeleton className="h-5 w-14 rounded-full" style={{ animationDelay: `${220 + i * 60}ms` }} />
+              <Skeleton className="h-5 w-12 rounded-full" style={{ animationDelay: `${240 + i * 60}ms` }} />
+              <Skeleton className="h-4 w-28" style={{ animationDelay: `${260 + i * 60}ms` }} />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -107,9 +135,21 @@ export default function EvoteNotificationsPage({
       {/* 알림 이력 테이블 */}
       <div className="bg-white border rounded-lg overflow-hidden">
         {isNotiLoading ? (
-          <div className="p-4 space-y-3">
+          <div className="p-0">
+            {/* 테이블 헤더 */}
+            <div className="bg-gray-50 border-b border-gray-200 px-4 py-3 flex gap-8">
+              {['w-16', 'w-12', 'w-12', 'w-24'].map((w, i) => (
+                <Skeleton key={i} className={`h-4 ${w}`} style={{ animationDelay: `${i * 30}ms` }} />
+              ))}
+            </div>
+            {/* 테이블 행 */}
             {[...Array(5)].map((_, i) => (
-              <Skeleton key={i} className="h-12 w-full" />
+              <div key={i} className="px-4 py-3 flex gap-8 border-b border-gray-100">
+                <Skeleton className="h-4 w-20" style={{ animationDelay: `${80 + i * 60}ms` }} />
+                <Skeleton className="h-5 w-14 rounded-full" style={{ animationDelay: `${100 + i * 60}ms` }} />
+                <Skeleton className="h-5 w-12 rounded-full" style={{ animationDelay: `${120 + i * 60}ms` }} />
+                <Skeleton className="h-4 w-28" style={{ animationDelay: `${140 + i * 60}ms` }} />
+              </div>
             ))}
           </div>
         ) : !notifications || notifications.length === 0 ? (

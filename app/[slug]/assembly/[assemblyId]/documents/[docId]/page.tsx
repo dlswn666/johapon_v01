@@ -55,9 +55,40 @@ export default function MemberDocumentViewPage({
 
   if (isLoading) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-8 space-y-4">
-        <Skeleton className="h-10 w-48" />
-        <Skeleton className="h-[600px] rounded-lg" />
+      <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
+        {/* 헤더: 뒤로가기 + 문서 제목 */}
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-10 w-10 rounded-md" />
+          <div className="space-y-1.5">
+            <Skeleton className="h-6 w-40" />
+            <Skeleton className="h-4 w-12" style={{ animationDelay: '50ms' }} />
+          </div>
+        </div>
+
+        {/* A4 문서 뷰어 */}
+        <div className="bg-white border rounded-lg p-8 space-y-4">
+          <Skeleton className="h-6 w-3/4 mx-auto" style={{ animationDelay: '100ms' }} />
+          <Skeleton className="h-4 w-full" style={{ animationDelay: '130ms' }} />
+          <Skeleton className="h-4 w-full" style={{ animationDelay: '150ms' }} />
+          <Skeleton className="h-4 w-5/6" style={{ animationDelay: '170ms' }} />
+          <Skeleton className="h-4 w-full" style={{ animationDelay: '200ms' }} />
+          <Skeleton className="h-4 w-4/5" style={{ animationDelay: '220ms' }} />
+          <div className="pt-4" />
+          <Skeleton className="h-4 w-full" style={{ animationDelay: '260ms' }} />
+          <Skeleton className="h-4 w-full" style={{ animationDelay: '280ms' }} />
+          <Skeleton className="h-4 w-3/4" style={{ animationDelay: '300ms' }} />
+          <Skeleton className="h-4 w-full" style={{ animationDelay: '320ms' }} />
+          <Skeleton className="h-4 w-2/3" style={{ animationDelay: '340ms' }} />
+        </div>
+
+        {/* 서명 영역 */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-3">
+            <Skeleton className="h-5 w-5 rounded" style={{ animationDelay: '380ms' }} />
+            <Skeleton className="h-4 w-36" style={{ animationDelay: '400ms' }} />
+          </div>
+          <Skeleton className="h-11 w-full rounded-md" style={{ animationDelay: '430ms' }} />
+        </div>
       </div>
     );
   }

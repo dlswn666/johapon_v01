@@ -116,9 +116,44 @@ export default function WizardPage({ params }: { params: Promise<{ assemblyId: s
 
   if (isUnionLoading || isAuthLoading || isLoading) {
     return (
-      <div className="container mx-auto px-4 py-8 space-y-4">
-        <Skeleton className="h-10 w-48" />
-        <Skeleton className="h-[500px] rounded-lg" />
+      <div className="space-y-3">
+        {/* 헤더 */}
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-10 w-10 rounded-md" />
+          <div className="space-y-1.5">
+            <Skeleton className="h-7 w-36" />
+            <Skeleton className="h-4 w-24" style={{ animationDelay: '50ms' }} />
+          </div>
+        </div>
+        {/* 위자드 레이아웃: 사이드바 + 콘텐츠 */}
+        <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-6">
+          {/* 사이드바 스텝 */}
+          <div className="space-y-2">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-3 p-3 rounded-lg">
+                <Skeleton className="h-8 w-8 rounded-full" style={{ animationDelay: `${100 + i * 40}ms` }} />
+                <div className="space-y-1 flex-1">
+                  <Skeleton className="h-4 w-20" style={{ animationDelay: `${120 + i * 40}ms` }} />
+                  <Skeleton className="h-3 w-32" style={{ animationDelay: `${140 + i * 40}ms` }} />
+                </div>
+              </div>
+            ))}
+          </div>
+          {/* 콘텐츠 영역 */}
+          <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-5">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="space-y-2">
+                <Skeleton className="h-4 w-20" style={{ animationDelay: `${300 + i * 60}ms` }} />
+                <Skeleton className="h-10 w-full rounded-md" style={{ animationDelay: `${320 + i * 60}ms` }} />
+              </div>
+            ))}
+            {/* 네비게이션 */}
+            <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+              <Skeleton className="h-9 w-20 rounded-md" style={{ animationDelay: '560ms' }} />
+              <Skeleton className="h-9 w-20 rounded-md" style={{ animationDelay: '590ms' }} />
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

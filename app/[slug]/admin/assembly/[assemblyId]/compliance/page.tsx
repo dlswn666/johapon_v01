@@ -26,9 +26,43 @@ export default function CompliancePage({ params }: { params: Promise<{ assemblyI
 
   if (isUnionLoading || isAuthLoading || isLoading) {
     return (
-      <div className="container mx-auto px-4 py-8 space-y-4">
-        <Skeleton className="h-10 w-48" />
-        <Skeleton className="h-[300px] rounded-lg" />
+      <div className="space-y-3">
+        {/* 헤더 */}
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-10 w-10 rounded-md" />
+          <div className="space-y-1.5">
+            <Skeleton className="h-7 w-36" />
+            <Skeleton className="h-4 w-24" style={{ animationDelay: '50ms' }} />
+          </div>
+        </div>
+        {/* 컴플라이언스 검증 헤더 + 재평가 버튼 */}
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-6 w-32" style={{ animationDelay: '100ms' }} />
+          <Skeleton className="h-8 w-20 rounded-md" style={{ animationDelay: '130ms' }} />
+        </div>
+        {/* 체크포인트 선택 */}
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-24" style={{ animationDelay: '160ms' }} />
+          <div className="flex flex-wrap gap-2">
+            {Array.from({ length: 7 }).map((_, i) => (
+              <Skeleton key={i} className="h-7 w-20 rounded-full" style={{ animationDelay: `${190 + i * 30}ms` }} />
+            ))}
+          </div>
+        </div>
+        {/* 배너 + 룰 목록 */}
+        <Skeleton className="h-12 w-full rounded-lg" style={{ animationDelay: '400ms' }} />
+        <div className="space-y-2">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-3 p-3 rounded-lg border border-gray-200">
+              <Skeleton className="h-5 w-5 rounded-full" style={{ animationDelay: `${450 + i * 50}ms` }} />
+              <div className="flex-1 space-y-1">
+                <Skeleton className="h-4 w-48" style={{ animationDelay: `${470 + i * 50}ms` }} />
+                <Skeleton className="h-3 w-32" style={{ animationDelay: `${490 + i * 50}ms` }} />
+              </div>
+              <Skeleton className="h-5 w-12 rounded-full" style={{ animationDelay: `${510 + i * 50}ms` }} />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }

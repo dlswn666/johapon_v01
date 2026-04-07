@@ -53,9 +53,35 @@ export default function DocumentDetailPage({
 
   if (isUnionLoading || isAuthLoading || isLoading) {
     return (
-      <div className="container mx-auto px-4 py-8 space-y-4">
-        <Skeleton className="h-10 w-48" />
-        <Skeleton className="h-[500px] rounded-lg" />
+      <div className="space-y-3">
+        {/* 헤더 */}
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-10 w-10 rounded-md" />
+          <div className="space-y-1.5">
+            <Skeleton className="h-7 w-44" />
+            <Skeleton className="h-4 w-16" style={{ animationDelay: '50ms' }} />
+          </div>
+        </div>
+        {/* 상태 흐름 */}
+        <div className="flex items-center gap-2">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-7 w-16 rounded-full" style={{ animationDelay: `${100 + i * 40}ms` }} />
+          ))}
+        </div>
+        {/* 탭 */}
+        <div className="flex gap-1 border-b border-gray-200">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-8 w-20 rounded-sm" style={{ animationDelay: `${350 + i * 40}ms` }} />
+          ))}
+        </div>
+        {/* 문서 미리보기 영역 */}
+        <Skeleton className="h-[400px] w-full rounded-lg" style={{ animationDelay: '500ms' }} />
+        {/* 하단 액션 바 */}
+        <div className="flex justify-end gap-2">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-8 w-20 rounded-md" style={{ animationDelay: `${600 + i * 40}ms` }} />
+          ))}
+        </div>
       </div>
     );
   }

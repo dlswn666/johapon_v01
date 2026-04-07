@@ -91,8 +91,55 @@ export default function UnionAlimtalkPage() {
     // 로딩 중
     if (unionsLoading || isLoading) {
         return (
-            <div className="container mx-auto px-4 py-8">
-                <Skeleton className="w-full h-[600px] rounded-[24px]" />
+            <div className="space-y-3">
+                {/* 헤더 */}
+                <div className="mb-2 flex items-baseline gap-3">
+                    <Skeleton className="h-8 w-48" />
+                    <Skeleton className="h-4 w-64" style={{ animationDelay: '50ms' }} />
+                </div>
+
+                {/* 통계 카드 5개 */}
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                    {[0, 1, 2, 3, 4].map((i) => (
+                        <Card key={i}>
+                            <CardContent className="p-4">
+                                <Skeleton className="h-4 w-16 mb-2" style={{ animationDelay: `${100 + i * 50}ms` }} />
+                                <Skeleton className="h-8 w-12" style={{ animationDelay: `${120 + i * 50}ms` }} />
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
+
+                {/* 검색 바 */}
+                <Card>
+                    <CardContent className="p-6">
+                        <Skeleton className="h-12 w-full rounded-xl" style={{ animationDelay: '400ms' }} />
+                    </CardContent>
+                </Card>
+
+                {/* 테이블 */}
+                <Card>
+                    <CardContent className="p-0">
+                        <div className="px-6 py-4 border-b">
+                            <div className="flex gap-6">
+                                {[0, 1, 2, 3, 4, 5, 6].map((i) => (
+                                    <Skeleton key={i} className="h-4 w-14" style={{ animationDelay: `${450 + i * 30}ms` }} />
+                                ))}
+                            </div>
+                        </div>
+                        {[0, 1, 2, 3, 4].map((i) => (
+                            <div key={i} className="flex items-center gap-6 px-6 py-4 border-b last:border-0">
+                                <Skeleton className="h-4 w-28" style={{ animationDelay: `${500 + i * 60}ms` }} />
+                                <Skeleton className="h-4 w-16" style={{ animationDelay: `${520 + i * 60}ms` }} />
+                                <Skeleton className="h-4 w-32" style={{ animationDelay: `${540 + i * 60}ms` }} />
+                                <Skeleton className="h-4 w-8" style={{ animationDelay: `${560 + i * 60}ms` }} />
+                                <Skeleton className="h-4 w-8" style={{ animationDelay: `${580 + i * 60}ms` }} />
+                                <Skeleton className="h-4 w-8" style={{ animationDelay: `${600 + i * 60}ms` }} />
+                                <Skeleton className="h-4 w-20" style={{ animationDelay: `${620 + i * 60}ms` }} />
+                            </div>
+                        ))}
+                    </CardContent>
+                </Card>
             </div>
         );
     }

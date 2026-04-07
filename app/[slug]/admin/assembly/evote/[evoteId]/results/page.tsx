@@ -89,9 +89,39 @@ export default function EvoteResultsPage({
 
   if (isUnionLoading || isAuthLoading || isEvoteLoading) {
     return (
-      <div className="container mx-auto px-4 py-8 space-y-4">
-        <Skeleton className="h-10 w-48" />
-        <Skeleton className="h-[400px] rounded-lg" />
+      <div className="space-y-3">
+        {/* 헤더: 뒤로가기 + 제목 */}
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-10 w-10 rounded-md" />
+          <div className="space-y-1.5">
+            <Skeleton className="h-7 w-28" />
+            <Skeleton className="h-4 w-48" style={{ animationDelay: '50ms' }} />
+          </div>
+        </div>
+
+        {/* 결과 카드 3개 */}
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="bg-white border rounded-lg p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <Skeleton className="h-5 w-40" style={{ animationDelay: `${100 + i * 100}ms` }} />
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-6 w-16 rounded-full" style={{ animationDelay: `${130 + i * 100}ms` }} />
+                <Skeleton className="h-6 w-20 rounded-full" style={{ animationDelay: `${150 + i * 100}ms` }} />
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              {[0, 1, 2].map((j) => (
+                <div key={j} className="flex-1 space-y-1">
+                  <div className="flex justify-between">
+                    <Skeleton className="h-4 w-10" style={{ animationDelay: `${170 + i * 100 + j * 30}ms` }} />
+                    <Skeleton className="h-4 w-16" style={{ animationDelay: `${190 + i * 100 + j * 30}ms` }} />
+                  </div>
+                  <Skeleton className="h-2 w-full rounded-full" style={{ animationDelay: `${210 + i * 100 + j * 30}ms` }} />
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
     );
   }
@@ -119,7 +149,23 @@ export default function EvoteResultsPage({
       {isResultsLoading ? (
         <div className="space-y-4">
           {[...Array(3)].map((_, i) => (
-            <Skeleton key={i} className="h-48 rounded-lg" />
+            <div key={i} className="bg-white border rounded-lg p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <Skeleton className="h-5 w-40" style={{ animationDelay: `${i * 100}ms` }} />
+                <div className="flex items-center gap-2">
+                  <Skeleton className="h-6 w-16 rounded-full" style={{ animationDelay: `${30 + i * 100}ms` }} />
+                  <Skeleton className="h-6 w-20 rounded-full" style={{ animationDelay: `${50 + i * 100}ms` }} />
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                {[0, 1, 2].map((j) => (
+                  <div key={j} className="flex-1 space-y-1">
+                    <Skeleton className="h-4 w-full" style={{ animationDelay: `${70 + i * 100 + j * 30}ms` }} />
+                    <Skeleton className="h-2 w-full rounded-full" style={{ animationDelay: `${90 + i * 100 + j * 30}ms` }} />
+                  </div>
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       ) : !results || results.length === 0 ? (

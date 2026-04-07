@@ -48,9 +48,37 @@ export default function DocumentsPage({ params }: { params: Promise<{ assemblyId
 
   if (isUnionLoading || isAuthLoading || isLoading) {
     return (
-      <div className="container mx-auto px-4 py-8 space-y-4">
-        <Skeleton className="h-10 w-48" />
-        <Skeleton className="h-[300px] rounded-lg" />
+      <div className="space-y-3">
+        {/* 헤더 */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Skeleton className="h-10 w-10 rounded-md" />
+            <div className="space-y-1.5">
+              <Skeleton className="h-7 w-36" />
+              <Skeleton className="h-4 w-24" style={{ animationDelay: '50ms' }} />
+            </div>
+          </div>
+          <Skeleton className="h-9 w-28 rounded-md" style={{ animationDelay: '100ms' }} />
+        </div>
+        {/* 상태 필터 탭 */}
+        <div className="flex gap-1 border-b border-gray-200">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-8 w-16 rounded-sm" style={{ animationDelay: `${150 + i * 30}ms` }} />
+          ))}
+        </div>
+        {/* 문서 리스트 */}
+        <div className="space-y-2">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-3 p-4 bg-white rounded-lg border border-gray-200" style={{ animationDelay: `${300 + i * 60}ms` }}>
+              <Skeleton className="h-5 w-5 rounded" style={{ animationDelay: `${300 + i * 60}ms` }} />
+              <div className="flex-1 space-y-1.5">
+                <Skeleton className="h-4 w-40" style={{ animationDelay: `${320 + i * 60}ms` }} />
+                <Skeleton className="h-3 w-24" style={{ animationDelay: `${340 + i * 60}ms` }} />
+              </div>
+              <Skeleton className="h-5 w-16 rounded-full" style={{ animationDelay: `${360 + i * 60}ms` }} />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }

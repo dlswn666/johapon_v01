@@ -78,7 +78,30 @@ const EditFreeBoardPage = () => {
     if (isUnionLoading || isLoading) {
         return (
             <div className="container mx-auto max-w-[1280px] px-4 py-8">
-                <Skeleton className="w-full h-[600px] rounded-[24px]" />
+                <div className="max-w-4xl mx-auto space-y-8">
+                    {/* 페이지 제목 */}
+                    <Skeleton className="h-10 w-36" />
+                    {/* 제목 입력 */}
+                    <div className="space-y-2">
+                        <Skeleton className="h-4 w-12" style={{ animationDelay: '50ms' }} />
+                        <Skeleton className="h-[48px] w-full rounded-[12px]" style={{ animationDelay: '75ms' }} />
+                    </div>
+                    {/* 첨부파일 */}
+                    <div className="space-y-2">
+                        <Skeleton className="h-4 w-16" style={{ animationDelay: '100ms' }} />
+                        <Skeleton className="h-20 w-full rounded-[12px]" style={{ animationDelay: '125ms' }} />
+                    </div>
+                    {/* 내용 에디터 */}
+                    <div className="space-y-2">
+                        <Skeleton className="h-4 w-12" style={{ animationDelay: '150ms' }} />
+                        <Skeleton className="h-[300px] w-full rounded-[12px]" style={{ animationDelay: '175ms' }} />
+                    </div>
+                    {/* 버튼 영역 */}
+                    <div className="flex justify-end gap-3 pt-6 border-t border-[#CCCCCC]">
+                        <Skeleton className="h-10 w-20 rounded-lg" style={{ animationDelay: '225ms' }} />
+                        <Skeleton className="h-10 w-20 rounded-lg" style={{ animationDelay: '250ms' }} />
+                    </div>
+                </div>
             </div>
         );
     }

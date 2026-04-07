@@ -150,9 +150,27 @@ export default function ProxyManagementPage({ params }: { params: Promise<{ asse
 
   if (isUnionLoading || isAuthLoading) {
     return (
-      <div className="space-y-4">
-        <Skeleton className="h-10 w-48" />
-        <Skeleton className="h-[400px] rounded-lg" />
+      <div className="space-y-3">
+        {/* 헤더 */}
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-10 w-10 rounded-md" />
+          <div className="space-y-1.5">
+            <Skeleton className="h-7 w-44" />
+            <Skeleton className="h-4 w-28" />
+          </div>
+        </div>
+        {/* 탭 */}
+        <Skeleton className="h-10 w-56 rounded-lg" style={{ animationDelay: '100ms' }} />
+        {/* 폼 영역 */}
+        <div className="bg-white rounded-lg p-6 space-y-5">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="space-y-2">
+              <Skeleton className="h-4 w-32" style={{ animationDelay: `${200 + i * 100}ms` }} />
+              <Skeleton className="h-10 w-full" style={{ animationDelay: `${250 + i * 100}ms` }} />
+            </div>
+          ))}
+          <Skeleton className="h-10 w-full rounded-md" style={{ animationDelay: '500ms' }} />
+        </div>
       </div>
     );
   }

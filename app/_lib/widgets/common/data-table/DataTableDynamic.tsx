@@ -24,7 +24,10 @@ function DataTableSkeleton({ columns = 5, rows = 10 }: DataTableSkeletonProps) {
                 <div key={rowIndex} className="flex border-b last:border-0">
                     {Array.from({ length: columns }).map((_, colIndex) => (
                         <div key={colIndex} className="flex-1 px-4 py-3">
-                            <Skeleton className="h-4 w-full" />
+                            <Skeleton
+                                className="h-4 w-full"
+                                style={{ animationDelay: `${rowIndex * 75}ms` }}
+                            />
                         </div>
                     ))}
                 </div>

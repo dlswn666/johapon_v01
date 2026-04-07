@@ -84,8 +84,35 @@ export default function AssemblyListPage() {
 
   if (isUnionLoading || isAuthLoading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <Skeleton className="w-full h-[400px] rounded-lg" />
+      <div className="space-y-3">
+        {/* 헤더: 제목 + 버튼 */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-baseline gap-3">
+            <Skeleton className="h-8 w-32" />
+            <Skeleton className="h-4 w-48" style={{ animationDelay: '100ms' }} />
+          </div>
+          <Skeleton className="h-10 w-28 rounded-md" style={{ animationDelay: '200ms' }} />
+        </div>
+        {/* 카드 리스트 */}
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="bg-white rounded-lg p-5 space-y-3" style={{ animationDelay: `${300 + i * 150}ms` }}>
+            <div className="flex items-start justify-between">
+              <div className="space-y-2 flex-1">
+                <Skeleton className="h-5 w-3/5" />
+                <Skeleton className="h-4 w-24" />
+              </div>
+              <Skeleton className="h-6 w-16 rounded-full" />
+            </div>
+            <div className="flex gap-4">
+              <Skeleton className="h-4 w-36" />
+              <Skeleton className="h-4 w-20" />
+            </div>
+            <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+              <Skeleton className="h-3 w-24" />
+              <Skeleton className="h-4 w-4 rounded" />
+            </div>
+          </div>
+        ))}
       </div>
     );
   }
@@ -116,8 +143,24 @@ export default function AssemblyListPage() {
 
       {isAssembliesLoading ? (
         <div className="grid gap-4">
-          {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-[160px] rounded-lg" />
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="bg-white rounded-lg p-5 space-y-3">
+              <div className="flex items-start justify-between">
+                <div className="space-y-2 flex-1">
+                  <Skeleton className="h-5 w-3/5" style={{ animationDelay: `${i * 150}ms` }} />
+                  <Skeleton className="h-4 w-24" style={{ animationDelay: `${i * 150 + 50}ms` }} />
+                </div>
+                <Skeleton className="h-6 w-16 rounded-full" style={{ animationDelay: `${i * 150 + 100}ms` }} />
+              </div>
+              <div className="flex gap-4">
+                <Skeleton className="h-4 w-36" />
+                <Skeleton className="h-4 w-20" />
+              </div>
+              <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                <Skeleton className="h-3 w-24" />
+                <Skeleton className="h-4 w-4 rounded" />
+              </div>
+            </div>
           ))}
         </div>
       ) : assemblies && assemblies.length > 0 ? (

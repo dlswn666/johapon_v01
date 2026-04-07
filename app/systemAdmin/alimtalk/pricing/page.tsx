@@ -184,9 +184,18 @@ export default function SystemAdminPricingPage() {
                         </CardHeader>
                         <CardContent>
                             {isLoading ? (
-                                <div className="space-y-3">
-                                    {[...Array(3)].map((_, i) => (
-                                        <Skeleton key={i} className="h-16 w-full" />
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    {[0, 1, 2].map((i) => (
+                                        <Card key={i}>
+                                            <CardContent className="pt-6 space-y-2">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <Skeleton className="w-4 h-4 rounded" style={{ animationDelay: `${i * 60}ms` }} />
+                                                    <Skeleton className="h-4 w-24" style={{ animationDelay: `${20 + i * 60}ms` }} />
+                                                </div>
+                                                <Skeleton className="h-9 w-20" style={{ animationDelay: `${40 + i * 60}ms` }} />
+                                                <Skeleton className="h-4 w-16" style={{ animationDelay: `${60 + i * 60}ms` }} />
+                                            </CardContent>
+                                        </Card>
                                     ))}
                                 </div>
                             ) : error ? (

@@ -32,15 +32,51 @@ export default function EvoteDashboardPage({ params }: { params: Promise<{ evote
 
   if (isUnionLoading || isAuthLoading || isLoading) {
     return (
-      <div className="container mx-auto px-4 py-8 space-y-4">
-        <Skeleton className="h-10 w-48" />
-        <Skeleton className="h-16 rounded-lg" />
+      <div className="space-y-3">
+        {/* 헤더: 뒤로가기 + 투표명 + 상태 배지 */}
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-10 w-10 rounded-md" />
+          <div className="flex-1 space-y-1.5">
+            <div className="flex items-center gap-3">
+              <Skeleton className="h-8 w-48" />
+              <Skeleton className="h-6 w-16 rounded-full" style={{ animationDelay: '50ms' }} />
+            </div>
+            <Skeleton className="h-4 w-64" style={{ animationDelay: '80ms' }} />
+          </div>
+        </div>
+
+        {/* 상태 전환 바 */}
+        <Skeleton className="h-14 w-full rounded-lg" style={{ animationDelay: '120ms' }} />
+
+        {/* 요약 카드 4개 */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-[140px] rounded-lg" />
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="bg-white rounded-lg border border-gray-200 p-4 space-y-2">
+              <Skeleton className="h-4 w-20" style={{ animationDelay: `${150 + i * 50}ms` }} />
+              <Skeleton className="h-8 w-16" style={{ animationDelay: `${170 + i * 50}ms` }} />
+              <Skeleton className="h-3 w-24" style={{ animationDelay: `${190 + i * 50}ms` }} />
+            </div>
           ))}
         </div>
-        <Skeleton className="h-[200px] rounded-lg" />
+
+        {/* 참여 방식별 현황 */}
+        <Skeleton className="h-32 w-full rounded-lg" style={{ animationDelay: '400ms' }} />
+
+        {/* 안건 현황 */}
+        <Skeleton className="h-40 w-full rounded-lg" style={{ animationDelay: '450ms' }} />
+
+        {/* 관리 메뉴 그리드 */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="flex items-center gap-3 p-4 bg-white rounded-lg border border-gray-200">
+              <Skeleton className="w-10 h-10 rounded-lg" style={{ animationDelay: `${500 + i * 60}ms` }} />
+              <div className="space-y-1">
+                <Skeleton className="h-4 w-20" style={{ animationDelay: `${520 + i * 60}ms` }} />
+                <Skeleton className="h-3 w-28" style={{ animationDelay: `${540 + i * 60}ms` }} />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }

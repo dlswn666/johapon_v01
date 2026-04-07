@@ -42,9 +42,39 @@ export default function AttendeesPage({ params }: { params: Promise<{ assemblyId
 
   if (isUnionLoading || isAuthLoading || isAssemblyLoading) {
     return (
-      <div className="space-y-4">
-        <Skeleton className="h-10 w-48" />
-        <Skeleton className="h-[300px] rounded-lg" />
+      <div className="space-y-3">
+        {/* 헤더 */}
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-10 w-10 rounded-md" />
+          <div className="space-y-1.5">
+            <Skeleton className="h-7 w-40" />
+            <Skeleton className="h-4 w-28" />
+          </div>
+        </div>
+        {/* 정족수 요약 카드 */}
+        <div className="bg-white rounded-lg p-5 space-y-4">
+          <Skeleton className="h-5 w-24" style={{ animationDelay: '100ms' }} />
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="text-center space-y-2">
+                <Skeleton className="h-3 w-12 mx-auto" style={{ animationDelay: `${200 + i * 75}ms` }} />
+                <Skeleton className="h-8 w-16 mx-auto" style={{ animationDelay: `${250 + i * 75}ms` }} />
+              </div>
+            ))}
+          </div>
+        </div>
+        {/* 출석자 테이블 */}
+        <div className="bg-white rounded-lg p-5 space-y-3">
+          <Skeleton className="h-5 w-32" style={{ animationDelay: '500ms' }} />
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="flex gap-4 py-2">
+              <Skeleton className="h-4 w-8" style={{ animationDelay: `${600 + i * 75}ms` }} />
+              <Skeleton className="h-5 w-16 rounded-full" />
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-5 w-12 rounded-full" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
