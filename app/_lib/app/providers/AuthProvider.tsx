@@ -394,7 +394,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
             const redirectTo = `${window.location.origin}/auth/callback${slug ? `?slug=${slug}` : ''}`;
             await supabase.auth.signInWithOAuth({
                 provider: 'kakao',
-                options: { redirectTo, queryParams: { service_terms: KAKAO_SERVICE_TERMS_STRING, prompt: 'select_account' } },
+                options: { redirectTo, queryParams: { service_terms: KAKAO_SERVICE_TERMS_STRING, prompt: 'none' } },
             });
         } else if (provider === 'naver') {
             window.location.href = `/api/auth/naver${slug ? `?slug=${slug}` : ''}`;
