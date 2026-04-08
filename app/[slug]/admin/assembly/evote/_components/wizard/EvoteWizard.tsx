@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import { useCreateEvote } from '@/app/_lib/features/evote/api/useCreateEvote';
+import { useEvoteLocalDraft } from '@/app/_lib/features/evote/hooks/useEvoteDraft';
 import { isStepValid as checkStepValid, getLegalChecks } from '@/app/_lib/features/evote/utils/evoteValidation';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -41,12 +42,30 @@ const INITIAL_FORM: EvoteCreateForm = {
 
 export default function EvoteWizard() {
   const _router = useRouter();
-  const { slug: _slug } = useSlug();
+  const { slug: _slug, union } = useSlug();
   const createMutation = useCreateEvote();
+  const { autoSave, loadLocal, clearLocal } = useEvoteLocalDraft(union?.id);
 
   const [currentStep, setCurrentStep] = useState<WizardStep>(1);
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const [formData, setFormData] = useState<EvoteCreateForm>(INITIAL_FORM);
+  const [showRestoreModal, setShowRestoreModal] = useState(false);
+  const [pendingDraft, setPendingDraft] = useState<ReturnType<typeof loadLocal>>(null);
+
+  // 초기 로드: localStorage에 임시저장된 데이터 확인
+  useEffect(() => {
+    const draft = loadLocal();
+    if (draft) {
+      setPendingDraft(draft);
+      setShowRestoreModal(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // formData 변경 시 자동 임시저장
+  useEffect(() => {
+    autoSave(formData, currentStep, completedSteps);
+  }, [formData, currentStep, completedSteps, autoSave]);
 
   // 폼 데이터 부분 업데이트
   const updateForm = useCallback((partial: Partial<EvoteCreateForm>) => {
@@ -79,6 +98,30 @@ export default function EvoteWizard() {
     setCurrentStep(step as WizardStep);
   }, [currentStep, completedSteps]);
 
+  // 임시저장 복원
+  const handleRestore = () => {
+    if (pendingDraft) {
+      setFormData({
+        ...INITIAL_FORM,
+        ...pendingDraft.formData,
+        documentFiles: [],
+        selectedVoterIds: [],
+        agendas: pendingDraft.formData.agendas.map((a) => ({ ...a, documentFiles: [] })),
+      });
+      setCurrentStep(pendingDraft.currentStep);
+      setCompletedSteps(new Set(pendingDraft.completedSteps));
+    }
+    setShowRestoreModal(false);
+    setPendingDraft(null);
+  };
+
+  // 새로 작성
+  const handleNewDraft = () => {
+    clearLocal();
+    setShowRestoreModal(false);
+    setPendingDraft(null);
+  };
+
   // 최종 생성
   const handleCreate = useCallback(() => {
     const newEvote = {
@@ -100,10 +143,34 @@ export default function EvoteWizard() {
         sort_order: i + 1,
       })),
     };
-    createMutation.mutate(newEvote);
-  }, [formData, createMutation]);
+    createMutation.mutate(newEvote, {
+      onSuccess: () => {
+        clearLocal();
+      },
+    });
+  }, [formData, createMutation, clearLocal]);
 
   return (
+    <>
+      {showRestoreModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-lg p-6 max-w-sm mx-4 space-y-4">
+            <h3 className="font-semibold text-gray-900">작성 중인 투표가 있습니다</h3>
+            <p className="text-sm text-gray-600">
+              이전에 작성 중이던 전자투표가 있습니다. 이어서 작성하시겠습니까?
+            </p>
+            {pendingDraft?.savedAt && (
+              <p className="text-xs text-gray-400">
+                저장 시각: {new Date(pendingDraft.savedAt).toLocaleString('ko-KR')}
+              </p>
+            )}
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={handleNewDraft}>새로 작성</Button>
+              <Button onClick={handleRestore}>이어서 작성</Button>
+            </div>
+          </div>
+        </div>
+      )}
     <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-6">
       {/* 좌측 스텝 네비게이션 */}
       <StepWizard
@@ -160,5 +227,6 @@ export default function EvoteWizard() {
         </div>
       </div>
     </div>
+    </>
   );
 }
