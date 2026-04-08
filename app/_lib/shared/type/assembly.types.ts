@@ -24,16 +24,19 @@ export type WrittenBallotStatus = 'PENDING_VERIFICATION' | 'VERIFIED' | 'DISPUTE
 export type SessionMode = 'LEGACY' | 'SESSION';
 
 // 본인인증 방법
-export type IdentityMethod = 'KAKAO_LOGIN' | 'PASS_CERT' | 'CERTIFICATE';
+export type IdentityMethod = 'KAKAO_LOGIN' | 'PASS_CERT' | 'CERTIFICATE' | 'KG_INICIS_ID' | 'KG_INICIS_SIMPLE' | 'KG_INICIS_ESIGN';
 
 // 전자서명 방법
-export type SignatureType = 'SIMPLE' | 'KAKAO_CERT' | 'PASS_CERT';
+export type SignatureType = 'SIMPLE' | 'KAKAO_CERT' | 'PASS_CERT' | 'KG_ESIGN';
 
 // 인증 방법 한국어 레이블
 export const IDENTITY_METHOD_LABELS: Record<IdentityMethod, string> = {
   KAKAO_LOGIN: '카카오 로그인',
   PASS_CERT: 'PASS 본인인증',
   CERTIFICATE: '공동인증서',
+  KG_INICIS_ID: 'KG이니시스 본인확인',
+  KG_INICIS_SIMPLE: 'KG이니시스 간편인증',
+  KG_INICIS_ESIGN: 'KG이니시스 전자서명',
 };
 
 // 서명 방법 한국어 레이블
@@ -41,6 +44,7 @@ export const SIGNATURE_TYPE_LABELS: Record<SignatureType, string> = {
   SIMPLE: '간편서명',
   KAKAO_CERT: '카카오 인증서명',
   PASS_CERT: 'PASS 인증서명',
+  KG_ESIGN: 'KG이니시스 전자서명',
 };
 
 export interface Assembly {
