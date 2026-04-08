@@ -227,9 +227,11 @@ async function handleAdminInviteAutoRegister(
                 id: newUserId,
                 name: invite.name || '관리자',
                 email: invite.email || null,
+                phone_number: invite.phone_number || null,
                 role: 'ADMIN',
                 user_status: 'APPROVED',
                 union_id: unionId,
+                approved_at: new Date().toISOString(),
             });
 
             if (insertError) {

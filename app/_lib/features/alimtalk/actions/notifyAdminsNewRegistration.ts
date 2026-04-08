@@ -27,7 +27,9 @@ export async function notifyAdminsNewRegistration(params: {
         .eq('role', 'ADMIN')
         .eq('user_status', 'APPROVED');
 
-    if (!admins || admins.length === 0) return;
+    // 전화번호가 있는 관리자만 필터링
+    const validAdmins = (admins || []).filter((a) => a.phone_number);
+    if (validAdmins.length === 0) return;
 
     // 조합명 조회
     const { data: unionData } = await supabase
@@ -39,7 +41,7 @@ export async function notifyAdminsNewRegistration(params: {
     await sendAlimTalk({
         unionId,
         templateCode: 'UE_3805',
-        recipients: admins.map((admin) => ({
+        recipients: validAdmins.map((admin) => ({
             phoneNumber: admin.phone_number,
             name: admin.name,
             variables: {
