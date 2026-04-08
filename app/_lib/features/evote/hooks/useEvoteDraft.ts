@@ -1,7 +1,15 @@
 'use client';
 
 import { useCallback, useEffect, useRef } from 'react';
-import type { EvoteCreateForm, WizardStep } from '../types/evote.types';
+import type {
+  EvoteCreateForm,
+  WizardStep,
+  AssemblyType,
+  QuorumType,
+  VoteType,
+  PublishMode,
+  NotificationChannel,
+} from '../types/evote.types';
 
 export interface DraftState {
   formData: Omit<EvoteCreateForm, 'documentFiles' | 'selectedVoterIds' | 'agendas'> & {
@@ -72,4 +80,76 @@ export function useEvoteLocalDraft(unionId: string | undefined) {
   }, []);
 
   return { autoSave, loadLocal, clearLocal };
+}
+
+export function useEvoteDbDraft(unionId: string | undefined) {
+  const loadDbDraft = useCallback(async () => {
+    if (!unionId) return null;
+    try {
+      const res = await fetch('/api/evotes/draft');
+      if (!res.ok) return null;
+      const { data } = await res.json();
+      return data;
+    } catch {
+      return null;
+    }
+  }, [unionId]);
+
+  const deleteDbDraft = useCallback(async (draftId: string) => {
+    try {
+      await fetch(`/api/evotes/draft?id=${draftId}`, { method: 'DELETE' });
+    } catch {
+      // 삭제 실패 무시
+    }
+  }, []);
+
+  return { loadDbDraft, deleteDbDraft };
+}
+
+/** DB의 assembly+agenda_items 구조 → EvoteCreateForm 매핑 */
+export function mapDbDraftToFormData(dbDraft: Record<string, unknown>): DraftState['formData'] {
+  const agendaItems = (dbDraft.agenda_items as Array<Record<string, unknown>>) || [];
+
+  return {
+    assemblyType: ((dbDraft.assembly_type as string) || 'REGULAR') as AssemblyType,
+    title: (dbDraft.title as string) || '',
+    quorumType: ((dbDraft.quorum_type as string) || 'GENERAL') as QuorumType,
+    scheduledAt: (dbDraft.scheduled_at as string) || '',
+    agendas: agendaItems.map((item) => {
+      const polls = (item.polls as Array<Record<string, unknown>>) || [];
+      const poll = polls[0] || {};
+      const options = (poll.poll_options as Array<Record<string, unknown>>) || [];
+      const voteType = ((item.vote_type as string) || 'APPROVE') as VoteType;
+
+      return {
+        id: (item.id as string) || crypto.randomUUID(),
+        title: (item.title as string) || '',
+        description: (item.description as string) || '',
+        voteType,
+        electCount: (poll.elect_count as number) || 0,
+        quorumTypeOverride: ((item.quorum_type_override as string) || null) as QuorumType | null,
+        candidates: voteType === 'ELECT'
+          ? options.map((o) => ({
+              name: (o.candidate_name as string) || '',
+              info: (o.candidate_info as string) || '',
+            }))
+          : [],
+        companies: voteType === 'SELECT'
+          ? options.map((o) => ({
+              name: (o.company_name as string) || '',
+              bidAmount: (o.bid_amount as string) || '',
+              info: (o.company_info as string) || '',
+            }))
+          : [],
+      };
+    }),
+    voterFilter: 'ALL' as const,
+    publishMode: ((dbDraft.publish_mode as string) || 'IMMEDIATE') as PublishMode,
+    publishAt: '',
+    preVoteStartAt: (dbDraft.pre_vote_start_date as string) || '',
+    preVoteEndAt: (dbDraft.pre_vote_end_date as string) || '',
+    finalDeadline: (dbDraft.final_deadline as string) || '',
+    autoReminder: true,
+    notificationChannels: ['KAKAO_ALIMTALK'] as NotificationChannel[],
+  };
 }

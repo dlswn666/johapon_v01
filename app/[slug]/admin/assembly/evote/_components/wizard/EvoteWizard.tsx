@@ -4,10 +4,10 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import { useCreateEvote } from '@/app/_lib/features/evote/api/useCreateEvote';
-import { useEvoteLocalDraft } from '@/app/_lib/features/evote/hooks/useEvoteDraft';
+import { useEvoteLocalDraft, useEvoteDbDraft, mapDbDraftToFormData } from '@/app/_lib/features/evote/hooks/useEvoteDraft';
 import { isStepValid as checkStepValid, getLegalChecks } from '@/app/_lib/features/evote/utils/evoteValidation';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Save } from 'lucide-react';
 import StepWizard from '@/app/_lib/widgets/common/step-wizard/StepWizard';
 import { WIZARD_STEPS } from '../evoteConstants';
 import type {
@@ -46,6 +46,7 @@ export default function EvoteWizard() {
   const { slug: _slug, union } = useSlug();
   const createMutation = useCreateEvote();
   const { autoSave, loadLocal, clearLocal } = useEvoteLocalDraft(union?.id);
+  const { loadDbDraft, deleteDbDraft } = useEvoteDbDraft(union?.id);
 
   const [currentStep, setCurrentStep] = useState<WizardStep>(1);
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
@@ -53,14 +54,29 @@ export default function EvoteWizard() {
   const [showRestoreModal, setShowRestoreModal] = useState(false);
   const [pendingDraft, setPendingDraft] = useState<ReturnType<typeof loadLocal>>(null);
   const [charterConfirmed, setCharterConfirmed] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [draftId, setDraftId] = useState<string | null>(null);
 
-  // 초기 로드: localStorage에 임시저장된 데이터 확인
+  // 초기 로드: localStorage → DB DRAFT 순서로 확인
   useEffect(() => {
     const draft = loadLocal();
     if (draft) {
       setPendingDraft(draft);
       setShowRestoreModal(true);
+      return;
     }
+    loadDbDraft().then((dbDraft) => {
+      if (dbDraft) {
+        setDraftId(dbDraft.id);
+        setPendingDraft({
+          formData: mapDbDraftToFormData(dbDraft),
+          currentStep: 1 as WizardStep,
+          completedSteps: [],
+          savedAt: dbDraft.updated_at || dbDraft.created_at,
+        });
+        setShowRestoreModal(true);
+      }
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -120,9 +136,60 @@ export default function EvoteWizard() {
   // 새로 작성
   const handleNewDraft = () => {
     clearLocal();
+    if (draftId) {
+      deleteDbDraft(draftId);
+      setDraftId(null);
+    }
     setShowRestoreModal(false);
     setPendingDraft(null);
   };
+
+  // DB 임시저장
+  const handleSaveDraft = useCallback(async () => {
+    if (!union?.id) return;
+    setIsSaving(true);
+    try {
+      const payload = {
+        draft_id: draftId,
+        title: formData.title,
+        assembly_type: formData.assemblyType,
+        scheduled_at: formData.scheduledAt || null,
+        pre_vote_start_at: formData.preVoteStartAt || null,
+        pre_vote_end_at: formData.preVoteEndAt || null,
+        final_deadline: formData.finalDeadline || null,
+        agendas: formData.agendas.map((a, i) => ({
+          title: a.title,
+          description: a.description,
+          vote_type: a.voteType,
+          seq_order: i + 1,
+          quorum_type_override: a.quorumTypeOverride || null,
+          elect_count: a.electCount || null,
+          candidates: a.voteType === 'ELECT' ? a.candidates : undefined,
+          companies: a.voteType === 'SELECT' ? a.companies : undefined,
+        })),
+      };
+
+      const res = await fetch('/api/evotes/draft', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        const { data } = await res.json();
+        setDraftId(data.id);
+        clearLocal();
+        alert('임시저장 완료');
+      } else {
+        alert('임시저장에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('임시저장 실패:', error);
+      alert('임시저장에 실패했습니다.');
+    } finally {
+      setIsSaving(false);
+    }
+  }, [formData, union, draftId, clearLocal]);
 
   // 최종 생성
   const handleCreate = useCallback(() => {
@@ -210,15 +277,26 @@ export default function EvoteWizard() {
 
         {/* 네비게이션 버튼 */}
         <div className="flex items-center justify-between mt-8 pt-4 border-t border-gray-200">
-          <Button
-            variant="outline"
-            className="min-h-[44px]"
-            onClick={goPrev}
-            disabled={currentStep === 1}
-          >
-            <ChevronLeft className="w-4 h-4 mr-1" />
-            이전
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              className="min-h-[44px]"
+              onClick={goPrev}
+              disabled={currentStep === 1}
+            >
+              <ChevronLeft className="w-4 h-4 mr-1" />
+              이전
+            </Button>
+            <Button
+              variant="outline"
+              className="min-h-[44px]"
+              onClick={handleSaveDraft}
+              disabled={isSaving}
+            >
+              <Save className="w-4 h-4 mr-1" />
+              {isSaving ? '저장 중...' : '임시저장'}
+            </Button>
+          </div>
 
           {currentStep < 5 ? (
             <Button className="min-h-[44px]" onClick={goNext} disabled={!stepValid}>
