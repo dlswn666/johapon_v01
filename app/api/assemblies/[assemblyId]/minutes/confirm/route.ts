@@ -10,7 +10,7 @@ interface RouteContext {
 }
 
 // 지원되는 전자서명 방법
-const SUPPORTED_SIGNATURE_TYPES: SignatureType[] = ['SIMPLE', 'KAKAO_CERT', 'PASS_CERT'];
+const SUPPORTED_SIGNATURE_TYPES: SignatureType[] = ['SIMPLE', 'KAKAO_CERT', 'PASS_CERT', 'KG_ESIGN'];
 
 interface ConfirmedByEntry {
   user_id: string;
@@ -57,19 +57,22 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: '지원되지 않는 서명 방법입니다.' }, { status: 400 });
     }
 
-    // 카카오 인증서명 / PASS 인증서명 — 아직 미구현
+    // 카카오 인증서명 — 아직 미구현
     if (signatureType === 'KAKAO_CERT') {
       return NextResponse.json(
         { error: '카카오 인증서명은 준비 중입니다.' },
         { status: 501 },
       );
     }
+    // PASS 인증서명 — KG이니시스 전자서명으로 대체됨
     if (signatureType === 'PASS_CERT') {
       return NextResponse.json(
-        { error: 'PASS 인증서명은 준비 중입니다.' },
-        { status: 501 },
+        { error: '지원하지 않는 서명 방식입니다. KG이니시스 전자서명을 사용해 주세요.' },
+        { status: 400 },
       );
     }
+    // KG이니시스 전자서명 — 실제 서명은 프론트엔드에서 처리되므로 통과
+    // (signatureType === 'KG_ESIGN') 경우 별도 처리 없이 서명 항목 추가로 진행
 
     // 출석 자격 검증: assembly_member_snapshots에서 해당 user_id 확인
     const { data: snapshot } = await supabase
