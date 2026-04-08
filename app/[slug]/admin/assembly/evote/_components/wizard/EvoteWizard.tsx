@@ -4,6 +4,7 @@ import React, { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import { useCreateEvote } from '@/app/_lib/features/evote/api/useCreateEvote';
+import { isStepValid as checkStepValid, getLegalChecks } from '@/app/_lib/features/evote/utils/evoteValidation';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import StepWizard from '@/app/_lib/widgets/common/step-wizard/StepWizard';
@@ -62,33 +63,15 @@ export default function EvoteWizard() {
     setCurrentStep((prev) => Math.max(1, prev - 1) as WizardStep);
   }, []);
 
-  // 스텝별 유효성 검증 (에러 메시지 없이 boolean만 반환)
-  const isStepValid = useCallback((): boolean => {
-    switch (currentStep) {
-      case 1:
-        return !!(formData.title.trim() && formData.scheduledAt);
-      case 2:
-        if (formData.agendas.length === 0) return false;
-        return formData.agendas.every((agenda) => {
-          if (!agenda.title.trim()) return false;
-          if (!agenda.quorumTypeOverride) return false;
-          if (agenda.voteType === 'ELECT' && agenda.candidates.length === 0) return false;
-          if (agenda.voteType === 'SELECT' && agenda.companies.length === 0) return false;
-          return true;
-        });
-      case 3:
-        return formData.selectedVoterIds.length > 0;
-      default:
-        return true;
-    }
-  }, [currentStep, formData]);
+  // 현재 스텝 유효성 (공유 유틸 사용)
+  const stepValid = checkStepValid(currentStep, formData);
 
   // 다음 스텝
   const goNext = useCallback(() => {
-    if (!isStepValid()) return;
+    if (!checkStepValid(currentStep, formData)) return;
     markStepCompleted(currentStep);
     setCurrentStep((prev) => Math.min(5, prev + 1) as WizardStep);
-  }, [currentStep, markStepCompleted, isStepValid]);
+  }, [currentStep, formData, markStepCompleted]);
 
   // 스텝 클릭 네비게이션 (완료된 스텝 + 현재 스텝만 이동 가능)
   const goToStep = useCallback((step: number) => {
@@ -161,7 +144,7 @@ export default function EvoteWizard() {
           </Button>
 
           {currentStep < 5 ? (
-            <Button className="min-h-[44px]" onClick={goNext} disabled={!isStepValid()}>
+            <Button className="min-h-[44px]" onClick={goNext} disabled={!stepValid}>
               다음
               <ChevronRight className="w-4 h-4 ml-1" />
             </Button>
@@ -169,7 +152,7 @@ export default function EvoteWizard() {
             <Button
               className="min-h-[44px]"
               onClick={handleCreate}
-              disabled={createMutation.isPending}
+              disabled={createMutation.isPending || !getLegalChecks(formData).allPassed}
             >
               {createMutation.isPending ? '생성 중...' : '전자투표 생성'}
             </Button>
