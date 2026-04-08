@@ -20,6 +20,7 @@ import StepAgendas from './StepAgendas';
 import StepVoters from './StepVoters';
 import StepSchedule from './StepSchedule';
 import StepConfirm from './StepConfirm';
+import CharterConfirmCheckbox from '@/app/_lib/features/evote/ui/CharterConfirmCheckbox';
 
 /** 위저드 초기 폼 데이터 */
 const INITIAL_FORM: EvoteCreateForm = {
@@ -51,6 +52,7 @@ export default function EvoteWizard() {
   const [formData, setFormData] = useState<EvoteCreateForm>(INITIAL_FORM);
   const [showRestoreModal, setShowRestoreModal] = useState(false);
   const [pendingDraft, setPendingDraft] = useState<ReturnType<typeof loadLocal>>(null);
+  const [charterConfirmed, setCharterConfirmed] = useState(false);
 
   // 초기 로드: localStorage에 임시저장된 데이터 확인
   useEffect(() => {
@@ -195,7 +197,15 @@ export default function EvoteWizard() {
           <StepSchedule formData={formData} updateForm={updateForm} />
         )}
         {currentStep === 5 && (
-          <StepConfirm formData={formData} />
+          <>
+            <StepConfirm formData={formData} />
+            <div className="mt-6">
+              <CharterConfirmCheckbox
+                checked={charterConfirmed}
+                onChange={setCharterConfirmed}
+              />
+            </div>
+          </>
         )}
 
         {/* 네비게이션 버튼 */}
@@ -219,7 +229,7 @@ export default function EvoteWizard() {
             <Button
               className="min-h-[44px]"
               onClick={handleCreate}
-              disabled={createMutation.isPending || !getLegalChecks(formData).allPassed}
+              disabled={createMutation.isPending || !getLegalChecks(formData).allPassed || !charterConfirmed}
             >
               {createMutation.isPending ? '생성 중...' : '전자투표 생성'}
             </Button>
