@@ -158,14 +158,31 @@ export async function POST(request: NextRequest) {
       if (!agenda.title?.trim()) {
         return NextResponse.json({ error: '안건 제목은 필수입니다.' }, { status: 400 });
       }
-      if (agenda.vote_type === 'ELECT' && (!agenda.elect_count || agenda.elect_count < 1)) {
-        return NextResponse.json({ error: '선출 인원수를 1명 이상 설정해주세요.' }, { status: 400 });
+      if (!agenda.description?.trim()) {
+        return NextResponse.json({ error: '안건 설명은 필수입니다.' }, { status: 400 });
       }
-      if (agenda.vote_type === 'ELECT' && !agenda.candidates?.length) {
-        return NextResponse.json({ error: '후보자를 1명 이상 등록해주세요.' }, { status: 400 });
+      if (!agenda.quorum_type_override) {
+        return NextResponse.json({ error: '안건별 의결요건은 필수입니다.' }, { status: 400 });
       }
-      if (agenda.vote_type === 'SELECT' && !agenda.companies?.length) {
-        return NextResponse.json({ error: '업체를 1개 이상 등록해주세요.' }, { status: 400 });
+      if (agenda.vote_type === 'ELECT') {
+        if (!agenda.candidates?.length) {
+          return NextResponse.json({ error: '후보자를 1명 이상 등록해주세요.' }, { status: 400 });
+        }
+        for (const c of agenda.candidates) {
+          if (!c.name?.trim() || !c.info?.trim()) {
+            return NextResponse.json({ error: '후보자의 이름과 소개를 모두 입력해주세요.' }, { status: 400 });
+          }
+        }
+      }
+      if (agenda.vote_type === 'SELECT') {
+        if (!agenda.companies?.length) {
+          return NextResponse.json({ error: '업체를 1개 이상 등록해주세요.' }, { status: 400 });
+        }
+        for (const c of agenda.companies) {
+          if (!c.name?.trim() || !c.bidAmount || !c.info?.trim()) {
+            return NextResponse.json({ error: '업체의 이름, 입찰금액, 비고를 모두 입력해주세요.' }, { status: 400 });
+          }
+        }
       }
     }
 
