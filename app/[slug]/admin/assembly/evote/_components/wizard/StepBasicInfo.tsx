@@ -3,17 +3,50 @@
 import React from 'react';
 import {
   ASSEMBLY_TYPE_OPTIONS,
-  QUORUM_TYPE_OPTIONS,
 } from '../evoteConstants';
 import { DateTimePicker } from '@/app/_lib/widgets/common/date-picker/DateTimePicker';
-import type { EvoteCreateForm, AssemblyType, QuorumType } from '@/app/_lib/features/evote/types/evote.types';
+import type { EvoteCreateForm, AssemblyType } from '@/app/_lib/features/evote/types/evote.types';
 
 interface StepBasicInfoProps {
   formData: EvoteCreateForm;
   updateForm: (partial: Partial<EvoteCreateForm>) => void;
 }
 
+const ACCEPTED_EXTENSIONS = ['.pdf', '.doc', '.docx', '.xlsx', '.xls', '.hwp'];
+
 export default function StepBasicInfo({ formData, updateForm }: StepBasicInfoProps) {
+  const [isDragging, setIsDragging] = React.useState(false);
+
+  const addFiles = (files: FileList | File[]) => {
+    const validFiles = Array.from(files).filter((f) =>
+      ACCEPTED_EXTENSIONS.some((ext) => f.name.toLowerCase().endsWith(ext))
+    );
+    if (validFiles.length > 0) {
+      updateForm({ documentFiles: [...formData.documentFiles, ...validFiles] });
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    if (e.dataTransfer.files?.length) {
+      addFiles(e.dataTransfer.files);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -51,38 +84,6 @@ export default function StepBasicInfo({ formData, updateForm }: StepBasicInfoPro
         />
       </div>
 
-      {/* 의결요건 */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          의결요건 <span className="text-red-500">*</span>
-        </label>
-        <div className="space-y-2">
-          {QUORUM_TYPE_OPTIONS.map((opt) => (
-            <label
-              key={opt.value}
-              className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
-                formData.quorumType === opt.value
-                  ? 'border-blue-300 bg-blue-50'
-                  : 'border-gray-200 hover:bg-gray-50'
-              }`}
-            >
-              <input
-                type="radio"
-                name="quorumType"
-                value={opt.value}
-                checked={formData.quorumType === opt.value}
-                onChange={(e) => updateForm({ quorumType: e.target.value as QuorumType })}
-                className="mt-0.5"
-              />
-              <div>
-                <p className="text-sm font-medium text-gray-900">{opt.label}</p>
-                <p className="text-xs text-gray-500">{opt.description}</p>
-              </div>
-            </label>
-          ))}
-        </div>
-      </div>
-
       {/* 총회 일시 */}
       <div>
         <DateTimePicker
@@ -99,22 +100,29 @@ export default function StepBasicInfo({ formData, updateForm }: StepBasicInfoPro
         <label className="block text-sm font-medium text-gray-700 mb-2">
           관련 문서 (선택)
         </label>
-        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+        <div
+          className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+            isDragging ? 'border-[#5FA37C] bg-green-50' : 'border-gray-300'
+          }`}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+        >
           <input
             type="file"
             multiple
             accept=".pdf,.doc,.docx,.xlsx,.xls,.hwp"
             onChange={(e) => {
-              const files = e.target.files;
-              if (files) {
-                updateForm({ documentFiles: [...formData.documentFiles, ...Array.from(files)] });
-              }
+              if (e.target.files) addFiles(e.target.files);
+              e.target.value = '';
             }}
             className="hidden"
             id="evote-doc-upload"
           />
           <label htmlFor="evote-doc-upload" className="cursor-pointer">
-            <p className="text-sm text-gray-500">파일을 선택하거나 드래그하세요</p>
+            <p className="text-sm text-gray-500">
+              {isDragging ? '여기에 놓으세요' : '파일을 선택하거나 드래그하세요'}
+            </p>
             <p className="text-xs text-gray-400 mt-1">PDF, HWP, Word, Excel 지원</p>
           </label>
         </div>

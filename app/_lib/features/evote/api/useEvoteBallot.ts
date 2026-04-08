@@ -5,13 +5,15 @@ import { useSlug } from '@/app/_lib/app/providers/SlugProvider';
 import type {
   Assembly,
   AgendaItem,
+  AgendaDocument,
   Poll,
   PollOption,
 } from '@/app/_lib/shared/type/assembly.types';
 
-// 안건 + 투표 + 선택지 중첩
+// 안건 + 투표 + 선택지 + 문서 중첩
 export type BallotAgenda = AgendaItem & {
   polls?: (Poll & { poll_options?: PollOption[] })[];
+  agenda_documents?: AgendaDocument[];
 };
 
 // 내 투표 기록 (participation_records)

@@ -4,6 +4,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Plus, Trash2 } from 'lucide-react';
 import type { CompanyInfo } from '@/app/_lib/features/evote/types/evote.types';
+import { formatNumberWithComma, extractDigits } from '@/app/_lib/shared/utils/formatWon';
 
 interface CompanyListProps {
   companies: CompanyInfo[];
@@ -12,7 +13,7 @@ interface CompanyListProps {
 
 export default function CompanyList({ companies, onChange }: CompanyListProps) {
   const addCompany = () => {
-    onChange([...companies, { name: '', bidAmount: '', info: '' }]);
+    onChange([{ name: '', bidAmount: '', info: '' }, ...companies]);
   };
 
   const removeCompany = (index: number) => {
@@ -53,13 +54,17 @@ export default function CompanyList({ companies, onChange }: CompanyListProps) {
               className="w-full h-9 text-sm rounded-lg border border-gray-300 bg-white px-3 outline-none focus:ring-2 focus:ring-[#5FA37C]"
             />
             <div className="flex gap-2">
-              <input
-                type="text"
-                value={company.bidAmount}
-                onChange={(e) => updateCompany(i, 'bidAmount', e.target.value)}
-                placeholder="입찰금액 (예: 1,200억)"
-                className="flex-1 h-9 text-sm rounded-lg border border-gray-300 bg-white px-3 outline-none focus:ring-2 focus:ring-[#5FA37C]"
-              />
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={company.bidAmount ? formatNumberWithComma(company.bidAmount) : ''}
+                  onChange={(e) => updateCompany(i, 'bidAmount', extractDigits(e.target.value))}
+                  placeholder="입찰금액"
+                  className="w-full h-9 text-sm rounded-lg border border-gray-300 bg-white px-3 pr-7 outline-none focus:ring-2 focus:ring-[#5FA37C]"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">원</span>
+              </div>
               <input
                 type="text"
                 value={company.info}

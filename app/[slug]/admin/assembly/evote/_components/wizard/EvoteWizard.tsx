@@ -46,7 +46,6 @@ export default function EvoteWizard() {
   const [currentStep, setCurrentStep] = useState<WizardStep>(1);
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const [formData, setFormData] = useState<EvoteCreateForm>(INITIAL_FORM);
-  const [validationError, setValidationError] = useState<string | null>(null);
 
   // 폼 데이터 부분 업데이트
   const updateForm = useCallback((partial: Partial<EvoteCreateForm>) => {
@@ -63,45 +62,22 @@ export default function EvoteWizard() {
     setCurrentStep((prev) => Math.max(1, prev - 1) as WizardStep);
   }, []);
 
-  // 스텝별 유효성 검증
-  const validateCurrentStep = useCallback((): boolean => {
-    setValidationError(null);
+  // 스텝별 유효성 검증 (에러 메시지 없이 boolean만 반환)
+  const isStepValid = useCallback((): boolean => {
     switch (currentStep) {
       case 1:
-        if (!formData.title.trim() || !formData.scheduledAt) {
-          setValidationError('총회명과 일시를 입력해주세요.');
-          return false;
-        }
-        return true;
+        return !!(formData.title.trim() && formData.scheduledAt);
       case 2:
-        if (formData.agendas.length === 0) {
-          setValidationError('최소 1개 이상의 안건을 등록해주세요.');
-          return false;
-        }
-        for (const agenda of formData.agendas) {
-          if (!agenda.title.trim()) {
-            setValidationError('안건 제목을 입력해주세요.');
-            return false;
-          }
-          if (agenda.voteType === 'ELECT' && agenda.candidates.length === 0) {
-            setValidationError(`"${agenda.title}" 안건에 후보자를 1명 이상 등록해주세요.`);
-            return false;
-          }
-          if (agenda.voteType === 'SELECT' && agenda.companies.length === 0) {
-            setValidationError(`"${agenda.title}" 안건에 업체를 1개 이상 등록해주세요.`);
-            return false;
-          }
-        }
-        return true;
+        if (formData.agendas.length === 0) return false;
+        return formData.agendas.every((agenda) => {
+          if (!agenda.title.trim()) return false;
+          if (!agenda.quorumTypeOverride) return false;
+          if (agenda.voteType === 'ELECT' && agenda.candidates.length === 0) return false;
+          if (agenda.voteType === 'SELECT' && agenda.companies.length === 0) return false;
+          return true;
+        });
       case 3:
-        if (formData.selectedVoterIds.length === 0) {
-          setValidationError('투표 대상자를 1명 이상 선택해주세요.');
-          return false;
-        }
-        return true;
-      case 4:
-        // 선택 항목이므로 검증 없음
-        return true;
+        return formData.selectedVoterIds.length > 0;
       default:
         return true;
     }
@@ -109,11 +85,10 @@ export default function EvoteWizard() {
 
   // 다음 스텝
   const goNext = useCallback(() => {
-    if (!validateCurrentStep()) return;
+    if (!isStepValid()) return;
     markStepCompleted(currentStep);
-    setValidationError(null);
     setCurrentStep((prev) => Math.min(5, prev + 1) as WizardStep);
-  }, [currentStep, markStepCompleted, validateCurrentStep]);
+  }, [currentStep, markStepCompleted, isStepValid]);
 
   // 스텝 클릭 네비게이션 (완료된 스텝 + 현재 스텝만 이동 가능)
   const goToStep = useCallback((step: number) => {
@@ -173,13 +148,6 @@ export default function EvoteWizard() {
           <StepConfirm formData={formData} />
         )}
 
-        {/* 유효성 검증 오류 */}
-        {validationError && (
-          <div className="mt-4 p-3 rounded-md bg-red-50 border border-red-200 text-sm text-red-700">
-            {validationError}
-          </div>
-        )}
-
         {/* 네비게이션 버튼 */}
         <div className="flex items-center justify-between mt-8 pt-4 border-t border-gray-200">
           <Button
@@ -193,7 +161,7 @@ export default function EvoteWizard() {
           </Button>
 
           {currentStep < 5 ? (
-            <Button className="min-h-[44px]" onClick={goNext}>
+            <Button className="min-h-[44px]" onClick={goNext} disabled={!isStepValid()}>
               다음
               <ChevronRight className="w-4 h-4 ml-1" />
             </Button>

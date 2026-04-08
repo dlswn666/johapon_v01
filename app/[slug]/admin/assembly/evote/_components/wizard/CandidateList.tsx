@@ -12,7 +12,7 @@ interface CandidateListProps {
 
 export default function CandidateList({ candidates, onChange }: CandidateListProps) {
   const addCandidate = () => {
-    onChange([...candidates, { name: '', info: '' }]);
+    onChange([{ name: '', info: '' }, ...candidates]);
   };
 
   const removeCandidate = (index: number) => {

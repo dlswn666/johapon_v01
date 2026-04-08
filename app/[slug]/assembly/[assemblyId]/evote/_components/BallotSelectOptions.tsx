@@ -2,6 +2,7 @@
 
 import React from 'react';
 import type { PollOption } from '@/app/_lib/shared/type/assembly.types';
+import { formatKoreanWon } from '@/app/_lib/shared/utils/formatWon';
 
 interface BallotSelectOptionsProps {
   options: PollOption[];
@@ -74,7 +75,7 @@ export default function BallotSelectOptions({
                 </p>
                 {option.bid_amount && (
                   <p className="text-sm text-blue-600 font-medium mt-0.5">
-                    입찰가: {option.bid_amount}
+                    입찰가: {formatKoreanWon(option.bid_amount)}
                   </p>
                 )}
                 {option.company_info && (

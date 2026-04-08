@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, FileText } from 'lucide-react';
 import { VOTE_TYPE_LABELS } from '@/app/_lib/shared/type/assembly.types';
 import type { PollOption, VoteType } from '@/app/_lib/shared/type/assembly.types';
 import type { BallotAgenda, BallotMyVote } from '@/app/_lib/features/evote/api/useEvoteBallot';
@@ -78,6 +78,22 @@ export default function BallotAgendaCard({
         <h3 className="font-medium text-gray-900">{agenda.title}</h3>
         {agenda.description && (
           <p className="text-sm text-gray-500 mt-1">{agenda.description}</p>
+        )}
+        {agenda.agenda_documents && agenda.agenda_documents.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-2">
+            {agenda.agenda_documents.map((doc) => (
+              <a
+                key={doc.id}
+                href={doc.file_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 px-2 py-1 rounded bg-gray-100 text-xs text-gray-600 hover:bg-gray-200 transition-colors"
+              >
+                <FileText className="w-3 h-3" />
+                {doc.title}
+              </a>
+            ))}
+          </div>
         )}
       </div>
 

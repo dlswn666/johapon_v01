@@ -148,6 +148,7 @@ export interface AgendaFormData {
   quorumTypeOverride?: QuorumType | null;
   candidates: CandidateInfo[];
   companies: CompanyInfo[];
+  documentFiles: File[];
 }
 
 // 투표 대상자 선택 모드

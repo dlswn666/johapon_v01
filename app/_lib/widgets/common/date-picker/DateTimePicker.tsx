@@ -51,6 +51,20 @@ export function DateTimePicker({
     const selectedHour = value ? String(value.getHours()).padStart(2, '0') : '09';
     const selectedMinute = value ? String(Math.floor(value.getMinutes() / 10) * 10).padStart(2, '0') : '00';
 
+    // min 날짜와 같은 날인지 확인 → 과거 시간 비활성화
+    const isSameDayAsMin = React.useMemo(() => {
+        if (!min || !value) return false;
+        return value.getFullYear() === min.getFullYear()
+            && value.getMonth() === min.getMonth()
+            && value.getDate() === min.getDate();
+    }, [min, value]);
+
+    // 선택 가능한 최소 시간 (다음 정시부터)
+    const minSelectableHour = React.useMemo(() => {
+        if (!min || !isSameDayAsMin) return 0;
+        return min.getMinutes() > 0 ? min.getHours() + 1 : min.getHours();
+    }, [min, isSameDayAsMin]);
+
     // 날짜 선택 핸들러
     const handleDateSelect = (date: Date | undefined) => {
         if (!date) {
@@ -59,8 +73,22 @@ export function DateTimePicker({
         }
 
         // 기존 시간 유지, 날짜만 변경
-        const hour = value ? value.getHours() : parseInt(selectedHour);
-        const minute = value ? value.getMinutes() : parseInt(selectedMinute);
+        let hour = value ? value.getHours() : parseInt(selectedHour);
+        let minute = value ? value.getMinutes() : parseInt(selectedMinute);
+
+        // 선택한 날짜가 min과 같은 날이면 과거 시간 보정
+        if (min) {
+            const isMinDay = date.getFullYear() === min.getFullYear()
+                && date.getMonth() === min.getMonth()
+                && date.getDate() === min.getDate();
+            if (isMinDay) {
+                const minHour = min.getMinutes() > 0 ? min.getHours() + 1 : min.getHours();
+                if (hour < minHour) {
+                    hour = minHour;
+                    minute = 0;
+                }
+            }
+        }
 
         const newDate = new Date(date);
         newDate.setHours(hour, minute, 0, 0);
@@ -135,7 +163,7 @@ export function DateTimePicker({
                             className="flex-1 px-2 py-1.5 border border-slate-200 rounded-lg text-sm text-center bg-white focus:ring-2 focus:ring-[#5FA37C] outline-none disabled:opacity-50"
                         >
                             {HOUR_OPTIONS.map((h) => (
-                                <option key={h} value={h}>{h}</option>
+                                <option key={h} value={h} disabled={isSameDayAsMin && parseInt(h) < minSelectableHour}>{h}</option>
                             ))}
                         </select>
                         <span className="text-sm font-bold text-slate-400">:</span>

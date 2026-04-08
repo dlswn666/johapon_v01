@@ -35,7 +35,8 @@ export async function GET(_request: NextRequest, context: RouteContext) {
           *,
           agenda_items(
             *,
-            polls(*, poll_options(*))
+            polls(*, poll_options(*)),
+            agenda_documents(*)
           )
         `)
         .eq('id', id)

@@ -14,6 +14,26 @@ interface StepVotersProps {
   updateForm: (partial: Partial<EvoteCreateForm>) => void;
 }
 
+interface PropertyUnit {
+  property_address_jibun: string | null;
+  is_primary: boolean | null;
+}
+
+interface MemberInvite {
+  phone_number: string;
+  property_address: string;
+}
+
+interface UserRow {
+  id: string;
+  name: string;
+  phone_number: string | null;
+  property_address: string | null;
+  role: string;
+  user_property_units: PropertyUnit[];
+  member_invites: MemberInvite[];
+}
+
 interface MemberRow {
   id: string;
   name: string;
@@ -32,14 +52,36 @@ export default function StepVoters({ formData, updateForm }: StepVotersProps) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('users')
-        .select('id, name, phone_number, property_address, role')
+        .select(`
+          id, name, phone_number, property_address, role,
+          user_property_units(property_address_jibun, is_primary),
+          member_invites(phone_number, property_address)
+        `)
         .eq('union_id', union!.id)
         .in('user_status', ['APPROVED', 'PRE_REGISTERED'])
         .eq('is_blocked', false)
         .order('name', { ascending: true });
 
       if (error) throw error;
-      return data as MemberRow[];
+
+      // users → member_invites → user_property_units 우선순위로 fallback
+      return (data as UserRow[]).map((u): MemberRow => {
+        const primaryProperty = u.user_property_units?.find((p) => p.is_primary)
+          ?? u.user_property_units?.[0];
+        const invite = u.member_invites?.[0];
+
+        return {
+          id: u.id,
+          name: u.name,
+          role: u.role,
+          phone_number: u.phone_number || invite?.phone_number || null,
+          property_address:
+            u.property_address
+            || primaryProperty?.property_address_jibun
+            || invite?.property_address
+            || null,
+        };
+      });
     },
     enabled: !!union?.id,
   });

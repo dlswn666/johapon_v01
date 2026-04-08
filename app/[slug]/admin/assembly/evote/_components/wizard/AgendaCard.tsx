@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Trash2, GripVertical } from 'lucide-react';
+import { Trash2, GripVertical, Paperclip } from 'lucide-react';
 import { VOTE_TYPE_OPTIONS, QUORUM_TYPE_OPTIONS } from '../evoteConstants';
 import CandidateList from './CandidateList';
 import CompanyList from './CompanyList';
@@ -21,9 +21,20 @@ interface AgendaCardProps {
   onRemove: () => void;
 }
 
+const ACCEPTED_EXTENSIONS = ['.pdf', '.doc', '.docx', '.xlsx', '.xls', '.hwp'];
+
 export default function AgendaCard({ agenda, index, onChange, onRemove }: AgendaCardProps) {
   const updateField = <K extends keyof AgendaFormData>(key: K, value: AgendaFormData[K]) => {
     onChange({ ...agenda, [key]: value });
+  };
+
+  const addFiles = (files: FileList | File[]) => {
+    const validFiles = Array.from(files).filter((f) =>
+      ACCEPTED_EXTENSIONS.some((ext) => f.name.toLowerCase().endsWith(ext))
+    );
+    if (validFiles.length > 0) {
+      updateField('documentFiles', [...agenda.documentFiles, ...validFiles]);
+    }
   };
 
   return (
@@ -95,7 +106,7 @@ export default function AgendaCard({ agenda, index, onChange, onRemove }: Agenda
       {/* 의결요건 오버라이드 */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          의결요건 (안건별 개별 설정, 비워두면 총회 기본값)
+          의결요건 <span className="text-red-500">*</span>
         </label>
         <select
           value={agenda.quorumTypeOverride ?? ''}
@@ -107,7 +118,7 @@ export default function AgendaCard({ agenda, index, onChange, onRemove }: Agenda
           }
           className="w-full h-10 text-sm rounded-lg border border-gray-300 bg-white px-3 outline-none focus:ring-2 focus:ring-[#5FA37C]"
         >
-          <option value="">총회 기본 설정 따름</option>
+          <option value="">의결요건을 선택하세요</option>
           {QUORUM_TYPE_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>
               {opt.label} — {opt.description}
@@ -116,45 +127,71 @@ export default function AgendaCard({ agenda, index, onChange, onRemove }: Agenda
         </select>
       </div>
 
-      {/* 선출 투표: 선출 인원 수 + 후보자 리스트 */}
+      {/* 선출 투표: 후보자 리스트 */}
       {agenda.voteType === 'ELECT' && (
-        <>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">선출 인원 수</label>
-            <input
-              type="number"
-              min={1}
-              value={agenda.electCount ?? 1}
-              onChange={(e) => updateField('electCount', parseInt(e.target.value) || 1)}
-              className="w-32 h-10 text-sm rounded-lg border border-gray-300 bg-white px-3 outline-none focus:ring-2 focus:ring-[#5FA37C]"
-            />
-          </div>
-          <CandidateList
-            candidates={agenda.candidates}
-            onChange={(candidates: CandidateInfo[]) => updateField('candidates', candidates)}
-          />
-        </>
+        <CandidateList
+          candidates={agenda.candidates}
+          onChange={(candidates: CandidateInfo[]) => {
+            onChange({ ...agenda, candidates, electCount: candidates.length });
+          }}
+        />
       )}
 
       {/* 업체 선정: 업체 리스트 */}
       {agenda.voteType === 'SELECT' && (
-        <>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">선정 수</label>
-            <input
-              type="number"
-              min={1}
-              value={agenda.electCount ?? 1}
-              onChange={(e) => updateField('electCount', parseInt(e.target.value) || 1)}
-              className="w-32 h-10 text-sm rounded-lg border border-gray-300 bg-white px-3 outline-none focus:ring-2 focus:ring-[#5FA37C]"
-            />
-          </div>
-          <CompanyList
-            companies={agenda.companies}
-            onChange={(companies: CompanyInfo[]) => updateField('companies', companies)}
-          />
-        </>
+        <CompanyList
+          companies={agenda.companies}
+          onChange={(companies: CompanyInfo[]) => {
+            onChange({ ...agenda, companies, electCount: companies.length });
+          }}
+        />
       )}
+
+      {/* 안건 관련 문서 */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          <Paperclip className="w-3.5 h-3.5 inline-block mr-1" />
+          관련 문서 (선택)
+        </label>
+        <div className="flex items-center gap-2">
+          <input
+            type="file"
+            multiple
+            accept=".pdf,.doc,.docx,.xlsx,.xls,.hwp"
+            onChange={(e) => {
+              if (e.target.files) addFiles(e.target.files);
+              e.target.value = '';
+            }}
+            className="hidden"
+            id={`agenda-doc-${agenda.id}`}
+          />
+          <label
+            htmlFor={`agenda-doc-${agenda.id}`}
+            className="cursor-pointer px-3 py-1.5 text-sm border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors"
+          >
+            파일 선택
+          </label>
+          <span className="text-xs text-gray-400">PDF, HWP, Word, Excel 지원</span>
+        </div>
+        {agenda.documentFiles.length > 0 && (
+          <ul className="mt-2 space-y-1">
+            {agenda.documentFiles.map((file, i) => (
+              <li key={i} className="flex items-center justify-between text-sm text-gray-600 bg-gray-50 rounded px-3 py-1.5">
+                <span className="truncate">{file.name}</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    updateField('documentFiles', agenda.documentFiles.filter((_, idx) => idx !== i));
+                  }}
+                  className="text-red-400 hover:text-red-600 text-xs ml-2 flex-shrink-0"
+                >
+                  삭제
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }

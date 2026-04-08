@@ -18,10 +18,11 @@ function createEmptyAgenda(): AgendaFormData {
     title: '',
     description: '',
     voteType: 'APPROVE',
-    electCount: 1,
+    electCount: 0,
     quorumTypeOverride: null,
     candidates: [],
     companies: [],
+    documentFiles: [],
   };
 }
 
@@ -29,7 +30,7 @@ export default function StepAgendas({ formData, updateForm }: StepAgendasProps) 
   const { agendas } = formData;
 
   const addAgenda = useCallback(() => {
-    updateForm({ agendas: [...agendas, createEmptyAgenda()] });
+    updateForm({ agendas: [createEmptyAgenda(), ...agendas] });
   }, [agendas, updateForm]);
 
   const removeAgenda = useCallback(
