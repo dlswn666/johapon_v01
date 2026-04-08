@@ -64,6 +64,7 @@ export function HomePartnerships() {
     const { data: partners, isLoading, error } = useRandomAds('BOARD', 10, !isUnionLoading);
 
     const trackRef = useRef<HTMLDivElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const currentIndexRef = useRef(0);
     const cardWidthRef = useRef(0);
@@ -73,17 +74,22 @@ export function HomePartnerships() {
     const dragOffsetStartRef = useRef(0);
     const currentOffsetRef = useRef(0);
     const scheduleNextRef = useRef<() => void>(() => {});
+    const [shouldAnimate, setShouldAnimate] = React.useState(false);
 
     const itemCount = partners?.length || 0;
 
-    // 카드+gap 너비 측정
+    // 카드+gap 너비 측정 및 오버플로우 여부 판단
     const measure = useCallback(() => {
-        if (!trackRef.current || itemCount === 0) return;
+        if (!trackRef.current || !containerRef.current || itemCount === 0) return;
         const firstCard = trackRef.current.children[0] as HTMLElement | undefined;
         if (!firstCard) return;
         cardWidthRef.current = firstCard.offsetWidth;
         const style = window.getComputedStyle(trackRef.current);
         gapRef.current = parseFloat(style.gap) || 20;
+
+        const totalCardsWidth = cardWidthRef.current * itemCount + gapRef.current * (itemCount - 1);
+        const containerWidth = containerRef.current.offsetWidth;
+        setShouldAnimate(totalCardsWidth > containerWidth);
     }, [itemCount]);
 
     const stepSize = useCallback(() => cardWidthRef.current + gapRef.current, []);
@@ -107,7 +113,7 @@ export function HomePartnerships() {
 
     // 한 칸 이동 후 → 대기 → 반복
     const scheduleNext = useCallback(() => {
-        if (isDraggingRef.current || itemCount === 0) return;
+        if (isDraggingRef.current || itemCount === 0 || !shouldAnimate) return;
 
         timerRef.current = setTimeout(() => {
             if (isDraggingRef.current) return;
@@ -133,7 +139,7 @@ export function HomePartnerships() {
                 scheduleNextRef.current();
             }, SLIDE_MS);
         }, PAUSE_MS);
-    }, [itemCount, stepSize, setOffsetInstant, setOffsetSmooth]);
+    }, [itemCount, stepSize, setOffsetInstant, setOffsetSmooth, shouldAnimate]);
 
     // ref를 최신 함수로 동기화
     useEffect(() => {
@@ -154,20 +160,31 @@ export function HomePartnerships() {
         scheduleNext();
     }, [clearTimer, scheduleNext]);
 
-    // 마운트 시 시작
+    // 마운트 시 측정 → 오버플로우면 애니메이션 시작
     useEffect(() => {
         if (itemCount === 0) return;
         const t = setTimeout(() => {
             measure();
-            currentIndexRef.current = 0;
-            setOffsetInstant(0);
-            scheduleNext();
         }, 200);
         return () => {
             clearTimeout(t);
             clearTimer();
         };
-    }, [itemCount, measure, setOffsetInstant, scheduleNext, clearTimer]);
+    }, [itemCount, measure, clearTimer]);
+
+    // shouldAnimate 변경 시 애니메이션 시작/정지
+    useEffect(() => {
+        if (!shouldAnimate || itemCount === 0) {
+            clearTimer();
+            setOffsetInstant(0);
+            currentIndexRef.current = 0;
+            return;
+        }
+        currentIndexRef.current = 0;
+        setOffsetInstant(0);
+        scheduleNext();
+        return () => clearTimer();
+    }, [shouldAnimate, itemCount, setOffsetInstant, scheduleNext, clearTimer]);
 
     // 리사이즈
     useEffect(() => {
@@ -257,11 +274,11 @@ export function HomePartnerships() {
         if (isDraggingRef.current) handleMouseUp();
     }, [handleMouseUp]);
 
-    // 복제 배열 (원본 + 클론)
+    // 오버플로우일 때만 복제 (원본 + 클론)
     const displayItems = useMemo(() => {
         if (!partners || partners.length === 0) return [];
-        return [...partners, ...partners];
-    }, [partners]);
+        return shouldAnimate ? [...partners, ...partners] : partners;
+    }, [partners, shouldAnimate]);
 
     // 로딩
     if (isUnionLoading || isLoading) {
@@ -304,15 +321,16 @@ export function HomePartnerships() {
             </div>
 
             <div
+                ref={containerRef}
                 className="overflow-hidden select-none"
-                onTouchStart={handleTouchStart}
-                onTouchMove={handleTouchMove}
-                onTouchEnd={handleTouchEnd}
-                onMouseDown={handleMouseDown}
-                onMouseMove={handleMouseMove}
-                onMouseUp={handleMouseUp}
-                onMouseLeave={handleMouseLeave}
-                style={{ cursor: 'grab' }}
+                onTouchStart={shouldAnimate ? handleTouchStart : undefined}
+                onTouchMove={shouldAnimate ? handleTouchMove : undefined}
+                onTouchEnd={shouldAnimate ? handleTouchEnd : undefined}
+                onMouseDown={shouldAnimate ? handleMouseDown : undefined}
+                onMouseMove={shouldAnimate ? handleMouseMove : undefined}
+                onMouseUp={shouldAnimate ? handleMouseUp : undefined}
+                onMouseLeave={shouldAnimate ? handleMouseLeave : undefined}
+                style={{ cursor: shouldAnimate ? 'grab' : 'default' }}
             >
                 <div
                     ref={trackRef}

@@ -529,9 +529,7 @@ async function handlePreRegisteredMatch(
 
     if (authLinkTransferError) {
       console.error('Failed to transfer auth links:', authLinkTransferError);
-      if (!existingAuthLinks || existingAuthLinks.length === 0) {
-        return { success: false, message: '인증 링크 이관에 실패했습니다. 로그인이 불가능할 수 있습니다.' };
-      }
+      return { success: false, message: '인증 링크 이관에 실패했습니다. 로그인이 불가능할 수 있으므로 병합을 중단합니다.' };
     }
 
     const { error: mergeError } = await supabase
