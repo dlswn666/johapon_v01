@@ -78,8 +78,41 @@ export default function StepUpAuthModal({
         return;
       }
 
-      // 실제 PASS 팝업 열기 (sessionKey 사용)
-      // TODO: 실제 PASS 팝업 연동 시 구현
+      // KG이니시스 팝업 연동
+      if (result.authData) {
+        const { authData } = result;
+        const popup = window.open('about:blank', 'kgInicisAuth', 'width=400,height=640');
+        if (popup) {
+          const form = popup.document.createElement('form');
+          form.method = 'POST';
+          form.action = authData.authUrl;
+          for (const [name, value] of Object.entries(authData.formParams)) {
+            const input = popup.document.createElement('input');
+            input.type = 'hidden';
+            input.name = name;
+            input.value = value as string;
+            form.appendChild(input);
+          }
+          popup.document.body.appendChild(form);
+          form.submit();
+
+          await new Promise<void>((resolve) => {
+            const timer = setInterval(() => {
+              if (popup.closed) {
+                clearInterval(timer);
+                resolve();
+              }
+            }, 500);
+          });
+        }
+
+        const nonceResult = await consumeNonce.mutateAsync({ sessionKey: authData.mTxId, assemblyId });
+        setAuthState('success');
+        setTimeout(() => onSuccess(nonceResult.nonce), 500);
+        return;
+      }
+
+      // authData 없는 실제 세션키 처리 (예비 경로)
       const nonceResult = await consumeNonce.mutateAsync({ sessionKey, assemblyId });
       setAuthState('success');
       setTimeout(() => onSuccess(nonceResult.nonce), 500);
@@ -172,7 +205,7 @@ export default function StepUpAuthModal({
     >
       <div className="bg-white rounded-lg shadow-xl w-full max-w-sm mx-4 p-6">
         <h2 id="step-up-auth-title" className="text-lg font-bold text-gray-900 mb-2">본인 인증</h2>
-        <p className="text-sm text-gray-500 mb-4">투표를 위해 PASS 본인인증이 필요합니다.</p>
+        <p className="text-sm text-gray-500 mb-4">투표를 위해 본인인증이 필요합니다.</p>
 
         {/* C-07: 투표 의사 확인 표시 */}
         {agendaTitle && selectedOptionLabel && (
@@ -198,7 +231,7 @@ export default function StepUpAuthModal({
         {authState === 'pending' && (
           <div className="flex flex-col items-center gap-4">
             <div className="w-12 h-12 rounded-full border-4 border-blue-500 border-t-transparent animate-spin" />
-            <p className="text-sm text-gray-700 text-center">PASS 앱에서 인증을 완료해 주세요.</p>
+            <p className="text-sm text-gray-700 text-center">인증 앱에서 본인인증을 완료해 주세요.</p>
             <div className="text-2xl font-bold text-blue-600">{countdown}초</div>
           </div>
         )}
