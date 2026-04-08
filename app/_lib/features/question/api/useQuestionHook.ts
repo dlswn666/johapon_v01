@@ -13,6 +13,7 @@ import { useAuth } from '@/app/_lib/app/providers/AuthProvider';
 import { getUnionPath } from '@/app/_lib/shared/lib/utils/slug';
 import { fileApi } from '@/app/_lib/shared/hooks/file/fileApi';
 import { sendAlimTalk } from '@/app/_lib/features/alimtalk/actions/sendAlimTalk';
+import { notifyAdminsNewQuestion } from '@/app/_lib/features/alimtalk/actions/notifyAdminsNewQuestion';
 import { supabase as supabaseClient } from '@/app/_lib/shared/supabase/client';
 import { escapeLikeWildcards } from '@/app/_lib/shared/utils/escapeLike';
 
@@ -240,36 +241,16 @@ export const useAddQuestion = () => {
                 else questionData.content = finalContent;
             }
 
-            // 4. 관리자들에게 알림톡 발송
+            // 4. 관리자들에게 알림톡 발송 (service_role로 관리자 조회 — RLS 우회)
             try {
-                // 조합 관리자들 조회 (users 테이블에서 해당 조합의 관리자 또는 시스템 관리자 조회)
-                const { data: admins } = await supabaseClient
-                    .from('users')
-                    .select('phone_number, name')
-                    .or(`union_id.eq.${union.id},role.eq.SYSTEM_ADMIN`)
-                    .in('role', ['SUPER_ADMIN', 'ADMIN', 'SYSTEM_ADMIN']);
-
-                if (admins && admins.length > 0) {
-                    const createdDate = new Date(questionData.created_at);
-                    await sendAlimTalk({
-                        unionId: union.id,
-                        templateCode: 'UE_3236', // 질문 등록 알림 템플릿
-                        recipients: (admins || []).map((admin) => {
-                            return {
-                                phoneNumber: admin.phone_number,
-                                name: admin.name,
-                                variables: {
-                                    게시판명: '질문하기',
-                                    작성자명: user?.name || '회원',
-                                    글제목: questionData.title,
-                                    등록일시: createdDate.toLocaleString('ko-KR'),
-                                    조합슬러그: slug,
-                                    질문ID: String(questionData.id),
-                                },
-                            };
-                        }),
-                    });
-                }
+                await notifyAdminsNewQuestion({
+                    unionId: union.id,
+                    authorName: user?.name || '회원',
+                    questionTitle: questionData.title,
+                    questionId: questionData.id,
+                    createdAt: questionData.created_at,
+                    slug,
+                });
             } catch (alimTalkError) {
                 console.error('알림톡 발송 실패 (질문 등록):', alimTalkError);
                 // 알림톡 발송 실패해도 질문 등록은 성공으로 처리
