@@ -11,8 +11,9 @@ interface EvoteCardProps {
 
 export default function EvoteCard({ evote, onClick }: EvoteCardProps) {
   const isClosed = evote.status === 'CLOSED' || evote.status === 'CANCELLED';
-  const statusBadge = EVOTE_STATUS_BADGE[evote.status];
-  const typeBadge = EVOTE_TYPE_BADGE[evote.evote_type];
+  const defaultBadge = { bg: 'bg-gray-100', text: 'text-gray-600' };
+  const statusBadge = EVOTE_STATUS_BADGE[evote.status] || defaultBadge;
+  const typeBadge = EVOTE_TYPE_BADGE[evote.evote_type] || defaultBadge;
   const itemCount = evote.items?.length ?? 0;
 
   // 참여율 계산 (total_voters가 있을 때만)

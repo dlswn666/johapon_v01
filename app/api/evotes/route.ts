@@ -41,6 +41,7 @@ export async function GET(request: NextRequest) {
         id, title, assembly_type, status, quorum_type,
         scheduled_at, pre_vote_start_date, pre_vote_end_date,
         publish_mode, created_at, updated_at, created_by,
+        eligible_member_count,
         creator:users!assemblies_created_by_fkey(id, name),
         agenda_items(count)
       `)
@@ -66,7 +67,24 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: '전자투표 목록을 불러올 수 없습니다.' }, { status: 500 });
     }
 
-    return NextResponse.json({ data: data || [] });
+    // assembly → evote 형식으로 매핑
+    const ASSEMBLY_TO_EVOTE_TYPE: Record<string, string> = {
+      REGULAR: 'APPROVAL',
+      EXTRAORDINARY: 'APPROVAL',
+      FOUNDING: 'APPROVAL',
+      DELEGATE: 'APPROVAL',
+    };
+
+    const evotes = (data || []).map((assembly) => ({
+      ...assembly,
+      evote_type: ASSEMBLY_TO_EVOTE_TYPE[assembly.assembly_type] || 'APPROVAL',
+      start_at: assembly.pre_vote_start_date,
+      end_at: assembly.pre_vote_end_date,
+      items: assembly.agenda_items,
+      total_voters: assembly.eligible_member_count ?? null,
+    }));
+
+    return NextResponse.json({ data: evotes });
   } catch (error) {
     console.error('GET /api/evotes error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
