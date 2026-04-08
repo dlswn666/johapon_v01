@@ -114,7 +114,16 @@ export async function sendAlimTalk(params: SendAlimTalkParams): Promise<AlimTalk
         return { success: false, error: '인증되지 않은 사용자입니다.' };
     }
 
+    // auth.users.id → users.id 변환 (alimtalk_logs.sender_id FK가 users.id를 참조)
+    const { data: authLink } = await supabase
+        .from('user_auth_links')
+        .select('user_id')
+        .eq('auth_user_id', user.id)
+        .single();
 
+    if (!authLink) {
+        return { success: false, error: '사용자 매핑 정보를 찾을 수 없습니다.' };
+    }
 
     try {
         // JWT 토큰 생성
@@ -129,7 +138,7 @@ export async function sendAlimTalk(params: SendAlimTalkParams): Promise<AlimTalk
             },
             body: JSON.stringify({
                 unionId,
-                senderId: user.id,
+                senderId: authLink.user_id,
                 templateCode,
                 recipients,
                 noticeId,
