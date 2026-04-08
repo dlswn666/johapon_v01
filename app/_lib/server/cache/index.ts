@@ -50,7 +50,17 @@ export const getCachedUserByAuthId = cache(async (authUserId: string, unionId?: 
 
     const userIds = links.map((l) => l.user_id);
 
-    // 2. 해당 조합의 사용자 조회
+    // 2. SYSTEM_ADMIN 우선 확인 (union_id 무관)
+    const { data: sysAdmin } = await supabase
+        .from('users')
+        .select('*')
+        .in('id', userIds)
+        .eq('role', 'SYSTEM_ADMIN')
+        .maybeSingle();
+
+    if (sysAdmin) return sysAdmin;
+
+    // 3. 해당 조합의 사용자 조회
     let query = supabase.from('users').select('*').in('id', userIds);
 
     if (unionId) {
