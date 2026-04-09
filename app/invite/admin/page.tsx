@@ -225,7 +225,7 @@ function AdminInviteContent() {
                     {/* 카카오 로그인 버튼 */}
                     <Button
                         onClick={handleKakaoLogin}
-                        className="w-full bg-[#FEE500] hover:bg-[#FDD800] text-[#191919] font-medium py-6 text-lg transition-all duration-200 shadow-lg"
+                        className="w-full bg-kakao hover:bg-kakao-hover text-kakao-foreground font-medium py-6 text-lg transition-all duration-200 shadow-lg"
                     >
                         <svg className="w-6 h-6 mr-3" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M12 3c-5.52 0-10 3.58-10 8 0 2.83 1.88 5.31 4.7 6.7-.15.56-.94 3.54-1 3.8 0 .16.06.3.21.39.15.08.33.06.46-.05l4.4-2.93c.41.05.82.09 1.23.09 5.52 0 10-3.58 10-8s-4.48-8-10-8z" />

@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { HeroSlide } from '@/app/_lib/shared/type/database.types';
 import { cn } from '@/lib/utils';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { useReducedMotion } from '@/hooks/use-reduced-motion';
+import { useReducedMotion } from '@/app/_lib/shared/hooks/useReducedMotion';
 
 // 기본 슬라이드 이미지 (슬라이드가 없을 때 사용)
 const DEFAULT_SLIDES: HeroSlide[] = [
@@ -273,7 +273,7 @@ export function HeroSlider({ slides, autoPlayInterval = 4000, className }: HeroS
                                 onClick={() => goToSlide(index)}
                                 className={cn(
                                     'flex-1 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-inset transition-colors duration-300',
-                                    isActive ? 'bg-[#2f7f5f]' : 'bg-transparent'
+                                    isActive ? 'bg-primary' : 'bg-transparent'
                                 )}
                                 aria-label={`슬라이드 ${index + 1}로 이동`}
                                 aria-current={isActive ? 'true' : undefined}

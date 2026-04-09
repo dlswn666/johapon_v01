@@ -16,7 +16,7 @@ import { CommentSection } from '@/app/_lib/widgets/common/comment';
 import { formatDate, formatAuthorName } from '@/app/_lib/shared/utils/commonUtil';
 import { sanitizeHtml } from '@/app/_lib/shared/utils/sanitize';
 
-const FreeBoardDetailPage = () => {
+export default function FreeBoardDetailPage() {
     const router = useRouter();
     const params = useParams();
     const slug = params.slug as string;
@@ -59,7 +59,7 @@ const FreeBoardDetailPage = () => {
             <div className="container mx-auto max-w-[1280px] px-4 py-8">
                 <div className="space-y-8">
                     {/* 제목 + 메타 정보 */}
-                    <div className="border-b border-[#CCCCCC] pb-6 space-y-4">
+                    <div className="border-b border-subtle-border pb-6 space-y-4">
                         <Skeleton className="h-9 w-3/4" />
                         <div className="flex flex-wrap items-center justify-between gap-4">
                             <div className="flex gap-6">
@@ -82,12 +82,12 @@ const FreeBoardDetailPage = () => {
                         <Skeleton className="h-32 w-full" style={{ animationDelay: '300ms' }} />
                     </div>
                     {/* 첨부파일 */}
-                    <div className="border-t border-[#CCCCCC] pt-6">
+                    <div className="border-t border-subtle-border pt-6">
                         <Skeleton className="h-4 w-20 mb-3" style={{ animationDelay: '350ms' }} />
                         <Skeleton className="h-10 w-48 rounded-[8px]" style={{ animationDelay: '375ms' }} />
                     </div>
                     {/* 댓글 */}
-                    <div className="bg-[#F5F5F5] rounded-[12px] p-6 space-y-4">
+                    <div className="bg-subtle-bg rounded-[12px] p-6 space-y-4">
                         <Skeleton className="h-5 w-24" style={{ animationDelay: '400ms' }} />
                         <Skeleton className="h-20 w-full rounded-[8px]" style={{ animationDelay: '425ms' }} />
                     </div>
@@ -100,7 +100,7 @@ const FreeBoardDetailPage = () => {
         return (
             <div className={cn('container mx-auto max-w-[1280px] px-4 py-8')}>
                 <div className="flex flex-col justify-center items-center h-64 gap-4">
-                    <p className="text-[18px] text-[#D9534F]">게시글을 찾을 수 없습니다.</p>
+                    <p className="text-[18px] text-error-text">게시글을 찾을 수 없습니다.</p>
                     <button
                         onClick={() => router.push(`/${slug}/communication/free-board`)}
                         className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
@@ -116,10 +116,10 @@ const FreeBoardDetailPage = () => {
         <>
             <div className={cn('container mx-auto max-w-[1280px] px-4 py-8')}>
                 <div className="space-y-8">
-                    <div className="border-b border-[#CCCCCC] pb-6 space-y-4">
-                        <h2 className="text-[24px] md:text-[32px] font-bold text-[#5FA37C]">{freeBoard.title}</h2>
+                    <div className="border-b border-subtle-border pb-6 space-y-4">
+                        <h2 className="text-[24px] md:text-[32px] font-bold text-brand-light">{freeBoard.title}</h2>
                         <div className="flex flex-wrap items-center justify-between gap-4">
-                            <div className="flex flex-wrap gap-6 text-[14px] text-[#AFAFAF]">
+                            <div className="flex flex-wrap gap-6 text-[14px] text-subtle-text">
                                 <span>작성자: {authorName}</span>
                                 <span>작성일: {formatDate(freeBoard.created_at, true)}</span>
                                 <span>조회수: {freeBoard.views}</span>
@@ -128,13 +128,13 @@ const FreeBoardDetailPage = () => {
                                 {isMine && (
                                     <>
                                         <Button
-                                            className="bg-white border border-[#4E8C6D] text-[#4E8C6D] hover:bg-[#F5F5F5] cursor-pointer"
+                                            className="bg-white border border-brand text-brand hover:bg-subtle-bg cursor-pointer"
                                             onClick={() => router.push(`/${slug}/communication/free-board/${id}/edit`)}
                                         >
                                             수정
                                         </Button>
                                         <Button
-                                            className="bg-[#D9534F] text-white hover:bg-[#D9534F]/90 cursor-pointer"
+                                            className="bg-error-text text-white hover:bg-error-text/90 cursor-pointer"
                                             onClick={handleDelete}
                                         >
                                             삭제
@@ -142,7 +142,7 @@ const FreeBoardDetailPage = () => {
                                     </>
                                 )}
                                 <Button
-                                    className="bg-[#E6E6E6] text-[#5FA37C] hover:bg-[#E6E6E6]/80 cursor-pointer"
+                                    className="bg-subtle-bg text-brand-light hover:bg-subtle-bg/80 cursor-pointer"
                                     onClick={() => router.push(`/${slug}/communication/free-board`)}
                                 >
                                     목록
@@ -157,7 +157,7 @@ const FreeBoardDetailPage = () => {
                     />
 
                     {/* 첨부파일 영역 */}
-                    <div className="mt-8 border-t border-[#CCCCCC] pt-6">
+                    <div className="mt-8 border-t border-subtle-border pt-6">
                         <FileUploader
                             unionSlug={slug}
                             targetId={String(freeBoardId)}
@@ -167,7 +167,7 @@ const FreeBoardDetailPage = () => {
                     </div>
 
                     {/* 댓글 영역 */}
-                    <div className="mt-8 bg-[#F5F5F5] rounded-[12px] p-6">
+                    <div className="mt-8 bg-subtle-bg rounded-[12px] p-6">
                         <CommentSection
                             entityType="free_board"
                             entityId={freeBoardId}
@@ -182,5 +182,4 @@ const FreeBoardDetailPage = () => {
     );
 };
 
-export default FreeBoardDetailPage;
 

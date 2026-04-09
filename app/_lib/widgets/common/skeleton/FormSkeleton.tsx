@@ -47,7 +47,7 @@ export function FormSkeleton({
 
             {/* 버튼 영역 */}
             {hasButtons && (
-                <div className="flex justify-end gap-3 pt-6 border-t border-[#CCCCCC]">
+                <div className="flex justify-end gap-3 pt-6 border-t border-subtle-border">
                     <Skeleton className="h-12 w-24 rounded-md" />
                     <Skeleton className="h-12 w-24 rounded-md" />
                 </div>

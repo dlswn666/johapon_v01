@@ -267,7 +267,7 @@ export default function UnionForm({ mode, initialData, onSubmit, onCancel, isSub
 
                     {/* 로고 업로드 */}
                     <div className="space-y-2">
-                        <FormLabel className="text-[16px] font-bold text-[#5FA37C]">로고</FormLabel>
+                        <FormLabel className="text-[16px] font-bold text-brand-light">로고</FormLabel>
                         <div className="flex items-center gap-4">
                             {logoPreview ? (
                                 <div className="relative w-24 h-24">
@@ -328,7 +328,7 @@ export default function UnionForm({ mode, initialData, onSubmit, onCancel, isSub
                         name="name"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel className="text-[16px] font-bold text-[#5FA37C]">
+                                <FormLabel className="text-[16px] font-bold text-brand-light">
                                     조합명 <span className="text-red-500">*</span>
                                 </FormLabel>
                                 <FormControl>
@@ -343,7 +343,7 @@ export default function UnionForm({ mode, initialData, onSubmit, onCancel, isSub
                                             handleNameChange(e.target.value);
                                         }}
                                         className={cn(
-                                            'h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]',
+                                            'h-[48px] text-[16px] rounded-[12px] border-subtle-border',
                                             'bg-white'
                                         )}
                                     />
@@ -359,7 +359,7 @@ export default function UnionForm({ mode, initialData, onSubmit, onCancel, isSub
                         name="slug"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel className="text-[16px] font-bold text-[#5FA37C]">
+                                <FormLabel className="text-[16px] font-bold text-brand-light">
                                     Slug (URL 경로) <span className="text-red-500">*</span>
                                 </FormLabel>
                                 <FormControl>
@@ -370,7 +370,7 @@ export default function UnionForm({ mode, initialData, onSubmit, onCancel, isSub
                                         autoComplete="off"
                                         spellCheck={false}
                                         className={cn(
-                                            'h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]',
+                                            'h-[48px] text-[16px] rounded-[12px] border-subtle-border',
                                             'bg-white'
                                         )}
                                     />
@@ -389,14 +389,14 @@ export default function UnionForm({ mode, initialData, onSubmit, onCancel, isSub
                         name="description"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel className="text-[16px] font-bold text-[#5FA37C]">조합 소개</FormLabel>
+                                <FormLabel className="text-[16px] font-bold text-brand-light">조합 소개</FormLabel>
                                 <FormControl>
                                     <Textarea
                                         {...field}
                                         placeholder="조합 소개를 입력하세요"
                                         rows={3}
                                         disabled={isReadOnly}
-                                        className={cn('text-[16px] rounded-[12px] border-[#CCCCCC]', 'bg-white')}
+                                        className={cn('text-[16px] rounded-[12px] border-subtle-border', 'bg-white')}
                                     />
                                 </FormControl>
                                 <FormMessage />
@@ -415,7 +415,7 @@ export default function UnionForm({ mode, initialData, onSubmit, onCancel, isSub
                         name="office_address"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel className="text-[16px] font-bold text-[#5FA37C]">사무실 주소</FormLabel>
+                                <FormLabel className="text-[16px] font-bold text-brand-light">사무실 주소</FormLabel>
                                 <FormControl>
                                     <Input
                                         {...field}
@@ -423,7 +423,7 @@ export default function UnionForm({ mode, initialData, onSubmit, onCancel, isSub
                                         disabled={isReadOnly}
                                         autoComplete="street-address"
                                         className={cn(
-                                            'h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]',
+                                            'h-[48px] text-[16px] rounded-[12px] border-subtle-border',
                                             'bg-white'
                                         )}
                                     />
@@ -440,7 +440,7 @@ export default function UnionForm({ mode, initialData, onSubmit, onCancel, isSub
                             name="office_phone"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel className="text-[16px] font-bold text-[#5FA37C]">
+                                    <FormLabel className="text-[16px] font-bold text-brand-light">
                                         사무실 전화번호
                                     </FormLabel>
                                     <FormControl>
@@ -453,7 +453,7 @@ export default function UnionForm({ mode, initialData, onSubmit, onCancel, isSub
                                             inputMode="tel"
                                             spellCheck={false}
                                             className={cn(
-                                                'h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]',
+                                                'h-[48px] text-[16px] rounded-[12px] border-subtle-border',
                                                 'bg-white'
                                             )}
                                         />
@@ -469,7 +469,7 @@ export default function UnionForm({ mode, initialData, onSubmit, onCancel, isSub
                             name="registration_number"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel className="text-[16px] font-bold text-[#5FA37C]">
+                                    <FormLabel className="text-[16px] font-bold text-brand-light">
                                         사업자 등록번호
                                     </FormLabel>
                                     <FormControl>
@@ -480,7 +480,7 @@ export default function UnionForm({ mode, initialData, onSubmit, onCancel, isSub
                                             autoComplete="off"
                                             spellCheck={false}
                                             className={cn(
-                                                'h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]',
+                                                'h-[48px] text-[16px] rounded-[12px] border-subtle-border',
                                                 'bg-white'
                                             )}
                                         />
@@ -497,7 +497,7 @@ export default function UnionForm({ mode, initialData, onSubmit, onCancel, isSub
                         name="business_hours"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel className="text-[16px] font-bold text-[#5FA37C]">운영시간</FormLabel>
+                                <FormLabel className="text-[16px] font-bold text-brand-light">운영시간</FormLabel>
                                 <FormControl>
                                     <Input
                                         {...field}
@@ -505,7 +505,7 @@ export default function UnionForm({ mode, initialData, onSubmit, onCancel, isSub
                                         disabled={isReadOnly}
                                         autoComplete="off"
                                         className={cn(
-                                            'h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]',
+                                            'h-[48px] text-[16px] rounded-[12px] border-subtle-border',
                                             'bg-white'
                                         )}
                                     />
@@ -527,7 +527,7 @@ export default function UnionForm({ mode, initialData, onSubmit, onCancel, isSub
                             name="business_type"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel className="text-[16px] font-bold text-[#5FA37C]">사업 유형</FormLabel>
+                                    <FormLabel className="text-[16px] font-bold text-brand-light">사업 유형</FormLabel>
                                     <Select
                                         onValueChange={field.onChange}
                                         value={field.value || ''}
@@ -536,7 +536,7 @@ export default function UnionForm({ mode, initialData, onSubmit, onCancel, isSub
                                         <FormControl>
                                             <SelectTrigger
                                                 className={cn(
-                                                    'h-[48px] w-full text-[16px] rounded-[12px] border-[#CCCCCC]',
+                                                    'h-[48px] w-full text-[16px] rounded-[12px] border-subtle-border',
                                                     'bg-white'
                                                 )}
                                             >
@@ -562,7 +562,7 @@ export default function UnionForm({ mode, initialData, onSubmit, onCancel, isSub
                             name="district_name"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel className="text-[16px] font-bold text-[#5FA37C]">구역명</FormLabel>
+                                    <FormLabel className="text-[16px] font-bold text-brand-light">구역명</FormLabel>
                                     <FormControl>
                                         <Input
                                             {...field}
@@ -570,7 +570,7 @@ export default function UnionForm({ mode, initialData, onSubmit, onCancel, isSub
                                             disabled={isReadOnly}
                                             autoComplete="off"
                                             className={cn(
-                                                'h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]',
+                                                'h-[48px] text-[16px] rounded-[12px] border-subtle-border',
                                                 'bg-white'
                                             )}
                                         />
@@ -588,7 +588,7 @@ export default function UnionForm({ mode, initialData, onSubmit, onCancel, isSub
                             name="current_stage_id"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel className="text-[16px] font-bold text-[#5FA37C]">
+                                    <FormLabel className="text-[16px] font-bold text-brand-light">
                                         현재 진행 단계
                                     </FormLabel>
                                     <Select
@@ -599,7 +599,7 @@ export default function UnionForm({ mode, initialData, onSubmit, onCancel, isSub
                                         <FormControl>
                                             <SelectTrigger
                                                 className={cn(
-                                                    'h-[48px] w-full text-[16px] rounded-[12px] border-[#CCCCCC]',
+                                                    'h-[48px] w-full text-[16px] rounded-[12px] border-subtle-border',
                                                     'bg-white'
                                                 )}
                                             >
@@ -629,7 +629,7 @@ export default function UnionForm({ mode, initialData, onSubmit, onCancel, isSub
                             name="member_count"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel className="text-[16px] font-bold text-[#5FA37C]">조합원 수</FormLabel>
+                                    <FormLabel className="text-[16px] font-bold text-brand-light">조합원 수</FormLabel>
                                     <FormControl>
                                         <Input
                                             {...field}
@@ -640,7 +640,7 @@ export default function UnionForm({ mode, initialData, onSubmit, onCancel, isSub
                                             inputMode="numeric"
                                             onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
                                             className={cn(
-                                                'h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]',
+                                                'h-[48px] text-[16px] rounded-[12px] border-subtle-border',
                                                 'bg-white'
                                             )}
                                         />
@@ -658,7 +658,7 @@ export default function UnionForm({ mode, initialData, onSubmit, onCancel, isSub
                             name="establishment_date"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel className="text-[16px] font-bold text-[#5FA37C]">조합 설립일</FormLabel>
+                                    <FormLabel className="text-[16px] font-bold text-brand-light">조합 설립일</FormLabel>
                                     <FormControl>
                                         <DatePicker
                                             value={field.value ? new Date(field.value) : undefined}
@@ -680,7 +680,7 @@ export default function UnionForm({ mode, initialData, onSubmit, onCancel, isSub
                             name="approval_date"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel className="text-[16px] font-bold text-[#5FA37C]">
+                                    <FormLabel className="text-[16px] font-bold text-brand-light">
                                         사업 시행 인가일
                                     </FormLabel>
                                     <FormControl>
@@ -705,7 +705,7 @@ export default function UnionForm({ mode, initialData, onSubmit, onCancel, isSub
                         name="area_size"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel className="text-[16px] font-bold text-[#5FA37C]">사업 면적 (㎡)</FormLabel>
+                                <FormLabel className="text-[16px] font-bold text-brand-light">사업 면적 (㎡)</FormLabel>
                                 <FormControl>
                                     <Input
                                         {...field}
@@ -715,7 +715,7 @@ export default function UnionForm({ mode, initialData, onSubmit, onCancel, isSub
                                         autoComplete="off"
                                         inputMode="numeric"
                                         className={cn(
-                                            'h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]',
+                                            'h-[48px] text-[16px] rounded-[12px] border-subtle-border',
                                             'bg-white'
                                         )}
                                     />
@@ -747,7 +747,7 @@ export default function UnionForm({ mode, initialData, onSubmit, onCancel, isSub
                                             />
                                         </FormControl>
                                         <FormLabel className="text-[14px] font-bold text-gray-700 cursor-pointer flex items-center gap-2">
-                                            <div className="w-5 h-5 bg-[#03C75A] rounded flex items-center justify-center">
+                                            <div className="w-5 h-5 bg-naver rounded flex items-center justify-center">
                                                 <span className="text-white text-[10px] font-bold">N</span>
                                             </div>
                                             네이버 카페
@@ -771,7 +771,7 @@ export default function UnionForm({ mode, initialData, onSubmit, onCancel, isSub
                                             inputMode="url"
                                             spellCheck={false}
                                             className={cn(
-                                                'h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]',
+                                                'h-[48px] text-[16px] rounded-[12px] border-subtle-border',
                                                 'bg-white'
                                             )}
                                         />
@@ -798,7 +798,7 @@ export default function UnionForm({ mode, initialData, onSubmit, onCancel, isSub
                                             />
                                         </FormControl>
                                         <FormLabel className="text-[14px] font-bold text-gray-700 cursor-pointer flex items-center gap-2">
-                                            <Youtube className="w-5 h-5 text-[#FF0000]" />
+                                            <Youtube className="w-5 h-5 text-destructive" />
                                             유튜브
                                         </FormLabel>
                                     </FormItem>
@@ -820,7 +820,7 @@ export default function UnionForm({ mode, initialData, onSubmit, onCancel, isSub
                                             inputMode="url"
                                             spellCheck={false}
                                             className={cn(
-                                                'h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]',
+                                                'h-[48px] text-[16px] rounded-[12px] border-subtle-border',
                                                 'bg-white'
                                             )}
                                         />
@@ -833,7 +833,7 @@ export default function UnionForm({ mode, initialData, onSubmit, onCancel, isSub
 
                     {/* 버튼 영역 */}
                     {!isReadOnly && (
-                        <div className="flex justify-end gap-3 pt-6 border-t border-[#CCCCCC]">
+                        <div className="flex justify-end gap-3 pt-6 border-t border-subtle-border">
                             <Button
                                 type="button"
                                 variant="outline"
@@ -850,7 +850,7 @@ export default function UnionForm({ mode, initialData, onSubmit, onCancel, isSub
                             <Button
                                 type="submit"
                                 disabled={isSubmitting || isUploading}
-                                className="bg-[#4E8C6D] hover:bg-[#3d7359]"
+                                className="bg-brand hover:bg-brand-hover"
                             >
                                 {(isSubmitting || isUploading) && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                                 {mode === 'create' ? '등록' : '저장'}

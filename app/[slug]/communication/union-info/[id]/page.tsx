@@ -17,7 +17,7 @@ import { BoardComment } from '@/app/_lib/widgets/common/comment';
 import { formatDate, formatAuthorName } from '@/app/_lib/shared/utils/commonUtil';
 import { sanitizeHtml } from '@/app/_lib/shared/utils/sanitize';
 
-const UnionInfoDetailPage = () => {
+export default function UnionInfoDetailPage() {
     const router = useRouter();
     const params = useParams();
     const slug = params.slug as string;
@@ -59,7 +59,7 @@ const UnionInfoDetailPage = () => {
             <div className="container mx-auto max-w-[1280px] px-4 py-8">
                 <div className="space-y-8">
                     {/* 제목 + 버튼 */}
-                    <div className="flex justify-between items-start border-b border-[#CCCCCC] pb-6">
+                    <div className="flex justify-between items-start border-b border-subtle-border pb-6">
                         <Skeleton className="h-9 w-3/4" />
                         <div className="flex gap-2 shrink-0">
                             <Skeleton className="h-9 w-16 rounded-md" style={{ animationDelay: '50ms' }} />
@@ -73,7 +73,7 @@ const UnionInfoDetailPage = () => {
                         <Skeleton className="h-4 w-20" style={{ animationDelay: '150ms' }} />
                     </div>
                     {/* 본문 */}
-                    <div className="rounded-[12px] border border-[#CCCCCC] p-6 space-y-3">
+                    <div className="rounded-[12px] border border-subtle-border p-6 space-y-3">
                         <Skeleton className="h-4 w-full" style={{ animationDelay: '175ms' }} />
                         <Skeleton className="h-4 w-full" style={{ animationDelay: '200ms' }} />
                         <Skeleton className="h-4 w-5/6" style={{ animationDelay: '225ms' }} />
@@ -99,7 +99,7 @@ const UnionInfoDetailPage = () => {
         return (
             <div className={cn('container mx-auto max-w-[1280px] px-4 py-8')}>
                 <div className="flex flex-col justify-center items-center h-64 gap-4">
-                    <p className="text-[18px] text-[#D9534F]">
+                    <p className="text-[18px] text-error-text">
                         {error?.message || '게시글을 찾을 수 없습니다.'}
                     </p>
                     <button
@@ -120,19 +120,19 @@ const UnionInfoDetailPage = () => {
             <div className={cn('container mx-auto max-w-[1280px] px-4 py-8')}>
                 <div className="space-y-8">
                     {/* 제목 영역 */}
-                    <div className="flex justify-between items-start border-b border-[#CCCCCC] pb-6">
-                        <h2 className="text-[24px] md:text-[32px] font-bold text-[#5FA37C] flex-1 pr-4">{post.title}</h2>
+                    <div className="flex justify-between items-start border-b border-subtle-border pb-6">
+                        <h2 className="text-[24px] md:text-[32px] font-bold text-brand-light flex-1 pr-4">{post.title}</h2>
                         <div className="flex gap-2 shrink-0">
                             {canEdit && (
                                 <>
                                     <Button 
-                                        className="bg-white border border-[#4E8C6D] text-[#4E8C6D] hover:bg-[#F5F5F5] cursor-pointer" 
+                                        className="bg-white border border-brand text-brand hover:bg-subtle-bg cursor-pointer" 
                                         onClick={() => router.push(`/${slug}/communication/union-info/${id}/edit`)}
                                     >
                                         수정
                                     </Button>
                                     <Button 
-                                        className="bg-[#D9534F] text-white hover:bg-[#D9534F]/90 cursor-pointer" 
+                                        className="bg-error-text text-white hover:bg-error-text/90 cursor-pointer" 
                                         onClick={handleDelete}
                                     >
                                         삭제
@@ -140,7 +140,7 @@ const UnionInfoDetailPage = () => {
                                 </>
                             )}
                             <Button 
-                                className="bg-[#E6E6E6] text-[#5FA37C] hover:bg-[#E6E6E6]/80 cursor-pointer" 
+                                className="bg-subtle-bg text-brand-light hover:bg-subtle-bg/80 cursor-pointer" 
                                 onClick={() => router.push(`/${slug}/communication/union-info`)}
                             >
                                 목록
@@ -149,7 +149,7 @@ const UnionInfoDetailPage = () => {
                     </div>
 
                     {/* 메타 정보 */}
-                    <div className="flex gap-6 text-[14px] text-[#AFAFAF] pb-4">
+                    <div className="flex gap-6 text-[14px] text-subtle-text pb-4">
                         <span className="flex items-center gap-1">
                             <User className="h-4 w-4" />
                             작성자: {authorName}
@@ -166,7 +166,7 @@ const UnionInfoDetailPage = () => {
 
                     {/* 본문 */}
                     <div 
-                        className="min-h-[200px] whitespace-pre-wrap py-4 prose prose-lg max-w-none text-[18px] leading-relaxed text-gray-800 bg-white rounded-[12px] border border-[#CCCCCC] p-6" 
+                        className="min-h-[200px] whitespace-pre-wrap py-4 prose prose-lg max-w-none text-[18px] leading-relaxed text-gray-800 bg-white rounded-[12px] border border-subtle-border p-6" 
                         dangerouslySetInnerHTML={{ __html: sanitizeHtml(post.content) }} 
                     />
 
@@ -193,5 +193,4 @@ const UnionInfoDetailPage = () => {
     );
 };
 
-export default UnionInfoDetailPage;
 

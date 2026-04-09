@@ -37,7 +37,7 @@ interface FormCheckboxFieldProps<T extends FieldValues> {
  */
 const variantStyles: Record<CheckboxVariant, string> = {
     default: '',
-    card: 'flex flex-row items-start space-x-3 space-y-0 rounded-[12px] border border-[#CCCCCC] bg-white p-6 flex-1',
+    card: 'flex flex-row items-start space-x-3 space-y-0 rounded-[12px] border border-subtle-border bg-white p-6 flex-1',
 };
 
 /**
@@ -89,7 +89,7 @@ export function FormCheckboxField<T extends FieldValues>({
                             onCheckedChange={field.onChange}
                             disabled={disabled}
                             className={cn(
-                                'data-[state=checked]:bg-[#4E8C6D] border-[#AFAFAF]',
+                                'data-[state=checked]:bg-brand border-subtle-text',
                                 'cursor-pointer'
                             )}
                         />

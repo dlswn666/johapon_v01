@@ -23,7 +23,7 @@ const formSchema = z.object({
     content: z.string().min(1, '내용을 입력해주세요.'),
 });
 
-const EditFreeBoardPage = () => {
+export default function EditFreeBoardPage() {
     const router = useRouter();
     const params = useParams();
     const slug = params.slug as string;
@@ -97,7 +97,7 @@ const EditFreeBoardPage = () => {
                         <Skeleton className="h-[300px] w-full rounded-[12px]" style={{ animationDelay: '175ms' }} />
                     </div>
                     {/* 버튼 영역 */}
-                    <div className="flex justify-end gap-3 pt-6 border-t border-[#CCCCCC]">
+                    <div className="flex justify-end gap-3 pt-6 border-t border-subtle-border">
                         <Skeleton className="h-10 w-20 rounded-lg" style={{ animationDelay: '225ms' }} />
                         <Skeleton className="h-10 w-20 rounded-lg" style={{ animationDelay: '250ms' }} />
                     </div>
@@ -110,7 +110,7 @@ const EditFreeBoardPage = () => {
         return (
             <div className={cn('container mx-auto max-w-[1280px] px-4 py-8')}>
                 <div className="flex justify-center items-center h-64">
-                    <p className="text-[18px] text-[#D9534F]">게시글을 찾을 수 없습니다.</p>
+                    <p className="text-[18px] text-error-text">게시글을 찾을 수 없습니다.</p>
                 </div>
             </div>
         );
@@ -120,7 +120,7 @@ const EditFreeBoardPage = () => {
         <>
             <div className={cn('container mx-auto max-w-[1280px] px-4 py-8')}>
                 <div className="max-w-4xl mx-auto">
-                    <h2 className="text-[32px] font-bold text-[#5FA37C] mb-8">게시글 수정</h2>
+                    <h2 className="text-[32px] font-bold text-brand-light mb-8">게시글 수정</h2>
 
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
@@ -129,12 +129,12 @@ const EditFreeBoardPage = () => {
                                 name="title"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel className="text-[16px] font-bold text-[#5FA37C]">제목</FormLabel>
+                                        <FormLabel className="text-[16px] font-bold text-brand-light">제목</FormLabel>
                                         <FormControl>
                                             <Input 
                                                 placeholder="제목을 입력해주세요" 
                                                 {...field} 
-                                                className="h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]" 
+                                                className="h-[48px] text-[16px] rounded-[12px] border-subtle-border" 
                                             />
                                         </FormControl>
                                         <FormMessage />
@@ -144,7 +144,7 @@ const EditFreeBoardPage = () => {
 
                             {/* 파일 업로드 위젯 */}
                             <FormItem>
-                                <FormLabel className="text-[16px] font-bold text-[#5FA37C]">첨부파일</FormLabel>
+                                <FormLabel className="text-[16px] font-bold text-brand-light">첨부파일</FormLabel>
                                 <FormControl>
                                     <FileUploader
                                         unionSlug={slug}
@@ -159,7 +159,7 @@ const EditFreeBoardPage = () => {
                                 name="content"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel className="text-[16px] font-bold text-[#5FA37C]">내용</FormLabel>
+                                        <FormLabel className="text-[16px] font-bold text-brand-light">내용</FormLabel>
                                         <FormControl>
                                             <TextEditor
                                                 content={field.value}
@@ -172,7 +172,7 @@ const EditFreeBoardPage = () => {
                                 )}
                             />
 
-                             <div className="flex justify-end gap-3 pt-6 border-t border-[#CCCCCC]">
+                             <div className="flex justify-end gap-3 pt-6 border-t border-subtle-border">
                                 <ActionButton
                                     buttonType="cancel"
                                     onClick={() => router.push(`/${slug}/communication/free-board/${id}`)}
@@ -197,5 +197,4 @@ const EditFreeBoardPage = () => {
     );
 };
 
-export default EditFreeBoardPage;
 

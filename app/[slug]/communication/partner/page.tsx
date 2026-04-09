@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils';
 import ConfirmModal from '@/app/_lib/widgets/modal/ConfirmModal';
 import AlertModal from '@/app/_lib/widgets/modal/AlertModal';
 
-const PartnerListPage = () => {
+export default function PartnerListPage() {
     const router = useRouter();
     const { slug, isLoading: isUnionLoading } = useSlug();
     const { data: ads, isLoading, error } = useAdsByType('BOARD', !isUnionLoading);
@@ -39,7 +39,7 @@ const PartnerListPage = () => {
         return (
             <div className={cn('container mx-auto max-w-[1280px] px-4 py-8')}>
                 <div className="flex justify-center items-center h-64">
-                    <p className="text-[18px] text-[#D9534F]">데이터를 불러오는 중 오류가 발생했습니다.</p>
+                    <p className="text-[18px] text-error-text">데이터를 불러오는 중 오류가 발생했습니다.</p>
                 </div>
             </div>
         );
@@ -61,7 +61,7 @@ const PartnerListPage = () => {
         <>
             <div className={cn('container mx-auto max-w-[1280px] px-4 py-8')}>
                 <div className={cn('flex justify-between items-center mb-6')}>
-                    <h2 className={cn('text-[32px] font-bold text-[#5FA37C]')}>협력 업체</h2>
+                    <h2 className={cn('text-[32px] font-bold text-brand-light')}>협력 업체</h2>
                 </div>
 
                 <BoardListCard
@@ -77,4 +77,3 @@ const PartnerListPage = () => {
     );
 };
 
-export default PartnerListPage;

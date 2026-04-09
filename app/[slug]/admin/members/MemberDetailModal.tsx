@@ -53,7 +53,7 @@ export default function MemberDetailModal({ invite, onClose }: MemberDetailModal
             <DialogContent className="bg-white max-w-md">
                 <DialogHeader>
                     <DialogTitle className="text-gray-900 flex items-center gap-2">
-                        <MapPin className="w-5 h-5 text-[#4E8C6D]" />
+                        <MapPin className="w-5 h-5 text-brand" />
                         조합원 상세 정보
                     </DialogTitle>
                 </DialogHeader>

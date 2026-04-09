@@ -726,7 +726,7 @@ export default function MemberManagementPage() {
                         {(row.resident_address_jibun || row.resident_address_road || row.resident_address) && (
                             <div className="pt-1 border-t border-gray-100">
                                 <div className="text-[13px] text-gray-600">
-                                    <span className="text-[11px] bg-[#4E8C6D]/10 text-[#4E8C6D] px-1 rounded mr-1">
+                                    <span className="text-[11px] bg-brand/10 text-brand px-1 rounded mr-1">
                                         실거주
                                     </span>
                                     {formatAddressDisplay(row.resident_address_jibun, row.resident_address_road) || row.resident_address}
@@ -777,7 +777,7 @@ export default function MemberManagementPage() {
                                 className={cn(
                                     'flex items-center gap-2 px-3 md:px-6 py-4 text-sm font-medium border-b-2 transition-colors cursor-pointer whitespace-nowrap',
                                     activeTab === 'members'
-                                        ? 'border-[#4E8C6D] text-[#4E8C6D]'
+                                        ? 'border-brand text-brand'
                                         : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                                 )}
                             >
@@ -789,7 +789,7 @@ export default function MemberManagementPage() {
                                 className={cn(
                                     'flex items-center gap-2 px-3 md:px-6 py-4 text-sm font-medium border-b-2 transition-colors cursor-pointer whitespace-nowrap',
                                     activeTab === 'consent'
-                                        ? 'border-[#4E8C6D] text-[#4E8C6D]'
+                                        ? 'border-brand text-brand'
                                         : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                                 )}
                             >
@@ -801,7 +801,7 @@ export default function MemberManagementPage() {
                                 className={cn(
                                     'flex items-center gap-2 px-3 md:px-6 py-4 text-sm font-medium border-b-2 transition-colors cursor-pointer whitespace-nowrap',
                                     activeTab === 'invite'
-                                        ? 'border-[#4E8C6D] text-[#4E8C6D]'
+                                        ? 'border-brand text-brand'
                                         : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                                 )}
                             >
@@ -813,7 +813,7 @@ export default function MemberManagementPage() {
                                 className={cn(
                                     'flex items-center gap-2 px-3 md:px-6 py-4 text-sm font-medium border-b-2 transition-colors cursor-pointer whitespace-nowrap',
                                     activeTab === 'approval'
-                                        ? 'border-[#4E8C6D] text-[#4E8C6D]'
+                                        ? 'border-brand text-brand'
                                         : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                                 )}
                             >
@@ -825,7 +825,7 @@ export default function MemberManagementPage() {
                                 className={cn(
                                     'flex items-center gap-2 px-3 md:px-6 py-4 text-sm font-medium border-b-2 transition-colors cursor-pointer whitespace-nowrap',
                                     activeTab === 'duplicates'
-                                        ? 'border-[#4E8C6D] text-[#4E8C6D]'
+                                        ? 'border-brand text-brand'
                                         : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                                 )}
                             >
@@ -853,8 +853,8 @@ export default function MemberManagementPage() {
                         <div className="bg-white rounded-xl shadow-sm p-6">
                             <div className="flex items-center justify-between mb-4">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 bg-[#4E8C6D]/10 rounded-xl flex items-center justify-center">
-                                        <FileSpreadsheet className="w-5 h-5 text-[#4E8C6D]" />
+                                    <div className="w-10 h-10 bg-brand/10 rounded-xl flex items-center justify-center">
+                                        <FileSpreadsheet className="w-5 h-5 text-brand" />
                                     </div>
                                     <div>
                                         <h2 className="text-lg font-semibold text-gray-900">회원 등록</h2>
@@ -865,7 +865,7 @@ export default function MemberManagementPage() {
                                 </div>
                                 <Button
                                     onClick={() => setShowManualInviteModal(true)}
-                                    className="bg-[#4E8C6D] hover:bg-[#3d7058] text-white"
+                                    className="bg-brand hover:bg-brand-hover text-white"
                                 >
                                     <UserPlus className="w-4 h-4 mr-2" />
                                     수동 등록
@@ -943,8 +943,8 @@ export default function MemberManagementPage() {
                             <div className="p-6 border-b border-gray-100">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 bg-[#4E8C6D]/10 rounded-xl flex items-center justify-center">
-                                            <Users className="w-5 h-5 text-[#4E8C6D]" />
+                                        <div className="w-10 h-10 bg-brand/10 rounded-xl flex items-center justify-center">
+                                            <Users className="w-5 h-5 text-brand" />
                                         </div>
                                         <div>
                                             <h2 className="text-lg font-semibold text-gray-900">초대 목록</h2>
@@ -958,7 +958,7 @@ export default function MemberManagementPage() {
                                                 onClick={() => setFilter(btn.key)}
                                                 className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors cursor-pointer ${
                                                     filter === btn.key
-                                                        ? 'bg-[#4E8C6D] text-white'
+                                                        ? 'bg-brand text-white'
                                                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                                 }`}
                                             >
@@ -972,7 +972,7 @@ export default function MemberManagementPage() {
                                 {invitesLoading && (
                                     <div className="absolute inset-x-6 top-6 bottom-6 bg-white/60 backdrop-blur-[1px] z-10 flex items-center justify-center">
                                         <div className="flex flex-col items-center gap-2">
-                                            <Loader2 className="w-8 h-8 animate-spin text-[#4E8C6D]" />
+                                            <Loader2 className="w-8 h-8 animate-spin text-brand" />
                                             <p className="text-sm font-medium text-gray-500">데이터를 불러오는 중...</p>
                                         </div>
                                     </div>
@@ -1012,7 +1012,7 @@ export default function MemberManagementPage() {
                                         <Button
                                             onClick={handleBulkInvite}
                                             disabled={selectedIds.length === 0 || isSendingAlimtalk}
-                                            className="bg-[#4E8C6D] hover:bg-[#3d7058] text-white"
+                                            className="bg-brand hover:bg-brand-hover text-white"
                                         >
                                             {isSendingAlimtalk ? (
                                                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -1054,7 +1054,7 @@ export default function MemberManagementPage() {
                                             setSearchQuery(searchInput);
                                             setPage(1);
                                         }}
-                                        className="h-12 bg-[#4E8C6D] hover:bg-[#3d7058] text-white px-6 rounded-xl"
+                                        className="h-12 bg-brand hover:bg-brand-hover text-white px-6 rounded-xl"
                                     >
                                         검색
                                     </Button>
@@ -1154,11 +1154,11 @@ export default function MemberManagementPage() {
                     <AlertDialogContent className="bg-white">
                         <AlertDialogHeader>
                             <AlertDialogTitle className="text-gray-900 flex items-center gap-2">
-                                <Send className="w-5 h-5 text-[#4E8C6D]" />
+                                <Send className="w-5 h-5 text-brand" />
                                 알림톡 일괄 발송
                             </AlertDialogTitle>
                             <AlertDialogDescription className="text-gray-600">
-                                <span className="font-semibold text-[#4E8C6D]">{selectedIds.length}명</span>의
+                                <span className="font-semibold text-brand">{selectedIds.length}명</span>의
                                 조합원에게 본인 확인 안내 알림톡을 발송합니다.
                                 <br />
                                 <span className="text-sm text-gray-500 mt-2 block">
@@ -1173,7 +1173,7 @@ export default function MemberManagementPage() {
                             </AlertDialogCancel>
                             <AlertDialogAction
                                 onClick={handleConfirmBulkInvite}
-                                className="bg-[#4E8C6D] hover:bg-[#3d7058] text-white"
+                                className="bg-brand hover:bg-brand-hover text-white"
                             >
                                 발송하기
                             </AlertDialogAction>
@@ -1258,9 +1258,9 @@ export default function MemberManagementPage() {
 
                                     {/* 실 거주지 주소 추가 */}
                                     <div className="flex items-start gap-4 p-4 bg-green-50/50 rounded-xl border border-green-100">
-                                        <MapPin className="w-6 h-6 text-[#4E8C6D] mt-1" />
+                                        <MapPin className="w-6 h-6 text-brand mt-1" />
                                         <div className="flex-1">
-                                            <p className="text-[12px] text-[#4E8C6D] font-medium">실 거주지</p>
+                                            <p className="text-[12px] text-brand font-medium">실 거주지</p>
                                             <div className="text-[16px] font-bold text-gray-900">
                                                 <div>
                                                     {formatResidentAddressDisplay(
@@ -1339,7 +1339,7 @@ export default function MemberManagementPage() {
                                     <button
                                         onClick={() => handleUpdateRole(selectedUser.id, newRole)}
                                         disabled={newRole === selectedUser.role || updateRoleMutation.isPending}
-                                        className="w-full h-12 bg-[#4E8C6D] text-white rounded-xl hover:bg-[#3d7058] transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-[14px] font-medium cursor-pointer"
+                                        className="w-full h-12 bg-brand text-white rounded-xl hover:bg-brand-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-[14px] font-medium cursor-pointer"
                                     >
                                         등급 및 정보 수동 업데이트
                                     </button>
@@ -1380,7 +1380,7 @@ export default function MemberManagementPage() {
                                             <button
                                                 onClick={() => handleApprove(selectedUser.id)}
                                                 disabled={approveMutation.isPending || isApproving}
-                                                className="flex-1 h-12 rounded-xl bg-[#4E8C6D] text-white hover:bg-[#3d7058] transition-colors disabled:opacity-50 flex items-center justify-center gap-2 text-[14px] font-medium cursor-pointer"
+                                                className="flex-1 h-12 rounded-xl bg-brand text-white hover:bg-brand-hover transition-colors disabled:opacity-50 flex items-center justify-center gap-2 text-[14px] font-medium cursor-pointer"
                                             >
                                                 <CheckCircle className="w-5 h-5" />
                                                 <span>승인</span>

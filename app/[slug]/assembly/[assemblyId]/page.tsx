@@ -264,7 +264,7 @@ export default function AssemblyGatePage({ params }: { params: Promise<{ assembl
               가입 시 사용한 카카오 계정으로 로그인해주세요.
             </p>
             <Button
-              className="w-full bg-[#FEE500] text-[#191919] hover:bg-[#FDD835] font-medium h-12"
+              className="w-full bg-kakao text-kakao-foreground hover:bg-kakao font-medium h-12"
               onClick={() => {
                 const currentPath = pathname + (token ? `?token=${token}` : '');
                 router.push(`/${slug}?redirectTo=${encodeURIComponent(currentPath)}`);

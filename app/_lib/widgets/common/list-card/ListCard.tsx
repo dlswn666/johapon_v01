@@ -55,8 +55,8 @@ export function ListItem({
         <div
             className={cn(
                 'rounded-lg overflow-hidden transition-all duration-200 cursor-pointer',
-                'border border-[#E5E7EB]',
-                item.isMine && 'bg-[#F0F7F4]'
+                'border border',
+                item.isMine && 'bg-brand/5'
             )}
             style={{
                 backgroundColor: item.isMine
@@ -78,7 +78,7 @@ export function ListItem({
                 {showThumbnail && (
                     <div className="shrink-0">
                         {item.thumbnailUrl ? (
-                            <div className="w-[80px] h-[80px] rounded-[8px] overflow-hidden bg-[#E6E6E6] relative">
+                            <div className="w-[80px] h-[80px] rounded-[8px] overflow-hidden bg-subtle-bg relative">
                                 <Image
                                     src={item.thumbnailUrl}
                                     alt="썸네일"
@@ -87,8 +87,8 @@ export function ListItem({
                                 />
                             </div>
                         ) : (
-                            <div className="w-[80px] h-[80px] rounded-[8px] bg-[#F5F5F5] flex items-center justify-center">
-                                <ImageIcon className="h-6 w-6 text-[#AFAFAF]" />
+                            <div className="w-[80px] h-[80px] rounded-[8px] bg-subtle-bg flex items-center justify-center">
+                                <ImageIcon className="h-6 w-6 text-subtle-text" />
                             </div>
                         )}
                     </div>
@@ -166,7 +166,7 @@ export default function ListCard({
     if (!items || items.length === 0) {
         return (
             <div className="w-full p-8 text-center">
-                <p className="text-[16px] text-[#AFAFAF]">{emptyMessage}</p>
+                <p className="text-[16px] text-subtle-text">{emptyMessage}</p>
             </div>
         );
     }

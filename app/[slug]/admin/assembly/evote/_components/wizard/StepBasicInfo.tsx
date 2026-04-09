@@ -62,7 +62,7 @@ export default function StepBasicInfo({ formData, updateForm }: StepBasicInfoPro
         <select
           value={formData.assemblyType}
           onChange={(e) => updateForm({ assemblyType: e.target.value as AssemblyType })}
-          className="w-full h-[48px] text-[16px] rounded-[12px] border border-[#CCCCCC] bg-white px-4 outline-none focus:ring-2 focus:ring-[#5FA37C]"
+          className="w-full h-[48px] text-[16px] rounded-[12px] border border-subtle-border bg-white px-4 outline-none focus:ring-2 focus:ring-[#5FA37C]"
         >
           {ASSEMBLY_TYPE_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -80,7 +80,7 @@ export default function StepBasicInfo({ formData, updateForm }: StepBasicInfoPro
           value={formData.title}
           onChange={(e) => updateForm({ title: e.target.value })}
           placeholder="예: 제5차 정기총회"
-          className="w-full h-[48px] text-[16px] rounded-[12px] border border-[#CCCCCC] bg-white px-4 outline-none focus:ring-2 focus:ring-[#5FA37C]"
+          className="w-full h-[48px] text-[16px] rounded-[12px] border border-subtle-border bg-white px-4 outline-none focus:ring-2 focus:ring-[#5FA37C]"
         />
       </div>
 
@@ -102,7 +102,7 @@ export default function StepBasicInfo({ formData, updateForm }: StepBasicInfoPro
         </label>
         <div
           className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
-            isDragging ? 'border-[#5FA37C] bg-green-50' : 'border-gray-300'
+            isDragging ? 'border-brand-light bg-green-50' : 'border-gray-300'
           }`}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}

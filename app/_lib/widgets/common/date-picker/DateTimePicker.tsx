@@ -129,12 +129,12 @@ export function DateTimePicker({
                         variant="outline"
                         disabled={disabled}
                         className={cn(
-                            'w-full h-[40px] sm:h-[48px] justify-start text-left font-normal rounded-[8px] sm:rounded-[12px] border-[#CCCCCC] px-2 sm:px-4 hover:bg-gray-200',
+                            'w-full h-[40px] sm:h-[48px] justify-start text-left font-normal rounded-[8px] sm:rounded-[12px] border-subtle-border px-2 sm:px-4 hover:bg-gray-200',
                             !value && 'text-muted-foreground',
                             hasError && 'border-red-500'
                         )}
                     >
-                        <CalendarIcon className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4 text-[#5FA37C] shrink-0" />
+                        <CalendarIcon className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4 text-brand-light shrink-0" />
                         <span className="text-[12px] sm:text-[14px] truncate">
                             {displayText || placeholder}
                         </span>

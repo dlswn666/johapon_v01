@@ -69,7 +69,7 @@ export function CommentForm({
                 placeholder={placeholder}
                 disabled={isSubmitting}
                 autoFocus={autoFocus}
-                className="min-h-[100px] resize-none rounded-[12px] border-[#CCCCCC] focus-visible:ring-[#4E8C6D] text-[16px] p-4"
+                className="min-h-[100px] resize-none rounded-[12px] border-subtle-border focus-visible:ring-brand text-[16px] p-4"
             />
             <div className="flex justify-end gap-2">
                 {onCancel && (
@@ -87,7 +87,7 @@ export function CommentForm({
                 <Button
                     type="submit"
                     disabled={!content.trim() || isSubmitting}
-                    className="h-[44px] px-6 rounded-[8px] bg-[#4E8C6D] hover:bg-[#5FA37C] text-white text-[15px] cursor-pointer"
+                    className="h-[44px] px-6 rounded-[8px] bg-brand hover:bg-brand-hover text-white text-[15px] cursor-pointer"
                 >
                     {isSubmitting ? (
                         <>

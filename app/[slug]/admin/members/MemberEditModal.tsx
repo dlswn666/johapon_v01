@@ -989,7 +989,7 @@ export default function MemberEditModal({ member: initialMember, onClose, onBloc
                                                             size="sm"
                                                             onClick={handleSaveOwnership}
                                                             disabled={isOwnershipSaving}
-                                                            className="flex-1 bg-[#4E8C6D] hover:bg-[#3d7058] text-white"
+                                                            className="flex-1 bg-brand hover:bg-brand-hover text-white"
                                                         >
                                                             {isOwnershipSaving ? (
                                                                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -1070,7 +1070,7 @@ export default function MemberEditModal({ member: initialMember, onClose, onBloc
                             <Button
                                 onClick={handleSave}
                                 disabled={isSaving}
-                                className="flex-1 h-12 rounded-xl bg-[#4E8C6D] hover:bg-[#3d7058] text-white"
+                                className="flex-1 h-12 rounded-xl bg-brand hover:bg-brand-hover text-white"
                             >
                                 {isSaving ? (
                                     <Loader2 className="w-4 h-4 animate-spin mr-2" />
@@ -1083,7 +1083,7 @@ export default function MemberEditModal({ member: initialMember, onClose, onBloc
                     ) : (
                         <Button
                             onClick={handleStartEdit}
-                            className="flex-1 h-12 rounded-xl bg-[#4E8C6D] hover:bg-[#3d7058] text-white"
+                            className="flex-1 h-12 rounded-xl bg-brand hover:bg-brand-hover text-white"
                         >
                             <Edit3 className="w-4 h-4 mr-2" />
                             수정
@@ -1110,7 +1110,7 @@ export default function MemberEditModal({ member: initialMember, onClose, onBloc
                             <Button
                                 onClick={handleConfirmSave}
                                 disabled={isSaving}
-                                className="flex-1 h-10 rounded-lg bg-[#4E8C6D] hover:bg-[#3d7058] text-white"
+                                className="flex-1 h-10 rounded-lg bg-brand hover:bg-brand-hover text-white"
                             >
                                 {isSaving ? (
                                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -1128,14 +1128,14 @@ export default function MemberEditModal({ member: initialMember, onClose, onBloc
                 <div role="dialog" aria-modal="true" aria-label="저장 완료" className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60]">
                     <div className="bg-white rounded-xl shadow-xl p-6 w-[320px]">
                         <div className="flex flex-col items-center mb-6">
-                            <CheckCircle className="w-12 h-12 text-[#4E8C6D] mb-3" />
+                            <CheckCircle className="w-12 h-12 text-brand mb-3" />
                             <p className="text-[16px] font-semibold text-gray-900">
                                 저장되었습니다.
                             </p>
                         </div>
                         <Button
                             onClick={handleSuccessConfirm}
-                            className="w-full h-10 rounded-lg bg-[#4E8C6D] hover:bg-[#3d7058] text-white"
+                            className="w-full h-10 rounded-lg bg-brand hover:bg-brand-hover text-white"
                         >
                             확인
                         </Button>

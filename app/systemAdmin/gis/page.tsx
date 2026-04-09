@@ -729,7 +729,7 @@ export default function GisSyncPage() {
                                             setSelectedJobId(null);
                                             setSelectedParcel(null);
                                         }}
-                                        className="bg-[#4E8C6D] hover:bg-[#3d7058]"
+                                        className="bg-brand hover:bg-brand-hover"
                                     >
                                         <Plus className="w-4 h-4 mr-1" />새 작업
                                     </Button>
@@ -836,14 +836,14 @@ export default function GisSyncPage() {
                                         className={cn(
                                             'border-2 border-dashed rounded-xl p-8 text-center transition-all',
                                             previewData.length > 0
-                                                ? 'border-[#4E8C6D]/30 bg-[#4E8C6D]/5'
+                                                ? 'border-brand/30 bg-brand/5'
                                                 : 'border-slate-200 bg-slate-50/50'
                                         )}
                                     >
                                         <Upload
                                             className={cn(
                                                 'mx-auto h-10 w-10 mb-4',
-                                                previewData.length > 0 ? 'text-[#4E8C6D]' : 'text-slate-400'
+                                                previewData.length > 0 ? 'text-brand' : 'text-slate-400'
                                             )}
                                         />
                                         <div className="flex flex-col items-center">
@@ -904,7 +904,7 @@ export default function GisSyncPage() {
                                             </div>
                                             <Button
                                                 onClick={startSync}
-                                                className="w-full bg-[#4E8C6D] hover:bg-[#3d7058] h-12 text-md font-bold shadow-lg shadow-[#4E8C6D]/10"
+                                                className="w-full bg-brand hover:bg-brand-hover h-12 text-md font-bold shadow-lg shadow-brand/10"
                                             >
                                                 <Play className="mr-2 h-5 w-5 fill-current" /> 수집 태스크 시작
                                             </Button>
@@ -1202,7 +1202,7 @@ export default function GisSyncPage() {
                                         onClick={handleManualAdd}
                                         disabled={isAdding}
                                         size="sm"
-                                        className="bg-[#4E8C6D] hover:bg-[#3d7058]"
+                                        className="bg-brand hover:bg-brand-hover"
                                     >
                                         {isAdding ? (
                                             <Loader2 className="w-4 h-4 animate-spin mr-2" />
@@ -1395,7 +1395,7 @@ export default function GisSyncPage() {
                         <Button
                             onClick={handleManualInputSave}
                             disabled={isManualInputSaving}
-                            className="bg-[#4E8C6D] hover:bg-[#3d7058]"
+                            className="bg-brand hover:bg-brand-hover"
                         >
                             {isManualInputSaving ? (
                                 <Loader2 className="w-4 h-4 animate-spin mr-2" />

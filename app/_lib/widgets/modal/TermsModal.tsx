@@ -46,7 +46,7 @@ export function TermsModal({ isOpen, onClose }: TermsModalProps) {
                 {/* 헤더 */}
                 <div className="flex-shrink-0 border-b border-gray-200 px-4 md:px-6 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <FileText className="w-6 h-6 text-[#4E8C6D]" />
+                        <FileText className="w-6 h-6 text-brand" />
                         <h2 id="terms-modal-title" className="text-lg md:text-xl font-bold text-gray-900">개인정보 수집 및 이용 동의</h2>
                     </div>
                     <button
@@ -64,7 +64,7 @@ export function TermsModal({ isOpen, onClose }: TermsModalProps) {
                         {/* 수집 목적 */}
                         <section className="mb-6">
                             <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                                <span className="w-6 h-6 bg-[#4E8C6D] text-white rounded-full flex items-center justify-center text-sm font-bold">
+                                <span className="w-6 h-6 bg-brand text-white rounded-full flex items-center justify-center text-sm font-bold">
                                     1
                                 </span>
                                 수집 및 이용 목적
@@ -80,7 +80,7 @@ export function TermsModal({ isOpen, onClose }: TermsModalProps) {
                         {/* 수집 항목 */}
                         <section className="mb-6">
                             <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                                <span className="w-6 h-6 bg-[#4E8C6D] text-white rounded-full flex items-center justify-center text-sm font-bold">
+                                <span className="w-6 h-6 bg-brand text-white rounded-full flex items-center justify-center text-sm font-bold">
                                     2
                                 </span>
                                 수집 항목
@@ -104,7 +104,7 @@ export function TermsModal({ isOpen, onClose }: TermsModalProps) {
                         {/* 보유 기간 */}
                         <section className="mb-6">
                             <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                                <span className="w-6 h-6 bg-[#4E8C6D] text-white rounded-full flex items-center justify-center text-sm font-bold">
+                                <span className="w-6 h-6 bg-brand text-white rounded-full flex items-center justify-center text-sm font-bold">
                                     3
                                 </span>
                                 보유 및 이용 기간
@@ -128,7 +128,7 @@ export function TermsModal({ isOpen, onClose }: TermsModalProps) {
                         {/* 동의 거부 권리 */}
                         <section className="mb-6">
                             <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                                <span className="w-6 h-6 bg-[#4E8C6D] text-white rounded-full flex items-center justify-center text-sm font-bold">
+                                <span className="w-6 h-6 bg-brand text-white rounded-full flex items-center justify-center text-sm font-bold">
                                     4
                                 </span>
                                 동의 거부 권리 및 불이익
@@ -147,7 +147,7 @@ export function TermsModal({ isOpen, onClose }: TermsModalProps) {
                         {/* 개인정보 처리 위탁 */}
                         <section className="mb-6">
                             <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                                <span className="w-6 h-6 bg-[#4E8C6D] text-white rounded-full flex items-center justify-center text-sm font-bold">
+                                <span className="w-6 h-6 bg-brand text-white rounded-full flex items-center justify-center text-sm font-bold">
                                     5
                                 </span>
                                 개인정보 처리 위탁
@@ -186,7 +186,7 @@ export function TermsModal({ isOpen, onClose }: TermsModalProps) {
                         {/* 법적 근거 */}
                         <section className="mb-6">
                             <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                                <span className="w-6 h-6 bg-[#4E8C6D] text-white rounded-full flex items-center justify-center text-sm font-bold">
+                                <span className="w-6 h-6 bg-brand text-white rounded-full flex items-center justify-center text-sm font-bold">
                                     6
                                 </span>
                                 법적 근거
@@ -201,7 +201,7 @@ export function TermsModal({ isOpen, onClose }: TermsModalProps) {
                         {/* 문의처 */}
                         <section>
                             <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                                <span className="w-6 h-6 bg-[#4E8C6D] text-white rounded-full flex items-center justify-center text-sm font-bold">
+                                <span className="w-6 h-6 bg-brand text-white rounded-full flex items-center justify-center text-sm font-bold">
                                     7
                                 </span>
                                 개인정보 관련 문의
@@ -220,7 +220,7 @@ export function TermsModal({ isOpen, onClose }: TermsModalProps) {
                         className={cn(
                             'w-full h-14 md:h-16 rounded-xl',
                             'text-base md:text-lg font-medium text-white',
-                            'bg-[#4E8C6D] hover:bg-[#3d7058]',
+                            'bg-brand hover:bg-brand-hover',
                             'transition-colors'
                         )}
                     >

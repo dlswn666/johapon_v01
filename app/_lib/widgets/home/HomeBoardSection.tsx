@@ -219,8 +219,8 @@ export function HomeBoardSection() {
                                 'lg:flex-none lg:w-[120px] xl:w-[155px] text-center',
                                 'transition-colors duration-200',
                                 activeTab === tab.id
-                                    ? 'bg-[#2f7f5f] text-white focus-visible:ring-white focus-visible:ring-offset-[#2f7f5f]'
-                                    : 'bg-white border-[0.738px] border-[#2f7f5f] text-[#2f7f5f] hover:bg-[#f0f7f4] focus-visible:ring-[#2f7f5f]'
+                                    ? 'bg-primary text-white focus-visible:ring-white focus-visible:ring-offset-[#2f7f5f]'
+                                    : 'bg-white border-[0.738px] border-primary text-primary hover:bg-brand/5 focus-visible:ring-[#2f7f5f]'
                             )}
                         >
                             {tab.label}
@@ -229,12 +229,12 @@ export function HomeBoardSection() {
                 </div>
             </div>
 
-            {/* 우측: 게시글 목록 - Figma: bg-[#f4f5f6], rounded-[16px], p-[20px] */}
+            {/* 우측: 게시글 목록 - Figma: bg-subtle-bg, rounded-[16px], p-[20px] */}
             <div
                 role="tabpanel"
                 id={`tabpanel-${activeTab}`}
                 aria-labelledby={`tab-${activeTab}`}
-                className="flex-1 min-w-0 bg-[#f4f5f6] rounded-[16px] p-[16px] lg:p-[16px] xl:p-[20px] lg:h-[270px] lg:overflow-hidden xl:h-[320px] xl:overflow-hidden"
+                className="flex-1 min-w-0 bg-subtle-bg rounded-[16px] p-[16px] lg:p-[16px] xl:p-[20px] lg:h-[270px] lg:overflow-hidden xl:h-[320px] xl:overflow-hidden"
             >
                 {/* 로딩 상태 */}
                 {isLoading ? (
@@ -258,7 +258,7 @@ export function HomeBoardSection() {
                         <p className="text-gray-600">데이터를 불러오는 중 오류가 발생했습니다.</p>
                         <button
                             onClick={() => refetch()}
-                            className="flex items-center gap-2 px-4 py-2 bg-[#2f7f5f] text-white rounded-lg hover:bg-[#267a52] transition-colors focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#2f7f5f] outline-none"
+                            className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary transition-colors focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#2f7f5f] outline-none"
                         >
                             <RefreshCw className="w-4 h-4" />
                             다시 시도
@@ -270,7 +270,7 @@ export function HomeBoardSection() {
                         <p className="text-gray-500 mb-4">제휴업체 목록을 확인하세요.</p>
                         <button
                             onClick={handlePartnerClick}
-                            className="px-6 py-3 bg-[#2f7f5f] text-white rounded-lg hover:bg-[#267a52] transition-colors font-semibold focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#2f7f5f] outline-none"
+                            className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary transition-colors font-semibold focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#2f7f5f] outline-none"
                         >
                             제휴업체 보기
                         </button>
@@ -281,7 +281,7 @@ export function HomeBoardSection() {
                         <div className="flex items-center justify-end">
                             <button
                                 onClick={handleViewAll}
-                                className="flex items-center gap-[2px] text-[#8a949e] hover:text-[#6d7882] transition-colors rounded-md focus-visible:ring-2 focus-visible:ring-[#2f7f5f] focus-visible:ring-offset-2 outline-none"
+                                className="flex items-center gap-[2px] text-muted-foreground hover:text-muted-foreground transition-colors rounded-md focus-visible:ring-2 focus-visible:ring-[#2f7f5f] focus-visible:ring-offset-2 outline-none"
                             >
                                 <span className="text-[14px] lg:text-[14px] xl:text-[18px] font-medium tracking-[1px] leading-[1.3]">전체보기</span>
                                 <ChevronRight className="w-[20px] h-[20px] lg:w-[20px] lg:h-[20px] xl:w-[24px] xl:h-[24px]" />
@@ -299,22 +299,22 @@ export function HomeBoardSection() {
                                         >
                                             {/* 제목 + 댓글수 — Figma: SemiBold 18px #33363d tracking-[1px] leading-[1.5] */}
                                             <div className="flex items-center gap-[10px] flex-1 min-w-0">
-                                                <span className="text-[14px] lg:text-[14px] xl:text-[18px] font-semibold text-[#33363d] tracking-[1px] leading-[1.5] truncate group-hover:text-[#2f7f5f] transition-colors">
+                                                <span className="text-[14px] lg:text-[14px] xl:text-[18px] font-semibold text-foreground tracking-[1px] leading-[1.5] truncate group-hover:text-primary transition-colors">
                                                     {(item as Record<string, unknown>).title as string}
                                                 </span>
                                                 {/* 댓글 수 — Figma: Medium 14px #6d7882 leading-[1.4] */}
-                                                <span className="text-[12px] lg:text-[12px] xl:text-[14px] font-medium text-[#6d7882] leading-[1.4] shrink-0">
+                                                <span className="text-[12px] lg:text-[12px] xl:text-[14px] font-medium text-muted-foreground leading-[1.4] shrink-0">
                                                     [ {(item as Record<string, unknown>).comment_count as number ?? 0} ]
                                                 </span>
                                             </div>
                                             {/* 날짜 — Figma: Light 14px #6d7882 leading-[1.4] */}
-                                            <span className="text-[12px] lg:text-[12px] xl:text-[14px] font-light text-[#6d7882] leading-[1.4] shrink-0 ml-[16px]">
+                                            <span className="text-[12px] lg:text-[12px] xl:text-[14px] font-light text-muted-foreground leading-[1.4] shrink-0 ml-[16px]">
                                                 {formatDate((item as Record<string, unknown>).created_at as string)}
                                             </span>
                                         </button>
                                         {/* 구분선 — Figma: #cdd1d5 */}
                                         {index < Math.min(data.length, 5) - 1 && (
-                                            <div className="border-b border-[#cdd1d5] mt-[10px]" />
+                                            <div className="border-b border-subtle-border mt-[10px]" />
                                         )}
                                     </div>
                                 ))}

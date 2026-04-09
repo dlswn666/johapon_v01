@@ -144,12 +144,12 @@ export default function UnionHomeHeader() {
                         {/* 왼쪽: 사이드바 토글 버튼 */}
                         <button
                             onClick={toggleSidebar}
-                            className="size-[44px] flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#4E8C6D] focus-visible:ring-offset-2 outline-none"
+                            className="size-[44px] flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 outline-none"
                             aria-label="메뉴 열기"
                             aria-expanded={isSidebarOpen}
                             aria-controls="mobile-sidebar"
                         >
-                            <PanelLeft className="size-[24px] text-[#4e8c6d]" aria-hidden="true" />
+                            <PanelLeft className="size-[24px] text-brand" aria-hidden="true" />
                         </button>
 
                         {/* 중앙: 조합 로고 + 조합명 */}
@@ -158,7 +158,7 @@ export default function UnionHomeHeader() {
                             className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-2 hover:opacity-80 transition-opacity"
                             aria-label={`${union.name} 홈으로 이동`}
                         >
-                            <div className="bg-[#4e8c6d] rounded-full size-[36px] flex items-center justify-center shrink-0 relative overflow-hidden">
+                            <div className="bg-brand rounded-full size-[36px] flex items-center justify-center shrink-0 relative overflow-hidden">
                                 {union.logo_url ? (
                                     <Image
                                         src={union.logo_url}
@@ -171,7 +171,7 @@ export default function UnionHomeHeader() {
                                     <Home className="size-[18px] text-white" aria-hidden="true" />
                                 )}
                             </div>
-                            <p className="text-[14px] font-bold text-[#4e8c6d] max-w-[120px] truncate">{union.name}</p>
+                            <p className="text-[14px] font-bold text-brand max-w-[120px] truncate">{union.name}</p>
                         </Link>
 
                         {/* 오른쪽: 빈 공간 (균형을 위해) */}
@@ -188,7 +188,7 @@ export default function UnionHomeHeader() {
                             className="flex items-center gap-3 hover:opacity-80 transition-opacity"
                             aria-label={`${union.name} 홈으로 이동`}
                         >
-                            <div className="bg-[#4e8c6d] rounded-full size-10 flex items-center justify-center shrink-0 relative overflow-hidden">
+                            <div className="bg-brand rounded-full size-10 flex items-center justify-center shrink-0 relative overflow-hidden">
                                 {union.logo_url ? (
                                     <Image
                                         src={union.logo_url}
@@ -201,7 +201,7 @@ export default function UnionHomeHeader() {
                                     <Home className="size-5 text-white" aria-hidden="true" />
                                 )}
                             </div>
-                            <p className="text-base font-bold text-[#4e8c6d] max-w-[200px] truncate" title={union.name}>{union.name}</p>
+                            <p className="text-base font-bold text-brand max-w-[200px] truncate" title={union.name}>{union.name}</p>
                         </Link>
 
                         {/* 중앙: 네비게이션 - Base UI NavigationMenu */}
@@ -215,7 +215,7 @@ export default function UnionHomeHeader() {
                                                     className={cn(
                                                         'cursor-pointer h-[44px] px-5 rounded-lg text-[16px] leading-[24px] text-neutral-700 font-medium bg-transparent inline-flex items-center gap-1.5',
                                                         'hover:bg-gray-50 hover:text-neutral-900 transition-colors',
-                                                        'focus-visible:ring-2 focus-visible:ring-[#4E8C6D] focus-visible:ring-offset-2 outline-none',
+                                                        'focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 outline-none',
                                                         'data-[popup-open]:bg-gray-100 data-[popup-open]:text-neutral-900',
                                                         isActiveRoute(item.href) && 'bg-gray-100 text-neutral-900'
                                                     )}
@@ -236,8 +236,8 @@ export default function UnionHomeHeader() {
                                                                         'block px-4 py-2.5 text-[14px] text-gray-600 rounded-lg transition-colors cursor-pointer',
                                                                         'hover:bg-gray-50 hover:text-gray-900',
                                                                         'focus-visible:bg-gray-50 focus-visible:outline-none',
-                                                                        'data-[active]:bg-[#4E8C6D]/5 data-[active]:text-[#4E8C6D] data-[active]:font-medium',
-                                                                        'data-[active]:border-l-2 data-[active]:border-[#4E8C6D] data-[active]:pl-3.5'
+                                                                        'data-[active]:bg-brand/5 data-[active]:text-brand data-[active]:font-medium',
+                                                                        'data-[active]:border-l-2 data-[active]:border-brand data-[active]:pl-3.5'
                                                                     )}
                                                                 >
                                                                     {subItem.label}
@@ -254,7 +254,7 @@ export default function UnionHomeHeader() {
                                                 className={cn(
                                                     'h-[44px] px-5 rounded-lg flex items-center text-[16px] leading-[24px] text-neutral-700 font-medium transition-colors cursor-pointer',
                                                     'hover:bg-gray-50 hover:text-neutral-900',
-                                                    'focus-visible:ring-2 focus-visible:ring-[#4E8C6D] focus-visible:ring-offset-2 outline-none',
+                                                    'focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 outline-none',
                                                     isActiveRoute(item.href) && 'bg-gray-100 text-neutral-900'
                                                 )}
                                             >
@@ -284,16 +284,16 @@ export default function UnionHomeHeader() {
                         <div className="relative" ref={userMenuRef} onMouseLeave={() => setIsUserMenuOpen(false)}>
                             <button
                                 onClick={toggleUserMenu}
-                                className="h-10 pl-3 pr-2.5 rounded-full flex items-center gap-2 hover:bg-gray-50 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#4E8C6D] focus-visible:ring-offset-2 outline-none"
+                                className="h-10 pl-3 pr-2.5 rounded-full flex items-center gap-2 hover:bg-gray-50 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 outline-none"
                                 aria-label="사용자 메뉴 열기"
                                 aria-expanded={isUserMenuOpen}
                                 aria-haspopup="menu"
                             >
-                                <div className="size-7 rounded-full bg-[#4e8c6d]/10 flex items-center justify-center">
+                                <div className="size-7 rounded-full bg-brand/10 flex items-center justify-center">
                                     {user ? (
-                                        <UserCircle className="size-5 text-[#4e8c6d]" aria-hidden="true" />
+                                        <UserCircle className="size-5 text-brand" aria-hidden="true" />
                                     ) : (
-                                        <User className="size-5 text-[#4e8c6d]" aria-hidden="true" />
+                                        <User className="size-5 text-brand" aria-hidden="true" />
                                     )}
                                 </div>
                                 {user && (

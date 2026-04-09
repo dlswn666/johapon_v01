@@ -264,7 +264,7 @@ export function TermsConsentModal({ isOpen, onClose, onAgree }: TermsConsentModa
                             'text-base font-medium text-white',
                             'transition-all',
                             allAgreed
-                                ? 'bg-[#FEE500] hover:bg-[#FDD800] text-[#191919]'
+                                ? 'bg-kakao hover:bg-kakao-hover text-kakao-foreground'
                                 : 'bg-gray-300 cursor-not-allowed'
                         )}
                     >

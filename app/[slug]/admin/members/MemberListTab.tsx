@@ -407,7 +407,7 @@ export default function MemberListTab() {
                         </div>
                         <Button
                             onClick={handleSearch}
-                            className="h-12 bg-[#4E8C6D] hover:bg-[#3d7058] text-white px-6 rounded-xl"
+                            className="h-12 bg-brand hover:bg-brand-hover text-white px-6 rounded-xl"
                         >
                             검색
                         </Button>
@@ -422,7 +422,7 @@ export default function MemberListTab() {
                                 className={cn(
                                     'px-4 py-2 text-sm font-medium rounded-lg transition-colors cursor-pointer',
                                     filter.blockedFilter === option.key
-                                        ? 'bg-[#4E8C6D] text-white'
+                                        ? 'bg-brand text-white'
                                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                 )}
                             >
@@ -438,8 +438,8 @@ export default function MemberListTab() {
                 {/* 헤더 */}
                 <div className="p-6 border-b border-gray-100">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-[#4E8C6D]/10 rounded-xl flex items-center justify-center">
-                            <Users className="w-5 h-5 text-[#4E8C6D]" />
+                        <div className="w-10 h-10 bg-brand/10 rounded-xl flex items-center justify-center">
+                            <Users className="w-5 h-5 text-brand" />
                         </div>
                         <div>
                             <h2 className="text-lg font-semibold text-gray-900">조합원 목록</h2>

@@ -24,7 +24,7 @@ const formSchema = z.object({
     is_secret: z.boolean(),
 });
 
-const EditQuestionPage = () => {
+export default function EditQuestionPage() {
     const router = useRouter();
     const params = useParams();
     const slug = params.slug as string;
@@ -100,7 +100,7 @@ const EditQuestionPage = () => {
                         <Skeleton className="h-[300px] w-full rounded-[12px]" style={{ animationDelay: '175ms' }} />
                     </div>
                     {/* 버튼 영역 */}
-                    <div className="flex justify-end gap-3 pt-6 border-t border-[#CCCCCC]">
+                    <div className="flex justify-end gap-3 pt-6 border-t border-subtle-border">
                         <Skeleton className="h-10 w-20 rounded-lg" style={{ animationDelay: '225ms' }} />
                         <Skeleton className="h-10 w-24 rounded-lg" style={{ animationDelay: '250ms' }} />
                     </div>
@@ -113,7 +113,7 @@ const EditQuestionPage = () => {
         return (
             <div className={cn('container mx-auto max-w-[1280px] px-4 py-8')}>
                 <div className="flex justify-center items-center h-64">
-                    <p className="text-[18px] text-[#D9534F]">질문을 찾을 수 없습니다.</p>
+                    <p className="text-[18px] text-error-text">질문을 찾을 수 없습니다.</p>
                 </div>
             </div>
         );
@@ -123,7 +123,7 @@ const EditQuestionPage = () => {
         return (
             <div className={cn('container mx-auto max-w-[1280px] px-4 py-8')}>
                 <div className="flex justify-center items-center h-64">
-                    <p className="text-[18px] text-[#D9534F]">수정 권한이 없습니다.</p>
+                    <p className="text-[18px] text-error-text">수정 권한이 없습니다.</p>
                 </div>
             </div>
         );
@@ -133,7 +133,7 @@ const EditQuestionPage = () => {
         <>
             <div className={cn('container mx-auto max-w-[1280px] px-4 py-8')}>
                 <div className="max-w-4xl mx-auto">
-                    <h2 className="text-[32px] font-bold text-[#5FA37C] mb-8">질문 수정</h2>
+                    <h2 className="text-[32px] font-bold text-brand-light mb-8">질문 수정</h2>
 
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
@@ -142,9 +142,9 @@ const EditQuestionPage = () => {
                                 name="title"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel className="text-[16px] font-bold text-[#5FA37C]">제목</FormLabel>
+                                        <FormLabel className="text-[16px] font-bold text-brand-light">제목</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="제목을 입력해주세요" {...field} className="h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]" />
+                                            <Input placeholder="제목을 입력해주세요" {...field} className="h-[48px] text-[16px] rounded-[12px] border-subtle-border" />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -155,17 +155,17 @@ const EditQuestionPage = () => {
                                 control={form.control}
                                 name="is_secret"
                                 render={({ field }) => (
-                                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-[12px] border border-[#CCCCCC] bg-[#F5F5F5] p-6 cursor-pointer">
+                                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-[12px] border border-subtle-border bg-subtle-bg p-6 cursor-pointer">
                                         <FormControl>
                                             <Checkbox 
                                                 checked={field.value} 
                                                 onCheckedChange={field.onChange} 
-                                                className="data-[state=checked]:bg-[#4E8C6D] border-[#AFAFAF] cursor-pointer" 
+                                                className="data-[state=checked]:bg-brand border-subtle-text cursor-pointer" 
                                             />
                                         </FormControl>
                                         <div className="space-y-1 leading-none">
                                             <FormLabel className="text-[16px] text-gray-700 font-medium cursor-pointer">비밀글로 작성</FormLabel>
-                                            <p className="text-[14px] text-[#AFAFAF]">
+                                            <p className="text-[14px] text-subtle-text">
                                                 비밀글은 작성자와 관리자만 확인할 수 있습니다.
                                             </p>
                                         </div>
@@ -178,7 +178,7 @@ const EditQuestionPage = () => {
                                 name="content"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel className="text-[16px] font-bold text-[#5FA37C]">내용</FormLabel>
+                                        <FormLabel className="text-[16px] font-bold text-brand-light">내용</FormLabel>
                                         <FormControl>
                                             <TextEditor
                                                 content={field.value}
@@ -192,7 +192,7 @@ const EditQuestionPage = () => {
                                 )}
                             />
 
-                            <div className="flex justify-end gap-3 pt-6 border-t border-[#CCCCCC]">
+                            <div className="flex justify-end gap-3 pt-6 border-t border-subtle-border">
                                 <ActionButton 
                                     buttonType="cancel" 
                                     onClick={() => router.push(`/${slug}/news/qna/${id}`)}
@@ -217,4 +217,3 @@ const EditQuestionPage = () => {
     );
 };
 
-export default EditQuestionPage;

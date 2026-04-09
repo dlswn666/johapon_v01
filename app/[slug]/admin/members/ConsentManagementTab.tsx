@@ -537,8 +537,8 @@ export default function ConsentManagementTab() {
             <div className="bg-white rounded-xl shadow-sm p-6">
                 <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-[#4E8C6D]/10 rounded-xl flex items-center justify-center">
-                            <FileSpreadsheet className="w-5 h-5 text-[#4E8C6D]" />
+                        <div className="w-10 h-10 bg-brand/10 rounded-xl flex items-center justify-center">
+                            <FileSpreadsheet className="w-5 h-5 text-brand" />
                         </div>
                         <div>
                             <h2 className="text-lg font-semibold text-gray-900">동의 현황 일괄 업로드</h2>
@@ -619,7 +619,7 @@ export default function ConsentManagementTab() {
             <div className="bg-white rounded-xl shadow-sm overflow-hidden">
                 <div className="p-6 border-b border-gray-100">
                     <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                        <Users className="w-5 h-5 text-[#4E8C6D]" />
+                        <Users className="w-5 h-5 text-brand" />
                         조합원 동의 처리
                     </h2>
                 </div>
@@ -642,7 +642,7 @@ export default function ConsentManagementTab() {
                             <Button
                                 onClick={handleSearch}
                                 disabled={isSearching || !selectedStageId}
-                                className="bg-[#4E8C6D] hover:bg-[#3d7058] text-white h-11"
+                                className="bg-brand hover:bg-brand-hover text-white h-11"
                             >
                                 {isSearching ? (
                                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -826,7 +826,7 @@ export default function ConsentManagementTab() {
                         <Button
                             onClick={() => setShowConfirmModal(true)}
                             disabled={selectedMembers.length === 0 || !selectedStageId}
-                            className="w-full h-12 bg-[#4E8C6D] hover:bg-[#3d7058] text-white text-base font-medium"
+                            className="w-full h-12 bg-brand hover:bg-brand-hover text-white text-base font-medium"
                         >
                             {selectedMembers.length}명 {consentStatus === 'AGREED' ? '동의' : '비동의'} 처리
                         </Button>
@@ -850,7 +850,7 @@ export default function ConsentManagementTab() {
                                 <div className="p-6 bg-gray-50 rounded-xl space-y-4 text-center">
                                     <div>
                                         <p className="text-sm text-gray-500 mb-1">동의 단계</p>
-                                        <p className="text-2xl font-bold text-[#4E8C6D]">
+                                        <p className="text-2xl font-bold text-brand">
                                             {currentStage?.stage_name || '-'}
                                         </p>
                                     </div>
@@ -868,7 +868,7 @@ export default function ConsentManagementTab() {
                                 </div>
 
                                 <p className="text-center text-gray-700 font-medium">
-                                    총 <span className="text-[#4E8C6D] font-bold">{selectedMembers.length}명</span>의
+                                    총 <span className="text-brand font-bold">{selectedMembers.length}명</span>의
                                     조합원
                                 </p>
                             </div>
@@ -887,7 +887,7 @@ export default function ConsentManagementTab() {
                                 handleConfirmConsent();
                             }}
                             disabled={isProcessing}
-                            className="bg-[#4E8C6D] hover:bg-[#3d7058] text-white"
+                            className="bg-brand hover:bg-brand-hover text-white"
                         >
                             {isProcessing ? (
                                 <>

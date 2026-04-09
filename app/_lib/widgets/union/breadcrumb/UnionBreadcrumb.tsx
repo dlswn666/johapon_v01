@@ -131,7 +131,7 @@ export default function UnionBreadcrumb() {
                                 <span
                                     className={cn(
                                         index === breadcrumbItems.length - 1
-                                            ? 'text-[#4e8c6d] font-medium'
+                                            ? 'text-brand font-medium'
                                             : 'text-gray-500'
                                     )}
                                 >

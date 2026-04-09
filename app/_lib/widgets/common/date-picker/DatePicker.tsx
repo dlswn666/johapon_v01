@@ -38,12 +38,12 @@ export function DatePicker({
                     variant="outline"
                     disabled={disabled}
                     className={cn(
-                        'w-full h-[48px] justify-start text-left font-normal rounded-[12px] border-[#CCCCCC] px-4 hover:bg-gray-200',
+                        'w-full h-[48px] justify-start text-left font-normal rounded-[12px] border-subtle-border px-4 hover:bg-gray-200',
                         !value && 'text-muted-foreground',
                         className
                     )}
                 >
-                    <CalendarIcon className="mr-2 h-4 w-4 text-[#5FA37C] shrink-0" />
+                    <CalendarIcon className="mr-2 h-4 w-4 text-brand-light shrink-0" />
                     <span className="text-[14px] truncate">
                         {value ? formatDateShort(value) : placeholder}
                     </span>

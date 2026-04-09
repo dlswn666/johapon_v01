@@ -45,7 +45,7 @@ export default function HeroSlideList({ slides, isLoading, onDelete }: HeroSlide
             <Card>
                 <CardContent className="py-12">
                     <div className="flex flex-col items-center justify-center gap-3">
-                        <div className="w-8 h-8 border-4 border-[#4E8C6D] border-t-transparent rounded-full animate-spin" />
+                        <div className="w-8 h-8 border-4 border-brand border-t-transparent rounded-full animate-spin" />
                         <p className="text-gray-500">슬라이드를 불러오는 중...</p>
                     </div>
                 </CardContent>
@@ -57,15 +57,15 @@ export default function HeroSlideList({ slides, isLoading, onDelete }: HeroSlide
         <div className="space-y-6">
             {/* 통계 카드 */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card className="bg-gradient-to-br from-[#4E8C6D]/10 to-[#4E8C6D]/5 border-[#4E8C6D]/20">
+                <Card className="bg-gradient-to-br from-[#4E8C6D]/10 to-[#4E8C6D]/5 border-brand/20">
                     <CardContent className="pt-6">
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-sm font-medium text-gray-600">전체 슬라이드</p>
-                                <p className="text-3xl font-bold text-[#4E8C6D]">{stats.total}</p>
+                                <p className="text-3xl font-bold text-brand">{stats.total}</p>
                             </div>
-                            <div className="w-12 h-12 bg-[#4E8C6D]/20 rounded-full flex items-center justify-center">
-                                <ImageIcon className="w-6 h-6 text-[#4E8C6D]" />
+                            <div className="w-12 h-12 bg-brand/20 rounded-full flex items-center justify-center">
+                                <ImageIcon className="w-6 h-6 text-brand" />
                             </div>
                         </div>
                     </CardContent>
@@ -118,7 +118,7 @@ export default function HeroSlideList({ slides, isLoading, onDelete }: HeroSlide
                                 </SelectContent>
                             </Select>
                             <Link href={`/${slug}/admin/slides/new`}>
-                                <Button className="bg-[#4E8C6D] hover:bg-[#3d7359] gap-2">
+                                <Button className="bg-brand hover:bg-brand-hover gap-2">
                                     <Plus className="w-4 h-4" />
                                     슬라이드 등록
                                 </Button>

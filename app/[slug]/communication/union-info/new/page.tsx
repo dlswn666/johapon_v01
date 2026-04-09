@@ -23,7 +23,7 @@ const formSchema = z.object({
     content: z.string().min(1, '내용을 입력해주세요.'),
 });
 
-const NewUnionInfoPage = () => {
+export default function NewUnionInfoPage() {
     const router = useRouter();
     const { slug, union } = useSlug();
     const { user } = useAuth();
@@ -66,7 +66,7 @@ const NewUnionInfoPage = () => {
         <>
             <div className={cn('container mx-auto max-w-[1280px] px-4 py-8')}>
                 <div className="max-w-4xl mx-auto">
-                    <h2 className="text-[32px] font-bold text-[#5FA37C] mb-8">조합 정보 등록</h2>
+                    <h2 className="text-[32px] font-bold text-brand-light mb-8">조합 정보 등록</h2>
 
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
@@ -75,12 +75,12 @@ const NewUnionInfoPage = () => {
                                 name="title"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel className="text-[16px] font-bold text-[#5FA37C]">제목</FormLabel>
+                                        <FormLabel className="text-[16px] font-bold text-brand-light">제목</FormLabel>
                                         <FormControl>
                                             <Input 
                                                 placeholder="제목을 입력해주세요" 
                                                 {...field} 
-                                                className="h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]" 
+                                                className="h-[48px] text-[16px] rounded-[12px] border-subtle-border" 
                                             />
                                         </FormControl>
                                         <FormMessage />
@@ -90,7 +90,7 @@ const NewUnionInfoPage = () => {
 
                             {/* 파일 업로더 */}
                             <div>
-                                <label className="text-[16px] font-bold text-[#5FA37C] block mb-2">첨부파일</label>
+                                <FormLabel className="text-[16px] font-bold text-brand-light">첨부파일</FormLabel>
                                 <FileUploader
                                     unionSlug={slug}
                                     targetType="UNION_INFO"
@@ -103,7 +103,7 @@ const NewUnionInfoPage = () => {
                                 name="content"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel className="text-[16px] font-bold text-[#5FA37C]">내용</FormLabel>
+                                        <FormLabel className="text-[16px] font-bold text-brand-light">내용</FormLabel>
                                         <FormControl>
                                             <TextEditor
                                                 content={field.value}
@@ -117,7 +117,7 @@ const NewUnionInfoPage = () => {
                                 )}
                             />
 
-                             <div className="flex justify-end gap-3 pt-6 border-t border-[#CCCCCC]">
+                             <div className="flex justify-end gap-3 pt-6 border-t border-subtle-border">
                                 <ActionButton
                                     buttonType="cancel"
                                     onClick={() => router.push(`/${slug}/communication/union-info`)}
@@ -142,5 +142,4 @@ const NewUnionInfoPage = () => {
     );
 };
 
-export default NewUnionInfoPage;
 

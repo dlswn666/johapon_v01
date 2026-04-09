@@ -38,6 +38,19 @@
     --color-popover: var(--popover);
     --color-card-foreground: var(--card-foreground);
     --color-card: var(--card);
+    --color-brand: var(--brand);
+    --color-brand-hover: var(--brand-hover);
+    --color-brand-light: var(--brand-light);
+    --color-warning: var(--warning);
+    --color-kakao: var(--kakao);
+    --color-kakao-hover: var(--kakao-hover);
+    --color-kakao-foreground: var(--kakao-foreground);
+    --color-naver: var(--naver);
+    --color-naver-hover: var(--naver-hover);
+    --color-subtle-border: var(--subtle-border);
+    --color-subtle-bg: var(--subtle-bg);
+    --color-subtle-text: var(--subtle-text);
+    --color-error-text: var(--error-text);
     --radius-sm: calc(var(--radius) - 4px);
     --radius-md: calc(var(--radius) - 2px);
     --radius-lg: var(--radius);
@@ -123,6 +136,21 @@
     --chart-3: oklch(0.398 0.07 227.392);
     --chart-4: oklch(0.828 0.189 84.429);
     --chart-5: oklch(0.769 0.188 70.08);
+
+    /* 브랜드 색상 — 하드코딩(#4E8C6D 등)을 대체하는 시맨틱 토큰 */
+    --brand: #4E8C6D;
+    --brand-hover: #5FA37C;
+    --brand-light: #5FA37C;
+    --warning: #F0AD4E;
+    --kakao: #FEE500;
+    --kakao-hover: #FDD800;
+    --kakao-foreground: #191919;
+    --naver: #03C75A;
+    --naver-hover: #02b350;
+    --subtle-border: #CCCCCC;
+    --subtle-bg: #F5F5F5;
+    --subtle-text: #AFAFAF;
+    --error-text: #D9534F;
     --sidebar: oklch(0.985 0 0);
     --sidebar-foreground: oklch(0.145 0 0);
     --sidebar-primary: oklch(0.205 0 0);
@@ -302,17 +330,17 @@
 
     /* 기본 포커스 링 (Primary 색상) */
     .focus-ring-primary {
-        @apply outline-none focus-visible:ring-2 focus-visible:ring-[#4E8C6D] focus-visible:ring-offset-2;
+        @apply outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2;
     }
 
     /* 다크 배경용 포커스 링 (흰색) */
     .focus-ring-white {
-        @apply outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#4E8C6D];
+        @apply outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-brand;
     }
 
     /* 인셋 포커스 링 (컨테이너 내부) */
     .focus-ring-inset {
-        @apply outline-none focus-visible:ring-2 focus-visible:ring-[#4E8C6D] focus-visible:ring-inset;
+        @apply outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-inset;
     }
 
     /* 배경 변경 방식 포커스 (드롭다운 아이템용) */

@@ -16,7 +16,7 @@ import AlertModal from '@/app/_lib/widgets/modal/AlertModal';
 import { BoardListCard, ListCardItem } from '@/app/_lib/widgets/common/list-card';
 import { formatDate, formatAuthorName } from '@/app/_lib/shared/utils/commonUtil';
 
-const FreeBoardPage = () => {
+export default function FreeBoardPage() {
     const router = useRouter();
     const { slug, isLoading: isUnionLoading } = useSlug();
     const { user } = useAuth();
@@ -42,7 +42,7 @@ const FreeBoardPage = () => {
         setCurrentPage(1); // 검색 시 첫 페이지로
     };
 
-    const handleKeyPress = (e: React.KeyboardEvent) => {
+    const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter') {
             handleSearch();
         }
@@ -99,7 +99,7 @@ const FreeBoardPage = () => {
         return (
             <div className={cn('container mx-auto max-w-[1280px] px-4 py-8')}>
                 <div className="flex justify-center items-center h-64">
-                    <p className="text-[18px] text-[#D9534F]">데이터를 불러오는 중 오류가 발생했습니다.</p>
+                    <p className="text-[18px] text-error-text">데이터를 불러오는 중 오류가 발생했습니다.</p>
                 </div>
             </div>
         );
@@ -125,9 +125,9 @@ const FreeBoardPage = () => {
         <>
             <div className={cn('container mx-auto max-w-[1280px] px-4 py-8')}>
                 <div className={cn('flex justify-between items-center mb-6')}>
-                    <h2 className={cn('text-[32px] font-bold text-[#5FA37C]')}>자유 게시판</h2>
+                    <h2 className={cn('text-[32px] font-bold text-brand-light')}>자유 게시판</h2>
                     <Button
-                        className="bg-[#4E8C6D] hover:bg-[#5FA37C] text-white text-[16px] px-6 py-2 rounded-[8px] cursor-pointer"
+                        className="bg-brand hover:bg-brand-hover text-white text-[16px] px-6 py-2 rounded-[8px] cursor-pointer"
                         onClick={() => router.push(`/${slug}/communication/free-board/new`)}
                     >
                         글쓰기
@@ -142,14 +142,14 @@ const FreeBoardPage = () => {
                             placeholder="제목, 내용으로 검색"
                             value={searchInput}
                             onChange={(e) => setSearchInput(e.target.value)}
-                            onKeyPress={handleKeyPress}
-                            className="pl-10 h-[44px] text-[16px] border-[#CCCCCC] rounded-[8px]"
+                            onKeyDown={handleKeyPress}
+                            className="pl-10 h-[44px] text-[16px] border-subtle-border rounded-[8px]"
                         />
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                     </div>
                     <Button
                         onClick={handleSearch}
-                        className="bg-[#E6E6E6] text-[#4A4A4A] hover:bg-[#D9D9D9] px-6 h-[44px] rounded-[8px] cursor-pointer"
+                        className="bg-subtle-bg text-muted-foreground hover:bg-muted px-6 h-[44px] rounded-[8px] cursor-pointer"
                     >
                         검색
                     </Button>
@@ -169,7 +169,7 @@ const FreeBoardPage = () => {
                             size="sm"
                             onClick={() => handlePageChange(currentPage - 1)}
                             disabled={currentPage === 1}
-                            className="h-[40px] w-[40px] p-0 border-[#CCCCCC] disabled:opacity-50"
+                            className="h-[40px] w-[40px] p-0 border-subtle-border disabled:opacity-50"
                         >
                             <ChevronLeft className="h-4 w-4" />
                         </Button>
@@ -183,8 +183,8 @@ const FreeBoardPage = () => {
                                 className={cn(
                                     'h-[40px] w-[40px] p-0',
                                     currentPage === page
-                                        ? 'bg-[#4E8C6D] text-white hover:bg-[#5FA37C]'
-                                        : 'border-[#CCCCCC] text-gray-600 hover:bg-[#F5F5F5]'
+                                        ? 'bg-brand text-white hover:bg-brand-hover'
+                                        : 'border-subtle-border text-gray-600 hover:bg-subtle-bg'
                                 )}
                             >
                                 {page}
@@ -196,7 +196,7 @@ const FreeBoardPage = () => {
                             size="sm"
                             onClick={() => handlePageChange(currentPage + 1)}
                             disabled={currentPage === totalPages}
-                            className="h-[40px] w-[40px] p-0 border-[#CCCCCC] disabled:opacity-50"
+                            className="h-[40px] w-[40px] p-0 border-subtle-border disabled:opacity-50"
                         >
                             <ChevronRight className="h-4 w-4" />
                         </Button>
@@ -210,4 +210,3 @@ const FreeBoardPage = () => {
     );
 };
 
-export default FreeBoardPage;

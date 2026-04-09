@@ -57,10 +57,10 @@ function StatItem({ icon, label, value }: StatItemProps) {
     return (
         <div className="flex items-center justify-between gap-[6px] lg:gap-[12px] h-[28px] lg:h-[32px]">
             <div className="flex items-center gap-[6px] lg:gap-[10px]">
-                <div className="text-[#1e2124]">{icon}</div>
-                <span className="text-[13px] lg:text-[16px] font-medium text-[#1e2124] whitespace-nowrap">{label}</span>
+                <div className="text-foreground">{icon}</div>
+                <span className="text-[13px] lg:text-[16px] font-medium text-foreground whitespace-nowrap">{label}</span>
             </div>
-            <span className="text-[13px] lg:text-[16px] font-semibold text-[#2f7f5f]">{displayValue}</span>
+            <span className="text-[13px] lg:text-[16px] font-semibold text-primary">{displayValue}</span>
         </div>
     );
 }
@@ -97,11 +97,11 @@ export function HomeInfoSection({ statsOnly = false }: HomeInfoSectionProps) {
     if (statsOnly) {
         return (
             <section
-                className="bg-white border border-[#cdd1d5] rounded-[8px] md:rounded-[12px] lg:rounded-[10px] p-[10px] md:p-[24px] lg:p-[24px] overflow-hidden"
+                className="bg-white border border-subtle-border rounded-[8px] md:rounded-[12px] lg:rounded-[10px] p-[10px] md:p-[24px] lg:p-[24px] overflow-hidden"
                 aria-label="조합 통계"
             >
-                <h3 className="font-bold text-[18px] md:text-[22px] lg:text-[16px] text-[#1e2124] tracking-[1px] mb-[10px] md:mb-[30px] lg:mb-[20px]">조합 현황</h3>
-                <div className="bg-[#f4f5f6] rounded-[10px] px-[16px] py-[12px] md:px-[20px] md:py-[16px]">
+                <h3 className="font-bold text-[18px] md:text-[22px] lg:text-[16px] text-foreground tracking-[1px] mb-[10px] md:mb-[30px] lg:mb-[20px]">조합 현황</h3>
+                <div className="bg-subtle-bg rounded-[10px] px-[16px] py-[12px] md:px-[20px] md:py-[16px]">
                     <div className="flex flex-col gap-y-[8px]">
                         <StatItem
                             icon={<Eye className="w-[18px] h-[18px]" />}
@@ -136,13 +136,13 @@ export function HomeInfoSection({ statsOnly = false }: HomeInfoSectionProps) {
 
     return (
         <section
-            className="bg-white border border-[#cdd1d5] rounded-[8px] lg:rounded-[10px] p-[10px] lg:p-[24px] overflow-hidden md:flex-1"
+            className="bg-white border border-subtle-border rounded-[8px] lg:rounded-[10px] p-[10px] lg:p-[24px] overflow-hidden md:flex-1"
             aria-labelledby="info-section-title"
         >
             {/* 섹션 제목 */}
             <h3
                 id="info-section-title"
-                className="font-bold text-[18px] lg:text-[16px] xl:text-[22px] text-[#1e2124] tracking-[1px] leading-[1.2] mb-[10px] lg:mb-[20px] xl:mb-[30px]"
+                className="font-bold text-[18px] lg:text-[16px] xl:text-[22px] text-foreground tracking-[1px] leading-[1.2] mb-[10px] lg:mb-[20px] xl:mb-[30px]"
             >
                 재개발 정보
             </h3>
@@ -178,10 +178,10 @@ export function HomeInfoSection({ statsOnly = false }: HomeInfoSectionProps) {
                 {/* 조합 통계 - 모바일: 카드 하단에 표시, md/lg: 숨김(별도 섹션), xl: 사이드바 */}
                 <div className="block md:hidden xl:block xl:w-[240px] shrink-0">
                     {/* 모바일 전용: 조합명 타이틀 (Figma: "미아 2구역") */}
-                    <h4 className="font-bold text-[18px] text-[#1e2124] tracking-[1px] mb-[10px] md:hidden xl:hidden">
+                    <h4 className="font-bold text-[18px] text-foreground tracking-[1px] mb-[10px] md:hidden xl:hidden">
                         {unionName}
                     </h4>
-                    <div className="bg-[#f4f5f6] rounded-[4px] xl:rounded-[12px] px-[15px] xl:px-[20px] py-[12px] xl:py-[16px] xl:h-auto">
+                    <div className="bg-subtle-bg rounded-[4px] xl:rounded-[12px] px-[15px] xl:px-[20px] py-[12px] xl:py-[16px] xl:h-auto">
                         <div className="flex flex-col gap-y-[8px] lg:gap-y-[10px]">
                             <StatItem
                                 icon={<Eye className="w-[18px] h-[18px] lg:w-[22px] lg:h-[22px]" />}
