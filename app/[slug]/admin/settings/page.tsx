@@ -77,7 +77,7 @@ export default function UnionSettingsPage() {
         return (
             <div className="min-h-[400px] flex items-center justify-center">
                 <div className="flex flex-col items-center gap-3">
-                    <Loader2 className="h-10 w-10 animate-spin text-[#4e8c6d]" />
+                    <Loader2 className="h-10 w-10 animate-spin text-brand" />
                     <p className="text-lg text-gray-600">조합 정보를 불러오는 중...</p>
                 </div>
             </div>
@@ -98,7 +98,7 @@ export default function UnionSettingsPage() {
         <div className="space-y-3">
             <div className="mb-8 flex items-center justify-between">
                 <div>
-                    <h1 className="text-[32px] font-bold text-[#4e8c6d] flex items-center gap-3">
+                    <h1 className="text-[32px] font-bold text-brand flex items-center gap-3">
                         <Settings className="w-8 h-8" />
                         조합 정보 설정
                     </h1>
@@ -107,7 +107,7 @@ export default function UnionSettingsPage() {
                 {mode === 'view' && (
                     <Button
                         onClick={() => setMode('edit')}
-                        className="bg-[#4E8C6D] hover:bg-[#3d7359] text-white flex items-center gap-2"
+                        className="bg-brand hover:bg-brand-hover text-white flex items-center gap-2"
                     >
                         <Pencil className="w-4 h-4" />
                         수정

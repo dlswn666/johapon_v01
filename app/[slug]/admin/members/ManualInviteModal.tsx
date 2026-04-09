@@ -130,8 +130,8 @@ export default function ManualInviteModal({ isOpen, onClose, onSubmit, isSubmitt
                 {/* 헤더 */}
                 <div className="p-6 border-b border-gray-100 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-[#4E8C6D]/10 rounded-xl flex items-center justify-center">
-                            <UserPlus className="w-5 h-5 text-[#4E8C6D]" />
+                        <div className="w-10 h-10 bg-brand/10 rounded-xl flex items-center justify-center">
+                            <UserPlus className="w-5 h-5 text-brand" />
                         </div>
                         <div>
                             <h3 className="text-lg font-bold text-gray-900">수동 회원 등록</h3>
@@ -154,7 +154,7 @@ export default function ManualInviteModal({ isOpen, onClose, onSubmit, isSubmitt
                         {(members as MemberInput[]).map((member, index) => (
                             <div key={member.id} className="p-4 bg-gray-50 rounded-xl border border-gray-100 space-y-3">
                                 <div className="flex items-center justify-between">
-                                    <span className="text-xs font-bold text-[#4E8C6D]">회원 {index + 1}</span>
+                                    <span className="text-xs font-bold text-brand">회원 {index + 1}</span>
                                     <button
                                         type="button"
                                         onClick={() => handleRemoveRow(member.id)}
@@ -196,7 +196,7 @@ export default function ManualInviteModal({ isOpen, onClose, onSubmit, isSubmitt
                             type="button"
                             onClick={handleAddRow}
                             disabled={isSubmitting}
-                            className="w-full h-12 flex items-center justify-center gap-2 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 hover:border-[#4E8C6D] hover:text-[#4E8C6D] hover:bg-[#4E8C6D]/5 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full h-12 flex items-center justify-center gap-2 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 hover:border-brand hover:text-brand hover:bg-brand/5 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <Plus className="w-5 h-5" />
                             <span className="font-medium">추가하기</span>
@@ -217,7 +217,7 @@ export default function ManualInviteModal({ isOpen, onClose, onSubmit, isSubmitt
                     <Button
                         onClick={handleSubmit}
                         disabled={isSubmitting}
-                        className="flex-1 h-12 bg-[#4E8C6D] hover:bg-[#3d7058] text-white"
+                        className="flex-1 h-12 bg-brand hover:bg-brand-hover text-white"
                     >
                         {isSubmitting ? (
                             <>

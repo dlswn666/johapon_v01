@@ -23,7 +23,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const { id } = await context.params;
     const assemblyId = id;
 
-    const { authNonce, votes } = await request.json();
+    const { authNonce, votes, authTxId, authMethod } = await request.json();
 
     // dev 모드에서는 nonce 검증 우회
     let effectiveNonce = authNonce;
@@ -88,7 +88,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
     }
 
     // submit_evote_ballot RPC 호출
-    const { data, error } = await supabase.rpc('submit_evote_ballot', {
+    // authTxId, authMethod: KG이니시스 인증 메타데이터 (migration 041에서 participation_records에 추가 예정)
+    const rpcParams: Record<string, unknown> = {
       p_assembly_id: assemblyId,
       p_union_id: unionId,
       p_user_id: auth.user.id,
@@ -98,7 +99,14 @@ export async function POST(request: NextRequest, context: RouteContext) {
         poll_id: v.pollId,
         option_id: v.optionId,
       })),
-    });
+    };
+
+    // KG이니시스 인증 메타데이터가 있으면 RPC에 전달 (RPC가 해당 파라미터를 지원하는 경우)
+    if (authTxId) rpcParams.p_auth_tx_id = authTxId;
+    if (authMethod) rpcParams.p_auth_method = authMethod;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await supabase.rpc('submit_evote_ballot', rpcParams as any);
 
     if (error) {
       console.error('일괄 투표 제출 실패:', error);

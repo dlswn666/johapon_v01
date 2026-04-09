@@ -100,7 +100,7 @@ function BannerCard({ ad, isMobile, fullHeight }: { ad: Advertisement; isMobile:
                     />
                     {/* 텍스트 오버레이 */}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent flex flex-col justify-end p-3">
-                        <span className="text-[10px] font-bold text-[#2f7f5f] uppercase tracking-widest mb-0.5">
+                        <span className="text-[10px] font-bold text-primary uppercase tracking-widest mb-0.5">
                             Partnership
                         </span>
                         <h4 className="text-white font-bold text-[13px] leading-tight line-clamp-1">

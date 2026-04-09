@@ -129,13 +129,13 @@ export function NoticePopup({
             </div>
 
             {/* 팝업 푸터 바 */}
-            <div className="flex items-center justify-between px-4 py-3 bg-[#1e2939]">
+            <div className="flex items-center justify-between px-4 py-3 bg-foreground">
                 {/* 24시간 동안 안보기 체크박스 */}
                 <label className="flex items-center gap-2 cursor-pointer">
                     <Checkbox
                         checked={hideFor24HoursChecked}
                         onCheckedChange={(checked) => setHideFor24HoursChecked(checked === true)}
-                        className="border-white data-[state=checked]:bg-white data-[state=checked]:text-[#1e2939]"
+                        className="border-white data-[state=checked]:bg-white data-[state=checked]:text-foreground"
                     />
                     <span className="text-sm text-white">24시간 동안 안보기</span>
                 </label>

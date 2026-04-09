@@ -65,7 +65,7 @@ export default function SlideDetailPage() {
         return (
             <div className="min-h-[400px] flex items-center justify-center">
                 <div className="flex flex-col items-center gap-3">
-                    <Loader2 className="h-10 w-10 animate-spin text-[#4E8C6D]" />
+                    <Loader2 className="h-10 w-10 animate-spin text-brand" />
                     <p className="text-lg text-gray-600">슬라이드 정보를 불러오는 중...</p>
                 </div>
             </div>
@@ -103,9 +103,9 @@ export default function SlideDetailPage() {
             {/* 액션 버튼 */}
             <div className="container mx-auto max-w-[1280px] px-4 pt-8">
                 <div className="max-w-4xl mx-auto">
-                    <div className="flex items-center justify-between p-4 bg-white rounded-[12px] border border-[#CCCCCC]">
+                    <div className="flex items-center justify-between p-4 bg-white rounded-[12px] border border-subtle-border">
                         <div>
-                            <h2 className="text-[16px] font-bold text-[#5FA37C]">관리</h2>
+                            <h2 className="text-[16px] font-bold text-brand-light">관리</h2>
                             <p className="text-sm text-gray-500">
                                 슬라이드를 수정하거나 삭제할 수 있습니다
                             </p>

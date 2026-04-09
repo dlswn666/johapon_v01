@@ -324,7 +324,7 @@ function MergeCandidateDetail({
                 <Button
                     onClick={onProcess}
                     disabled={isProcessing || (actionType === 'merge' && !selectedCanonicalId)}
-                    className="bg-[#4E8C6D] hover:bg-[#3d7058] text-white"
+                    className="bg-brand hover:bg-brand-hover text-white"
                 >
                     {isProcessing ? (
                         <><Loader2 className="w-4 h-4 animate-spin mr-2" />처리 중...</>
@@ -348,7 +348,7 @@ function MemberCompareCard({ member, isCanonical, onSelectCanonical, showSelectB
     return (
         <div className={cn(
             'bg-white rounded-xl border-2 p-4 space-y-3 transition-colors',
-            isCanonical ? 'border-[#4E8C6D]' : 'border-gray-200'
+            isCanonical ? 'border-brand' : 'border-gray-200'
         )}>
             <div className="flex items-center justify-between">
                 <span className="font-semibold text-gray-900">{member.name}</span>
@@ -358,7 +358,7 @@ function MemberCompareCard({ member, isCanonical, onSelectCanonical, showSelectB
                         className={cn(
                             'text-xs px-2 py-1 rounded-lg font-medium transition-colors',
                             isCanonical
-                                ? 'bg-[#4E8C6D] text-white'
+                                ? 'bg-brand text-white'
                                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                         )}
                     >

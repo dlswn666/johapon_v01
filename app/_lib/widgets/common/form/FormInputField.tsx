@@ -108,7 +108,7 @@ export function FormInputField<T extends FieldValues>({
             name={name}
             render={({ field }) => (
                 <FormItem className={className}>
-                    <FormLabel className="text-[16px] font-bold text-[#5FA37C]">
+                    <FormLabel className="text-[16px] font-bold text-brand-light">
                         {label}
                         {required && <span className="text-red-500 ml-1">*</span>}
                     </FormLabel>
@@ -122,7 +122,7 @@ export function FormInputField<T extends FieldValues>({
                             inputMode={inputMode}
                             {...field}
                             className={cn(
-                                'h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]',
+                                'h-[48px] text-[16px] rounded-[12px] border-subtle-border',
                                 'bg-white' // 디자인 시스템: Input 영역 배경색 흰색
                             )}
                         />

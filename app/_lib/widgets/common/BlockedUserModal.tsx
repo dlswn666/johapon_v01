@@ -41,14 +41,14 @@ export default function BlockedUserModal({ reason, unionPhone }: BlockedUserModa
                     {unionPhone && (
                         <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-[#4E8C6D]/10 rounded-full flex items-center justify-center">
-                                    <Phone className="w-5 h-5 text-[#4E8C6D]" />
+                                <div className="w-10 h-10 bg-brand/10 rounded-full flex items-center justify-center">
+                                    <Phone className="w-5 h-5 text-brand" />
                                 </div>
                                 <div>
                                     <p className="text-[12px] text-gray-500">조합 사무실</p>
                                     <a
                                         href={`tel:${unionPhone}`}
-                                        className="text-[16px] font-bold text-[#4E8C6D] hover:underline"
+                                        className="text-[16px] font-bold text-brand hover:underline"
                                     >
                                         {unionPhone}
                                     </a>

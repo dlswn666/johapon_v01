@@ -34,18 +34,18 @@ function PartnerCard({ partner, slug }: { partner: Advertisement; slug: string }
                     />
                 ) : (
                     <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#2f7f5f]/20 to-[#2f7f5f]/5">
-                        <span className="text-[18px] font-bold text-[#2f7f5f]/40">
+                        <span className="text-[18px] font-bold text-primary/40">
                             {(partner.title || partner.business_name).charAt(0)}
                         </span>
                     </div>
                 )}
             </div>
             <div className="flex flex-col gap-[2px] items-center w-full pointer-events-none">
-                <h4 className="font-semibold text-[14px] text-black text-center leading-[1.6] truncate w-full group-hover:text-[#2f7f5f] transition-colors">
+                <h4 className="font-semibold text-[14px] text-black text-center leading-[1.6] truncate w-full group-hover:text-primary transition-colors">
                     {partner.title || partner.business_name}
                 </h4>
                 {partner.content && (
-                    <p className="text-[12px] font-light text-[#8a949e] leading-[1.4] line-clamp-2 w-full overflow-hidden text-center">
+                    <p className="text-[12px] font-light text-muted-foreground leading-[1.4] line-clamp-2 w-full overflow-hidden text-center">
                         {partner.content}
                     </p>
                 )}
@@ -312,7 +312,7 @@ export function HomePartnerships() {
                 <Link
                     href={`/${slug}/communication/partner`}
                     className={cn(
-                        'flex items-center gap-[4px] text-[12px] text-[#b1b8be] leading-[1.4] hover:text-[#2f7f5f] transition-colors',
+                        'flex items-center gap-[4px] text-[12px] text-muted-foreground leading-[1.4] hover:text-primary transition-colors',
                         'outline-none focus-visible:ring-2 focus-visible:ring-[#2f7f5f] focus-visible:ring-offset-2 rounded-sm'
                     )}
                 >

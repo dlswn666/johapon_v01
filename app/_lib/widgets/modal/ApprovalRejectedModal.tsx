@@ -263,7 +263,7 @@ export function ApprovalRejectedModal({
                         onClick={handleStartEdit}
                         className={cn(
                             'flex-1 h-12 rounded-lg font-medium text-white',
-                            'bg-[#4E8C6D] hover:bg-[#3d7058]',
+                            'bg-brand hover:bg-brand-hover',
                             'transition-colors',
                             'flex items-center justify-center gap-2'
                         )}
@@ -417,7 +417,7 @@ export function ApprovalRejectedModal({
                         disabled={isSubmitting}
                         className={cn(
                             'flex-1 h-12 rounded-lg font-medium text-white',
-                            'bg-[#4E8C6D] hover:bg-[#3d7058]',
+                            'bg-brand hover:bg-brand-hover',
                             'transition-colors',
                             'disabled:opacity-50 disabled:cursor-not-allowed',
                             'flex items-center justify-center gap-2'
@@ -474,7 +474,7 @@ export function ApprovalRejectedModal({
                     onClick={handlePendingConfirm}
                     className={cn(
                         'w-full h-12 rounded-lg font-medium text-white',
-                        'bg-[#4E8C6D] hover:bg-[#3d7058]',
+                        'bg-brand hover:bg-brand-hover',
                         'transition-colors'
                     )}
                 >

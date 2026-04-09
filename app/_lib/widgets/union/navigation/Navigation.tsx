@@ -88,8 +88,8 @@ export default function UnionNavigation() {
                                     className={cn(
                                         'h-[56px] px-4 text-[16px] font-medium bg-transparent hover:bg-transparent focus:bg-transparent data-[state=open]:bg-transparent',
                                         hasActiveSubItem(item.subItems)
-                                            ? 'text-[#4E8C6D] font-bold'
-                                            : 'text-[#CCCCCC] hover:text-[#4E8C6D]'
+                                            ? 'text-brand font-bold'
+                                            : 'text-subtle-border hover:text-brand'
                                     )}
                                 >
                                     {item.label}
@@ -104,7 +104,7 @@ export default function UnionNavigation() {
                                                         className={cn(
                                                             'block px-3 py-2 text-[14px] rounded-md transition-colors',
                                                             isActiveRoute(subItem.href)
-                                                                ? 'bg-[#4E8C6D]/10 text-[#4E8C6D] font-medium'
+                                                                ? 'bg-brand/10 text-brand font-medium'
                                                                 : 'text-gray-600 hover:bg-gray-100'
                                                         )}
                                                     >
@@ -122,8 +122,8 @@ export default function UnionNavigation() {
                                 className={cn(
                                     'h-[56px] flex items-center px-4 text-[16px] font-medium transition-colors border-b-4',
                                     isActiveRoute(item.href || '')
-                                        ? 'text-[#4E8C6D] border-[#4E8C6D] font-bold'
-                                        : 'text-[#CCCCCC] border-transparent hover:text-[#4E8C6D]'
+                                        ? 'text-brand border-brand font-bold'
+                                        : 'text-subtle-border border-transparent hover:text-brand'
                                 )}
                             >
                                 {item.label}
@@ -139,8 +139,8 @@ export default function UnionNavigation() {
                             className={cn(
                                 'h-[56px] px-4 text-[16px] font-medium bg-transparent hover:bg-transparent focus:bg-transparent data-[state=open]:bg-transparent',
                                 hasActiveSubItem(adminNavItem.subItems)
-                                    ? 'text-[#4E8C6D] font-bold'
-                                    : 'text-[#CCCCCC] hover:text-[#4E8C6D]'
+                                    ? 'text-brand font-bold'
+                                    : 'text-subtle-border hover:text-brand'
                             )}
                         >
                             {adminNavItem.label}
@@ -155,7 +155,7 @@ export default function UnionNavigation() {
                                                 className={cn(
                                                     'block px-3 py-2 text-[14px] rounded-md transition-colors',
                                                     isActiveRoute(subItem.href)
-                                                        ? 'bg-[#4E8C6D]/10 text-[#4E8C6D] font-medium'
+                                                        ? 'bg-brand/10 text-brand font-medium'
                                                         : 'text-gray-600 hover:bg-gray-100'
                                                 )}
                                             >

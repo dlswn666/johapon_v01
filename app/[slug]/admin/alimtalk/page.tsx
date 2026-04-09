@@ -211,7 +211,7 @@ export default function UnionAlimtalkPage() {
                                 <Wallet className="w-4 h-4" />
                                 예상 비용
                             </div>
-                            <p className="text-2xl font-bold text-[#4E8C6D]">{formatCost(stats.totalCost)}</p>
+                            <p className="text-2xl font-bold text-brand">{formatCost(stats.totalCost)}</p>
                         </CardContent>
                     </Card>
                 </div>
@@ -289,7 +289,7 @@ export default function UnionAlimtalkPage() {
                                                     variant="ghost"
                                                     size="sm"
                                                     onClick={() => handleViewDetail(log)}
-                                                    className="text-[#4E8C6D] hover:text-[#4E8C6D] hover:bg-[#4E8C6D]/10 cursor-pointer"
+                                                    className="text-brand hover:text-brand hover:bg-brand/10 cursor-pointer"
                                                 >
                                                     상세
                                                 </Button>
@@ -369,9 +369,9 @@ export default function UnionAlimtalkPage() {
 
                                 {/* 예상 비용 */}
                                 <div className="pt-4 border-t">
-                                    <div className="p-4 bg-[#4E8C6D]/10 rounded-xl">
+                                    <div className="p-4 bg-brand/10 rounded-xl">
                                         <p className="text-sm text-muted-foreground mb-1">예상 비용</p>
-                                        <p className="text-2xl font-bold text-[#4E8C6D]">
+                                        <p className="text-2xl font-bold text-brand">
                                             {formatCost(selectedLog.estimated_cost || 0)}
                                         </p>
                                     </div>

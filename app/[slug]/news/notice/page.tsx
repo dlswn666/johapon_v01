@@ -16,7 +16,7 @@ import { ListCardItem } from '@/app/_lib/widgets/common/list-card';
 import { BoardListCard } from '@/app/_lib/widgets/common/list-card/BoardListCard';
 import { formatDate, formatAuthorName } from '@/app/_lib/shared/utils/commonUtil';
 
-const NoticePage = () => {
+export default function NoticePage() {
     const router = useRouter();
     const { slug, isLoading: isUnionLoading } = useSlug();
     const { user, isAdmin, isSystemAdmin } = useAuth();
@@ -29,7 +29,7 @@ const NoticePage = () => {
         setSearchQuery(searchInput);
     };
 
-    const handleKeyPress = (e: React.KeyboardEvent) => {
+    const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter') {
             handleSearch();
         }
@@ -66,7 +66,7 @@ const NoticePage = () => {
         return (
             <div className={cn('container mx-auto max-w-[1280px] px-4 py-8')}>
                 <div className="flex justify-center items-center h-64">
-                    <p className="text-[18px] text-[#D9534F]">데이터를 불러오는 중 오류가 발생했습니다.</p>
+                    <p className="text-[18px] text-error-text">데이터를 불러오는 중 오류가 발생했습니다.</p>
                 </div>
             </div>
         );
@@ -91,9 +91,9 @@ const NoticePage = () => {
 
         return (
             <div className="flex items-center gap-1 shrink-0">
-                {notice.is_popup && <Layers className="h-4 w-4 text-[#5FA37C]" />}
+                {notice.is_popup && <Layers className="h-4 w-4 text-brand-light" />}
                 {notice.alimtalk_logs && notice.alimtalk_logs[0]?.count > 0 && (
-                    <MessageCircle className="h-4 w-4 text-[#F0AD4E]" />
+                    <MessageCircle className="h-4 w-4 text-warning" />
                 )}
             </div>
         );
@@ -103,10 +103,10 @@ const NoticePage = () => {
         <>
             <div className={cn('container mx-auto max-w-[1280px] px-4 py-8')}>
                 <div className={cn('flex justify-between items-center mb-6')}>
-                    <h2 className={cn('text-[32px] font-bold text-[#5FA37C]')}>공지사항</h2>
+                    <h2 className={cn('text-[32px] font-bold text-brand-light')}>공지사항</h2>
                     {(isAdmin || isSystemAdmin) && (
                         <Button
-                            className="bg-[#4E8C6D] hover:bg-[#5FA37C] text-white text-[16px] px-6 py-2 rounded-[8px] cursor-pointer"
+                            className="bg-brand hover:bg-brand-hover text-white text-[16px] px-6 py-2 rounded-[8px] cursor-pointer"
                             onClick={() => router.push(`/${slug}/news/notice/new`)}
                         >
                             글쓰기
@@ -122,14 +122,14 @@ const NoticePage = () => {
                             placeholder="제목, 내용, 작성자로 검색"
                             value={searchInput}
                             onChange={(e) => setSearchInput(e.target.value)}
-                            onKeyPress={handleKeyPress}
-                            className="pl-10 h-[44px] text-[16px] border-[#CCCCCC] rounded-[8px]"
+                            onKeyDown={handleKeyPress}
+                            className="pl-10 h-[44px] text-[16px] border-subtle-border rounded-[8px]"
                         />
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                     </div>
                     <Button
                         onClick={handleSearch}
-                        className="bg-[#E6E6E6] text-[#4A4A4A] hover:bg-[#D9D9D9] px-6 h-[44px] rounded-[8px] cursor-pointer"
+                        className="bg-subtle-bg text-muted-foreground hover:bg-muted px-6 h-[44px] rounded-[8px] cursor-pointer"
                     >
                         검색
                     </Button>
@@ -150,4 +150,3 @@ const NoticePage = () => {
     );
 };
 
-export default NoticePage;

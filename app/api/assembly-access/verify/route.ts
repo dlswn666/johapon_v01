@@ -6,7 +6,7 @@ import type { IdentityMethod } from '@/app/_lib/shared/type/assembly.types';
 import crypto from 'crypto';
 
 // 지원되는 본인인증 방법
-const SUPPORTED_IDENTITY_METHODS: IdentityMethod[] = ['KAKAO_LOGIN', 'PASS_CERT', 'CERTIFICATE'];
+const SUPPORTED_IDENTITY_METHODS: IdentityMethod[] = ['KAKAO_LOGIN', 'KG_INICIS_ID', 'KG_INICIS_ESIGN', 'PASS_CERT', 'CERTIFICATE'];
 
 // 입장 허용 총회 상태
 const ENTRY_ALLOWED_STATUSES = ['PRE_VOTING', 'CONVENED', 'IN_PROGRESS', 'VOTING', 'VOTING_CLOSED'];
@@ -41,17 +41,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '지원되지 않는 인증 방법입니다.' }, { status: 400 });
     }
 
-    // PASS 본인인증 / 공동인증서 — 아직 미구현
-    if (identityMethod === 'PASS_CERT') {
-      return NextResponse.json(
-        { error: 'PASS 본인인증은 준비 중입니다.' },
-        { status: 501 },
-      );
+    if (identityMethod === 'KG_INICIS_ID') {
+      // KG이니시스 본인확인 — 프론트에서 처리 후 결과를 전달
+      // CI/DI 해시는 별도 API에서 users 테이블에 저장
+      // 여기서는 identity_verified_at만 갱신
     }
-    if (identityMethod === 'CERTIFICATE') {
+    if (identityMethod === 'KG_INICIS_ESIGN') {
+      // KG이니시스 전자서명 — 프론트에서 처리 후 결과를 전달
+      // 서명값은 별도 API에서 esign_certificates에 저장
+    }
+    if (identityMethod === 'PASS_CERT' || identityMethod === 'CERTIFICATE') {
       return NextResponse.json(
-        { error: '공동인증서 인증은 준비 중입니다.' },
-        { status: 501 },
+        { error: '지원하지 않는 인증 방식입니다. KG이니시스 인증을 사용해 주세요.' },
+        { status: 400 },
       );
     }
 

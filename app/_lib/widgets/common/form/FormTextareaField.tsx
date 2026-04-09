@@ -62,7 +62,7 @@ export function FormTextareaField<T extends FieldValues>({
             name={name}
             render={({ field }) => (
                 <FormItem className={className}>
-                    <FormLabel className="text-[16px] font-bold text-[#5FA37C]">
+                    <FormLabel className="text-[16px] font-bold text-brand-light">
                         {label}
                         {required && <span className="text-red-500 ml-1">*</span>}
                     </FormLabel>
@@ -73,7 +73,7 @@ export function FormTextareaField<T extends FieldValues>({
                             disabled={disabled}
                             {...field}
                             className={cn(
-                                'text-[16px] rounded-[12px] border-[#CCCCCC]',
+                                'text-[16px] rounded-[12px] border-subtle-border',
                                 'bg-white'
                             )}
                         />

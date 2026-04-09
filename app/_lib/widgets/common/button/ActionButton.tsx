@@ -41,13 +41,13 @@ const sizeStyles: Record<ButtonSize, string> = {
 
 /**
  * buttonType 프리셋 스타일
- * - submit: Primary 배경(#4E8C6D), 흰색 텍스트
+ * - submit: Brand 배경, 흰색 텍스트
  * - cancel: Outline 스타일, 회색 테두리
  * - default: 기본 스타일
  */
 const buttonTypeStyles: Record<ButtonType, string> = {
-    submit: 'bg-[#4E8C6D] hover:bg-[#5FA37C] text-white border-transparent',
-    cancel: 'border-[#CCCCCC] text-gray-600 hover:bg-gray-50 bg-white',
+    submit: 'bg-brand hover:bg-brand-hover text-white border-transparent',
+    cancel: 'border-subtle-border text-gray-600 hover:bg-gray-50 bg-white',
     default: '',
 };
 

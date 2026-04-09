@@ -75,7 +75,7 @@ export function UnionNewsSection({ unionId }: UnionNewsSectionProps) {
 
     // 클릭 핸들러 - 자유 게시판 상세 페이지로 이동
     const handleFreeBoardClick = useCallback((freeBoardId: number) => {
-        router.push(`/${slug}/free-board/${freeBoardId}`);
+        router.push(`/${slug}/communication/free-board/${freeBoardId}`);
     }, [router, slug]);
 
     // 클릭 핸들러 - 질문 상세 페이지로 이동
@@ -174,7 +174,7 @@ export function UnionNewsSection({ unionId }: UnionNewsSectionProps) {
             <div className="container mx-auto max-w-[1296px]">
                 {/* 섹션 제목 */}
                 <h2
-                    className="font-bold text-[#4e8c6d] mb-6 md:mb-[54px] [text-wrap:balance]"
+                    className="font-bold text-brand mb-6 md:mb-[54px] [text-wrap:balance]"
                     style={{
                         fontSize: 'var(--text-section-title)',
                         lineHeight: 'var(--leading-section-title)'
@@ -188,10 +188,10 @@ export function UnionNewsSection({ unionId }: UnionNewsSectionProps) {
                     <button
                         onClick={() => setActiveTab('notice')}
                         className={cn(
-                            'h-auto md:h-[52.375px] px-3 md:px-[27px] py-2 md:pb-[22px] md:pt-0 rounded-tl-[8px] md:rounded-tl-[13.5px] rounded-tr-[8px] md:rounded-tr-[13.5px] transition-colors cursor-pointer whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-[#4E8C6D] focus-visible:ring-offset-2',
+                            'h-auto md:h-[52.375px] px-3 md:px-[27px] py-2 md:pb-[22px] md:pt-0 rounded-tl-[8px] md:rounded-tl-[13.5px] rounded-tr-[8px] md:rounded-tr-[13.5px] transition-colors cursor-pointer whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2',
                             activeTab === 'notice'
-                                ? 'bg-[#4e8c6d] text-white font-bold'
-                                : 'text-[#4a5565] font-medium hover:text-[#4e8c6d]'
+                                ? 'bg-brand text-white font-bold'
+                                : 'text-secondary-foreground font-medium hover:text-brand'
                         )}
                         role="tab"
                         aria-selected={activeTab === 'notice'}
@@ -203,10 +203,10 @@ export function UnionNewsSection({ unionId }: UnionNewsSectionProps) {
                     <button
                         onClick={() => setActiveTab('general')}
                         className={cn(
-                            'h-auto md:h-[52.375px] px-3 md:px-[27px] py-2 md:pb-[22px] md:pt-0 transition-colors cursor-pointer whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-[#4E8C6D] focus-visible:ring-offset-2',
+                            'h-auto md:h-[52.375px] px-3 md:px-[27px] py-2 md:pb-[22px] md:pt-0 transition-colors cursor-pointer whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2',
                             activeTab === 'general'
-                                ? 'bg-[#4e8c6d] text-white font-bold rounded-tl-[8px] md:rounded-tl-[13.5px] rounded-tr-[8px] md:rounded-tr-[13.5px]'
-                                : 'text-[#4a5565] font-medium hover:text-[#4e8c6d]'
+                                ? 'bg-brand text-white font-bold rounded-tl-[8px] md:rounded-tl-[13.5px] rounded-tr-[8px] md:rounded-tr-[13.5px]'
+                                : 'text-secondary-foreground font-medium hover:text-brand'
                         )}
                         role="tab"
                         aria-selected={activeTab === 'general'}
@@ -218,10 +218,10 @@ export function UnionNewsSection({ unionId }: UnionNewsSectionProps) {
                     <button
                         onClick={() => setActiveTab('question')}
                         className={cn(
-                            'h-auto md:h-[52.375px] px-3 md:px-[27px] py-2 md:pb-[22px] md:pt-0 transition-colors cursor-pointer whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-[#4E8C6D] focus-visible:ring-offset-2',
+                            'h-auto md:h-[52.375px] px-3 md:px-[27px] py-2 md:pb-[22px] md:pt-0 transition-colors cursor-pointer whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2',
                             activeTab === 'question'
-                                ? 'bg-[#4e8c6d] text-white font-bold rounded-tl-[8px] md:rounded-tl-[13.5px] rounded-tr-[8px] md:rounded-tr-[13.5px]'
-                                : 'text-[#4a5565] font-medium hover:text-[#4e8c6d]'
+                                ? 'bg-brand text-white font-bold rounded-tl-[8px] md:rounded-tl-[13.5px] rounded-tr-[8px] md:rounded-tr-[13.5px]'
+                                : 'text-secondary-foreground font-medium hover:text-brand'
                         )}
                         role="tab"
                         aria-selected={activeTab === 'question'}
@@ -233,10 +233,10 @@ export function UnionNewsSection({ unionId }: UnionNewsSectionProps) {
                     <button
                         onClick={() => setActiveTab('partner')}
                         className={cn(
-                            'h-auto md:h-[52.375px] px-3 md:px-[27px] py-2 md:pb-[22px] md:pt-0 transition-colors cursor-pointer whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-[#4E8C6D] focus-visible:ring-offset-2',
+                            'h-auto md:h-[52.375px] px-3 md:px-[27px] py-2 md:pb-[22px] md:pt-0 transition-colors cursor-pointer whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2',
                             activeTab === 'partner'
-                                ? 'bg-[#4e8c6d] text-white font-bold rounded-tl-[8px] md:rounded-tl-[13.5px] rounded-tr-[8px] md:rounded-tr-[13.5px]'
-                                : 'text-[#4a5565] font-medium hover:text-[#4e8c6d]'
+                                ? 'bg-brand text-white font-bold rounded-tl-[8px] md:rounded-tl-[13.5px] rounded-tr-[8px] md:rounded-tr-[13.5px]'
+                                : 'text-secondary-foreground font-medium hover:text-brand'
                         )}
                         role="tab"
                         aria-selected={activeTab === 'partner'}
@@ -261,7 +261,7 @@ export function UnionNewsSection({ unionId }: UnionNewsSectionProps) {
                                     <p className="text-lg text-gray-600">공지사항을 불러오는 중 오류가 발생했습니다.</p>
                                     <button
                                         onClick={() => refetch()}
-                                        className="flex items-center gap-2 px-4 py-2 bg-[#4e8c6d] text-white rounded-lg hover:bg-[#3d7a5c] transition-colors"
+                                        className="flex items-center gap-2 px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-hover transition-colors"
                                     >
                                         <RefreshCw className="w-4 h-4" />
                                         다시 시도
@@ -276,12 +276,12 @@ export function UnionNewsSection({ unionId }: UnionNewsSectionProps) {
                                             onKeyDown={(e) => e.key === 'Enter' && handleNoticeClick(notices[0].id)}
                                             role="button"
                                             tabIndex={0}
-                                            className="bg-white border-l-4 border-[#5fa37c] border-r border-t border-b rounded-[12px] md:rounded-[17.5px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] pl-4 md:pl-[40px] pr-4 md:pr-px py-5 md:py-[37px] cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-[#4E8C6D] focus-visible:ring-offset-2"
+                                            className="bg-white border-l-4 border-brand-light border-r border-t border-b rounded-[12px] md:rounded-[17.5px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] pl-4 md:pl-[40px] pr-4 md:pr-px py-5 md:py-[37px] cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
                                             aria-label={`공지사항: ${notices[0].title}`}
                                         >
                                             <div className="space-y-3 md:space-y-[18px]">
                                                 <h3
-                                                    className="font-bold text-[#333333] line-clamp-2"
+                                                    className="font-bold text-foreground line-clamp-2"
                                                     style={{
                                                         fontSize: 'var(--text-card-title-lg)',
                                                         lineHeight: 'var(--leading-card-title-lg)'
@@ -292,21 +292,21 @@ export function UnionNewsSection({ unionId }: UnionNewsSectionProps) {
                                                 </h3>
                                                 <div className="flex flex-wrap items-center gap-2 md:gap-[18px]">
                                                     <span 
-                                                        className="text-[#6a7282]"
+                                                        className="text-muted-foreground"
                                                         style={{ fontSize: 'var(--text-body-md)', lineHeight: 'var(--leading-body-md)' }}
                                                     >
                                                         작성자: {getAuthorName(notices[0])}
                                                     </span>
-                                                    <span className="text-[#6a7282] hidden md:inline" style={{ fontSize: 'var(--text-body-md)' }}>•</span>
+                                                    <span className="text-muted-foreground hidden md:inline" style={{ fontSize: 'var(--text-body-md)' }}>•</span>
                                                     <span
-                                                        className="text-[#6a7282] tabular-nums"
+                                                        className="text-muted-foreground tabular-nums"
                                                         style={{ fontSize: 'var(--text-body-md)', lineHeight: 'var(--leading-body-md)' }}
                                                     >
                                                         {formatDate(notices[0].created_at)}
                                                     </span>
                                                 </div>
                                                 <p 
-                                                    className="text-[#364153]"
+                                                    className="text-foreground"
                                                     style={{ fontSize: 'var(--text-body-lg)', lineHeight: 'var(--leading-body-lg)' }}
                                                 >
                                                     {truncateContent(notices[0].content)}
@@ -325,12 +325,12 @@ export function UnionNewsSection({ unionId }: UnionNewsSectionProps) {
                                                     onKeyDown={(e) => e.key === 'Enter' && handleNoticeClick(notice.id)}
                                                     role="button"
                                                     tabIndex={0}
-                                                    className="bg-white border border-gray-200 rounded-[10px] md:rounded-[13.5px] shadow-[0px_1px_3px_0px_rgba(0,0,0,0.1),0px_1px_2px_-1px_rgba(0,0,0,0.1)] pl-4 md:pl-[28px] pr-4 md:pr-px py-4 md:py-[28px] cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-[#4E8C6D] focus-visible:ring-offset-2"
+                                                    className="bg-white border border-gray-200 rounded-[10px] md:rounded-[13.5px] shadow-[0px_1px_3px_0px_rgba(0,0,0,0.1),0px_1px_2px_-1px_rgba(0,0,0,0.1)] pl-4 md:pl-[28px] pr-4 md:pr-px py-4 md:py-[28px] cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
                                                     aria-label={`공지사항: ${notice.title}`}
                                                 >
                                                     <div className="space-y-2 md:space-y-[13.5px]">
                                                         <h4 
-                                                            className="font-bold text-[#333333] line-clamp-2"
+                                                            className="font-bold text-foreground line-clamp-2"
                                                             style={{ 
                                                                 fontSize: 'var(--text-card-title-md)', 
                                                                 lineHeight: 'var(--leading-card-title-md)' 
@@ -340,13 +340,13 @@ export function UnionNewsSection({ unionId }: UnionNewsSectionProps) {
                                                         </h4>
                                                         <div className="space-y-1 md:space-y-[4.5px]">
                                                             <p 
-                                                                className="text-[#6a7282]"
+                                                                className="text-muted-foreground"
                                                                 style={{ fontSize: 'var(--text-body-sm)', lineHeight: 'var(--leading-body-sm)' }}
                                                             >
                                                                 작성자: {getAuthorName(notice)}
                                                             </p>
                                                             <p
-                                                                className="text-[#6a7282] tabular-nums"
+                                                                className="text-muted-foreground tabular-nums"
                                                                 style={{ fontSize: 'var(--text-body-sm)', lineHeight: 'var(--leading-body-sm)' }}
                                                             >
                                                                 {formatDate(notice.created_at)}
@@ -378,7 +378,7 @@ export function UnionNewsSection({ unionId }: UnionNewsSectionProps) {
                                     <p className="text-lg text-gray-600">게시물을 불러오는 중 오류가 발생했습니다.</p>
                                     <button
                                         onClick={() => refetchFreeBoards()}
-                                        className="flex items-center gap-2 px-4 py-2 bg-[#4e8c6d] text-white rounded-lg hover:bg-[#3d7a5c] transition-colors"
+                                        className="flex items-center gap-2 px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-hover transition-colors"
                                     >
                                         <RefreshCw className="w-4 h-4" />
                                         다시 시도
@@ -390,11 +390,11 @@ export function UnionNewsSection({ unionId }: UnionNewsSectionProps) {
                                     {freeBoards[0] && (
                                         <div 
                                             onClick={() => handleFreeBoardClick(freeBoards[0].id)}
-                                            className="bg-white border-l-4 border-[#5fa37c] border-r border-t border-b rounded-[12px] md:rounded-[17.5px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] pl-4 md:pl-[40px] pr-4 md:pr-px py-5 md:py-[37px] cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-200"
+                                            className="bg-white border-l-4 border-brand-light border-r border-t border-b rounded-[12px] md:rounded-[17.5px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] pl-4 md:pl-[40px] pr-4 md:pr-px py-5 md:py-[37px] cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-200"
                                         >
                                             <div className="space-y-3 md:space-y-[18px]">
                                                 <h3
-                                                    className="font-bold text-[#333333] line-clamp-2"
+                                                    className="font-bold text-foreground line-clamp-2"
                                                     style={{
                                                         fontSize: 'var(--text-card-title-lg)',
                                                         lineHeight: 'var(--leading-card-title-lg)'
@@ -405,21 +405,21 @@ export function UnionNewsSection({ unionId }: UnionNewsSectionProps) {
                                                 </h3>
                                                 <div className="flex flex-wrap items-center gap-2 md:gap-[18px]">
                                                     <span 
-                                                        className="text-[#6a7282]"
+                                                        className="text-muted-foreground"
                                                         style={{ fontSize: 'var(--text-body-md)', lineHeight: 'var(--leading-body-md)' }}
                                                     >
                                                         작성자: {freeBoards[0].author?.name || '익명'}
                                                     </span>
-                                                    <span className="text-[#6a7282] hidden md:inline" style={{ fontSize: 'var(--text-body-md)' }}>•</span>
+                                                    <span className="text-muted-foreground hidden md:inline" style={{ fontSize: 'var(--text-body-md)' }}>•</span>
                                                     <span
-                                                        className="text-[#6a7282] tabular-nums"
+                                                        className="text-muted-foreground tabular-nums"
                                                         style={{ fontSize: 'var(--text-body-md)', lineHeight: 'var(--leading-body-md)' }}
                                                     >
                                                         {formatDate(freeBoards[0].created_at)}
                                                     </span>
                                                 </div>
                                                 <p 
-                                                    className="text-[#364153]"
+                                                    className="text-foreground"
                                                     style={{ fontSize: 'var(--text-body-lg)', lineHeight: 'var(--leading-body-lg)' }}
                                                 >
                                                     {truncateContent(freeBoards[0].content)}
@@ -439,7 +439,7 @@ export function UnionNewsSection({ unionId }: UnionNewsSectionProps) {
                                                 >
                                                     <div className="space-y-2 md:space-y-[13.5px]">
                                                         <h4 
-                                                            className="font-bold text-[#333333] line-clamp-2"
+                                                            className="font-bold text-foreground line-clamp-2"
                                                             style={{ 
                                                                 fontSize: 'var(--text-card-title-md)', 
                                                                 lineHeight: 'var(--leading-card-title-md)' 
@@ -449,13 +449,13 @@ export function UnionNewsSection({ unionId }: UnionNewsSectionProps) {
                                                         </h4>
                                                         <div className="space-y-1 md:space-y-[4.5px]">
                                                             <p 
-                                                                className="text-[#6a7282]"
+                                                                className="text-muted-foreground"
                                                                 style={{ fontSize: 'var(--text-body-sm)', lineHeight: 'var(--leading-body-sm)' }}
                                                             >
                                                                 작성자: {post.author?.name || '익명'}
                                                             </p>
                                                             <p
-                                                                className="text-[#6a7282] tabular-nums"
+                                                                className="text-muted-foreground tabular-nums"
                                                                 style={{ fontSize: 'var(--text-body-sm)', lineHeight: 'var(--leading-body-sm)' }}
                                                             >
                                                                 {formatDate(post.created_at)}
@@ -487,7 +487,7 @@ export function UnionNewsSection({ unionId }: UnionNewsSectionProps) {
                                     <p className="text-lg text-gray-600">질문을 불러오는 중 오류가 발생했습니다.</p>
                                     <button
                                         onClick={() => refetchQuestions()}
-                                        className="flex items-center gap-2 px-4 py-2 bg-[#4e8c6d] text-white rounded-lg hover:bg-[#3d7a5c] transition-colors"
+                                        className="flex items-center gap-2 px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-hover transition-colors"
                                     >
                                         <RefreshCw className="w-4 h-4" />
                                         다시 시도
@@ -499,12 +499,12 @@ export function UnionNewsSection({ unionId }: UnionNewsSectionProps) {
                                     {questions[0] && (
                                         <div 
                                             onClick={() => handleQuestionClick(questions[0].id)}
-                                            className="bg-white border-l-4 border-[#5fa37c] border-r border-t border-b rounded-[12px] md:rounded-[17.5px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] pl-4 md:pl-[40px] pr-4 md:pr-px py-5 md:py-[37px] cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-200"
+                                            className="bg-white border-l-4 border-brand-light border-r border-t border-b rounded-[12px] md:rounded-[17.5px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] pl-4 md:pl-[40px] pr-4 md:pr-px py-5 md:py-[37px] cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-200"
                                         >
                                             <div className="space-y-3 md:space-y-[18px]">
                                                 <div className="flex flex-wrap items-center gap-2 md:gap-[12px]">
                                                     <h3
-                                                        className="font-bold text-[#333333] line-clamp-2"
+                                                        className="font-bold text-foreground line-clamp-2"
                                                         style={{
                                                             fontSize: 'var(--text-card-title-lg)',
                                                             lineHeight: 'var(--leading-card-title-lg)'
@@ -514,7 +514,7 @@ export function UnionNewsSection({ unionId }: UnionNewsSectionProps) {
                                                         {questions[0].title}
                                                     </h3>
                                                     {questions[0].answered_at && (
-                                                        <span className="inline-flex items-center gap-1 px-2 md:px-3 py-1 bg-[#4e8c6d] text-white text-[12px] md:text-[14px] rounded-full">
+                                                        <span className="inline-flex items-center gap-1 px-2 md:px-3 py-1 bg-brand text-white text-[12px] md:text-[14px] rounded-full">
                                                             <CheckCircle className="h-3 w-3 md:h-4 md:w-4" />
                                                             답변완료
                                                         </span>
@@ -522,21 +522,21 @@ export function UnionNewsSection({ unionId }: UnionNewsSectionProps) {
                                                 </div>
                                                 <div className="flex flex-wrap items-center gap-2 md:gap-[18px]">
                                                     <span 
-                                                        className="text-[#6a7282]"
+                                                        className="text-muted-foreground"
                                                         style={{ fontSize: 'var(--text-body-md)', lineHeight: 'var(--leading-body-md)' }}
                                                     >
                                                         작성자: {questions[0].author?.name || '익명'}
                                                     </span>
-                                                    <span className="text-[#6a7282] hidden md:inline" style={{ fontSize: 'var(--text-body-md)' }}>•</span>
+                                                    <span className="text-muted-foreground hidden md:inline" style={{ fontSize: 'var(--text-body-md)' }}>•</span>
                                                     <span
-                                                        className="text-[#6a7282] tabular-nums"
+                                                        className="text-muted-foreground tabular-nums"
                                                         style={{ fontSize: 'var(--text-body-md)', lineHeight: 'var(--leading-body-md)' }}
                                                     >
                                                         {formatDate(questions[0].created_at || '')}
                                                     </span>
                                                 </div>
                                                 <p 
-                                                    className="text-[#364153]"
+                                                    className="text-foreground"
                                                     style={{ fontSize: 'var(--text-body-lg)', lineHeight: 'var(--leading-body-lg)' }}
                                                 >
                                                     {truncateContent(questions[0].content)}
@@ -557,7 +557,7 @@ export function UnionNewsSection({ unionId }: UnionNewsSectionProps) {
                                                     <div className="space-y-2 md:space-y-[13.5px]">
                                                         <div className="flex items-center gap-2 md:gap-[8px]">
                                                             <h4 
-                                                                className="font-bold text-[#333333] line-clamp-2"
+                                                                className="font-bold text-foreground line-clamp-2"
                                                                 style={{ 
                                                                     fontSize: 'var(--text-card-title-md)', 
                                                                     lineHeight: 'var(--leading-card-title-md)' 
@@ -566,18 +566,18 @@ export function UnionNewsSection({ unionId }: UnionNewsSectionProps) {
                                                                 {question.title}
                                                             </h4>
                                                             {question.answered_at && (
-                                                                <CheckCircle className="h-4 w-4 md:h-5 md:w-5 text-[#4e8c6d] shrink-0" />
+                                                                <CheckCircle className="h-4 w-4 md:h-5 md:w-5 text-brand shrink-0" />
                                                             )}
                                                         </div>
                                                         <div className="space-y-1 md:space-y-[4.5px]">
                                                             <p 
-                                                                className="text-[#6a7282]"
+                                                                className="text-muted-foreground"
                                                                 style={{ fontSize: 'var(--text-body-sm)', lineHeight: 'var(--leading-body-sm)' }}
                                                             >
                                                                 작성자: {question.author?.name || '익명'}
                                                             </p>
                                                             <p
-                                                                className="text-[#6a7282] tabular-nums"
+                                                                className="text-muted-foreground tabular-nums"
                                                                 style={{ fontSize: 'var(--text-body-sm)', lineHeight: 'var(--leading-body-sm)' }}
                                                             >
                                                                 {formatDate(question.created_at || '')}

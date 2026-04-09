@@ -134,8 +134,8 @@ export default function MyPropertyPage() {
                     뒤로가기
                 </Button>
                 <div className="flex items-center gap-3">
-                    <div className="size-12 bg-[#4e8c6d]/10 rounded-full flex items-center justify-center">
-                        <MapPin className="size-6 text-[#4e8c6d]" />
+                    <div className="size-12 bg-brand/10 rounded-full flex items-center justify-center">
+                        <MapPin className="size-6 text-brand" />
                     </div>
                     <div>
                         <h1 className="text-2xl font-bold text-gray-900">내 공시지가</h1>
@@ -293,7 +293,7 @@ export default function MyPropertyPage() {
                                             <TableCell>
                                                 <div className="flex items-start gap-2">
                                                     {property.is_primary && (
-                                                        <Badge variant="outline" className="shrink-0 text-[#4e8c6d] border-[#4e8c6d]">
+                                                        <Badge variant="outline" className="shrink-0 text-brand border-brand">
                                                             대표
                                                         </Badge>
                                                     )}
@@ -334,7 +334,7 @@ export default function MyPropertyPage() {
                                                 {formatNumber(property.official_price)}
                                             </TableCell>
                                             <TableCell className="text-right">
-                                                <span className="font-bold text-[#4e8c6d]">
+                                                <span className="font-bold text-brand">
                                                     {formatCurrency(property.total_land_price)}
                                                 </span>
                                             </TableCell>

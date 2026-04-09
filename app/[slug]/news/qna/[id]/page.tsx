@@ -17,7 +17,7 @@ import { ActionButton } from '@/app/_lib/widgets/common/button';
 import { formatDate, formatAuthorName } from '@/app/_lib/shared/utils/commonUtil';
 import { sanitizeHtml } from '@/app/_lib/shared/utils/sanitize';
 
-const QuestionDetailPage = () => {
+export default function QuestionDetailPage() {
     const router = useRouter();
     const params = useParams();
     const slug = params.slug as string;
@@ -108,7 +108,7 @@ const QuestionDetailPage = () => {
             <div className="container mx-auto max-w-[1280px] px-4 py-8">
                 <div className="space-y-8">
                     {/* 제목 영역 */}
-                    <div className="border-b border-[#CCCCCC] pb-6 space-y-4">
+                    <div className="border-b border-subtle-border pb-6 space-y-4">
                         <div className="flex items-center gap-3">
                             <Skeleton className="h-9 w-3/4" />
                             <Skeleton className="h-7 w-20 rounded-full" style={{ animationDelay: '50ms' }} />
@@ -126,14 +126,14 @@ const QuestionDetailPage = () => {
                         </div>
                     </div>
                     {/* 질문 본문 */}
-                    <div className="rounded-[12px] border border-[#CCCCCC] p-6 space-y-3">
+                    <div className="rounded-[12px] border border-subtle-border p-6 space-y-3">
                         <Skeleton className="h-4 w-full" style={{ animationDelay: '225ms' }} />
                         <Skeleton className="h-4 w-full" style={{ animationDelay: '250ms' }} />
                         <Skeleton className="h-4 w-5/6" style={{ animationDelay: '275ms' }} />
                         <Skeleton className="h-4 w-2/3" style={{ animationDelay: '300ms' }} />
                     </div>
                     {/* 답변 영역 */}
-                    <div className="border-t-2 border-[#4E8C6D] pt-6 space-y-4">
+                    <div className="border-t-2 border-brand pt-6 space-y-4">
                         <Skeleton className="h-7 w-32" style={{ animationDelay: '350ms' }} />
                         <Skeleton className="h-24 w-full rounded-[12px]" style={{ animationDelay: '375ms' }} />
                     </div>
@@ -146,7 +146,7 @@ const QuestionDetailPage = () => {
         return (
             <div className={cn('container mx-auto max-w-[1280px] px-4 py-8')}>
                 <div className="flex flex-col justify-center items-center h-64 gap-4">
-                    <p className="text-[18px] text-[#D9534F]">
+                    <p className="text-[18px] text-error-text">
                         {error?.message || '질문을 찾을 수 없습니다.'}
                     </p>
                     <button
@@ -168,21 +168,21 @@ const QuestionDetailPage = () => {
             <div className={cn('container mx-auto max-w-[1280px] px-4 py-8')}>
                 <div className="space-y-8">
                     {/* 제목 영역 */}
-                    <div className="border-b border-[#CCCCCC] pb-6 space-y-4">
+                    <div className="border-b border-subtle-border pb-6 space-y-4">
                         <div className="flex items-center gap-3 flex-wrap">
                             {question.is_secret && (
-                                <Lock className="h-6 w-6 text-[#AFAFAF]" />
+                                <Lock className="h-6 w-6 text-subtle-text" />
                             )}
-                            <h2 className="text-[24px] md:text-[32px] font-bold text-[#5FA37C]">{question.title}</h2>
+                            <h2 className="text-[24px] md:text-[32px] font-bold text-brand-light">{question.title}</h2>
                             {question.answered_at && (
-                                <span className="inline-flex items-center gap-1 px-3 py-1 bg-[#4E8C6D] text-white text-[14px] rounded-full">
+                                <span className="inline-flex items-center gap-1 px-3 py-1 bg-brand text-white text-[14px] rounded-full">
                                     <CheckCircle className="h-4 w-4" />
                                     답변완료
                                 </span>
                             )}
                         </div>
                         <div className="flex flex-wrap items-center justify-between gap-4">
-                            <div className="flex flex-wrap gap-6 text-[14px] text-[#AFAFAF]">
+                            <div className="flex flex-wrap gap-6 text-[14px] text-subtle-text">
                                 <span className="flex items-center gap-1">
                                     <User className="h-4 w-4" />
                                     작성자: {authorName}
@@ -190,7 +190,7 @@ const QuestionDetailPage = () => {
                                 <span>작성일: {question.created_at ? formatDate(question.created_at, true) : '-'}</span>
                                 <span>조회수: {question.views}</span>
                                 {question.is_secret && (
-                                    <span className="text-[#F0AD4E]">비밀글</span>
+                                    <span className="text-warning">비밀글</span>
                                 )}
                             </div>
                             <div className="flex gap-2">
@@ -199,7 +199,7 @@ const QuestionDetailPage = () => {
                                         <ActionButton
                                             variant="outline"
                                             onClick={() => router.push(`/${slug}/news/qna/${id}/edit`)}
-                                            className="h-[40px] px-4 border-[#4E8C6D] text-[#4E8C6D] hover:bg-[#F5F5F5]"
+                                            className="h-[40px] px-4 border-brand text-brand hover:bg-subtle-bg"
                                         >
                                             수정
                                         </ActionButton>
@@ -224,18 +224,18 @@ const QuestionDetailPage = () => {
                     </div>
 
                     {/* 질문 본문 */}
-                    <div className="min-h-[200px] whitespace-pre-wrap py-4 prose prose-lg max-w-none text-[18px] leading-relaxed text-gray-800 bg-white rounded-[12px] border border-[#CCCCCC] p-6" 
+                    <div className="min-h-[200px] whitespace-pre-wrap py-4 prose prose-lg max-w-none text-[18px] leading-relaxed text-gray-800 bg-white rounded-[12px] border border-subtle-border p-6" 
                         dangerouslySetInnerHTML={{ __html: sanitizeHtml(question.content) }} 
                     />
 
                     {/* 답변 영역 */}
-                    <div className="mt-8 border-t-2 border-[#4E8C6D] pt-6">
-                        <h3 className="text-[24px] font-bold text-[#4E8C6D] mb-4 flex items-center gap-2">
+                    <div className="mt-8 border-t-2 border-brand pt-6">
+                        <h3 className="text-[24px] font-bold text-brand mb-4 flex items-center gap-2">
                             💬 관리자 답변
                         </h3>
 
                         {isAnswerMode ? (
-                            <div className="bg-[#F5F5F5] rounded-[12px] p-6 space-y-4">
+                            <div className="bg-subtle-bg rounded-[12px] p-6 space-y-4">
                                 <TextEditor
                                     content={answerContent}
                                     onChange={setAnswerContent}
@@ -261,16 +261,16 @@ const QuestionDetailPage = () => {
                                         답변 등록
                                     </ActionButton>
                                 </div>
-                                <div className="bg-[#E8F5EE] border border-[#4E8C6D] rounded-[8px] p-3">
-                                    <p className="text-[12px] text-[#3D7A5A]">
+                                <div className="bg-brand/10 border border-brand rounded-[8px] p-3">
+                                    <p className="text-[12px] text-brand">
                                         💡 답변이 등록되면 질문자에게 알림톡이 발송됩니다.
                                     </p>
                                 </div>
                             </div>
                         ) : question.answered_at && question.answer_content ? (
-                            <div className="bg-[#F0F7F4] rounded-[12px] p-6 relative group">
+                            <div className="bg-brand/5 rounded-[12px] p-6 relative group">
                                 <div className="flex items-center justify-between mb-4">
-                                    <div className="flex items-center gap-4 text-[14px] text-[#5FA37C]">
+                                    <div className="flex items-center gap-4 text-[14px] text-brand-light">
                                         <span className="font-medium">답변자: {answerAuthorName}</span>
                                         <span>답변일: {formatDate(question.answered_at, true)}</span>
                                     </div>
@@ -278,13 +278,13 @@ const QuestionDetailPage = () => {
                                         <div className="flex gap-4">
                                             <button 
                                                 onClick={handleEditAnswer}
-                                                className="text-[14px] font-medium text-[#4E8C6D] hover:underline cursor-pointer"
+                                                className="text-[14px] font-medium text-brand hover:underline cursor-pointer"
                                             >
                                                 수정
                                             </button>
                                             <button 
                                                 onClick={handleDeleteAnswer}
-                                                className="text-[14px] font-medium text-[#D9534F] hover:underline cursor-pointer"
+                                                className="text-[14px] font-medium text-error-text hover:underline cursor-pointer"
                                             >
                                                 삭제
                                             </button>
@@ -297,8 +297,8 @@ const QuestionDetailPage = () => {
                                 />
                             </div>
                         ) : (
-                            <div className="bg-[#F5F5F5] rounded-[12px] p-6 text-center">
-                                <p className="text-[#AFAFAF] text-[16px] mb-4">아직 답변이 등록되지 않았습니다.</p>
+                            <div className="bg-subtle-bg rounded-[12px] p-6 text-center">
+                                <p className="text-subtle-text text-[16px] mb-4">아직 답변이 등록되지 않았습니다.</p>
                                 {canAnswer && (
                                     <ActionButton
                                         buttonType="submit"
@@ -319,4 +319,3 @@ const QuestionDetailPage = () => {
     );
 };
 
-export default QuestionDetailPage;

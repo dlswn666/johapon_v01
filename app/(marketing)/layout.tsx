@@ -6,11 +6,11 @@ import AuthProvider from '@/app/_lib/app/providers/AuthProvider';
 
 function MarketingHeader() {
     return (
-        <header className="border-b border-[#CCCCCC] bg-white sticky top-0 z-50">
+        <header className="border-b border-subtle-border bg-white sticky top-0 z-50">
             <div className="container mx-auto max-w-[1280px] px-4 h-[56px] flex items-center justify-between">
                 <Link
                     href="/"
-                    className="font-bold text-[#5FA37C] cursor-pointer"
+                    className="font-bold text-brand-light cursor-pointer"
                     style={{ fontSize: 'var(--text-marketing-footer-title)' }}
                 >
                     조합온

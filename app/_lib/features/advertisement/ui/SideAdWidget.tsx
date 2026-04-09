@@ -52,7 +52,7 @@ export function SideAdWidget() {
             />
             {/* Text Overlay - Figma: 상단 이미지(70%) + 하단 텍스트(30%) */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent flex flex-col justify-end p-[16px]">
-              <span className="text-[10px] font-bold text-[#2f7f5f] uppercase tracking-widest mb-[4px]">
+              <span className="text-[10px] font-bold text-primary uppercase tracking-widest mb-[4px]">
                 PARTNERSHIP
               </span>
               <h4 className="text-white font-semibold text-[14px] leading-tight mb-[4px] line-clamp-2">

@@ -32,7 +32,7 @@ export default function ContactPage() {
                             <div className="flex">
                                 <div className="flex-shrink-0">
                                     <svg
-                                        className="h-5 w-5 md:h-6 md:w-6 text-[#4e8c6d]"
+                                        className="h-5 w-5 md:h-6 md:w-6 text-brand"
                                         xmlns="http://www.w3.org/2000/svg"
                                         fill="none"
                                         viewBox="0 0 24 24"
@@ -57,7 +57,7 @@ export default function ContactPage() {
                             <div className="mt-5 md:mt-6 flex">
                                 <div className="flex-shrink-0">
                                     <svg
-                                        className="h-5 w-5 md:h-6 md:w-6 text-[#4e8c6d]"
+                                        className="h-5 w-5 md:h-6 md:w-6 text-brand"
                                         xmlns="http://www.w3.org/2000/svg"
                                         fill="none"
                                         viewBox="0 0 24 24"
@@ -83,9 +83,9 @@ export default function ContactPage() {
                         </div>
                     </div>
                     <div className="mt-10 sm:mt-12 md:mt-0">
-                        <div className="bg-[#4e8c6d]/10 rounded-lg shadow-lg overflow-hidden p-5 md:p-8">
+                        <div className="bg-brand/10 rounded-lg shadow-lg overflow-hidden p-5 md:p-8">
                             <h3
-                                className="font-medium text-[#2d2d2d]"
+                                className="font-medium text-foreground"
                                 style={{ fontSize: 'var(--text-marketing-card-title)' }}
                             >
                                 FAQ
@@ -93,7 +93,7 @@ export default function ContactPage() {
                             <ul className="mt-4 space-y-8">
                                 <li>
                                     <p
-                                        className="font-semibold text-[#2d2d2d]"
+                                        className="font-semibold text-foreground"
                                         style={{ fontSize: 'var(--text-marketing-faq-question)' }}
                                     >
                                         Q. 홈페이지 구축 비용은 얼마인가요?
@@ -114,7 +114,7 @@ export default function ContactPage() {
                                 </li>
                                 <li>
                                     <p
-                                        className="font-semibold text-[#2d2d2d]"
+                                        className="font-semibold text-foreground"
                                         style={{ fontSize: 'var(--text-marketing-faq-question)' }}
                                     >
                                         Q. 구축까지 얼마나 걸리나요?
@@ -135,7 +135,7 @@ export default function ContactPage() {
                                 </li>
                                 <li>
                                     <p
-                                        className="font-semibold text-[#2d2d2d]"
+                                        className="font-semibold text-foreground"
                                         style={{ fontSize: 'var(--text-marketing-faq-question)' }}
                                     >
                                         Q. 홈페이지 구축 후 조합 정보 적용은 어떻게 하나요?
@@ -160,7 +160,7 @@ export default function ContactPage() {
                     <div className="flex justify-center">
                         <Link
                             href="/"
-                            className="text-[#4e8c6d] hover:text-[#3d7a5c] font-medium"
+                            className="text-brand hover:text-brand font-medium"
                             style={{ fontSize: 'var(--text-marketing-card-body)' }}
                         >
                             &larr; 홈으로 돌아가기

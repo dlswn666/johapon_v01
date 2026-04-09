@@ -8,7 +8,7 @@ interface QuorumProgressBarProps {
 
 export default function QuorumProgressBar({ label, currentPct, requiredPct }: QuorumProgressBarProps) {
   const isMet = currentPct >= requiredPct;
-  const barColor = isMet ? 'bg-[#16a34a]' : 'bg-[#dc2626]';
+  const barColor = isMet ? 'bg-green-600' : 'bg-destructive';
   const displayPct = Math.min(currentPct, 100);
   const deficit = requiredPct - currentPct;
 

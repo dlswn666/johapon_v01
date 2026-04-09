@@ -161,7 +161,7 @@ export function KakaoAddressSearch({
                     disabled && 'bg-gray-100 cursor-not-allowed opacity-60'
                 )}
             >
-                <MapPin className="w-5 h-5 text-[#4E8C6D] flex-shrink-0" />
+                <MapPin className="w-5 h-5 text-brand flex-shrink-0" />
                 <span className="flex-1 truncate">{value || placeholder}</span>
                 <Search className="w-5 h-5 text-gray-400 flex-shrink-0" />
             </button>

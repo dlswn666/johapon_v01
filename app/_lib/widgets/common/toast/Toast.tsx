@@ -29,7 +29,7 @@ export function Toast({ t, status, message }: ToastProps) {
         success: <CheckCircle2 className="w-5 h-5 text-emerald-500" />,
         error: <AlertCircle className="w-5 h-5 text-rose-500" />,
         info: <Info className="w-5 h-5 text-blue-500" />,
-        loading: <Loader2 className="w-5 h-5 text-[#4E8C6D] animate-spin" />,
+        loading: <Loader2 className="w-5 h-5 text-brand animate-spin" />,
     };
 
     const bgMap = {

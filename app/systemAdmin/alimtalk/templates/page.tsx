@@ -267,7 +267,7 @@ export default function SystemAdminTemplatesPage() {
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
-                                                className="text-[#4E8C6D] hover:text-[#3d7058] hover:bg-[#4E8C6D]/10"
+                                                className="text-brand hover:text-brand-hover hover:bg-brand/10"
                                                 onClick={(e) => {
                                                     e.stopPropagation();
                                                     handleViewDetail(template);

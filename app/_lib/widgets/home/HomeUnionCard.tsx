@@ -49,14 +49,14 @@ function InfoCard({ icon, label, value, unit }: InfoCardProps) {
     const displayValue = value !== null && value !== undefined && value !== '' ? `${value}${unit || ''}` : '-';
 
     return (
-        <div className="bg-[#f4f5f6] rounded-[6px] md:rounded-[12px] px-[14px] md:px-[28px] py-[7px] md:py-[15px] h-[32px] md:h-[63px] flex items-center justify-between w-full md:min-w-[240px] md:w-auto">
+        <div className="bg-subtle-bg rounded-[6px] md:rounded-[12px] px-[14px] md:px-[28px] py-[7px] md:py-[15px] h-[32px] md:h-[63px] flex items-center justify-between w-full md:min-w-[240px] md:w-auto">
             <div className="flex items-center gap-[7px] md:gap-[15px]">
-                <div className="text-[#33363d]">{icon}</div>
-                <span className="font-semibold text-[15px] md:text-[20px] text-[#33363d] tracking-[0.5px] md:tracking-[1px] whitespace-nowrap">
+                <div className="text-foreground">{icon}</div>
+                <span className="font-semibold text-[15px] md:text-[20px] text-foreground tracking-[0.5px] md:tracking-[1px] whitespace-nowrap">
                     {label}
                 </span>
             </div>
-            <span className="font-medium md:font-normal text-[15px] md:text-[18px] text-[#33363d] tracking-[0.5px] md:tracking-[1px] whitespace-nowrap">
+            <span className="font-medium md:font-normal text-[15px] md:text-[18px] text-foreground tracking-[0.5px] md:tracking-[1px] whitespace-nowrap">
                 {displayValue}
             </span>
         </div>
@@ -92,12 +92,12 @@ export function HomeUnionCard() {
     if (!union) return null;
 
     return (
-        <div className="bg-white border border-[#cdd1d5] rounded-[6px] md:rounded-[10px] p-[10px] md:p-[30px] overflow-hidden relative h-full">
+        <div className="bg-white border border-subtle-border rounded-[6px] md:rounded-[10px] p-[10px] md:p-[30px] overflow-hidden relative h-full">
             {/* 헤더 영역 */}
             <div className="flex items-center gap-[10px] md:gap-[20px] mb-[10px] md:mb-[20px]">
                 <h3 className="font-bold text-[16px] md:text-[32px] text-black tracking-[0.5px] md:tracking-[1px] truncate max-w-full" title={union.name}>{union.name}</h3>
                 {visitorCount !== null && (
-                    <span className="font-semibold text-[10px] md:text-[14px] text-[#818181]">접속자 수 : {visitorCount}명</span>
+                    <span className="font-semibold text-[10px] md:text-[14px] text-muted-foreground">접속자 수 : {visitorCount}명</span>
                 )}
             </div>
 

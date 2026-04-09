@@ -4,45 +4,13 @@ import React from 'react';
 import { CheckCircle, XCircle } from 'lucide-react';
 import {
   ASSEMBLY_TYPE_LABELS,
-  QUORUM_TYPE_LABELS,
   VOTE_TYPE_LABELS,
 } from '../evoteConstants';
+import { getLegalChecks } from '@/app/_lib/features/evote/utils/evoteValidation';
 import type { EvoteCreateForm } from '@/app/_lib/features/evote/types/evote.types';
 
 interface StepConfirmProps {
   formData: EvoteCreateForm;
-}
-
-/** 법정 요건 체크 항목 */
-function useLegalChecks(formData: EvoteCreateForm) {
-  const checks = [
-    {
-      label: '총회명 입력',
-      passed: !!formData.title.trim(),
-    },
-    {
-      label: '총회 일시 설정',
-      passed: !!formData.scheduledAt,
-    },
-    {
-      label: '안건 1건 이상 등록',
-      passed: formData.agendas.length > 0,
-    },
-    {
-      label: '모든 안건 제목 입력',
-      passed: formData.agendas.length > 0 && formData.agendas.every((a) => !!a.title.trim()),
-    },
-    {
-      label: '투표 대상자 1명 이상 선택',
-      passed: formData.selectedVoterIds.length > 0,
-    },
-    {
-      label: '알림 채널 1개 이상 선택',
-      passed: formData.notificationChannels.length > 0,
-    },
-  ];
-  const allPassed = checks.every((c) => c.passed);
-  return { checks, allPassed };
 }
 
 function formatDate(iso: string): string {
@@ -52,7 +20,7 @@ function formatDate(iso: string): string {
 }
 
 export default function StepConfirm({ formData }: StepConfirmProps) {
-  const { checks, allPassed } = useLegalChecks(formData);
+  const { checks, allPassed } = getLegalChecks(formData);
 
   return (
     <div className="space-y-6">
@@ -68,10 +36,6 @@ export default function StepConfirm({ formData }: StepConfirmProps) {
           <div>
             <span className="text-gray-500">총회 유형:</span>{' '}
             <span className="font-medium">{ASSEMBLY_TYPE_LABELS[formData.assemblyType]}</span>
-          </div>
-          <div>
-            <span className="text-gray-500">의결요건:</span>{' '}
-            <span className="font-medium">{QUORUM_TYPE_LABELS[formData.quorumType]}</span>
           </div>
           <div className="col-span-2">
             <span className="text-gray-500">총회명:</span>{' '}

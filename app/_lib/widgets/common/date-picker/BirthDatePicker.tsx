@@ -208,9 +208,9 @@ export function BirthDatePicker({ value, onChange, onPartialChange, className, d
                             className={cn(
                                 'px-3 py-1 rounded-full text-xs font-medium transition-all',
                                 s.active
-                                    ? 'bg-[#4E8C6D] text-white'
+                                    ? 'bg-brand text-white'
                                     : s.completed
-                                      ? 'bg-[#4E8C6D]/20 text-[#4E8C6D]'
+                                      ? 'bg-brand/20 text-brand'
                                       : 'bg-gray-100 text-gray-400'
                             )}
                         >
@@ -240,8 +240,8 @@ export function BirthDatePicker({ value, onChange, onPartialChange, className, d
                                 className={cn(
                                     'py-2.5 rounded-lg text-sm font-medium transition-all',
                                     selectedYear === year
-                                        ? 'bg-[#4E8C6D] text-white shadow-sm'
-                                        : 'bg-white text-gray-700 hover:bg-[#4E8C6D]/10 border border-gray-200'
+                                        ? 'bg-brand text-white shadow-sm'
+                                        : 'bg-white text-gray-700 hover:bg-brand/10 border border-gray-200'
                                 )}
                             >
                                 {year}
@@ -261,8 +261,8 @@ export function BirthDatePicker({ value, onChange, onPartialChange, className, d
                                 className={cn(
                                     'py-3.5 rounded-lg text-base font-medium transition-all',
                                     selectedMonth === month
-                                        ? 'bg-[#4E8C6D] text-white shadow-sm'
-                                        : 'bg-white text-gray-700 hover:bg-[#4E8C6D]/10 border border-gray-200'
+                                        ? 'bg-brand text-white shadow-sm'
+                                        : 'bg-white text-gray-700 hover:bg-brand/10 border border-gray-200'
                                 )}
                             >
                                 {month}월
@@ -282,8 +282,8 @@ export function BirthDatePicker({ value, onChange, onPartialChange, className, d
                                 className={cn(
                                     'py-2.5 rounded-lg text-sm font-medium transition-all',
                                     selectedDay === day
-                                        ? 'bg-[#4E8C6D] text-white shadow-sm'
-                                        : 'bg-white text-gray-700 hover:bg-[#4E8C6D]/10 border border-gray-200'
+                                        ? 'bg-brand text-white shadow-sm'
+                                        : 'bg-white text-gray-700 hover:bg-brand/10 border border-gray-200'
                                 )}
                             >
                                 {day}
@@ -304,7 +304,7 @@ export function BirthDatePicker({ value, onChange, onPartialChange, className, d
                         className={cn(
                             'flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl text-base font-semibold transition-all',
                             selectedYear !== null
-                                ? 'bg-[#4E8C6D] text-white active:bg-[#3d7159]'
+                                ? 'bg-brand text-white active:bg-brand-hover'
                                 : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                         )}
                     >
@@ -331,7 +331,7 @@ export function BirthDatePicker({ value, onChange, onPartialChange, className, d
                             className={cn(
                                 'flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl text-base font-semibold transition-all',
                                 selectedMonth !== null
-                                    ? 'bg-[#4E8C6D] text-white active:bg-[#3d7159]'
+                                    ? 'bg-brand text-white active:bg-brand-hover'
                                     : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                             )}
                         >

@@ -27,7 +27,7 @@ const formSchema = z.object({
     content: z.string().min(1, '내용을 입력해주세요.'),
 });
 
-const EditUnionInfoPage = () => {
+export default function EditUnionInfoPage() {
     const router = useRouter();
     const params = useParams();
     const slug = params.slug as string;
@@ -100,7 +100,7 @@ const EditUnionInfoPage = () => {
                         <Skeleton className="h-[300px] w-full rounded-[12px]" style={{ animationDelay: '175ms' }} />
                     </div>
                     {/* 버튼 영역 */}
-                    <div className="flex justify-end gap-3 pt-6 border-t border-[#CCCCCC]">
+                    <div className="flex justify-end gap-3 pt-6 border-t border-subtle-border">
                         <Skeleton className="h-10 w-20 rounded-lg" style={{ animationDelay: '225ms' }} />
                         <Skeleton className="h-10 w-20 rounded-lg" style={{ animationDelay: '250ms' }} />
                     </div>
@@ -113,7 +113,7 @@ const EditUnionInfoPage = () => {
         return (
             <div className={cn('container mx-auto max-w-[1280px] px-4 py-8')}>
                 <div className="flex justify-center items-center h-64">
-                    <p className="text-[18px] text-[#D9534F]">{error?.message || '게시글을 찾을 수 없습니다.'}</p>
+                    <p className="text-[18px] text-error-text">{error?.message || '게시글을 찾을 수 없습니다.'}</p>
                 </div>
             </div>
         );
@@ -123,7 +123,7 @@ const EditUnionInfoPage = () => {
         <>
             <div className={cn('container mx-auto max-w-[1280px] px-4 py-8')}>
                 <div className="max-w-4xl mx-auto">
-                    <h2 className="text-[32px] font-bold text-[#5FA37C] mb-8">조합 정보 수정</h2>
+                    <h2 className="text-[32px] font-bold text-brand-light mb-8">조합 정보 수정</h2>
 
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
@@ -132,12 +132,12 @@ const EditUnionInfoPage = () => {
                                 name="title"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel className="text-[16px] font-bold text-[#5FA37C]">제목</FormLabel>
+                                        <FormLabel className="text-[16px] font-bold text-brand-light">제목</FormLabel>
                                         <FormControl>
                                             <Input
                                                 placeholder="제목을 입력해주세요"
                                                 {...field}
-                                                className="h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]"
+                                                className="h-[48px] text-[16px] rounded-[12px] border-subtle-border"
                                             />
                                         </FormControl>
                                         <FormMessage />
@@ -147,7 +147,7 @@ const EditUnionInfoPage = () => {
 
                             {/* 첨부파일 영역 */}
                             <div>
-                                <label className="text-[16px] font-bold text-[#5FA37C] block mb-2">첨부파일</label>
+                                <FormLabel className="text-[16px] font-bold text-brand-light">첨부파일</FormLabel>
                                 <FileUploader
                                     targetId={id}
                                     targetType="UNION_INFO"
@@ -161,7 +161,7 @@ const EditUnionInfoPage = () => {
                                 name="content"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel className="text-[16px] font-bold text-[#5FA37C]">내용</FormLabel>
+                                        <FormLabel className="text-[16px] font-bold text-brand-light">내용</FormLabel>
                                         <FormControl>
                                             <TextEditor
                                                 content={field.value}
@@ -175,7 +175,7 @@ const EditUnionInfoPage = () => {
                                 )}
                             />
 
-                             <div className="flex justify-end gap-3 pt-6 border-t border-[#CCCCCC]">
+                             <div className="flex justify-end gap-3 pt-6 border-t border-subtle-border">
                                 <ActionButton
                                     buttonType="cancel"
                                     onClick={() => router.push(`/${slug}/communication/union-info/${id}`)}
@@ -201,4 +201,3 @@ const EditUnionInfoPage = () => {
     );
 };
 
-export default EditUnionInfoPage;

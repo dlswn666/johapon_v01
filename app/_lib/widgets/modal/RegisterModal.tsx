@@ -1254,7 +1254,7 @@ export function RegisterModal({
                     {/* 헤더 */}
                     <div className="flex-shrink-0 border-b border-gray-200 px-4 md:px-6 py-4 flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                            <Building2 className="w-6 h-6 text-[#4E8C6D]" />
+                            <Building2 className="w-6 h-6 text-brand" />
                             <h2 id="register-modal-title" className="text-lg md:text-xl font-bold text-gray-900">조합원 등록</h2>
                         </div>
                         <button
@@ -1274,7 +1274,7 @@ export function RegisterModal({
                                     key={index}
                                     className={cn(
                                         'w-3 h-3 rounded-full transition-colors',
-                                        index <= currentStep ? 'bg-[#4E8C6D]' : 'bg-gray-300'
+                                        index <= currentStep ? 'bg-brand' : 'bg-gray-300'
                                     )}
                                 />
                             ))}
@@ -1342,13 +1342,13 @@ export function RegisterModal({
                                         return (
                                             <div
                                                 key={propIndex}
-                                                className="border-2 border-[#4E8C6D]/30 rounded-xl overflow-hidden"
+                                                className="border-2 border-brand/30 rounded-xl overflow-hidden"
                                             >
                                                 {/* 물건지 헤더 */}
-                                                <div className="bg-[#4E8C6D]/10 px-4 py-3 flex items-center justify-between">
+                                                <div className="bg-brand/10 px-4 py-3 flex items-center justify-between">
                                                     <div className="flex items-center gap-2">
-                                                        <MapPin className="w-5 h-5 text-[#4E8C6D]" />
-                                                        <span className="font-semibold text-[#4E8C6D]">
+                                                        <MapPin className="w-5 h-5 text-brand" />
+                                                        <span className="font-semibold text-brand">
                                                             물건지 {propIndex + 1}
                                                         </span>
                                                     </div>
@@ -1489,7 +1489,7 @@ export function RegisterModal({
                                             checked={agreedToTerms}
                                             onChange={(e) => setAgreedToTerms(e.target.checked)}
                                             onClick={(e) => e.stopPropagation()}
-                                            className="w-5 h-5 mt-0.5 rounded border-gray-300 text-[#4E8C6D] focus:ring-[#4E8C6D]"
+                                            className="w-5 h-5 mt-0.5 rounded border-gray-300 text-brand focus:ring-[#4E8C6D]"
                                         />
                                         <span className="text-base text-gray-700">
                                             개인정보 수집 및 이용에 동의합니다
@@ -1500,7 +1500,7 @@ export function RegisterModal({
                                             e.stopPropagation();
                                             setShowTermsModal(true);
                                         }}
-                                        className="mt-2 ml-8 text-sm text-[#4E8C6D] underline hover:text-[#3d7058]"
+                                        className="mt-2 ml-8 text-sm text-brand underline hover:text-brand-hover"
                                     >
                                         약관 전문 보기
                                     </button>
@@ -1528,7 +1528,7 @@ export function RegisterModal({
                             stepConfig && (
                                 <div className="flex flex-col items-center justify-center min-h-[300px] md:min-h-[350px]">
                                     {/* 아이콘 */}
-                                    <div className="w-16 h-16 md:w-20 md:h-20 bg-[#4E8C6D]/10 rounded-full flex items-center justify-center mb-6 text-[#4E8C6D]">
+                                    <div className="w-16 h-16 md:w-20 md:h-20 bg-brand/10 rounded-full flex items-center justify-center mb-6 text-brand">
                                         {stepConfig.icon}
                                     </div>
 
@@ -1546,7 +1546,7 @@ export function RegisterModal({
                                             stepConfig.key === 'phone_number' ||
                                             stepConfig.key === 'property_address') &&
                                         formData[stepConfig.key as keyof FormData] && (
-                                            <p className="text-sm text-[#4E8C6D] mb-4 text-center">
+                                            <p className="text-sm text-brand mb-4 text-center">
                                                 초대 정보가 입력되어 있습니다. 확인 후 다음으로 진행해주세요.
                                             </p>
                                         )}
@@ -1641,7 +1641,7 @@ export function RegisterModal({
                                                     className={cn(
                                                         'w-full p-4 rounded-xl border-2 text-left transition-all flex items-center gap-4 cursor-pointer',
                                                         !getCurrentProperty().property_is_basement
-                                                            ? 'border-[#4E8C6D] bg-[#4E8C6D]/5'
+                                                            ? 'border-brand bg-brand/5'
                                                             : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                                                     )}
                                                 >
@@ -1659,7 +1659,7 @@ export function RegisterModal({
                                                         </p>
                                                     </div>
                                                     {!getCurrentProperty().property_is_basement && (
-                                                        <Check className="w-5 h-5 text-[#4E8C6D]" />
+                                                        <Check className="w-5 h-5 text-brand" />
                                                     )}
                                                 </button>
                                                 <button
@@ -1669,7 +1669,7 @@ export function RegisterModal({
                                                     className={cn(
                                                         'w-full p-4 rounded-xl border-2 text-left transition-all flex items-center gap-4 cursor-pointer',
                                                         getCurrentProperty().property_is_basement
-                                                            ? 'border-[#4E8C6D] bg-[#4E8C6D]/5'
+                                                            ? 'border-brand bg-brand/5'
                                                             : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                                                     )}
                                                 >
@@ -1687,7 +1687,7 @@ export function RegisterModal({
                                                         </p>
                                                     </div>
                                                     {getCurrentProperty().property_is_basement && (
-                                                        <Check className="w-5 h-5 text-[#4E8C6D]" />
+                                                        <Check className="w-5 h-5 text-brand" />
                                                     )}
                                                 </button>
                                             </div>
@@ -1695,8 +1695,8 @@ export function RegisterModal({
                                             // 추가 물건지 확인: 예/아니오 선택 UI
                                             <div className="space-y-4">
                                                 {/* 현재 등록된 물건지 개수 표시 */}
-                                                <div className="p-4 bg-[#4E8C6D]/10 rounded-xl">
-                                                    <div className="flex items-center gap-2 text-[#4E8C6D]">
+                                                <div className="p-4 bg-brand/10 rounded-xl">
+                                                    <div className="flex items-center gap-2 text-brand">
                                                         <Info className="w-5 h-5" />
                                                         <span className="font-medium">
                                                             현재 {formData.properties.length}개의 물건지가
@@ -1719,7 +1719,7 @@ export function RegisterModal({
                                                             onClick={handleAddProperty}
                                                             className={cn(
                                                                 'w-full p-4 rounded-xl border-2 text-left transition-all flex items-center gap-4 cursor-pointer',
-                                                                'border-[#4E8C6D] hover:bg-[#4E8C6D]/5'
+                                                                'border-brand hover:bg-brand/5'
                                                             )}
                                                         >
                                                             <span className="text-2xl">➕</span>
@@ -1731,7 +1731,7 @@ export function RegisterModal({
                                                                     다른 물건지 정보를 입력합니다
                                                                 </p>
                                                             </div>
-                                                            <ChevronRight className="w-5 h-5 text-[#4E8C6D]" />
+                                                            <ChevronRight className="w-5 h-5 text-brand" />
                                                         </button>
                                                     )}
                                                     <button
@@ -1759,7 +1759,7 @@ export function RegisterModal({
                                             <div className="space-y-4">
                                                 <button
                                                     onClick={handleCopyPropertyAddress}
-                                                    className="w-full h-12 rounded-xl border-2 border-[#4E8C6D] text-[#4E8C6D] font-medium hover:bg-[#4E8C6D]/5 transition-colors flex items-center justify-center gap-2"
+                                                    className="w-full h-12 rounded-xl border-2 border-brand text-brand font-medium hover:bg-brand/5 transition-colors flex items-center justify-center gap-2"
                                                 >
                                                     <Check className="w-4 h-4" />
                                                     물건지 주소와 동일
@@ -1801,13 +1801,13 @@ export function RegisterModal({
                                         {/* 빌라 선택 시 동 입력 안내 문구 */}
                                         {stepConfig.key === 'property_dong' &&
                                             getCurrentProperty().property_type === 'VILLA' && (
-                                                <p className="text-sm text-[#4E8C6D] mt-3 bg-[#4E8C6D]/10 rounded-lg p-3">
+                                                <p className="text-sm text-brand mt-3 bg-brand/10 rounded-lg p-3">
                                                     💡 한 개동 빌라/다세대 주택은 동을 작성하지 않아도 됩니다.
                                                 </p>
                                             )}
                                         {/* 다물건자 안내 문구 */}
                                         {stepConfig.key === 'property_address' && currentPropertyIndex > 0 && (
-                                            <p className="text-sm text-[#4E8C6D] mt-3 bg-[#4E8C6D]/10 rounded-lg p-3">
+                                            <p className="text-sm text-brand mt-3 bg-brand/10 rounded-lg p-3">
                                                 📍 {currentPropertyIndex + 1}번째 물건지를 입력하고 있습니다.
                                             </p>
                                         )}
@@ -1848,7 +1848,7 @@ export function RegisterModal({
                                     className={cn(
                                         'flex-1 h-14 md:h-16 rounded-xl',
                                         'text-base md:text-lg font-medium text-white',
-                                        'bg-[#4E8C6D] hover:bg-[#3d7058]',
+                                        'bg-brand hover:bg-brand-hover',
                                         'transition-colors cursor-pointer',
                                         'disabled:opacity-50 disabled:cursor-not-allowed',
                                         'flex items-center justify-center gap-2'
@@ -1863,7 +1863,7 @@ export function RegisterModal({
                                     className={cn(
                                         'flex-1 h-14 md:h-16 rounded-xl',
                                         'text-base md:text-lg font-medium text-white',
-                                        'bg-[#4E8C6D] hover:bg-[#3d7058]',
+                                        'bg-brand hover:bg-brand-hover',
                                         'transition-colors cursor-pointer',
                                         'disabled:opacity-50 disabled:cursor-not-allowed',
                                         'flex items-center justify-center gap-2'
@@ -1906,7 +1906,7 @@ export function RegisterModal({
                             <button
                                 onClick={linkExistingUser}
                                 disabled={isLoading}
-                                className="flex-1 h-12 rounded-lg bg-[#4E8C6D] text-white hover:bg-[#3d7058] transition-colors disabled:opacity-50"
+                                className="flex-1 h-12 rounded-lg bg-brand text-white hover:bg-brand-hover transition-colors disabled:opacity-50"
                             >
                                 {isLoading ? '연결 중...' : '계정 연결하기'}
                             </button>

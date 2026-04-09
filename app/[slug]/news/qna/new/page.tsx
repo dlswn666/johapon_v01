@@ -23,7 +23,7 @@ const formSchema = z.object({
     is_secret: z.boolean(),
 });
 
-const NewQuestionPage = () => {
+export default function NewQuestionPage() {
     const router = useRouter();
     const { slug, union } = useSlug();
     const { user } = useAuth();
@@ -74,7 +74,7 @@ const NewQuestionPage = () => {
         <>
             <div className={cn('container mx-auto max-w-[1280px] px-4 py-8')}>
                 <div className="max-w-4xl mx-auto">
-                    <h2 className="text-[32px] font-bold text-[#5FA37C] mb-8">질문하기</h2>
+                    <h2 className="text-[32px] font-bold text-brand-light mb-8">질문하기</h2>
 
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
@@ -83,9 +83,9 @@ const NewQuestionPage = () => {
                                 name="title"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel className="text-[16px] font-bold text-[#5FA37C]">제목</FormLabel>
+                                        <FormLabel className="text-[16px] font-bold text-brand-light">제목</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="제목을 입력해주세요" {...field} maxLength={200} className="h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]" />
+                                            <Input placeholder="제목을 입력해주세요" {...field} maxLength={200} className="h-[48px] text-[16px] rounded-[12px] border-subtle-border" />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -96,17 +96,17 @@ const NewQuestionPage = () => {
                                 control={form.control}
                                 name="is_secret"
                                 render={({ field }) => (
-                                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-[12px] border border-[#CCCCCC] bg-[#F5F5F5] p-6 cursor-pointer">
+                                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-[12px] border border-subtle-border bg-subtle-bg p-6 cursor-pointer">
                                         <FormControl>
                                             <Checkbox 
                                                 checked={field.value} 
                                                 onCheckedChange={field.onChange} 
-                                                className="data-[state=checked]:bg-[#4E8C6D] border-[#AFAFAF] cursor-pointer" 
+                                                className="data-[state=checked]:bg-brand border-subtle-text cursor-pointer" 
                                             />
                                         </FormControl>
                                         <div className="space-y-1 leading-none">
                                             <FormLabel className="text-[16px] text-gray-700 font-medium cursor-pointer">비밀글로 작성</FormLabel>
-                                            <p className="text-[14px] text-[#AFAFAF]">
+                                            <p className="text-[14px] text-subtle-text">
                                                 비밀글은 작성자와 관리자만 확인할 수 있습니다.
                                             </p>
                                         </div>
@@ -119,7 +119,7 @@ const NewQuestionPage = () => {
                                 name="content"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel className="text-[16px] font-bold text-[#5FA37C]">내용</FormLabel>
+                                        <FormLabel className="text-[16px] font-bold text-brand-light">내용</FormLabel>
                                         <FormControl>
                                             <TextEditor
                                                 content={field.value}
@@ -133,13 +133,13 @@ const NewQuestionPage = () => {
                                 )}
                             />
 
-                            <div className="bg-[#E8F5EE] border border-[#4E8C6D] rounded-[12px] p-4">
-                                <p className="text-[14px] text-[#3D7A5A]">
+                            <div className="bg-brand/10 border border-brand rounded-[12px] p-4">
+                                <p className="text-[14px] text-brand">
                                     💡 질문이 등록되면 관리자에게 알림이 발송됩니다. 답변이 등록되면 알림톡으로 안내해 드립니다.
                                 </p>
                             </div>
 
-                            <div className="flex justify-end gap-3 pt-6 border-t border-[#CCCCCC]">
+                            <div className="flex justify-end gap-3 pt-6 border-t border-subtle-border">
                                 <ActionButton
                                     buttonType="cancel"
                                     onClick={() => {
@@ -172,4 +172,3 @@ const NewQuestionPage = () => {
     );
 };
 
-export default NewQuestionPage;

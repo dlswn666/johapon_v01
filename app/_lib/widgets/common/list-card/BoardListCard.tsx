@@ -29,7 +29,7 @@ export function BoardListCard({
             <div className="flex items-center gap-2">
                 {customRenderTitleSuffix && customRenderTitleSuffix(item)}
                 {item.isMine && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-[#5FA37C] text-white text-[10px] rounded-full shrink-0">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-brand-light text-white text-[10px] rounded-full shrink-0">
                         <UserIcon className="h-3 w-3" />내 글
                     </span>
                 )}

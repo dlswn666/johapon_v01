@@ -56,7 +56,7 @@ export function SelectBox({
                     // 텍스트 스타일
                     'text-[14px] text-gray-900',
                     // 포커스 스타일
-                    'outline-none focus-visible:ring-2 focus-visible:ring-[#4E8C6D] focus-visible:border-transparent',
+                    'outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:border-transparent',
                     // 호버 효과
                     'hover:bg-gray-50 hover:border-gray-400',
                     // 트랜지션
@@ -86,7 +86,7 @@ export function SelectBox({
                                 // 호버 효과 - 회색 계열
                                 'hover:bg-gray-100 focus:bg-gray-100',
                                 // 선택된 항목 스타일
-                                'data-[state=checked]:bg-gray-100 data-[state=checked]:text-[#4E8C6D] data-[state=checked]:font-medium',
+                                'data-[state=checked]:bg-gray-100 data-[state=checked]:text-brand data-[state=checked]:font-medium',
                                 // 트랜지션
                                 'transition-colors duration-150'
                             )}

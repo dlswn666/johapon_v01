@@ -136,10 +136,10 @@ export default function UnionMobileSidebar({ isOpen, onClose }: UnionMobileSideb
                     <Link
                         href={`/${union.slug}`}
                         onClick={handleLinkClick}
-                        className="flex items-center gap-3 hover:opacity-80 transition-opacity rounded-lg focus-visible:ring-2 focus-visible:ring-[#4E8C6D] focus-visible:ring-offset-2 outline-none"
+                        className="flex items-center gap-3 hover:opacity-80 transition-opacity rounded-lg focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 outline-none"
                         aria-label={`${union.name} 홈으로 이동`}
                     >
-                        <div className="bg-[#4e8c6d] rounded-full size-[44px] flex items-center justify-center shrink-0 relative overflow-hidden">
+                        <div className="bg-brand rounded-full size-[44px] flex items-center justify-center shrink-0 relative overflow-hidden">
                             {union.logo_url ? (
                                 <Image
                                     src={union.logo_url}
@@ -152,7 +152,7 @@ export default function UnionMobileSidebar({ isOpen, onClose }: UnionMobileSideb
                             )}
                         </div>
                         <div className="flex flex-col min-w-0">
-                            <p className="text-[15px] leading-[21px] font-bold text-[#4e8c6d] truncate">{union.name}</p>
+                            <p className="text-[15px] leading-[21px] font-bold text-brand truncate">{union.name}</p>
                         </div>
                     </Link>
                 </div>
@@ -170,9 +170,9 @@ export default function UnionMobileSidebar({ isOpen, onClose }: UnionMobileSideb
                                         <button
                                             className={cn(
                                                 'w-full flex items-center justify-between px-3 py-3 rounded-lg text-[15px] font-medium transition-colors cursor-pointer',
-                                                'outline-none focus-visible:ring-2 focus-visible:ring-[#4E8C6D] focus-visible:ring-inset',
+                                                'outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-inset',
                                                 isActiveRoute(item.href)
-                                                    ? 'bg-[#4e8c6d]/10 text-[#4e8c6d]'
+                                                    ? 'bg-brand/10 text-brand'
                                                     : 'text-gray-700 hover:bg-gray-100'
                                             )}
                                             aria-expanded={openMenus.includes(item.id)}
@@ -195,9 +195,9 @@ export default function UnionMobileSidebar({ isOpen, onClose }: UnionMobileSideb
                                                 onClick={handleLinkClick}
                                                 className={cn(
                                                     'block px-3 py-2.5 rounded-lg text-[14px] transition-colors cursor-pointer',
-                                                    'outline-none focus-visible:ring-2 focus-visible:ring-[#4E8C6D] focus-visible:ring-inset',
+                                                    'outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-inset',
                                                     pathname === subItem.href
-                                                        ? 'bg-[#4e8c6d]/10 text-[#4e8c6d] font-medium'
+                                                        ? 'bg-brand/10 text-brand font-medium'
                                                         : 'text-gray-600 hover:bg-gray-100'
                                                 )}
                                             >
@@ -212,9 +212,9 @@ export default function UnionMobileSidebar({ isOpen, onClose }: UnionMobileSideb
                                     onClick={handleLinkClick}
                                     className={cn(
                                         'block px-3 py-3 rounded-lg text-[15px] font-medium transition-colors cursor-pointer',
-                                        'outline-none focus-visible:ring-2 focus-visible:ring-[#4E8C6D] focus-visible:ring-inset',
+                                        'outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-inset',
                                         isActiveRoute(item.href)
-                                            ? 'bg-[#4e8c6d]/10 text-[#4e8c6d]'
+                                            ? 'bg-brand/10 text-brand'
                                             : 'text-gray-700 hover:bg-gray-100'
                                     )}
                                 >
@@ -231,8 +231,8 @@ export default function UnionMobileSidebar({ isOpen, onClose }: UnionMobileSideb
                     {user && (
                         <div className="px-3 py-2 mb-1">
                             <div className="flex items-center gap-3">
-                                <div className="size-[36px] flex items-center justify-center bg-[#4e8c6d]/10 rounded-full">
-                                    <UserCircle className="size-[24px] text-[#4e8c6d]" aria-hidden="true" />
+                                <div className="size-[36px] flex items-center justify-center bg-brand/10 rounded-full">
+                                    <UserCircle className="size-[24px] text-brand" aria-hidden="true" />
                                 </div>
                                 <div className="flex flex-col min-w-0">
                                     <span className="text-[14px] font-medium text-gray-800 max-w-[120px] truncate" title={user.name}>{user.name}님</span>
@@ -247,16 +247,16 @@ export default function UnionMobileSidebar({ isOpen, onClose }: UnionMobileSideb
                             onClick={() => setIsUserMenuExpanded(!isUserMenuExpanded)}
                             className={cn(
                                 'w-full flex items-center justify-between px-3 py-3 rounded-lg transition-colors cursor-pointer',
-                                'outline-none focus-visible:ring-2 focus-visible:ring-[#4E8C6D] focus-visible:ring-inset',
-                                isUserMenuExpanded ? 'bg-[#4e8c6d]/10' : 'hover:bg-gray-100'
+                                'outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-inset',
+                                isUserMenuExpanded ? 'bg-brand/10' : 'hover:bg-gray-100'
                             )}
                             aria-label="내 계정 메뉴 열기"
                             aria-expanded={isUserMenuExpanded}
                             aria-haspopup="menu"
                         >
                             <div className="flex items-center gap-3">
-                                <div className="size-[36px] flex items-center justify-center bg-[#4e8c6d]/10 rounded-full">
-                                    <UserCircle className="size-[24px] text-[#4e8c6d]" aria-hidden="true" />
+                                <div className="size-[36px] flex items-center justify-center bg-brand/10 rounded-full">
+                                    <UserCircle className="size-[24px] text-brand" aria-hidden="true" />
                                 </div>
                                 <span className="text-[14px] font-medium text-gray-700">
                                     {user ? '내 계정' : '로그인'}
@@ -277,14 +277,14 @@ export default function UnionMobileSidebar({ isOpen, onClose }: UnionMobileSideb
                                 <Link
                                     href={`/${union.slug}/my-property`}
                                     onClick={handleLinkClick}
-                                    className="block px-3 py-2.5 rounded-lg text-[14px] text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-[#4E8C6D] focus-visible:ring-inset"
+                                    className="block px-3 py-2.5 rounded-lg text-[14px] text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-inset"
                                 >
                                     <MapPin className="size-4" aria-hidden="true" />
                                     내 공시지가 보기
                                 </Link>
                                 <button
                                     onClick={handleLogout}
-                                    className="w-full text-left px-3 py-2.5 rounded-lg text-[14px] text-gray-600 hover:bg-gray-100 transition-colors flex items-center gap-2 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[#4E8C6D] focus-visible:ring-inset"
+                                    className="w-full text-left px-3 py-2.5 rounded-lg text-[14px] text-gray-600 hover:bg-gray-100 transition-colors flex items-center gap-2 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-inset"
                                 >
                                     <LogOut className="size-4" aria-hidden="true" />
                                     로그아웃

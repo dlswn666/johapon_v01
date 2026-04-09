@@ -104,7 +104,7 @@ export function LoginForm({ className, unionName, onLoginSuccess: _onLoginSucces
     return (
         <div className={cn('w-full max-w-[400px] bg-white rounded-xl shadow-2xl p-8', 'mx-4 md:mx-0', className)}>
             {/* 로그인 타이틀 */}
-            <h2 className="text-2xl font-bold text-center text-[#4E8C6D] mb-2">
+            <h2 className="text-2xl font-bold text-center text-brand mb-2">
                 {unionName ? `${unionName}` : '조합원 로그인'}
             </h2>
             <p className="text-center text-gray-500 text-sm mb-8">소셜 계정으로 간편하게 로그인하세요</p>
@@ -125,8 +125,8 @@ export function LoginForm({ className, unionName, onLoginSuccess: _onLoginSucces
                     disabled={isLoading}
                     className={cn(
                         'w-full h-12 rounded-lg font-medium',
-                        'bg-[#FEE500] text-[#191919]',
-                        'hover:bg-[#e6cf00]',
+                        'bg-kakao text-kakao-foreground',
+                        'hover:bg-kakao',
                         'transition-colors',
                         'flex items-center justify-center gap-3',
                         'cursor-pointer',
@@ -146,8 +146,8 @@ export function LoginForm({ className, unionName, onLoginSuccess: _onLoginSucces
                     disabled={isLoading}
                     className={cn(
                         'w-full h-12 rounded-lg font-medium',
-                        'bg-[#03C75A] text-white',
-                        'hover:bg-[#02b350]',
+                        'bg-naver text-white',
+                        'hover:bg-naver-hover',
                         'transition-colors',
                         'flex items-center justify-center gap-3',
                         'cursor-pointer',

@@ -13,7 +13,7 @@ import AlertModal from '@/app/_lib/widgets/modal/AlertModal';
 import useModalStore from '@/app/_lib/shared/stores/modal/useModalStore';
 import { ArrowLeft, ExternalLink, ShieldCheck } from 'lucide-react';
 
-const PartnerDetailPage = () => {
+export default function PartnerDetailPage() {
     const router = useRouter();
     const params = useParams();
     const slug = params.slug as string;
@@ -81,7 +81,7 @@ const PartnerDetailPage = () => {
         return (
             <div className={cn('container mx-auto max-w-[1280px] px-4 py-8')}>
                 <div className="flex justify-center items-center h-64">
-                    <p className="text-[18px] text-[#D9534F]">협력 업체를 찾을 수 없습니다.</p>
+                    <p className="text-[18px] text-error-text">협력 업체를 찾을 수 없습니다.</p>
                 </div>
             </div>
         );
@@ -96,7 +96,7 @@ const PartnerDetailPage = () => {
                         <div className="space-y-2">
                             <button 
                                 onClick={() => router.push(`/${slug}/communication/partner`)}
-                                className="flex items-center gap-2 text-sm text-gray-500 hover:text-[#4E8C6D] transition-colors cursor-pointer group"
+                                className="flex items-center gap-2 text-sm text-gray-500 hover:text-brand transition-colors cursor-pointer group"
                             >
                                 <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
                                 목록으로 돌아가기
@@ -131,7 +131,7 @@ const PartnerDetailPage = () => {
                             )}
                             {ad.link_url && (
                                 <Button 
-                                    className="bg-[#4E8C6D] hover:bg-[#3d7a5c] text-white flex items-center gap-2 shadow-lg shadow-emerald-700/10 h-10 px-6 rounded-xl"
+                                    className="bg-brand hover:bg-brand-hover text-white flex items-center gap-2 shadow-lg shadow-emerald-700/10 h-10 px-6 rounded-xl"
                                     onClick={() => window.open(ad.link_url!, '_blank')}
                                 >
                                     홈페이지 방문
@@ -183,4 +183,3 @@ const PartnerDetailPage = () => {
     );
 };
 
-export default PartnerDetailPage;

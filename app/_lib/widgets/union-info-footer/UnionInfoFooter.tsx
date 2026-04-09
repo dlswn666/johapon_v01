@@ -14,7 +14,7 @@ export function UnionInfoFooter({ union, className }: UnionInfoFooterProps) {
     const currentYear = new Date().getFullYear();
 
     return (
-        <footer className={cn('bg-[#1e3a2f] w-full', className)}>
+        <footer className={cn('bg-primary w-full', className)}>
             <div className="max-w-[1200px] mx-auto px-4 md:px-6 py-12 md:py-14">
                 {/* 상단: 3열 그리드 */}
                 <div className="grid grid-cols-1 md:grid-cols-[1.2fr_1fr_1fr] gap-8 md:gap-12">

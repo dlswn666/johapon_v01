@@ -8,7 +8,7 @@ export function MarketingFooter() {
     const currentYear = 2025;
 
     return (
-        <footer className="bg-[#1e2939] text-white w-full py-8 md:py-[37px]">
+        <footer className="bg-foreground text-white w-full py-8 md:py-[37px]">
             <div className="container mx-auto max-w-[1280px] px-4">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 mb-8 md:mb-[37px]">
                     {/* 회사 소개 */}
@@ -20,7 +20,7 @@ export function MarketingFooter() {
                             조합온( 라텔 )
                         </h3>
                         <div
-                            className="text-[#d1d5dc]"
+                            className="text-muted-foreground"
                             style={{ fontSize: 'var(--text-marketing-footer-body)', lineHeight: '1.7' }}
                         >
                             <p>투명하고 신뢰할 수 있는</p>
@@ -37,7 +37,7 @@ export function MarketingFooter() {
                             연락처
                         </h4>
                         <div
-                            className="flex flex-col gap-2 md:gap-[9px] text-[#d1d5dc]"
+                            className="flex flex-col gap-2 md:gap-[9px] text-muted-foreground"
                             style={{ fontSize: 'var(--text-marketing-footer-body)', lineHeight: '1.5' }}
                         >
                             <p>
@@ -67,7 +67,7 @@ export function MarketingFooter() {
                             오시는 길
                         </h4>
                         <div
-                            className="text-[#d1d5dc]"
+                            className="text-muted-foreground"
                             style={{ fontSize: 'var(--text-marketing-footer-body)', lineHeight: '1.7' }}
                         >
                             <p></p>
@@ -78,7 +78,7 @@ export function MarketingFooter() {
 
                 {/* 사업자 정보 */}
                 <div
-                    className="flex flex-wrap justify-center items-center gap-2 md:gap-4 text-[#99a1af] text-center mb-6 md:mb-[37px]"
+                    className="flex flex-wrap justify-center items-center gap-2 md:gap-4 text-muted-foreground text-center mb-6 md:mb-[37px]"
                     style={{ fontSize: 'var(--text-marketing-footer-body)', lineHeight: '1.5' }}
                 >
                     <span>상호: 라텔</span>
@@ -97,23 +97,23 @@ export function MarketingFooter() {
                 >
                     <Link
                         href="/terms"
-                        className="text-[#99a1af] hover:text-white transition-colors"
+                        className="text-muted-foreground hover:text-white transition-colors"
                     >
                         이용약관
                     </Link>
-                    <span className="text-[#4b5563]">|</span>
+                    <span className="text-muted-foreground">|</span>
                     <Link
                         href="/privacy"
-                        className="text-[#99a1af] hover:text-white transition-colors"
+                        className="text-muted-foreground hover:text-white transition-colors"
                     >
                         개인정보처리방침
                     </Link>
                 </div>
 
                 {/* Copyright */}
-                <div className="border-t border-[#364153] pt-6 md:pt-[37px]">
+                <div className="border-t border-foreground pt-6 md:pt-[37px]">
                     <p
-                        className="text-[#99a1af] text-center"
+                        className="text-muted-foreground text-center"
                         style={{ fontSize: 'var(--text-marketing-footer-body)', lineHeight: '1.5' }}
                     >
                         © {currentYear} 조합온. All rights reserved.

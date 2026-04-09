@@ -106,7 +106,7 @@ export default function MarketingPage() {
                         <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center pt-4">
                             <button
                                 onClick={() => router.push('/contact')}
-                                className="px-6 md:px-8 py-3 bg-[#4e8c6d] text-white rounded-lg font-bold hover:bg-[#3d7a5c] transition-colors cursor-pointer"
+                                className="px-6 md:px-8 py-3 bg-brand text-white rounded-lg font-bold hover:bg-brand-hover transition-colors cursor-pointer"
                                 style={{ fontSize: 'var(--text-marketing-button)' }}
                             >
                                 도입 문의하기
@@ -230,7 +230,7 @@ export default function MarketingPage() {
                 <div className="max-w-6xl mx-auto">
                     <div className="text-center mb-10 md:mb-16">
                         <h2
-                            className="font-bold text-[#2d2d2d] mb-3 md:mb-4 [text-wrap:balance]"
+                            className="font-bold text-foreground mb-3 md:mb-4 [text-wrap:balance]"
                             style={{
                                 fontSize: 'var(--text-marketing-section-title)',
                                 lineHeight: 'var(--leading-marketing-section-title)',
@@ -250,14 +250,14 @@ export default function MarketingPage() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                         {/* Feature 1 */}
-                        <div className="bg-white border border-[#e6e6e6] rounded-xl p-5 md:p-8 h-full">
+                        <div className="bg-white border border-subtle-border rounded-xl p-5 md:p-8 h-full">
                             <div className="flex gap-3 md:gap-4 h-full">
-                                <div className="w-10 h-10 md:w-12 md:h-12 bg-[#4e8c6d]/10 rounded-lg flex items-center justify-center shrink-0">
-                                    <LockKeyhole className="w-5 h-5 md:w-6 md:h-6 text-[#4e8c6d]" />
+                                <div className="w-10 h-10 md:w-12 md:h-12 bg-brand/10 rounded-lg flex items-center justify-center shrink-0">
+                                    <LockKeyhole className="w-5 h-5 md:w-6 md:h-6 text-brand" />
                                 </div>
                                 <div>
                                     <h3
-                                        className="font-bold text-[#2d2d2d] mb-1 md:mb-2"
+                                        className="font-bold text-foreground mb-1 md:mb-2"
                                         style={{
                                             fontSize: 'var(--text-marketing-card-title)',
                                             lineHeight: 'var(--leading-marketing-card-title)',
@@ -281,14 +281,14 @@ export default function MarketingPage() {
                         </div>
 
                         {/* Feature 2 */}
-                        <div className="bg-white border border-[#e6e6e6] rounded-xl p-5 md:p-8 h-full">
+                        <div className="bg-white border border-subtle-border rounded-xl p-5 md:p-8 h-full">
                             <div className="flex gap-3 md:gap-4 h-full">
-                                <div className="w-10 h-10 md:w-12 md:h-12 bg-[#4e8c6d]/10 rounded-lg flex items-center justify-center shrink-0">
-                                    <EyeOff className="w-5 h-5 md:w-6 md:h-6 text-[#4e8c6d]" />
+                                <div className="w-10 h-10 md:w-12 md:h-12 bg-brand/10 rounded-lg flex items-center justify-center shrink-0">
+                                    <EyeOff className="w-5 h-5 md:w-6 md:h-6 text-brand" />
                                 </div>
                                 <div>
                                     <h3
-                                        className="font-bold text-[#2d2d2d] mb-1 md:mb-2"
+                                        className="font-bold text-foreground mb-1 md:mb-2"
                                         style={{
                                             fontSize: 'var(--text-marketing-card-title)',
                                             lineHeight: 'var(--leading-marketing-card-title)',
@@ -313,14 +313,14 @@ export default function MarketingPage() {
                         </div>
 
                         {/* Feature 3 */}
-                        <div className="bg-white border border-[#e6e6e6] rounded-xl p-5 md:p-8 h-full">
+                        <div className="bg-white border border-subtle-border rounded-xl p-5 md:p-8 h-full">
                             <div className="flex gap-3 md:gap-4 h-full">
-                                <div className="w-10 h-10 md:w-12 md:h-12 bg-[#4e8c6d]/10 rounded-lg flex items-center justify-center shrink-0">
-                                    <BellRing className="w-5 h-5 md:w-6 md:h-6 text-[#4e8c6d]" />
+                                <div className="w-10 h-10 md:w-12 md:h-12 bg-brand/10 rounded-lg flex items-center justify-center shrink-0">
+                                    <BellRing className="w-5 h-5 md:w-6 md:h-6 text-brand" />
                                 </div>
                                 <div>
                                     <h3
-                                        className="font-bold text-[#2d2d2d] mb-1 md:mb-2"
+                                        className="font-bold text-foreground mb-1 md:mb-2"
                                         style={{
                                             fontSize: 'var(--text-marketing-card-title)',
                                             lineHeight: 'var(--leading-marketing-card-title)',
@@ -343,14 +343,14 @@ export default function MarketingPage() {
                         </div>
 
                         {/* Feature 4 */}
-                        <div className="bg-white border border-[#e6e6e6] rounded-xl p-5 md:p-8 h-full">
+                        <div className="bg-white border border-subtle-border rounded-xl p-5 md:p-8 h-full">
                             <div className="flex gap-3 md:gap-4 h-full">
-                                <div className="w-10 h-10 md:w-12 md:h-12 bg-[#4e8c6d]/10 rounded-lg flex items-center justify-center shrink-0">
-                                    <Eye className="w-5 h-5 md:w-6 md:h-6 text-[#4e8c6d]" />
+                                <div className="w-10 h-10 md:w-12 md:h-12 bg-brand/10 rounded-lg flex items-center justify-center shrink-0">
+                                    <Eye className="w-5 h-5 md:w-6 md:h-6 text-brand" />
                                 </div>
                                 <div>
                                     <h3
-                                        className="font-bold text-[#2d2d2d] mb-1 md:mb-2"
+                                        className="font-bold text-foreground mb-1 md:mb-2"
                                         style={{
                                             fontSize: 'var(--text-marketing-card-title)',
                                             lineHeight: 'var(--leading-marketing-card-title)',
@@ -374,14 +374,14 @@ export default function MarketingPage() {
                         </div>
 
                         {/* Feature 5 */}
-                        <div className="bg-white border border-[#e6e6e6] rounded-xl p-5 md:p-8 h-full">
+                        <div className="bg-white border border-subtle-border rounded-xl p-5 md:p-8 h-full">
                             <div className="flex gap-3 md:gap-4 h-full">
-                                <div className="w-10 h-10 md:w-12 md:h-12 bg-[#4e8c6d]/10 rounded-lg flex items-center justify-center shrink-0">
-                                    <Clock className="w-5 h-5 md:w-6 md:h-6 text-[#4e8c6d]" />
+                                <div className="w-10 h-10 md:w-12 md:h-12 bg-brand/10 rounded-lg flex items-center justify-center shrink-0">
+                                    <Clock className="w-5 h-5 md:w-6 md:h-6 text-brand" />
                                 </div>
                                 <div>
                                     <h3
-                                        className="font-bold text-[#2d2d2d] mb-1 md:mb-2"
+                                        className="font-bold text-foreground mb-1 md:mb-2"
                                         style={{
                                             fontSize: 'var(--text-marketing-card-title)',
                                             lineHeight: 'var(--leading-marketing-card-title)',
@@ -403,14 +403,14 @@ export default function MarketingPage() {
                         </div>
 
                         {/* Feature 6 */}
-                        <div className="bg-white border border-[#e6e6e6] rounded-xl p-5 md:p-8 h-full">
+                        <div className="bg-white border border-subtle-border rounded-xl p-5 md:p-8 h-full">
                             <div className="flex gap-3 md:gap-4 h-full">
-                                <div className="w-10 h-10 md:w-12 md:h-12 bg-[#4e8c6d]/10 rounded-lg flex items-center justify-center shrink-0">
-                                    <Coins className="w-5 h-5 md:w-6 md:h-6 text-[#4e8c6d]" />
+                                <div className="w-10 h-10 md:w-12 md:h-12 bg-brand/10 rounded-lg flex items-center justify-center shrink-0">
+                                    <Coins className="w-5 h-5 md:w-6 md:h-6 text-brand" />
                                 </div>
                                 <div>
                                     <h3
-                                        className="font-bold text-[#2d2d2d] mb-1 md:mb-2"
+                                        className="font-bold text-foreground mb-1 md:mb-2"
                                         style={{
                                             fontSize: 'var(--text-marketing-card-title)',
                                             lineHeight: 'var(--leading-marketing-card-title)',
@@ -477,17 +477,17 @@ export default function MarketingPage() {
                                 {/* 중앙: 방화벽 (Shield) */}
                                 <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-full w-px bg-gradient-to-b from-transparent via-red-400 to-transparent z-0"></div>
                                 <div className="z-20 bg-white p-3 rounded-full border-2 border-red-100 shadow-lg relative">
-                                    <LockKeyhole className="w-6 h-6 text-[#ef4444]" />
+                                    <LockKeyhole className="w-6 h-6 text-destructive" />
                                     <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
                                 </div>
 
                                 {/* 오른쪽: 내부 안전 지대 */}
                                 <div className="flex flex-col gap-3 z-10">
-                                    <div className="w-24 h-24 bg-[#4e8c6d]/10 rounded-full flex flex-col items-center justify-center border-2 border-[#4e8c6d] shadow-lg animate-pulse">
-                                        <ShieldCheck className="w-8 h-8 text-[#4e8c6d] mb-1" />
-                                        <span className="text-[10px] font-bold text-[#4e8c6d]">Safe Zone</span>
+                                    <div className="w-24 h-24 bg-brand/10 rounded-full flex flex-col items-center justify-center border-2 border-brand shadow-lg animate-pulse">
+                                        <ShieldCheck className="w-8 h-8 text-brand mb-1" />
+                                        <span className="text-[10px] font-bold text-brand">Safe Zone</span>
                                     </div>
-                                    <div className="bg-[#4e8c6d] text-white text-xs px-3 py-1 rounded-full text-center shadow-md">
+                                    <div className="bg-brand text-white text-xs px-3 py-1 rounded-full text-center shadow-md">
                                         인증된 조합원
                                     </div>
                                 </div>
@@ -496,12 +496,12 @@ export default function MarketingPage() {
 
                         {/* 보안 텍스트 설명 */}
                         <div className="w-full lg:w-1/2">
-                            <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#4e8c6d]/10 rounded-full mb-4">
-                                <ShieldCheck className="w-4 h-4 text-[#4e8c6d]" />
-                                <span className="text-[#4e8c6d] font-bold text-sm">철통 보안 시스템</span>
+                            <div className="inline-flex items-center gap-2 px-3 py-1 bg-brand/10 rounded-full mb-4">
+                                <ShieldCheck className="w-4 h-4 text-brand" />
+                                <span className="text-brand font-bold text-sm">철통 보안 시스템</span>
                             </div>
                             <h2
-                                className="font-bold text-[#2d2d2d] mb-3 md:mb-4 [text-wrap:balance]"
+                                className="font-bold text-foreground mb-3 md:mb-4 [text-wrap:balance]"
                                 style={{
                                     fontSize: 'var(--text-marketing-section-title)',
                                     lineHeight: 'var(--leading-marketing-section-title)',
@@ -509,7 +509,7 @@ export default function MarketingPage() {
                             >
                                 외부인은 절대 볼 수 없는
                                 <br />
-                                <span className="text-[#4e8c6d]">프라이빗 조합 공간</span>
+                                <span className="text-brand">프라이빗 조합 공간</span>
                             </h2>
 
                             <div className="space-y-6">
@@ -609,12 +609,12 @@ export default function MarketingPage() {
                 <div className="max-w-6xl mx-auto text-center">
                     {/* 소통 헤더 */}
                     <div className="mb-12">
-                        <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#4e8c6d]/10 rounded-full mb-4">
-                            <MessageCircle className="w-4 h-4 text-[#4e8c6d]" />
-                            <span className="text-[#4e8c6d] font-bold text-sm">누구나 쉬운 소통</span>
+                        <div className="inline-flex items-center gap-2 px-3 py-1 bg-brand/10 rounded-full mb-4">
+                            <MessageCircle className="w-4 h-4 text-brand" />
+                            <span className="text-brand font-bold text-sm">누구나 쉬운 소통</span>
                         </div>
                         <h2
-                            className="font-bold text-[#2d2d2d] mb-3 md:mb-4 [text-wrap:balance]"
+                            className="font-bold text-foreground mb-3 md:mb-4 [text-wrap:balance]"
                             style={{
                                 fontSize: 'var(--text-marketing-section-title)',
                                 lineHeight: 'var(--leading-marketing-section-title)',
@@ -622,7 +622,7 @@ export default function MarketingPage() {
                         >
                             어르신도 문제없는
                             <br />
-                            <span className="text-[#4e8c6d]">가장 쉬운 디지털 소통</span>
+                            <span className="text-brand">가장 쉬운 디지털 소통</span>
                         </h2>
                         <p
                             className="text-gray-600 font-medium max-w-2xl mx-auto"
@@ -640,7 +640,7 @@ export default function MarketingPage() {
 
                         {/* 왼쪽: 어르신 */}
                         <div className="absolute left-6 md:left-12 flex flex-col items-center group">
-                            <div className="w-16 h-16 md:w-20 md:h-20 bg-gray-100 rounded-full flex items-center justify-center mb-2 group-hover:bg-[#4e8c6d]/10 transition-colors">
+                            <div className="w-16 h-16 md:w-20 md:h-20 bg-gray-100 rounded-full flex items-center justify-center mb-2 group-hover:bg-brand/10 transition-colors">
                                 <span className="text-3xl md:text-4xl">👴</span>
                             </div>
                             <span className="text-sm font-bold text-gray-500">어르신</span>
@@ -648,7 +648,7 @@ export default function MarketingPage() {
 
                         {/* 오른쪽: 젊은 층 */}
                         <div className="absolute right-6 md:right-12 flex flex-col items-center group">
-                            <div className="w-16 h-16 md:w-20 md:h-20 bg-gray-100 rounded-full flex items-center justify-center mb-2 group-hover:bg-[#4e8c6d]/10 transition-colors">
+                            <div className="w-16 h-16 md:w-20 md:h-20 bg-gray-100 rounded-full flex items-center justify-center mb-2 group-hover:bg-brand/10 transition-colors">
                                 <span className="text-3xl md:text-4xl">🧑‍💻</span>
                             </div>
                             <span className="text-sm font-bold text-gray-500">젊은 세대</span>
@@ -659,24 +659,24 @@ export default function MarketingPage() {
                             <div className="relative bg-gray-800 rounded-[2rem] p-2 border-4 border-gray-200 shadow-xl">
                                 <div className="w-24 h-40 md:w-32 md:h-48 bg-white rounded-[1.5rem] flex flex-col items-center justify-center relative overflow-hidden">
                                     {/* 화면 내용 */}
-                                    <div className="w-full h-8 bg-[#FEE500] absolute top-0"></div>
+                                    <div className="w-full h-8 bg-kakao absolute top-0"></div>
                                     <div className="flex flex-col gap-2 w-full px-3 mt-4">
                                         <div className="bg-gray-100 rounded-lg p-2 text-[10px] text-gray-400 w-3/4">
                                             공지사항입니다...
                                         </div>
-                                        <div className="bg-[#FEE500] rounded-lg p-2 text-[10px] self-end w-3/4">
+                                        <div className="bg-kakao rounded-lg p-2 text-[10px] self-end w-3/4">
                                             확인했습니다!
                                         </div>
                                     </div>
                                     {/* 카카오 아이콘 */}
-                                    <div className="absolute bottom-4 w-10 h-10 bg-[#FEE500] rounded-xl flex items-center justify-center shadow-sm">
-                                        <MessageCircle className="w-6 h-6 text-[#3C1E1E] fill-current" />
+                                    <div className="absolute bottom-4 w-10 h-10 bg-kakao rounded-xl flex items-center justify-center shadow-sm">
+                                        <MessageCircle className="w-6 h-6 text-foreground fill-current" />
                                     </div>
                                 </div>
                             </div>
                             {/* 뱃지 */}
                             <div className="absolute -top-4 -right-4 w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg border border-gray-100">
-                                <BellRing className="w-6 h-6 text-[#FEE500] fill-current" />
+                                <BellRing className="w-6 h-6 text-kakao fill-current" />
                             </div>
                         </div>
                     </div>
@@ -684,8 +684,8 @@ export default function MarketingPage() {
                     {/* 소통 기능 카드 (Grid) */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div className="bg-white p-6 rounded-xl border border-gray-100 text-left hover:shadow-md transition-shadow">
-                            <div className="w-10 h-10 bg-[#FEE500]/20 rounded-lg flex items-center justify-center mb-3">
-                                <MessageCircle className="w-5 h-5 text-[#3C1E1E]" />
+                            <div className="w-10 h-10 bg-kakao/20 rounded-lg flex items-center justify-center mb-3">
+                                <MessageCircle className="w-5 h-5 text-foreground" />
                             </div>
                             <h3
                                 className="font-bold text-gray-800 mb-2"
@@ -707,8 +707,8 @@ export default function MarketingPage() {
                             </p>
                         </div>
                         <div className="bg-white p-6 rounded-xl border border-gray-100 text-left hover:shadow-md transition-shadow">
-                            <div className="w-10 h-10 bg-[#4e8c6d]/10 rounded-lg flex items-center justify-center mb-3">
-                                <Smile className="w-5 h-5 text-[#4e8c6d]" />
+                            <div className="w-10 h-10 bg-brand/10 rounded-lg flex items-center justify-center mb-3">
+                                <Smile className="w-5 h-5 text-brand" />
                             </div>
                             <h3
                                 className="font-bold text-gray-800 mb-2"
@@ -766,12 +766,12 @@ export default function MarketingPage() {
                     <div className="flex flex-col-reverse lg:flex-row items-center gap-12 lg:gap-20">
                         {/* 수익 텍스트 설명 */}
                         <div className="w-full lg:w-1/2">
-                            <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#4e8c6d]/10 rounded-full mb-4">
-                                <DollarSign className="w-4 h-4 text-[#4e8c6d]" />
-                                <span className="text-[#4e8c6d] font-bold text-sm">운영비 걱정 없는 조합</span>
+                            <div className="inline-flex items-center gap-2 px-3 py-1 bg-brand/10 rounded-full mb-4">
+                                <DollarSign className="w-4 h-4 text-brand" />
+                                <span className="text-brand font-bold text-sm">운영비 걱정 없는 조합</span>
                             </div>
                             <h2
-                                className="font-bold text-[#2d2d2d] mb-3 md:mb-4 [text-wrap:balance]"
+                                className="font-bold text-foreground mb-3 md:mb-4 [text-wrap:balance]"
                                 style={{
                                     fontSize: 'var(--text-marketing-section-title)',
                                     lineHeight: 'var(--leading-marketing-section-title)',
@@ -779,7 +779,7 @@ export default function MarketingPage() {
                             >
                                 추가 비용 부담 없이
                                 <br />
-                                <span className="text-[#4e8c6d]">스스로 돈 버는 홈페이지</span>
+                                <span className="text-brand">스스로 돈 버는 홈페이지</span>
                             </h2>
 
                             <div className="space-y-6">
@@ -900,7 +900,7 @@ export default function MarketingPage() {
                                     </div>
 
                                     {/* 저금통/금고 */}
-                                    <div className="w-32 h-32 bg-[#4e8c6d] rounded-full flex items-center justify-center shadow-xl border-4 border-[#3d7056] relative overflow-hidden">
+                                    <div className="w-32 h-32 bg-brand rounded-full flex items-center justify-center shadow-xl border-4 border-brand relative overflow-hidden">
                                         <div className="absolute inset-0 bg-gradient-to-tr from-black/10 to-transparent"></div>
                                         <PiggyBank className="w-14 h-14 text-white relative z-10" />
                                         {/* 반짝이 */}
@@ -909,7 +909,7 @@ export default function MarketingPage() {
                                 </div>
 
                                 {/* 결과 뱃지 */}
-                                <div className="mt-6 bg-white border border-[#4e8c6d] text-[#4e8c6d] px-4 py-2 rounded-full font-bold shadow-sm text-sm">
+                                <div className="mt-6 bg-white border border-brand text-brand px-4 py-2 rounded-full font-bold shadow-sm text-sm">
                                     운영비 0원 달성
                                 </div>
                             </div>
@@ -923,7 +923,7 @@ export default function MarketingPage() {
                 <div className="max-w-3xl mx-auto">
                     <div className="text-center mb-10 md:mb-16">
                         <h2
-                            className="font-bold text-[#2d2d2d] mb-3 md:mb-4"
+                            className="font-bold text-foreground mb-3 md:mb-4"
                             style={{
                                 fontSize: 'var(--text-marketing-section-title)',
                                 lineHeight: 'var(--leading-marketing-section-title)',
@@ -941,13 +941,13 @@ export default function MarketingPage() {
 
                     <div className="space-y-3 md:space-y-4">
                         {faqItems.map((item, index) => (
-                            <div key={index} className="bg-white border border-[#e6e6e6] rounded-lg overflow-hidden">
+                            <div key={index} className="bg-white border border-subtle-border rounded-lg overflow-hidden">
                                 <button
                                     onClick={() => toggleFaq(index)}
                                     className="w-full px-4 md:px-6 py-4 md:py-5 flex items-center justify-between text-left cursor-pointer hover:bg-gray-50 transition-colors"
                                 >
                                     <span
-                                        className="font-bold text-[#2d2d2d] pr-2"
+                                        className="font-bold text-foreground pr-2"
                                         style={{ fontSize: 'var(--text-marketing-faq-question)' }}
                                     >
                                         {item.question}
@@ -1006,7 +1006,7 @@ export default function MarketingPage() {
                     <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center mb-10 md:mb-12">
                         <button
                             onClick={() => router.push('/contact')}
-                            className="inline-flex items-center justify-center gap-2 px-6 md:px-8 py-3 bg-white text-[#4e8c6d] rounded-lg font-bold hover:bg-gray-100 transition-colors cursor-pointer"
+                            className="inline-flex items-center justify-center gap-2 px-6 md:px-8 py-3 bg-white text-brand rounded-lg font-bold hover:bg-gray-100 transition-colors cursor-pointer"
                             style={{ fontSize: 'var(--text-marketing-button)' }}
                         >
                             상담하기

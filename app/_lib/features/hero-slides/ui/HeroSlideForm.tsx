@@ -137,7 +137,7 @@ export default function HeroSlideForm({ mode, initialData, onSubmit, isSubmittin
         <div className={cn('container mx-auto max-w-[1280px] px-4 py-8')}>
             <div className="max-w-4xl mx-auto">
                 {/* 페이지 제목 - 디자인 시스템 스타일 적용 */}
-                <h2 className="text-[32px] font-bold text-[#5FA37C] mb-8">{getTitle()}</h2>
+                <h2 className="text-[32px] font-bold text-brand-light mb-8">{getTitle()}</h2>
 
                 <form onSubmit={handleSubmit} className="space-y-8">
                     {/* 슬라이드 이미지 업로드 */}
@@ -154,7 +154,7 @@ export default function HeroSlideForm({ mode, initialData, onSubmit, isSubmittin
 
                     {/* 링크 URL */}
                     <div className="space-y-2">
-                        <Label htmlFor="link_url" className="text-[16px] font-bold text-[#5FA37C]">
+                        <Label htmlFor="link_url" className="text-[16px] font-bold text-brand-light">
                             링크 URL
                         </Label>
                         <Input
@@ -169,7 +169,7 @@ export default function HeroSlideForm({ mode, initialData, onSubmit, isSubmittin
                             inputMode="url"
                             spellCheck={false}
                             className={cn(
-                                'h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]',
+                                'h-[48px] text-[16px] rounded-[12px] border-subtle-border',
                                 'bg-white'
                             )}
                         />
@@ -180,7 +180,7 @@ export default function HeroSlideForm({ mode, initialData, onSubmit, isSubmittin
 
                     {/* 표시 순서 */}
                     <div className="space-y-2">
-                        <Label htmlFor="display_order" className="text-[16px] font-bold text-[#5FA37C]">
+                        <Label htmlFor="display_order" className="text-[16px] font-bold text-brand-light">
                             표시 순서
                         </Label>
                         <Input
@@ -195,7 +195,7 @@ export default function HeroSlideForm({ mode, initialData, onSubmit, isSubmittin
                             autoComplete="off"
                             inputMode="numeric"
                             className={cn(
-                                'w-32 h-[48px] text-[16px] rounded-[12px] border-[#CCCCCC]',
+                                'w-32 h-[48px] text-[16px] rounded-[12px] border-subtle-border',
                                 'bg-white',
                                 // 스피너 화살표 제거
                                 '[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none'
@@ -205,9 +205,9 @@ export default function HeroSlideForm({ mode, initialData, onSubmit, isSubmittin
                     </div>
 
                     {/* 활성화 상태 */}
-                    <div className="flex items-center justify-between p-4 bg-white rounded-[12px] border border-[#CCCCCC]">
+                    <div className="flex items-center justify-between p-4 bg-white rounded-[12px] border border-subtle-border">
                         <div>
-                            <Label htmlFor="is_active" className="text-[16px] font-bold text-[#5FA37C]">
+                            <Label htmlFor="is_active" className="text-[16px] font-bold text-brand-light">
                                 슬라이드 활성화
                             </Label>
                             <p className="text-sm text-gray-500">비활성화하면 홈페이지에 표시되지 않습니다</p>
@@ -231,7 +231,7 @@ export default function HeroSlideForm({ mode, initialData, onSubmit, isSubmittin
 
                     {/* 버튼 영역 - ActionButton 위젯 사용 */}
                     {!isReadOnly && (
-                        <div className="flex justify-end gap-3 pt-6 border-t border-[#CCCCCC]">
+                        <div className="flex justify-end gap-3 pt-6 border-t border-subtle-border">
                             <ActionButton buttonType="cancel" onClick={() => router.back()}>
                                 취소
                             </ActionButton>

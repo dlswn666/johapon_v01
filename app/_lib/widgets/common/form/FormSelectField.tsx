@@ -76,7 +76,7 @@ export function FormSelectField<T extends FieldValues>({
             name={name}
             render={({ field }) => (
                 <FormItem className={className}>
-                    <FormLabel className="text-[16px] font-bold text-[#5FA37C]">
+                    <FormLabel className="text-[16px] font-bold text-brand-light">
                         {label}
                         {required && <span className="text-red-500 ml-1">*</span>}
                     </FormLabel>
@@ -88,7 +88,7 @@ export function FormSelectField<T extends FieldValues>({
                         <FormControl>
                             <SelectTrigger
                                 className={cn(
-                                    'h-[48px] w-full text-[16px] rounded-[12px] border-[#CCCCCC]',
+                                    'h-[48px] w-full text-[16px] rounded-[12px] border-subtle-border',
                                     'bg-white'
                                 )}
                             >

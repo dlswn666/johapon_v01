@@ -46,7 +46,7 @@ const formSchema = z
         }
     );
 
-const NewNoticePage = () => {
+export default function NewNoticePage() {
     const router = useRouter();
     const { slug, union } = useSlug();
     const { user } = useAuth();
@@ -136,7 +136,7 @@ const NewNoticePage = () => {
         <>
             <div className={cn('container mx-auto max-w-[1280px] px-4 py-8')}>
                 <div className="max-w-4xl mx-auto">
-                    <h2 className="text-[32px] font-bold text-[#5FA37C] mb-8">공지사항 작성</h2>
+                    <h2 className="text-[32px] font-bold text-brand-light mb-8">공지사항 작성</h2>
 
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
@@ -170,8 +170,8 @@ const NewNoticePage = () => {
                                     sendAlimtalk ? 'max-h-[300px] opacity-100' : 'max-h-0 opacity-0'
                                 )}
                             >
-                                <div className="rounded-[12px] border border-[#CCCCCC] bg-white p-6">
-                                    <h4 className="text-[14px] font-bold text-[#5FA37C] mb-4">
+                                <div className="rounded-[12px] border border-subtle-border bg-white p-6">
+                                    <h4 className="text-[14px] font-bold text-brand-light mb-4">
                                         알림톡 발송 설정
                                     </h4>
                                     <div className="space-y-4">
@@ -181,7 +181,7 @@ const NewNoticePage = () => {
                                                     type="radio"
                                                     checked={alimtalkScheduleType === 'immediate'}
                                                     onChange={() => form.setValue('alimtalk_schedule_type', 'immediate')}
-                                                    className="w-4 h-4 text-[#5FA37C]"
+                                                    className="w-4 h-4 text-brand-light"
                                                 />
                                                 <span className="text-sm text-gray-700">바로 발송</span>
                                             </label>
@@ -190,7 +190,7 @@ const NewNoticePage = () => {
                                                     type="radio"
                                                     checked={alimtalkScheduleType === 'scheduled'}
                                                     onChange={() => form.setValue('alimtalk_schedule_type', 'scheduled')}
-                                                    className="w-4 h-4 text-[#5FA37C]"
+                                                    className="w-4 h-4 text-brand-light"
                                                 />
                                                 <span className="text-sm text-gray-700">예약 발송</span>
                                             </label>
@@ -244,11 +244,11 @@ const NewNoticePage = () => {
                                             className={cn(
                                                 'rounded-[12px] border bg-white p-6',
                                                 form.formState.errors.start_date
-                                                    ? 'border-[#D9534F]'
-                                                    : 'border-[#CCCCCC]'
+                                                    ? 'border-error-text'
+                                                    : 'border-subtle-border'
                                             )}
                                         >
-                                            <h4 className="text-[14px] font-bold text-[#5FA37C] mb-4">
+                                            <h4 className="text-[14px] font-bold text-brand-light mb-4">
                                                 팝업 표시 기간
                                             </h4>
                                             <StartEndPicker
@@ -265,7 +265,7 @@ const NewNoticePage = () => {
 
                             {/* 파일 업로드 위젯 추가 */}
                             <FormItem>
-                                <FormLabel className="text-[16px] font-bold text-[#5FA37C]">첨부파일</FormLabel>
+                                <FormLabel className="text-[16px] font-bold text-brand-light">첨부파일</FormLabel>
                                 <FormControl>
                                     <FileUploader
                                         unionSlug={slug}
@@ -280,7 +280,7 @@ const NewNoticePage = () => {
                                 name="content"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel className="text-[16px] font-bold text-[#5FA37C]">내용</FormLabel>
+                                        <FormLabel className="text-[16px] font-bold text-brand-light">내용</FormLabel>
                                         <FormControl>
                                             <TextEditor
                                                 content={field.value}
@@ -294,7 +294,7 @@ const NewNoticePage = () => {
                                 )}
                             />
 
-                            <div className="flex justify-end gap-3 pt-6 border-t border-[#CCCCCC]">
+                            <div className="flex justify-end gap-3 pt-6 border-t border-subtle-border">
                                 <ActionButton buttonType="cancel" onClick={() => router.push(`/${slug}/news/notice`)}>
                                     취소
                                 </ActionButton>
@@ -312,4 +312,3 @@ const NewNoticePage = () => {
     );
 };
 
-export default NewNoticePage;

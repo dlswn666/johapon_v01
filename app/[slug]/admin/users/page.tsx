@@ -22,7 +22,7 @@ export default function AdminUsersRedirectPage() {
     return (
         <div className="min-h-[400px] flex items-center justify-center">
             <div className="flex flex-col items-center gap-3">
-                <Loader2 className="h-10 w-10 animate-spin text-[#4E8C6D]" />
+                <Loader2 className="h-10 w-10 animate-spin text-brand" />
                 <p className="text-lg text-gray-600">조합원 관리 페이지로 이동 중...</p>
             </div>
         </div>
